@@ -25,17 +25,6 @@ export const SOURCE_TIER_RANK: Record<SourceTier, number> = {
   unverified: 99,
 };
 
-/**
- * Campos medidos em laboratório: o fabricante não os publica, então uma medição de lab supera o
- * tier 1 para eles (docs/DATA_SOURCING.md §2, exceção).
- */
-export const LAB_PRIMARY_FIELDS = [
-  'swingweight',
-  'twistweight',
-  'stiffness_ra',
-  'strung_weight_g',
-] as const;
-
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 export type VerificationState = 'draft' | 'pending_verification' | 'verified' | 'disputed';
@@ -67,14 +56,16 @@ export type FieldProvenance = {
 export type ProvenanceMap = Readonly<Record<string, FieldProvenance>>;
 
 /**
- * Decide qual de duas fontes prevalece para um campo, aplicando a exceção de laboratório.
- * Usado pelo painel de verificação e pelos testes de divergência.
+ * Decide qual de duas fontes prevalece para um campo. Usado pelo painel de verificação e pelos
+ * testes de divergência.
+ *
+ * Na v1 existia aqui uma exceção: para `swingweight`, `twistweight`, `stiffness_ra` e
+ * `strung_weight_g`, o tier `lab` superava o `manufacturer`, porque o fabricante não publica esses
+ * valores. A exceção morreu com a metodologia v2 — esses campos não existem mais no modelo, e todos
+ * os campos restantes são publicados pelo fabricante. Tier 1 vence sempre.
  */
-export function preferredSource(field: string, a: SourceTier, b: SourceTier): SourceTier {
-  const isLabPrimary = (LAB_PRIMARY_FIELDS as readonly string[]).includes(field);
-  const rank = (t: SourceTier): number =>
-    isLabPrimary && t === 'lab' ? 0 : SOURCE_TIER_RANK[t];
-  return rank(a) <= rank(b) ? a : b;
+export function preferredSource(_field: string, a: SourceTier, b: SourceTier): SourceTier {
+  return SOURCE_TIER_RANK[a] <= SOURCE_TIER_RANK[b] ? a : b;
 }
 
 /**

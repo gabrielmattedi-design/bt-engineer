@@ -19,7 +19,7 @@ import { scoreRackets } from '../src/recommendation/normalize/racket-attributes'
 import { buildPlayerProfile } from '../src/recommendation/profile/build-profile';
 import { recommend } from '../src/recommendation';
 import { CONFIDENCE_LABEL_PT } from '../src/recommendation/confidence';
-import { PERSONAS } from '../tests/personas/fixtures/personas';
+import { PERSONAS } from '@/data/personas';
 
 const B = '[1m';
 const DIM = '[2m';

@@ -1,8 +1,13 @@
 /**
- * Personas de validação — docs/TEST_STRATEGY.md §4 (§49 + §61: mínimo 20).
+ * Personas de validação — §49 e §61 (mínimo 20), docs/TEST_STRATEGY.md §4.
  *
- * As asserções são sobre PROPRIEDADES do resultado, nunca sobre "deve recomendar a raquete X".
- * Asserções por nome quebrariam a cada mudança de catálogo e não provariam nada sobre o algoritmo.
+ * Vivem em `src/data` e não em `tests/` porque são um ATIVO DE PRODUTO, não fixture: o simulador do
+ * admin (§47) roda sobre elas, a fila de verificação as usa para priorizar por impacto, e a revisão
+ * manual pré-lançamento (§61) é feita persona a persona. Os testes as consomem — não as possuem.
+ *
+ * As asserções nos testes são sobre PROPRIEDADES do resultado, nunca sobre "deve recomendar a
+ * raquete X". Asserções por nome quebrariam a cada mudança de catálogo e não provariam nada sobre o
+ * algoritmo.
  */
 
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';

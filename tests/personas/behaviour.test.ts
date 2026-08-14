@@ -12,7 +12,7 @@ import { recommend } from '@/recommendation';
 import { STIFF_STRING_TYPES } from '@/domain/string';
 import { averageBeam } from '@/domain/racket';
 import { VERY_STIFF_BEAM_THRESHOLD_MM } from '@/domain/reference-ranges';
-import { PERSONAS } from './fixtures/personas';
+import { PERSONAS } from '@/data/personas';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 /**

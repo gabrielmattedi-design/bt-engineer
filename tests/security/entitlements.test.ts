@@ -18,7 +18,7 @@ import {
   serializeTeaser,
   type Entitlement,
 } from '@/payments/entitlements';
-import { PERSONAS } from '../personas/fixtures/personas';
+import { PERSONAS } from '@/data/personas';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 function buildResult() {

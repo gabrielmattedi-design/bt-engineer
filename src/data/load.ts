@@ -53,6 +53,40 @@ const racketSpecsSchema = z.object({
   grip_sizes_available: z.array(z.number().int().min(0).max(5)),
 });
 
+/**
+ * Bloco de verificação — escrito por `/admin/verificacao`, versionado em git.
+ *
+ * POR QUE NO JSON E NÃO NO BANCO: a trava de release (`npm run build` → `dataset:gate`) roda em
+ * BUILD TIME e lê exatamente o que o bundle importa. Se o estado de verificação morasse no banco, o
+ * portão não teria como enxergá-lo, e o catálogo passaria a existir em dois lugares que podem
+ * divergir. Como bônus, a curadoria vira diff revisável em PR — alguém pode conferir "você marcou
+ * como verificado, cadê a URL?" — e o histórico de revisões (`data_revisions` do DATA_MODEL) é o
+ * próprio histórico do git, que ninguém consegue reescrever silenciosamente.
+ */
+const verificationSchema = z.object({
+  state: z.enum(['draft', 'pending_verification', 'verified', 'disputed']),
+  verified_at: z.string().nullable(),
+  verified_by: z.string().nullable(),
+  /** URL da ficha oficial conferida campo a campo. Obrigatória para `state: 'verified'`. */
+  source_url: z.string().url().nullable(),
+  /** URL do varejista usada como confirmação cruzada (tier 3). */
+  cross_check_url: z.string().url().nullable().optional(),
+  brazil_availability_status: z.enum([
+    'widely_available',
+    'available',
+    'limited',
+    'not_found',
+    'unknown',
+  ]),
+  /** Varejistas nacionais onde a disponibilidade foi conferida (§ DATA_SOURCING 10.2, passo 4). */
+  brazil_sources: z.array(z.string().url()).optional(),
+  image_url: z.string().url().nullable().optional(),
+  image_verified: z.boolean().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export type RacketVerification = z.infer<typeof verificationSchema>;
+
 const racketEntrySchema = z.object({
   family: z.string().min(1),
   model: z.string().min(1),
@@ -62,6 +96,7 @@ const racketEntrySchema = z.object({
   product_name: z.string().min(1),
   status: z.enum(['current', 'previous_generation', 'discontinued']),
   specs: racketSpecsSchema,
+  verification: verificationSchema.optional(),
 });
 
 const racketFileSchema = z.object({
@@ -139,15 +174,31 @@ const TENSION_FIELDS = ['recommended_tension_min_lbs', 'recommended_tension_max_
 function buildProvenance(
   base: z.infer<typeof provenanceSchema>,
   hasTension: boolean,
+  verification?: RacketVerification,
 ): ProvenanceMap {
+  // Depois da conferência humana, a procedência de cada campo passa a apontar para a URL realmente
+  // aberta, com `verified_at` preenchido e confiança alta. Antes disso permanece o padrão do seed.
+  const resolved: z.infer<typeof provenanceSchema> =
+    verification?.state === 'verified' && verification.source_url
+      ? {
+          source: 'manufacturer',
+          source_url: verification.source_url,
+          verified_at: verification.verified_at,
+          confidence: 'high',
+          notes: verification.notes ?? undefined,
+        }
+      : base;
+
   const map: Record<string, z.infer<typeof provenanceSchema>> = {};
-  for (const field of MANUFACTURER_FIELDS) map[field] = base;
+  for (const field of MANUFACTURER_FIELDS) map[field] = resolved;
   if (hasTension) {
     // A faixa de tensão é publicada, mas divergências entre mercados são comuns — confiança menor.
     for (const field of TENSION_FIELDS) {
       map[field] = {
-        ...base,
-        confidence: 'low',
+        ...resolved,
+        // Mesmo verificada, a faixa de tensão mantém confiança menor: as marcas publicam faixas
+        // diferentes por mercado, e o número no site global nem sempre vale para o Brasil.
+        confidence: verification?.state === 'verified' ? 'medium' : 'low',
         notes:
           'Faixa de tensão do catálogo do fabricante. Divergências entre mercados são comuns; ' +
           'confirmar na ficha oficial do produto para o mercado brasileiro.',
@@ -188,15 +239,19 @@ function loadRacketFile(raw: unknown): RacketVariant[] {
         recommended_tension_max_lbs: entry.specs.recommended_tension_max_lbs ?? null,
         grip_sizes_available: entry.specs.grip_sizes_available,
       },
-      provenance: buildProvenance(file.default_provenance, hasTension),
-      // Estado honesto do seed: dados de catálogo carregados, verificação humana pendente.
-      verification_state: 'pending_verification',
+      provenance: buildProvenance(file.default_provenance, hasTension, entry.verification),
+      /**
+       * Sem bloco `verification`, o estado honesto do seed é `pending_verification`: os dados de
+       * catálogo foram carregados, a conferência humana não aconteceu. Nunca `verified` por
+       * omissão — o silêncio nunca vale como confirmação.
+       */
+      verification_state: entry.verification?.state ?? 'pending_verification',
       global_availability: 'unknown',
-      brazil_availability_status: 'unknown',
+      brazil_availability_status: entry.verification?.brazil_availability_status ?? 'unknown',
       data_version: file.data_version,
-      last_verified_at: null,
-      image_url: null,
-      image_verified: false,
+      last_verified_at: entry.verification?.verified_at ?? null,
+      image_url: entry.verification?.image_url ?? null,
+      image_verified: entry.verification?.image_verified ?? false,
     };
   });
 }

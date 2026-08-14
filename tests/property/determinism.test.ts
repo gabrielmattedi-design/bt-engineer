@@ -10,7 +10,7 @@ import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
 import { computeRacketAttributes } from '@/recommendation/normalize/racket-attributes';
 import { RACKET_ATTRIBUTE_KEYS } from '@/domain/racket';
-import { PERSONAS } from '../personas/fixtures/personas';
+import { PERSONAS } from '@/data/personas';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 function run(personaIndex: number) {

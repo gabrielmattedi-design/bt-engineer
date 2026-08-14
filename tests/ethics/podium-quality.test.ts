@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { MIN_PODIUM_FIT } from '@/domain/reference-ranges';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
-import { PERSONAS } from '../personas/fixtures/personas';
+import { PERSONAS } from '@/data/personas';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 function runAll() {
