@@ -21,19 +21,26 @@ export const RACKET_BRANDS: readonly RacketBrand[] = ['HEAD', 'Wilson', 'Babolat
  * Especificações. `null` significa "não sabemos" — jamais um default.
  * Campos marcados (obrigatório) impedem a variante de ser recomendável quando ausentes.
  */
+/**
+ * Especificações CONSOLIDADAS DE MERCADO — v2.
+ *
+ * Exatamente os campos que HEAD, Wilson, Babolat e Yonex publicam no catálogo e que qualquer
+ * varejista especializado reproduz. São os mesmos campos do spec card do brand book, menos
+ * swingweight (medição de laboratório, não publicada).
+ *
+ * Todos são OBRIGATÓRIOS exceto `recommended_tension_*`. `null` continua sendo permitido pelo tipo
+ * para que a carga detecte a ausência em vez de silenciá-la, mas `hasRequiredSpecs()` reprova.
+ */
 export type RacketSpecs = {
-  readonly head_size_sq_in: number | null; // obrigatório
+  readonly head_size_sq_in: number | null;
   readonly length_in: number | null;
-  readonly unstrung_weight_g: number | null; // obrigatório
-  readonly strung_weight_g: number | null;
+  readonly unstrung_weight_g: number | null;
   readonly balance_mm: number | null;
-  readonly swingweight: number | null;
-  readonly stiffness_ra: number | null;
-  readonly twistweight: number | null;
-  readonly beam_width_mm: string | null; // '23/26/23'
-  readonly beam_width_avg_mm: number | null;
-  readonly string_pattern_mains: number | null; // obrigatório
-  readonly string_pattern_crosses: number | null; // obrigatório
+  /** Perfil do quadro como publicado: '23-26-23' ou '21'. */
+  readonly beam_width_mm: string | null;
+  readonly string_pattern_mains: number | null;
+  readonly string_pattern_crosses: number | null;
+  /** Opcional: nem toda marca publica para todo modelo. Ausência reduz a confiança da tensão. */
   readonly recommended_tension_min_lbs: number | null;
   readonly recommended_tension_max_lbs: number | null;
   readonly grip_sizes_available: readonly number[];
@@ -81,8 +88,13 @@ export type RacketAttributes = {
   /** 0–1. Fração dos dados necessários que estava presente. */
   readonly data_completeness: number;
   readonly missing_fields: readonly string[];
-  /** true quando strung_weight foi derivado de unstrung + STRING_SET_MASS_G. */
-  readonly strung_weight_is_estimated: boolean;
+  /**
+   * Índice de balanço Tennis Engineer (0–100) — inércia de swing derivada de peso × balanço.
+   * NÃO é swingweight e nunca é exibido com esse nome.
+   */
+  readonly swing_index: Score;
+  /** Índice de rigidez derivado do perfil da viga (0–100). Proxy publicado, não medição. */
+  readonly stiffness_index: Score;
   readonly methodology_version: string;
 };
 
@@ -143,11 +155,35 @@ export type ScoredRacket = {
 };
 
 /** Campos sem os quais a variante não pode ser recomendada de forma alguma. */
+/**
+ * Campos sem os quais a variante não é recomendável.
+ *
+ * Na v2 todos são publicados pelo fabricante, então uma variante bem cadastrada passa sempre —
+ * é isso que permite a confiança chegar a "Alta".
+ */
 export function hasRequiredSpecs(specs: RacketSpecs): boolean {
   return (
     specs.head_size_sq_in !== null &&
     specs.unstrung_weight_g !== null &&
+    specs.balance_mm !== null &&
+    specs.beam_width_mm !== null &&
     specs.string_pattern_mains !== null &&
     specs.string_pattern_crosses !== null
   );
+}
+
+/**
+ * Perfil médio da viga a partir da string publicada pelo fabricante ('23-26-23' ou '21').
+ *
+ * Aceita hífen, barra ou travessão como separador — as marcas usam os três. Vive no domínio porque
+ * tanto o motor quanto a análise de cobertura do catálogo precisam do mesmo número.
+ */
+export function averageBeam(beam: string | null): number | null {
+  if (beam === null) return null;
+  const parts = beam
+    .split(/[/\-–]/)
+    .map((p) => Number.parseFloat(p.trim()))
+    .filter((n) => Number.isFinite(n));
+  if (parts.length === 0) return null;
+  return parts.reduce((a, b) => a + b, 0) / parts.length;
 }

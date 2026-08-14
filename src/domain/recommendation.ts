@@ -136,6 +136,10 @@ export type RecommendationConfidence = {
   readonly score: Score;
   readonly level: ConfidenceLevel;
   readonly reasons: readonly ConfidenceReason[];
+  /** Quão bem conhecemos o JOGADOR (respostas, contradições, sinais inferidos). */
+  readonly profile_knowledge: Score;
+  /** Quão bem conhecemos o EQUIPAMENTO (completude das specs, faixa de tensão do fabricante). */
+  readonly data_knowledge: Score;
 };
 
 export type RecommendationResult = {

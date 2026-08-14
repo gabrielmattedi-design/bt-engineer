@@ -57,9 +57,18 @@ describe('sem entitlement algum', () => {
     const teaser = serializeTeaser(result, testStrings().variants.length);
     const text = allStrings(teaser).join(' ').toLowerCase();
 
-    for (const racket of testRackets()) {
-      expect(text).not.toContain(racket.variant.model.toLowerCase());
-      expect(text).not.toContain(racket.variant.family.toLowerCase());
+    // Tokens com menos de 4 caracteres são descartados: a família "Ti" (HEAD Ti.S6) aparece como
+    // substring de palavras comuns do português e produziria um falso positivo. Nenhum nome de
+    // produto real do catálogo é identificável por um token de 3 caracteres, então a garantia
+    // do teste permanece intacta.
+    const identifiers = testRackets().flatMap((r) => [
+      r.variant.model.toLowerCase(),
+      r.variant.family.toLowerCase(),
+      r.variant.product_name.toLowerCase(),
+    ]);
+    for (const id of identifiers) {
+      if (id.length < 4) continue;
+      expect(text, `vazou identificador de produto: ${id}`).not.toContain(id);
     }
     // Mas mostra que houve processamento real.
     expect(teaser.candidates_evaluated).toBeGreaterThan(30);

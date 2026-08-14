@@ -1,19 +1,27 @@
 /**
- * Camada 2 — normalização de raquetes.
+ * Camada 2 — normalização de raquetes (v2).
  *
- * Converte especificações físicas em atributos comparáveis 0–100.
- * Implementa docs/RECOMMENDATION_ENGINE.md §2 literalmente. Se esta função e aquele documento
- * divergirem, tests/unit/methodology-parity.test.ts falha.
+ * Converte ESPECIFICAÇÕES CONSOLIDADAS DE MERCADO em atributos comparáveis 0–100.
+ * Implementa docs/RECOMMENDATION_ENGINE.md §2.
  *
- * Nenhum score é atribuído subjetivamente (§6): todos derivam das specs por funções documentadas.
+ * Entradas — todas publicadas pelo fabricante e reproduzidas por qualquer varejista:
+ *   tamanho da cabeça · peso (sem cordas) · balanço · perfil da viga · padrão de encordoamento
+ *
+ * Duas grandezas derivadas, ambas calculadas a partir das acima e nomeadas de forma que não se
+ * confundam com medições de laboratório:
+ *   • `swing_index`     — inércia de swing (peso × balanço). NÃO é swingweight.
+ *   • `stiffness_index` — proxy de rigidez a partir do perfil da viga. NÃO é RA.
  */
 
 import {
   METHODOLOGY_VERSION,
   RANGES,
+  STRING_SET_BALANCE_SHIFT_MM,
   STRING_SET_MASS_G,
+  SWING_AXIS_MM,
 } from '@/domain/reference-ranges';
 import { clamp, clamp01, inv, norm, toScore, weighted, type WeightedTerm } from '@/domain/scores';
+import { averageBeam } from '@/domain/racket';
 import type {
   PlayStyle,
   RacketAttributes,
@@ -25,11 +33,10 @@ import type {
 } from '@/domain/racket';
 
 /**
- * Abertura do padrão de cordas — docs/RECOMMENDATION_ENGINE.md §1.
+ * Abertura do padrão de cordas.
  *
- * Mains pesam mais que crosses (0.60 vs 0.40) porque o espaçamento longitudinal domina o movimento do
- * encordoamento, que é o mecanismo do snap-back e portanto do spin.
- *
+ * Mains pesam mais que crosses (0.60 vs 0.40) porque o espaçamento longitudinal domina o movimento
+ * do encordoamento, que é o mecanismo do snap-back e portanto do spin.
  * Referência: 18×20 → 0.00 · 16×20 → 0.375 · 16×19 → 0.50 · 16×18 → 0.625 · 14×18 → 1.00
  */
 export function computeOpenness(mains: number | null, crosses: number | null): number | null {
@@ -39,77 +46,73 @@ export function computeOpenness(mains: number | null, crosses: number | null): n
 }
 
 /**
- * Peso encordoado. Se desconhecido, deriva de `unstrung + STRING_SET_MASS_G`.
- *
- * Isto é uma DERIVAÇÃO DECLARADA, não um dado inventado (R-01): é sinalizada por `is_estimated`,
- * nunca exibida como especificação do fabricante, e usada apenas para cálculo interno.
+ * Peso com cordas. Derivação declarada de `unstrung + 16 g`, nunca exibida como spec do fabricante.
  */
-export function resolveStrungWeight(specs: RacketSpecs): {
-  value: number | null;
-  is_estimated: boolean;
-} {
-  if (specs.strung_weight_g !== null) return { value: specs.strung_weight_g, is_estimated: false };
-  if (specs.unstrung_weight_g !== null) {
-    return { value: specs.unstrung_weight_g + STRING_SET_MASS_G, is_estimated: true };
-  }
-  return { value: null, is_estimated: false };
+export function resolveStrungWeight(specs: RacketSpecs): number | null {
+  return specs.unstrung_weight_g === null ? null : specs.unstrung_weight_g + STRING_SET_MASS_G;
 }
 
-/** Perfil médio de viga a partir da string '23/26/23'. Não inventa: retorna null se não parseável. */
+/** Balanço com cordas: as cordas ficam na cabeça, então o balanço sobe ~8 mm. */
+export function resolveStrungBalance(specs: RacketSpecs): number | null {
+  return specs.balance_mm === null ? null : specs.balance_mm + STRING_SET_BALANCE_SHIFT_MM;
+}
+
+/** Perfil médio da viga, a partir da string publicada ('23-26-23' ou '21'). */
 export function parseBeamAverage(specs: RacketSpecs): number | null {
-  if (specs.beam_width_avg_mm !== null) return specs.beam_width_avg_mm;
-  if (specs.beam_width_mm === null) return null;
-  const parts = specs.beam_width_mm
-    .split('/')
-    .map((p) => Number.parseFloat(p.trim()))
-    .filter((n) => Number.isFinite(n));
-  if (parts.length === 0) return null;
-  return parts.reduce((a, b) => a + b, 0) / parts.length;
+  return averageBeam(specs.beam_width_mm);
+}
+
+/**
+ * Índice de balanço Tennis Engineer — inércia de swing em g·mm².
+ *
+ * Momento de inércia de uma massa concentrada no ponto de balanço, em torno do eixo a 10 cm do topo
+ * do cabo (convenção da indústria): `m × (balanço − 100 mm)²`.
+ *
+ * É a MESMA grandeza física que o swingweight mede, calculada a partir de dados publicados em vez
+ * de medida em bancada. Por isso captura bem a diferença entre um frame leve e head-light e um
+ * pesado e head-heavy, mas NÃO captura a polarização da distribuição de massa — dois frames de
+ * mesmo peso e balanço com massa distribuída de formas diferentes recebem o mesmo índice.
+ *
+ * É por isso que ele não se chama swingweight e nunca é exibido como tal.
+ */
+export function computeSwingIndex(specs: RacketSpecs): number | null {
+  const mass = resolveStrungWeight(specs);
+  const balance = resolveStrungBalance(specs);
+  if (mass === null || balance === null) return null;
+  const arm = balance - SWING_AXIS_MM;
+  return mass * arm * arm;
 }
 
 type NormalizedSpecs = {
-  h: number | null; // head size
-  w: number | null; // strung weight
-  b: number | null; // balance
-  s: number | null; // swingweight
-  r: number | null; // stiffness RA
-  m: number | null; // beam width
-  t: number | null; // twistweight
-  o: number | null; // openness
-  d: number | null; // density = 1 - openness
-  strungEstimated: boolean;
+  h: number | null; // cabeça
+  w: number | null; // peso com cordas
+  b: number | null; // balanço com cordas
+  m: number | null; // perfil da viga
+  o: number | null; // abertura do padrão
+  d: number | null; // densidade = 1 - abertura
+  s: number | null; // índice de balanço
 };
 
 function normalizeSpecs(specs: RacketSpecs): NormalizedSpecs {
-  const strung = resolveStrungWeight(specs);
-  const beam = parseBeamAverage(specs);
-  const o = computeOpenness(specs.string_pattern_mains, specs.string_pattern_crosses);
+  const n = (v: number | null, r: readonly [number, number]): number | null =>
+    v === null ? null : norm(v, r[0], r[1]);
 
-  const n = (v: number | null, range: readonly [number, number]): number | null =>
-    v === null ? null : norm(v, range[0], range[1]);
+  const o = computeOpenness(specs.string_pattern_mains, specs.string_pattern_crosses);
 
   return {
     h: n(specs.head_size_sq_in, RANGES.head_size_sq_in),
-    w: n(strung.value, RANGES.strung_weight_g),
-    b: n(specs.balance_mm, RANGES.balance_mm),
-    s: n(specs.swingweight, RANGES.swingweight),
-    r: n(specs.stiffness_ra, RANGES.stiffness_ra),
-    m: n(beam, RANGES.beam_width_avg_mm),
-    t: n(specs.twistweight, RANGES.twistweight),
+    w: n(resolveStrungWeight(specs), RANGES.strung_weight_g),
+    b: n(resolveStrungBalance(specs), RANGES.balance_mm),
+    m: n(parseBeamAverage(specs), RANGES.beam_width_avg_mm),
     o,
     d: o === null ? null : 1 - o,
-    strungEstimated: strung.is_estimated,
+    s: n(computeSwingIndex(specs), RANGES.swing_index),
   };
 }
 
 const invOrNull = (v: number | null): number | null => (v === null ? null : inv(v));
 
-/**
- * Traduz o rótulo de um termo para o CAMPO de especificação que o originou.
- *
- * Sem isto, `missing_fields` vazaria nomes internos ("stiffness_ra_inverse") para a mensagem de
- * confiança que o usuário lê. O usuário precisa saber qual DADO falta, não qual termo do cálculo.
- */
+/** Traduz o rótulo de um termo para o CAMPO publicado que o originou. */
 const TERM_TO_FIELD: Record<string, string> = {
   head_size: 'head_size_sq_in',
   head_size_inverse: 'head_size_sq_in',
@@ -117,26 +120,19 @@ const TERM_TO_FIELD: Record<string, string> = {
   weight_inverse: 'unstrung_weight_g',
   balance: 'balance_mm',
   balance_inverse: 'balance_mm',
-  swingweight: 'swingweight',
-  swingweight_inverse: 'swingweight',
-  stiffness_ra: 'stiffness_ra',
-  stiffness_ra_inverse: 'stiffness_ra',
   beam_width: 'beam_width_mm',
   beam_width_inverse: 'beam_width_mm',
-  twistweight: 'twistweight',
+  swing_index: 'balance_mm',
+  swing_index_inverse: 'balance_mm',
   pattern_openness: 'string_pattern',
   pattern_density: 'string_pattern',
 };
 
-/** Nomes legíveis em pt-BR para exibição ao usuário nas razões de confiança. */
 export const FIELD_LABEL_PT: Record<string, string> = {
   head_size_sq_in: 'tamanho da cabeça',
   unstrung_weight_g: 'peso',
   balance_mm: 'balanço',
-  swingweight: 'swingweight',
-  stiffness_ra: 'rigidez (RA)',
-  beam_width_mm: 'perfil da viga',
-  twistweight: 'twistweight',
+  beam_width_mm: 'perfil do quadro',
   string_pattern: 'padrão de cordas',
 };
 
@@ -145,11 +141,10 @@ export function humanizeMissingFields(fields: readonly string[]): string {
 }
 
 /**
- * Calcula os 11 atributos derivados + demand_index.
+ * Calcula os 11 atributos derivados + demand_index + os dois índices auxiliares.
  *
- * Cada score usa `weighted()`, que descarta termos com dado ausente e renormaliza os pesos restantes.
- * Uma raquete sem swingweight não é punida — a lacuna vira `data_completeness`, que afeta a CONFIANÇA
- * do relatório, nunca a pontuação (R-02).
+ * Como todos os termos vêm de campos publicados, uma variante bem cadastrada tem
+ * `data_completeness = 1.0` — que é o que permite a confiança do relatório chegar a "Alta".
  */
 export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
   const n = normalizeSpecs(specs);
@@ -172,95 +167,97 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
     weight,
   });
 
-  // Potência GRATUITA: o quanto o frame devolve sem esforço do jogador. Peso entra INVERTIDO — um
-  // frame pesado exige o jogador. Plow-through pertence a stability_score, não aqui.
+  // Potência GRATUITA: o quanto o frame devolve sem esforço do jogador. Cabeça grande e viga larga
+  // dominam; peso entra INVERTIDO porque um frame pesado exige o jogador. Plow-through pertence a
+  // stability_score, não aqui.
   const power_score = build([
     T('head_size', n.h, 0.3),
-    T('stiffness_ra', n.r, 0.25),
-    T('beam_width', n.m, 0.2),
-    T('pattern_openness', n.o, 0.15),
-    T('weight_inverse', invOrNull(n.w), 0.1),
+    T('beam_width', n.m, 0.28),
+    T('pattern_openness', n.o, 0.17),
+    T('weight_inverse', invOrNull(n.w), 0.15),
+    T('balance', n.b, 0.1),
   ]);
 
   const control_score = build([
     T('head_size_inverse', invOrNull(n.h), 0.28),
-    T('pattern_density', n.d, 0.24),
-    T('beam_width_inverse', invOrNull(n.m), 0.18),
-    T('swingweight', n.s, 0.16),
-    T('stiffness_ra_inverse', invOrNull(n.r), 0.14),
+    T('pattern_density', n.d, 0.26),
+    T('beam_width_inverse', invOrNull(n.m), 0.2),
+    T('swing_index', n.s, 0.16),
+    T('balance_inverse', invOrNull(n.b), 0.1),
   ]);
 
   // Abertura domina (0.45) pelo mecanismo de snap-back do encordoamento.
   const spin_score = build([
     T('pattern_openness', n.o, 0.45),
     T('head_size', n.h, 0.2),
-    T('swingweight', n.s, 0.2),
-    T('stiffness_ra_inverse', invOrNull(n.r), 0.15),
+    T('swing_index', n.s, 0.2),
+    T('balance', n.b, 0.15),
   ]);
 
-  // RA domina (0.45): rigidez do frame é o principal determinante da transmissão de choque.
+  // Viga fina = quadro mais flexível = mais conforto. Massa absorve choque. Cabeça grande e padrão
+  // aberto produzem um leito de cordas mais macio.
   const comfort_score = build([
-    T('stiffness_ra_inverse', invOrNull(n.r), 0.45),
-    T('weight', n.w, 0.25),
-    T('beam_width_inverse', invOrNull(n.m), 0.15),
-    T('pattern_openness', n.o, 0.15),
+    T('beam_width_inverse', invOrNull(n.m), 0.38),
+    T('weight', n.w, 0.3),
+    T('pattern_openness', n.o, 0.17),
+    T('head_size', n.h, 0.15),
   ]);
 
   const stability_score = build([
-    T('swingweight', n.s, 0.35),
-    T('weight', n.w, 0.3),
-    T('twistweight', n.t, 0.25),
+    T('swing_index', n.s, 0.4),
+    T('weight', n.w, 0.32),
+    T('head_size', n.h, 0.18),
     T('balance', n.b, 0.1),
   ]);
 
-  // Swingweight invertido domina (0.45): é o que o jogador sente ao acelerar o braço, não o peso estático.
+  // Índice de balanço invertido domina: é o que o jogador sente ao acelerar o braço.
   const maneuverability_score = build([
-    T('swingweight_inverse', invOrNull(n.s), 0.45),
+    T('swing_index_inverse', invOrNull(n.s), 0.55),
     T('weight_inverse', invOrNull(n.w), 0.3),
-    T('balance_inverse', invOrNull(n.b), 0.25),
+    T('balance_inverse', invOrNull(n.b), 0.15),
   ]);
 
+  // Tolerância a impactos descentralizados: área útil primeiro, massa depois.
   const forgiveness_score = build([
-    T('head_size', n.h, 0.4),
-    T('twistweight', n.t, 0.3),
-    T('pattern_openness', n.o, 0.15),
-    T('weight', n.w, 0.15),
+    T('head_size', n.h, 0.45),
+    T('weight', n.w, 0.25),
+    T('pattern_openness', n.o, 0.18),
+    T('swing_index', n.s, 0.12),
   ]);
 
   const precision_score = build([
-    T('pattern_density', n.d, 0.3),
-    T('head_size_inverse', invOrNull(n.h), 0.25),
-    T('swingweight', n.s, 0.2),
-    T('stiffness_ra_inverse', invOrNull(n.r), 0.15),
-    T('twistweight', n.t, 0.1),
+    T('pattern_density', n.d, 0.32),
+    T('head_size_inverse', invOrNull(n.h), 0.28),
+    T('swing_index', n.s, 0.22),
+    T('beam_width_inverse', invOrNull(n.m), 0.18),
   ]);
 
   const feel_score = build([
-    T('stiffness_ra_inverse', invOrNull(n.r), 0.5),
-    T('weight', n.w, 0.3),
-    T('pattern_density', n.d, 0.2),
+    T('beam_width_inverse', invOrNull(n.m), 0.45),
+    T('weight', n.w, 0.32),
+    T('pattern_density', n.d, 0.23),
   ]);
 
   const launch_angle_score = build([
     T('pattern_openness', n.o, 0.4),
-    T('head_size', n.h, 0.3),
-    T('stiffness_ra', n.r, 0.2),
-    T('beam_width', n.m, 0.1),
+    T('head_size', n.h, 0.32),
+    T('beam_width', n.m, 0.2),
+    T('balance', n.b, 0.08),
   ]);
 
   const arm_friendliness_score = build([
-    T('stiffness_ra_inverse', invOrNull(n.r), 0.5),
+    T('beam_width_inverse', invOrNull(n.m), 0.45),
     T('weight', n.w, 0.3),
-    T('beam_width_inverse', invOrNull(n.m), 0.1),
+    T('head_size', n.h, 0.15),
     T('pattern_openness', n.o, 0.1),
   ]);
 
-  // "Quanto de técnica este frame cobra": massa a acelerar, área de erro pequena, padrão denso.
+  // "Quanto de técnica este frame cobra": inércia a acelerar, área de erro pequena, padrão denso.
   const demand_index = build([
-    T('swingweight', n.s, 0.35),
-    T('head_size_inverse', invOrNull(n.h), 0.25),
-    T('pattern_density', n.d, 0.2),
-    T('weight', n.w, 0.2),
+    T('swing_index', n.s, 0.35),
+    T('head_size_inverse', invOrNull(n.h), 0.28),
+    T('pattern_density', n.d, 0.22),
+    T('weight', n.w, 0.15),
   ]);
 
   return {
@@ -276,14 +273,15 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
     launch_angle_score,
     arm_friendliness_score,
     demand_index,
+    swing_index: n.s === null ? 0 : toScore(n.s),
+    stiffness_index: n.m === null ? 0 : toScore(n.m),
     data_completeness: totalWeight === 0 ? 0 : clamp01(coveredWeight / totalWeight),
     missing_fields: [...missing].sort(),
-    strung_weight_is_estimated: n.strungEstimated,
     methodology_version: METHODOLOGY_VERSION,
   };
 }
 
-/** Alvo de exigência por faixa de nível — docs/RECOMMENDATION_ENGINE.md §2. */
+/** Alvo de exigência por faixa de nível. */
 const DEMAND_TARGET: Record<SkillTier, number> = {
   beginner: 25,
   intermediate: 45,
@@ -295,7 +293,6 @@ function levelFit(demand: number, tier: SkillTier): number {
   return clamp(100 - Math.abs(demand - DEMAND_TARGET[tier]) * 1.6, 0, 100);
 }
 
-/** Perfis de adequação por nível e estilo (§6). Derivados, nunca digitados. */
 export function computeFitProfile(a: RacketAttributes): RacketFitProfile {
   const d = a.demand_index;
 
@@ -323,8 +320,7 @@ export function computeFitProfile(a: RacketAttributes): RacketFitProfile {
       0.3 * a.stability_score +
       0.2 * a.precision_score +
       0.15 * a.feel_score,
-    net_player:
-      0.4 * a.maneuverability_score + 0.3 * a.stability_score + 0.3 * a.feel_score,
+    net_player: 0.4 * a.maneuverability_score + 0.3 * a.stability_score + 0.3 * a.feel_score,
   };
 
   return {
@@ -362,18 +358,22 @@ export function scoreRackets(variants: readonly RacketVariant[]): ScoredRacket[]
   return variants.map(scoreRacket);
 }
 
-/** Índice de massa percebida — usado por `physical_fit`. */
+/** Índice de massa percebida — usado por `physical_fit`. Peso e inércia, ambos derivados do publicado. */
 export function massIndex(specs: RacketSpecs): number | null {
-  const strung = resolveStrungWeight(specs).value;
-  const wTerm = strung === null ? null : norm(strung, RANGES.strung_weight_g[0], RANGES.strung_weight_g[1]);
-  const sTerm =
-    specs.swingweight === null
-      ? null
-      : norm(specs.swingweight, RANGES.swingweight[0], RANGES.swingweight[1]);
+  const strung = resolveStrungWeight(specs);
+  const swing = computeSwingIndex(specs);
 
   const result = weighted([
-    { label: 'strung_weight', value: wTerm, weight: 0.55 },
-    { label: 'swingweight', value: sTerm, weight: 0.45 },
+    {
+      label: 'strung_weight',
+      value: strung === null ? null : norm(strung, RANGES.strung_weight_g[0], RANGES.strung_weight_g[1]),
+      weight: 0.5,
+    },
+    {
+      label: 'swing_index',
+      value: swing === null ? null : norm(swing, RANGES.swing_index[0], RANGES.swing_index[1]),
+      weight: 0.5,
+    },
   ]);
-  return result.coverage === 0 ? null : toScore(result.score / 100);
+  return result.coverage === 0 ? null : result.score;
 }

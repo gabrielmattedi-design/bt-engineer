@@ -107,18 +107,18 @@ CREATE TABLE racket_variants (
   product_name text NOT NULL,        -- nome comercial completo, exibível
   status product_status NOT NULL,
 
-  -- specs do fabricante (§6)
+  -- specs PUBLICADAS pelo fabricante (§6) — metodologia v2
+  --
+  -- Não existem colunas para swingweight, stiffness_ra, twistweight nem strung_weight_g.
+  -- São medições de laboratório: não são publicadas, variam por exemplar e não existem de forma
+  -- consistente para as quatro marcas. Removê-las do SCHEMA (e não apenas deixá-las NULL) é o que
+  -- torna estruturalmente impossível colá-las depois "só para completar o cadastro".
   head_size_sq_in numeric(5,1),
   length_in numeric(4,2),
   unstrung_weight_g numeric(5,1),
-  strung_weight_g numeric(5,1),      -- geralmente NULL; ver derived.strung_weight_estimated
   balance_mm numeric(5,1),           -- unstrung
   balance_points numeric(4,1),       -- derivado de balance_mm e length
-  swingweight numeric(5,1),          -- lab; frequentemente NULL
-  stiffness_ra numeric(4,1),         -- lab; frequentemente NULL
-  twistweight numeric(4,2),          -- lab; frequentemente NULL
   beam_width_mm text,                -- '23/26/23' — texto por ser perfil variável
-  beam_width_avg_mm numeric(4,1),    -- derivado, para cálculo
   string_pattern_mains int,
   string_pattern_crosses int,
   recommended_tension_min_lbs numeric(4,1),
@@ -138,7 +138,7 @@ CREATE TABLE racket_variants (
   UNIQUE (racket_id, variant, generation),
   CHECK (head_size_sq_in IS NULL OR head_size_sq_in BETWEEN 80 AND 140),
   CHECK (unstrung_weight_g IS NULL OR unstrung_weight_g BETWEEN 200 AND 400),
-  CHECK (stiffness_ra IS NULL OR stiffness_ra BETWEEN 40 AND 90),
+  CHECK (balance_mm IS NULL OR balance_mm BETWEEN 280 AND 390),
   CHECK (recommended_tension_min_lbs IS NULL OR recommended_tension_max_lbs IS NULL
          OR recommended_tension_min_lbs <= recommended_tension_max_lbs)
 );

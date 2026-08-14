@@ -196,7 +196,10 @@ const STYLE_ANSWER_MAP: Record<string, PlayStyle[]> = {
   sem_estilo: ['baseline', 'all_court', 'counterpuncher'],
 };
 
-function computeStyleWeights(a: QuestionnaireAnswers): Record<PlayStyle, number> {
+function computeStyleWeights(a: QuestionnaireAnswers): {
+  weights: Record<PlayStyle, number>;
+  declared: boolean;
+} {
   const weights: Record<PlayStyle, number> = {
     baseline: 0,
     aggressive_baseliner: 0,
@@ -208,7 +211,7 @@ function computeStyleWeights(a: QuestionnaireAnswers): Record<PlayStyle, number>
     net_player: 0,
   };
 
-  const selections = a.play_style.length > 0 ? a.play_style : ['sem_estilo'];
+  const selections = a.play_style.filter((s) => s !== 'sem_estilo');
   for (const sel of selections) {
     for (const style of STYLE_ANSWER_MAP[sel] ?? []) {
       weights[style] += 1;
@@ -220,8 +223,19 @@ function computeStyleWeights(a: QuestionnaireAnswers): Record<PlayStyle, number>
   if (a.forehand_type === 'mais_chapado') weights.flat_hitter += 0.6;
 
   const total = Object.values(weights).reduce((s, v) => s + v, 0);
-  if (total === 0) return { ...weights, baseline: 1, all_court: 1, counterpuncher: 1 };
-  return weights;
+  if (total === 0) {
+    /**
+     * Nenhum estilo declarado — o jogador respondeu "ainda não tenho um estilo" ou pulou a
+     * pergunta. Este é o caso NORMAL do iniciante, não uma resposta incompleta.
+     *
+     * O vetor devolvido é um placeholder difuso, mantido apenas para que consumidores que leem
+     * `style_weights` tenham algo coerente. `declared: false` é o dado que importa: o motor
+     * renormaliza `playstyle_fit` para fora em vez de cobrar aderência a um estilo inventado.
+     * Sem isso, o iniciante era reprovado por não parecer um contra-atacante.
+     */
+    return { weights: { ...weights, baseline: 1, all_court: 1, counterpuncher: 1 }, declared: false };
+  }
+  return { weights, declared: true };
 }
 
 const OBJECTIVE_MAP: Record<string, ObjectiveKey> = {
@@ -406,6 +420,7 @@ export function buildPlayerProfile(
   // o ganho direcional cai pela metade.
   const conservative = objectives.includes('maximize_current');
   const gain = conservative ? 0.5 : 1.0;
+  const style = computeStyleWeights(a);
   const desired: Record<NeedKey, number> = { ...needs };
   for (const k of NEED_KEYS) {
     desired[k] = round(clamp(needs[k] - 50, -40, 40) * gain);
@@ -416,11 +431,12 @@ export function buildPlayerProfile(
     : {
         variant_id: a.current_racket_id,
         unrecognized: a.current_racket_id === null && !!a.current_racket_free_text,
-        weight_g: null, // preenchido pelo caller a partir do catálogo (resolveCurrentRacket)
+        // Preenchidos pelo motor a partir do catálogo quando a raquete é reconhecida.
+        weight_g: null,
         head_size_sq_in: null,
-        swingweight: null,
         balance_mm: null,
-        stiffness_ra: null,
+        beam_width_avg_mm: null,
+        swing_index: null,
       };
 
   const currentString: CurrentStringSnapshot | null = a.no_current_racket
@@ -465,7 +481,8 @@ export function buildPlayerProfile(
     discomfort_areas: a.discomfort_areas.filter((x) => x !== 'nenhum'),
     needs,
     desired_change_vector: desired,
-    style_weights: computeStyleWeights(a),
+    style_weights: style.weights,
+    style_declared: style.declared,
     current_racket: currentRacket,
     current_string: currentString,
     objectives,

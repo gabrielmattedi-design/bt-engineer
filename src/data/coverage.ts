@@ -9,7 +9,7 @@
  * parecer mais inteligente do que os dados disponíveis").
  */
 
-import type { RacketVariant } from '@/domain/racket';
+import { averageBeam, type RacketVariant } from '@/domain/racket';
 
 export type SegmentRequirement = {
   readonly id: string;
@@ -32,12 +32,16 @@ export const SEGMENT_REQUIREMENTS: readonly SegmentRequirement[] = [
     minCount: 3,
   },
   {
-    id: 'comfort_flexible',
-    label: 'Conforto — frame flexível confirmado',
+    id: 'comfort_slim_beam',
+    label: 'Conforto — perfil de quadro fino',
     rationale:
-      'Jogadores com histórico de desconforto exigem RA verificado e baixo. Sem RA medido, o filtro ' +
-      'de segurança (R-11) não tem como agir e o motor opera às cegas nessa dimensão.',
-    matches: (v) => v.specs.stiffness_ra !== null && v.specs.stiffness_ra <= 63,
+      'Jogadores com histórico de desconforto precisam de frames de perfil fino (≤ 22 mm médio), ' +
+      'que na prática de mercado concentram os quadros mais flexíveis. Sem eles, o filtro de ' +
+      'segurança (R-11) só pode agir pela corda e pela tensão, nunca pelo frame.',
+    matches: (v) => {
+      const beam = averageBeam(v.specs.beam_width_mm);
+      return beam !== null && beam <= 22;
+    },
     minCount: 3,
   },
   {

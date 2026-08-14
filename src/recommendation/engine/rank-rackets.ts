@@ -68,6 +68,10 @@ export function resolveWeights(profile: PlayerProfile): Record<ComponentKey, num
     weights.transition_fit = DYNAMIC_ADJUSTMENTS.objective_maximize_current.weight;
   }
 
+  if (!profile.style_declared) {
+    weights.playstyle_fit = DYNAMIC_ADJUSTMENTS.style_undetermined.weight;
+  }
+
   if (profile.objectives.length === 1 && profile.objectives[0] === 'unknown') {
     weights.objective_fit = DYNAMIC_ADJUSTMENTS.objective_unknown.weight;
   }

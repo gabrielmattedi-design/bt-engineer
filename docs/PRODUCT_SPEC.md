@@ -139,7 +139,7 @@ São duas dimensões **separadas e nunca combinadas**:
   contradições detectadas, raquete atual não reconhecida, dados faltando no catálogo, texto livre pobre.
 
 Um resultado pode ser `94% de compatibilidade · Confiança: Média` — e essa combinação é exibida
-honestamente, com a explicação do que reduziria a incerteza ("informe seu swingweight atual").
+honestamente, com a explicação do que reduziria a incerteza ("informe marca e modelo da sua raquete atual").
 
 ---
 

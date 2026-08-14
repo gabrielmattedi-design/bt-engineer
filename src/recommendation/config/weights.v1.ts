@@ -89,6 +89,16 @@ export const DYNAMIC_ADJUSTMENTS = {
       'Sem raquete atual reconhecida não existe transição a avaliar. Zerar o peso é honesto; ' +
       'atribuir um valor neutro introduziria ruído em todas as raquetes igualmente.',
   },
+  style_undetermined: {
+    component: 'playstyle_fit' as ComponentKey,
+    weight: 0,
+    rationale:
+      'Iniciante ainda não tem estilo de jogo. Quando nenhum estilo é declarado, o vetor de estilo ' +
+      'é um placeholder difuso, e cobrar aderência a ele reprova justamente os frames de iniciante ' +
+      '— que são projetados para tolerância, não para um padrão tático. Zerar o peso é honesto; os ' +
+      '0.15 são redistribuídos entre físico, nível, swing e conforto, que é onde a informação real ' +
+      'deste jogador está.',
+  },
   objective_unknown: {
     component: 'objective_fit' as ComponentKey,
     weight: 0.08,

@@ -19,7 +19,7 @@ A especificação é inequívoca (§7, §62, §69):
 > "Nunca inventar valor ausente." · "Se um dado não for conhecido, `null` é melhor do que um número falso."
 
 Ao mesmo tempo, §60 pede 30–50 raquetes e 15–25 cordas cadastradas, e §21 pede um motor que compare
-`swingweight`, `stiffness_ra`, `twistweight` e `balance`. Existe uma tensão real entre estes requisitos:
+grandezas técnicas entre frames. Existe uma tensão real entre estes requisitos:
 
 - `head_size`, `length`, `unstrung_weight`, `balance`, `string_pattern` e `recommended_tension` são
   **publicados pelo fabricante** e são estáveis entre fontes.
@@ -53,16 +53,45 @@ Consequências implementadas em código (não apenas documentadas):
    encordoado, balanço, padrão de cordas, faixa de tensão recomendada, tamanhos de cabo). Estes campos
    nascem com `source: 'manufacturer'` e `confidence: 'medium'`, e `verified_at: null` — porque a
    verificação humana contra a página oficial **ainda não ocorreu**.
-2. **`swingweight`, `twistweight`, `stiffness_ra` e `strung_weight` nascem `null`.** O motor de
-   recomendação funciona sem eles através de degradação graciosa (ver R-02).
-3. `strung_weight` nunca é inventado, mas **pode ser derivado** por uma fórmula documentada e explícita
-   (`unstrung + 16 g`, faixa típica de um jogo de cordas + overgrip zero), retornado como
-   `is_estimated: true` e nunca exibido como especificação oficial ao usuário. Derivação declarada ≠ dado
-   inventado.
+2. **`swingweight`, `twistweight` e `stiffness_ra` não existem no modelo (v2).** Não nascem `null` —
+   não têm coluna, não têm campo no tipo `RacketSpecs`, não têm chave no JSON semente. Ver a
+   RESOLUÇÃO v2 abaixo.
+3. `strung_weight`, `strung_balance` e `swing_index` nunca são inventados: são **derivações
+   declaradas** por fórmulas explícitas a partir de campos publicados (`unstrung + 16 g`,
+   `balance + 8 mm`, `m·(b−100)²`), documentadas em RECOMMENDATION_ENGINE §1 e nunca exibidas como
+   especificação oficial do fabricante. Derivação declarada ≠ dado inventado.
 4. Existe uma **trava de release**: `pnpm dataset:gate` falha se qualquer variante marcada
    `status: 'current'` for usada em produção com `verification_state !== 'verified'`. O dataset tem
    estados `draft → pending_verification → verified`. **O produto não pode ser vendido com dataset em
    `draft`.** Isso é um portão de CI, não uma boa intenção.
+
+### RESOLUÇÃO v2 — remover a dependência em vez de administrá-la
+
+A decisão acima era correta mas insuficiente. Ela mantinha o produto **honesto** e ao mesmo tempo
+**permanentemente limitado**: com os quatro campos de laboratório em `null` no catálogo inteiro,
+`data_completeness` ficava travada em ≈ 0.61, todo relatório perdia ~23,5 pontos de confiança de
+saída, e **nenhuma persona conseguia atingir "Alta"** por melhor que respondesse o questionário. Pior:
+o filtro de segurança do braço dependia de `stiffness_ra` e portanto **nunca disparava** (achado
+A-01 do CALIBRATION_LOG).
+
+A resposta não é preencher os campos. É reconhecer que um motor comercial não pode depender de dados
+que o mercado não publica, e reconstruí-lo sobre os que publica:
+
+| Papel na v1 | Substituto v2 | Publicado? |
+|---|---|---|
+| `swingweight` | `swing_index` = `m_strung · (balanço_strung − 100)²` | derivado de peso + balanço |
+| `stiffness_ra` | `stiffness_index`, do perfil da viga | sim, todas as marcas |
+| `twistweight` | peso redistribuído para cabeça + massa | sim |
+| `strung_weight_g` | `unstrung + 16 g`, derivação declarada | sim |
+
+Resultado medido: `data_completeness` = **100%** nas 46 variantes do catálogo, contra 61% na v1.
+
+**O que se perdeu, dito explicitamente.** `swing_index` não captura a polarização da distribuição de
+massa; `stiffness_index` erra em frames flexíveis de viga larga (Wilson Clash). São perdas reais. A
+troca é deliberada: um proxy de qualidade conhecida e cobertura de 100% serve melhor a uma
+recomendação paga do que uma medição precisa disponível para 0% do catálogo. As duas limitações são
+documentadas no código, nos docs e — no caso da rigidez — compensadas por uma proteção multicamada
+que não depende do proxy (RECOMMENDATION_ENGINE §4.4).
 5. O painel `/admin/verificacao` existe justamente para transformar `pending_verification` em `verified`
    com um humano colando a URL da fonte. O trabalho de curadoria é **parte do produto**, não um detalhe.
 
@@ -225,6 +254,6 @@ para calibração, mas a alteração gera uma nova versão. Todo relatório grav
 
 §17 pede dados de desconforto sem diagnóstico. **Decisão:** vocabulário controlado ("desconforto recorrente
 em"), zero linguagem clínica, aviso persistente no relatório de conforto, e uma regra dura: perfis com
-`arm_sensitivity_score ≥ 70` **excluem** frames com `stiffness_ra ≥ 68` e cordas de poliéster monofilamento
+`arm_sensitivity_score ≥ 70` **excluem** frames com viga média ≥ 26,5 mm e cordas de poliéster monofilamento
 puro em tensão alta — não por penalização suave, mas por filtro. É a única categoria onde uma recomendação
 errada pode causar dano físico, então ela é tratada como *hard constraint*.

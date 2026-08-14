@@ -8,9 +8,14 @@
  */
 
 @layer base {
+  /**
+   * Tipografia da marca: Sora nos títulos e números, Inter no texto.
+   * As variáveis são preenchidas por `next/font` em layout.tsx; os fallbacks abaixo mantêm a
+   * página legível se as fontes não carregarem.
+   */
   :root {
-    --font-display: 'Georgia', serif;
-    --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Sora', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   }
 
   html {
@@ -30,14 +35,36 @@
   }
 
   ::selection {
-    background: theme('colors.signal');
+    background: theme('colors.ball');
     color: theme('colors.ink');
   }
 }
 
 @layer components {
+  /**
+   * Wordmark — REGRA DA MARCA, do brand book:
+   * "A marca Tennis Engineer deve ser aplicada sempre em preto ou branco.
+   *  Cores de destaque nunca são aplicadas à marca."
+   *
+   * Por isso esta classe FIXA a cor em `currentColor` herdado de `.wordmark-on-light`
+   * (preto) ou `.wordmark-on-dark` (branco). Nenhuma cor de acento — verde, laranja, azul ou
+   * amarelo — pode ser aplicada ao logotipo, em nenhuma tela.
+   */
   .wordmark {
     @apply font-display font-bold uppercase tracking-[0.18em];
+  }
+
+  .wordmark-on-light {
+    @apply text-ink;
+  }
+
+  .wordmark-on-dark {
+    @apply text-white;
+  }
+
+  /* Assinatura de rodapé da marca. */
+  .brand-signature {
+    @apply font-display text-xs font-semibold uppercase tracking-[0.18em];
   }
 
   /* Números grandes são o elemento gráfico principal (docs/DESIGN.md §2). */

@@ -17,27 +17,47 @@ e diagrama técnico, não loja e não blog.
 
 ---
 
-## 2. Tokens
+## 2. Tokens — paleta oficial do brand book
 
 ```css
---ink:        #0B0F14;   /* quase preto azulado — fundo escuro e tipografia clara */
---paper:      #FAFAF8;   /* off-white, muito espaço em branco (§39)              */
---graphite:   #5A6472;   /* texto secundário                                     */
---line:       #E4E6E3;   /* linhas de quadra, divisórias                         */
---court:      #1F6F5C;   /* verde de saibro/quadra, dessaturado — acento primário */
---signal:     #C8FF3D;   /* amarelo-bola de tênis — acento de dado/CTA, uso raro  */
---warn:       #B45309;   /* pontos de atenção                                    */
+/* ── Marca ─────────────────────────────────────────────────────────────────────── */
+--court:      #0E3D2E;   /* verde profundo — cor institucional, fundos de destaque  */
+--court-mid:  #3A7D63;   /* verde médio — superfícies secundárias, gráficos, sucesso */
+--clay:       #D85A2B;   /* laranja — acento primário de AÇÃO (CTA, resultado)       */
+--signal:     #1491E6;   /* azul — informação técnica, links, dados de referência    */
+--ball:       #FFC62E;   /* amarelo bola — realce pontual, badges, progresso         */
+
+/* ── Neutros ───────────────────────────────────────────────────────────────────── */
+--ink:        #0B0F14;   /* quase preto azulado — tipografia e fundos escuros        */
+--paper:      #FAFAF8;   /* off-white, muito espaço em branco (§39)                  */
+--graphite:   #5A6472;   /* texto secundário                                         */
+--line:       #E4E6E3;   /* linhas de quadra, divisórias                             */
+--warn:       #B45309;   /* pontos de atenção                                        */
 ```
 
-**Uma cor de acento por tela.** `--signal` aparece no máximo duas vezes por viewport — é o que o faz
-significar "aqui está o dado", em vez de virar decoração. Sem gradientes coloridos, sem sombras difusas.
+**Uma cor de acento por tela.** A paleta é ampla para dar vocabulário aos gráficos e aos estados, não
+para colorir tudo ao mesmo tempo. Cada tela elege um acento; os demais aparecem no máximo como
+detalhe. Sem gradientes coloridos, sem sombras difusas.
+
+Divisão de papéis, para que a escolha nunca seja estética:
+
+| Cor | Papel | Onde aparece |
+|---|---|---|
+| `--court` | institucional | hero, cabeçalhos, rodapé, fundos escuros |
+| `--clay` | ação | CTA principal, destaque do resultado |
+| `--signal` | informação | links, referências técnicas, eixos de gráfico |
+| `--ball` | realce | badges, progresso, seleção de texto |
+| `--court-mid` | apoio | superfícies secundárias, estados de sucesso |
 
 ### Tipografia
 
-- **Display:** grotesca condensada, peso 700–800, `letter-spacing: -0.02em`. Números grandes (o `94%`)
-  são o elemento gráfico principal.
-- **Texto:** sans humanista, 16 px base, `line-height: 1.6`, largura máxima de 68 caracteres.
-- **Dados:** variante tabular/mono para specs — números alinham em colunas, como em ficha técnica.
+- **Display — Sora**, peso 600–700, `letter-spacing: -0.02em` nos números grandes. Títulos e o `94%`,
+  que é o elemento gráfico principal do relatório.
+- **Texto — Inter**, 16 px base, `line-height: 1.6`, largura máxima de 68 caracteres.
+- **Dados:** variante tabular para specs — números alinham em colunas, como em ficha técnica.
+
+Ambas carregadas por `next/font` com `display: swap` e variáveis CSS (`--font-display`,
+`--font-sans`), com fallback de sistema declarado para o caso de a fonte não carregar.
 
 ### Espaço e forma
 
@@ -57,10 +77,25 @@ specs. Sempre funcionais — nada de ornamento puro.
 ```
 TENNIS ENGINEER
 Seu jogo. Seu setup. Sob medida.
+
+Precisão técnica aplicada ao seu jogo.        ← linha de conceito
+SUA EVOLUÇÃO É O NOSSO PROJETO.               ← assinatura de rodapé
 ```
 
 Wordmark em caixa alta, tracking aberto, com o subtítulo sempre presente na home e no cabeçalho do
 relatório (§39, §64). Nunca abreviar para "TE".
+
+### Regra da marca — inegociável
+
+> **"A marca Tennis Engineer deve ser aplicada sempre em preto ou branco.
+> Cores de destaque nunca são aplicadas à marca."**
+
+Verde, laranja, azul e amarelo vestem a **interface** — fundos, gráficos, estados, acentos. Nunca o
+logotipo. Sobre fundo claro a marca é preta; sobre fundo escuro, branca. Não há terceira opção.
+
+Isto é aplicado em código, não confiado à disciplina: o componente `<Wordmark>` só aceita
+`tone="light" | "dark"`, que resolvem para `--ink` e branco. Não existe prop, classe ou caminho que
+pinte o logotipo de uma cor de acento. `<BrandSignature>` segue a mesma regra.
 
 ---
 

@@ -1,11 +1,12 @@
 /**
  * Carga e validação do catálogo semente.
  *
- * Toda entrada passa por Zod na carga. Campos de laboratório (swingweight, RA, twistweight,
- * strung_weight) são forçados a `null` aqui: o JSON semente NÃO pode conter esses valores, porque
- * eles exigem fonte tier 3 anexada pelo painel de verificação (docs/DATA_SOURCING.md §4).
+ * Toda entrada passa por Zod na carga, e o schema só admite os campos que as quatro marcas
+ * PUBLICAM: cabeça, comprimento, peso sem cordas, balanço, perfil da viga, padrão e faixa de
+ * tensão. Medições de laboratório (swingweight, RA, twistweight, peso encordoado) não existem no
+ * schema da v2 — não é preciso "forçar a null" o que não tem onde ser escrito.
  *
- * Isso torna estruturalmente impossível "colar" um swingweight lembrado de algum lugar no seed.
+ * Isso torna estruturalmente impossível colar no seed um swingweight lembrado de algum lugar.
  */
 
 import { z } from 'zod';
@@ -43,7 +44,7 @@ const racketSpecsSchema = z.object({
   head_size_sq_in: z.number().min(80).max(140),
   length_in: z.number().min(26).max(30),
   unstrung_weight_g: z.number().min(200).max(400),
-  balance_mm: z.number().min(280).max(360),
+  balance_mm: z.number().min(280).max(390),
   string_pattern_mains: z.number().int().min(12).max(20),
   string_pattern_crosses: z.number().int().min(14).max(24),
   beam_width_mm: z.string().nullable().optional(),
@@ -67,7 +68,7 @@ const racketFileSchema = z.object({
   brand: z.enum(['HEAD', 'Wilson', 'Babolat', 'Yonex']),
   data_version: z.string(),
   default_provenance: provenanceSchema,
-  lab_fields_note: z.string(),
+  methodology_note: z.string(),
   rackets: z.array(racketEntrySchema).min(1),
 });
 
@@ -179,15 +180,8 @@ function loadRacketFile(raw: unknown): RacketVariant[] {
         head_size_sq_in: entry.specs.head_size_sq_in,
         length_in: entry.specs.length_in,
         unstrung_weight_g: entry.specs.unstrung_weight_g,
-        // ─── Campos de LABORATÓRIO: forçados a null. Não podem vir do seed. ───────────────
-        strung_weight_g: null,
-        swingweight: null,
-        stiffness_ra: null,
-        twistweight: null,
-        // ──────────────────────────────────────────────────────────────────────────────────
         balance_mm: entry.specs.balance_mm,
         beam_width_mm: entry.specs.beam_width_mm ?? null,
-        beam_width_avg_mm: null, // derivado de beam_width_mm em parseBeamAverage()
         string_pattern_mains: entry.specs.string_pattern_mains,
         string_pattern_crosses: entry.specs.string_pattern_crosses,
         recommended_tension_min_lbs: entry.specs.recommended_tension_min_lbs ?? null,

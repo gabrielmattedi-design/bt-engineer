@@ -52,9 +52,10 @@ export type CurrentRacketSnapshot = {
   readonly unrecognized: boolean;
   readonly weight_g: number | null;
   readonly head_size_sq_in: number | null;
-  readonly swingweight: number | null;
   readonly balance_mm: number | null;
-  readonly stiffness_ra: number | null;
+  readonly beam_width_avg_mm: number | null;
+  /** Índice de balanço derivado (peso × balanço). NÃO é swingweight. */
+  readonly swing_index: number | null;
 };
 
 export type CurrentStringSnapshot = {
@@ -123,6 +124,12 @@ export type PlayerProfile = {
 
   // Estilo
   readonly style_weights: Readonly<Record<PlayStyle, number>>;
+  /**
+   * false quando o jogador NÃO declarou um estilo de jogo — típico de iniciante, que ainda não
+   * desenvolveu um. Nesse caso `style_weights` carrega um vetor difuso de placeholder e não deve
+   * ser tratado como requisito: ver `DYNAMIC_ADJUSTMENTS.style_undetermined`.
+   */
+  readonly style_declared: boolean;
 
   // Equipamento atual
   readonly current_racket: CurrentRacketSnapshot | null;

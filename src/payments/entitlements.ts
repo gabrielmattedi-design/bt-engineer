@@ -189,8 +189,10 @@ function unlockedEntry(
       cabeca_sq_in: specs.head_size_sq_in,
       peso_g: specs.unstrung_weight_g,
       balanco_mm: specs.balance_mm,
-      swingweight: specs.swingweight,
-      rigidez_ra: specs.stiffness_ra,
+      // v2: apenas especificações publicadas pelo fabricante. `perfil_quadro_mm` é a string
+      // oficial da viga ('23-26-23'); a rigidez aparece como índice derivado em `indices`.
+      perfil_quadro_mm: specs.beam_width_mm,
+      comprimento_in: specs.length_in,
       padrao: specs.string_pattern_mains && specs.string_pattern_crosses
         ? `${specs.string_pattern_mains}×${specs.string_pattern_crosses}`
         : null,

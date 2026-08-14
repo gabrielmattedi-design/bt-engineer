@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { Wordmark } from '@/components/marketing/wordmark';
+import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { Podium } from '@/components/result/podium';
 import { getReport } from '@/app/questionario/actions';
 import { PRODUCT_ENTITLEMENTS, type Entitlement } from '@/payments/entitlements';
@@ -289,7 +289,7 @@ export default async function ResultadoPage({
                       </td>
                     ))}
                   </tr>
-                  {['cabeca_sq_in', 'peso_g', 'balanco_mm', 'swingweight', 'rigidez_ra', 'padrao'].map(
+                  {['cabeca_sq_in', 'peso_g', 'balanco_mm', 'perfil_quadro_mm', 'comprimento_in', 'padrao'].map(
                     (spec) => (
                       <tr key={spec} className="border-b border-line/60">
                         <td className="py-2.5 pr-4 font-medium">{SPEC_LABELS[spec] ?? spec}</td>
@@ -318,6 +318,7 @@ export default async function ResultadoPage({
         )}
 
         <footer className="court-line pt-8 text-xs text-graphite">
+          <BrandSignature className="mb-4" />
           <p>{report.indices_disclaimer}</p>
           <p className="mt-2">
             Motor {report.engine_version} · catálogo {report.dataset_version}
@@ -332,8 +333,8 @@ const SPEC_LABELS: Record<string, string> = {
   cabeca_sq_in: 'Cabeça (sq in)',
   peso_g: 'Peso (g)',
   balanco_mm: 'Balanço (mm)',
-  swingweight: 'Swingweight',
-  rigidez_ra: 'Rigidez (RA)',
+  perfil_quadro_mm: 'Perfil do quadro (mm)',
+  comprimento_in: 'Comprimento (in)',
   padrao: 'Padrão de cordas',
 };
 

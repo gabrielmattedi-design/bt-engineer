@@ -107,18 +107,13 @@ describe('degradação graciosa (R-02)', () => {
   const base = testRackets()[0]!.variant.specs;
 
   it('remover um campo não zera os scores e reduz a completude', () => {
-    const complete = computeRacketAttributes({
-      ...base,
-      swingweight: 320,
-      stiffness_ra: 65,
-      twistweight: 14,
-    });
-    const degraded = computeRacketAttributes({
-      ...base,
-      swingweight: null,
-      stiffness_ra: 65,
-      twistweight: 14,
-    });
+    // v2: todos os campos são publicados pelo fabricante, então uma variante bem cadastrada tem
+    // completude 1.0. A degradação graciosa continua importando durante a curadoria, quando um
+    // campo ainda não foi confirmado.
+    const complete = computeRacketAttributes(base);
+    const degraded = computeRacketAttributes({ ...base, beam_width_mm: null });
+
+    expect(complete.data_completeness).toBe(1);
 
     expect(degraded.data_completeness).toBeLessThan(complete.data_completeness);
     for (const key of RACKET_ATTRIBUTE_KEYS) {
@@ -129,9 +124,9 @@ describe('degradação graciosa (R-02)', () => {
   });
 
   it('campo ausente é registrado com o nome do CAMPO, não do termo interno', () => {
-    const attrs = computeRacketAttributes({ ...base, swingweight: null, stiffness_ra: null });
-    expect(attrs.missing_fields).toContain('swingweight');
-    expect(attrs.missing_fields).toContain('stiffness_ra');
+    const attrs = computeRacketAttributes({ ...base, beam_width_mm: null, balance_mm: null });
+    expect(attrs.missing_fields).toContain('beam_width_mm');
+    expect(attrs.missing_fields).toContain('balance_mm');
     // Nomes internos de termo nunca podem vazar para o usuário.
     expect(attrs.missing_fields.some((f) => f.includes('_inverse'))).toBe(false);
   });

@@ -34,7 +34,7 @@ Estes **não** são bugs. São limitações do catálogo que o sistema detecta e
 se resolvem com verificação de dados, não com alteração de peso — e alterar pesos para "compensar"
 seria mascarar a lacuna.
 
-### A-01 — 🔴 O filtro de segurança para o braço está inerte
+### A-01 — ✅ RESOLVIDO em metodologia 2.0.0 (ver C-02) · O filtro de segurança para o braço está inerte
 
 **Severidade: alta.** É a única regra do motor que existe por razão física, não de desempenho (R-11).
 
@@ -52,7 +52,7 @@ poliéster a 55. A proteção existe, mas só na metade do setup.
 como lacuna de cobertura `comfort_flexible` (0/3). **Bloqueia lançamento comercial para o público
 com histórico de desconforto.**
 
-### A-02 — 🟠 Nenhuma persona atinge confiança "Alta"
+### A-02 — ✅ RESOLVIDO em metodologia 2.0.0 (ver C-03) · Nenhuma persona atinge confiança "Alta"
 
 Todas as 22 personas terminam em `Média` ou `Baixa`. A causa é única e conhecida:
 `data_completeness` médio de 0.61 custa ~23,5 pontos de confiança em **todo** relatório
@@ -65,7 +65,7 @@ verificando `swingweight`, `stiffness_ra` e `twistweight`.
 **Projeção:** com esses três campos verificados, `data_completeness` sobe para ~1.0 e a dedução
 desaparece, levando a maioria das personas para `Alta`.
 
-### A-03 — 🟠 Concentração: Wilson Pro Staff 97 em 27% dos Top 1
+### A-03 — ✅ SUPERADO em metodologia 2.0.0 (ver A-06) · Concentração: Wilson Pro Staff 97 em 27% dos Top 1
 
 Acima do limiar de 25% definido em `ADMIN_SPEC.md` §7. Auditado:
 
@@ -78,7 +78,7 @@ Acima do limiar de 25% definido em `ADMIN_SPEC.md` §7. Auditado:
 **Ação:** reavaliar após A-01/A-02. Se a concentração persistir com o catálogo verificado, aí sim é
 questão de peso — e a entrada de correção vem para este log.
 
-### A-04 — 🟡 Ausência de frames de cabeça grande e leves
+### A-04 — ✅ RESOLVIDO em metodologia 2.0.0 (ver C-04) · Ausência de frames de cabeça grande e leves
 
 O segmento `beginner_oversize_light` (≥ 103 sq in **e** ≤ 285 g) tem 0 itens. Consequência medida na
 persona 1: o motor é forçado a escolher entre tolerância (que cresce com a massa) e manobrabilidade
@@ -89,7 +89,7 @@ serve mal esse público hoje, e o número diz isso.
 
 **Ação:** priorizar o cadastro de frames 105–110 sq in com ≤ 285 g na fila de curadoria.
 
-### A-05 — 🟢 Penalização P8 uniforme
+### A-05 — ✅ RESOLVIDO em metodologia 2.0.0 · Penalização P8 uniforme (completude agora é 1.00; a penalização não dispara)
 
 Todas as variantes recebem `−3.7` de `P8_low_data_completeness`, porque todas têm a mesma completude
 (0.61). Uma penalização uniforme não altera a ordenação — apenas desloca a escala inteira para baixo.
@@ -97,6 +97,85 @@ Todas as variantes recebem `−3.7` de `P8_low_data_completeness`, porque todas 
 Comportamento correto: ela **deve** desaparecer conforme os dados forem verificados, e o fit médio
 subirá junto. Registrado para que a subida futura dos scores não seja interpretada como mudança de
 algoritmo.
+
+---
+
+## 2026-08-14 · `metodologia 2.0.0` — especificações consolidadas de mercado
+
+Refatoração de fundo: o motor deixou de depender de medições de laboratório e passou a usar apenas
+especificações que as quatro marcas publicam. Ver 00_RISKS_AND_DECISIONS, RESOLUÇÃO v2.
+
+### C-02 — A-01 resolvido: filtro de braço deixou de ser inerte ✅
+
+O filtro dependia de `stiffness_ra`, `null` no catálogo inteiro — nunca disparava. Reconstruído sobre
+o perfil da viga (publicado) como parte de uma proteção multicamada: corda (exclusão dura de
+poliéster) → tensão (redução proporcional) → quadro (penalização graduada + exclusão acima de
+26,5 mm). Verificado: a persona 21 agora exclui a HEAD Ti.S6 por viga de 28,5 mm, com motivo legível.
+
+**Limitação assumida e documentada:** o perfil da viga é proxy, não medição. A Wilson Clash é o
+contraexemplo conhecido (viga larga, quadro flexível) e o modelo a penaliza indevidamente. A camada
+forte da proteção é a corda, que não depende do proxy.
+
+### C-03 — A-02 resolvido: confiança "Alta" passou a ser alcançável ✅
+
+Duas mudanças, uma de dados e uma de modelo:
+
+1. **Dados** — com os campos de laboratório fora do modelo, `data_completeness` foi de **0.61 → 1.00**
+   nas 46 variantes. Os ~23,5 pontos que todo relatório perdia de saída desapareceram.
+2. **Modelo** — a confiança virou **dois eixos combinados pelo menor**: `profile_knowledge` e
+   `data_knowledge`. Isso era necessário, não cosmético: com o eixo de dados em 100, a persona 15
+   ("todos os não sei", 92% de respostas desconhecidas) subiria para "Média" — o catálogo bem
+   cadastrado mascararia o desconhecimento sobre o jogador. Com `min()`, ela permanece corretamente
+   em **"Baixa"**.
+
+Resultado na matriz de personas: **19 Alta · 2 Média · 1 Baixa** (antes: 0 Alta). A única "Baixa" é
+exatamente a persona que não respondeu nada.
+
+### C-04 — A-04 resolvido: segmento de iniciante cadastrado e desbloqueado ✅
+
+Duas causas independentes, ambas corrigidas:
+
+**(a) Lacuna de catálogo.** O segmento `beginner_oversize_light` tinha 0 itens. Cadastradas 5
+variantes com specs conferidas em fonte de varejo especializado: HEAD Ti.S6 (115 sq in / 225 g),
+Wilson Clash 108 v3, Wilson Ultra Power 103, Babolat Pure Drive 107 (2021), Yonex EZONE 105 (2025).
+Cobertura: **5/3**. Faixas de referência ampliadas para acomodá-las (peso 225–340 g, balanço
+290–385 mm, viga 19–29 mm).
+
+**(b) `playstyle_fit` cobrava um estilo inventado.** Um iniciante responde "ainda não tenho um
+estilo"; o construtor de perfil traduzia isso num placeholder difuso
+(`baseline + all_court + counterpuncher`) e o motor então **cobrava aderência ao placeholder**. Os
+frames de iniciante pontuavam ~46 nesse componente e o `fit_score` caía abaixo do piso de pódio — o
+produto **se recusava a recomendar qualquer coisa a um iniciante**, com o pódio literalmente vazio.
+
+`PlayerProfile.style_declared` separa "não declarou" de "declarou"; quando é `false`, os 0.14 são
+renormalizados para fora. Efeito na persona 1: pódio de **0 → 2** entradas, Top 1 de fit **74 → 79**,
+e os cinco primeiros colocados são agora exatamente as cinco variantes de iniciante.
+
+### C-05 — Asserções de persona reescritas para a física da v2
+
+A persona 1 exigia manobrabilidade no percentil ≥ 0.70. A asserção estava errada, não o motor:
+`maneuverability_score` é dominado por `swing_index`, e frames de iniciante são leves **mas
+fortemente head-heavy** — um frame de 225 g com balanço 380 mm tem inércia de swing **maior** que um
+de tour de 315 g com balanço 310 mm. Cobrar manobrabilidade alta reprovaria o segmento correto e
+aprovaria frames de jogador avançado.
+
+Substituída por: segmento correto (≥ 103 sq in **e** ≤ 285 g) + tolerância no quartil superior. O
+piso de `physical_fit` caiu de 80 para 75, com justificativa: um jogador sedentário de swing lento não
+atinge 80 nem com o frame mais leve do catálogo, porque uma raquete adulta tem piso de massa.
+
+### A-06 — 🟠 Nova concentração: Wilson Blade 98 18x20 em 27% dos Top 1
+
+A concentração migrou do Pro Staff 97 (A-03, agora em 0%) para o Blade 98 18×20. Mesma natureza: uma
+posição extrema e pouco disputada do espaço de specs — controle e precisão altos, viga fina de 21 mm.
+Diversidade geral estável (11 modelos distintos em 22 personas). Reavaliar quando o catálogo tiver
+mais frames de padrão denso; hoje há apenas 5.
+
+### A-07 — 🔴 Lacuna aberta: nenhum frame oversize E de viga fina
+
+Consequência direta: a persona 21 (iniciante **com** histórico de desconforto) tem `comfort_fit` = 47
+com peso 0.22, teto de fit 68, e **pódio vazio** — o produto se recusa a vender a ela. O
+comportamento é correto (§30: proibido criar opções artificiais para vender), mas representa demanda
+real não atendida. É lacuna de catálogo, não de motor: ver DATA_SOURCING §10.3.
 
 ---
 

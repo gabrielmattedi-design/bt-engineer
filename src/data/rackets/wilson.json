@@ -8,7 +8,7 @@
     "confidence": "medium",
     "notes": "Especificações de catálogo do fabricante. AGUARDANDO verificação humana contra a página oficial (docs/DATA_SOURCING.md §4)."
   },
-  "lab_fields_note": "swingweight, stiffness_ra, twistweight e strung_weight_g permanecem null até anexação de fonte tier 3 com URL.",
+  "methodology_note": "Metodologia v2: o motor usa apenas especificações publicadas pelo fabricante e reproduzidas por qualquer varejista especializado. Swingweight, rigidez RA e twistweight são medições de laboratório, não são publicadas e NÃO fazem parte do modelo. Onde a faixa de tensão do fabricante não foi confirmada, os campos ficam null e a confiança do relatório cai — null é melhor que um número falso (§69).",
   "rackets": [
     {
       "family": "Blade",
@@ -28,7 +28,12 @@
         "beam_width_mm": "21/21/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -49,7 +54,12 @@
         "beam_width_mm": "21/21/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -70,7 +80,12 @@
         "beam_width_mm": "22/22/22",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -91,7 +106,11 @@
         "beam_width_mm": "21/21/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -112,7 +131,12 @@
         "beam_width_mm": "21.5/21.5/21.5",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -133,7 +157,11 @@
         "beam_width_mm": "21.5/21.5/21.5",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -154,7 +182,12 @@
         "beam_width_mm": "24.5/26.5/23.5",
         "recommended_tension_min_lbs": 48,
         "recommended_tension_max_lbs": 58,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -175,7 +208,12 @@
         "beam_width_mm": "24/24/24",
         "recommended_tension_min_lbs": 48,
         "recommended_tension_max_lbs": 58,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -196,7 +234,12 @@
         "beam_width_mm": "24/26.5/24",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -217,7 +260,61 @@
         "beam_width_mm": "24/26.5/24",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "family": "Clash",
+      "model": "Clash 108",
+      "variant": "108",
+      "generation": "v3",
+      "year": 2024,
+      "product_name": "Wilson Clash 108 v3 (2024)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 108,
+        "length_in": 27.25,
+        "unstrung_weight_g": 280,
+        "balance_mm": 335,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "24.5",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 60,
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "family": "Ultra Power",
+      "model": "Ultra Power 103",
+      "variant": "103",
+      "generation": "2022",
+      "year": 2022,
+      "product_name": "Wilson Ultra Power 103",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 103,
+        "length_in": 27,
+        "unstrung_weight_g": 275,
+        "balance_mm": 330,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23",
+        "recommended_tension_min_lbs": null,
+        "recommended_tension_max_lbs": null,
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     }
   ]

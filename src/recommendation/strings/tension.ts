@@ -17,7 +17,7 @@ import {
 } from '@/domain/reference-ranges';
 import { clamp, norm, round } from '@/domain/scores';
 import { lbsToKg } from '@/domain/units';
-import type { ScoredRacket } from '@/domain/racket';
+import { averageBeam, type ScoredRacket } from '@/domain/racket';
 import type { ScoredStringVariant, StringType } from '@/domain/string';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { TensionAdjustment, TensionRecommendation } from '@/domain/recommendation';
@@ -111,12 +111,19 @@ export function computeTension(
     );
   }
 
-  // 5 — rigidez do frame
-  if (specs.stiffness_ra !== null) {
+  // 5 — perfil do quadro (proxy de rigidez).
+  //
+  // A rigidez medida (RA) não é publicada pelos fabricantes e, quando existe, vem de laboratórios
+  // independentes com metodologias diferentes. Usamos o perfil da viga, que TODA marca publica:
+  // quadros mais largos são, na média do mercado, mais rígidos. É uma correlação, não uma
+  // identidade — por isso o ajuste é modesto (máx. 1,5 lb) e a proteção forte do braço mora na
+  // escolha da corda, não aqui.
+  const beam = averageBeam(specs.beam_width_mm);
+  if (beam !== null) {
     add(
-      'rigidez_do_frame',
-      -norm(specs.stiffness_ra, RANGES.stiffness_ra[0], RANGES.stiffness_ra[1]) * 1.5,
-      `Frame com RA ${specs.stiffness_ra} já é rígido; aliviamos na corda para preservar o braço.`,
+      'perfil_do_quadro',
+      -norm(beam, RANGES.beam_width_avg_mm[0], RANGES.beam_width_avg_mm[1]) * 1.5,
+      `Quadro de perfil ${specs.beam_width_mm} mm ${beam >= 25 ? 'é largo e tipicamente mais rígido; aliviamos na corda para preservar o braço' : 'é relativamente fino e tende a absorver mais impacto, o que abre margem na tensão'}.`,
     );
   }
 

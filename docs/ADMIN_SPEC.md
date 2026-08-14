@@ -24,7 +24,7 @@ Coluna visual de completude (barra) e um selo vermelho para `data_completeness <
 **Editor de variante** — cada campo numérico é um `SourcedField`:
 
 ```
-┌ swingweight ────────────────────────────────────────┐
+┌ perfil do quadro (viga) ────────────────────────────┐
 │ valor: [ 322 ]        ☐ desconhecido (null)          │
 │ fonte: [ lab ▾ ]      URL: [ https://… ]             │
 │ verificado em: [2026-08-14]   confiança: [ alta ▾ ]  │
@@ -37,7 +37,7 @@ existir ou o campo ser marcado como desconhecido. Esta é a barreira de UI que s
 `DATA_SOURCING.md`.
 
 Ao salvar, `racket_attributes` e `racket_fit_profiles` são recalculados e um diff é exibido:
-*"control_score 71 → 74 (swingweight preenchido)"*.
+*"control_score 71 → 74 (perfil da viga preenchido)"*.
 
 ---
 

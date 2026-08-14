@@ -12,7 +12,11 @@ import { PLAY_STYLES } from '@/domain/racket';
 import type { NeedKey, PlayerProfile } from '@/domain/player-profile';
 import { NEED_KEYS, NEED_TO_RACKET_ATTRIBUTE } from '@/domain/player-profile';
 import type { ComponentBreakdown, ComponentKey } from '@/domain/recommendation';
-import { massIndex, resolveStrungWeight } from '@/recommendation/normalize/racket-attributes';
+import {
+  computeSwingIndex,
+  massIndex,
+  resolveStrungWeight,
+} from '@/recommendation/normalize/racket-attributes';
 
 type ComponentOutput = Omit<ComponentBreakdown, 'weight' | 'contribution'>;
 
@@ -35,7 +39,7 @@ function output(
 export function physicalFit(profile: PlayerProfile, racket: ScoredRacket): ComponentOutput {
   const mass = massIndex(racket.variant.specs);
   if (mass === null) {
-    return output('physical_fit', 50, [], ['unstrung_weight_g', 'swingweight']);
+    return output('physical_fit', 50, [], ['unstrung_weight_g']);
   }
 
   const capacity =
@@ -246,7 +250,7 @@ export function transitionFit(profile: PlayerProfile, racket: ScoredRacket): Com
   }
 
   const specs = racket.variant.specs;
-  const newWeight = resolveStrungWeight(specs).value;
+  const newWeight = resolveStrungWeight(specs);
   const terms: WeightedTerm[] = [];
   let penalty = 0;
 
@@ -262,10 +266,18 @@ export function transitionFit(profile: PlayerProfile, racket: ScoredRacket): Com
     });
   }
 
-  if (current.swingweight !== null && specs.swingweight !== null) {
-    const ds = Math.abs(specs.swingweight - current.swingweight);
-    penalty += Math.max(0, ds - 12) * 1.0;
-    terms.push({ label: 'delta_swingweight', value: 1 - norm(ds, 0, 60), weight: 1, note: `Δ ${round(ds)}` });
+  const newSwing = computeSwingIndex(specs);
+  if (current.swing_index !== null && newSwing !== null) {
+    // Comparação RELATIVA: a inércia varia numa escala grande, então um delta absoluto não teria
+    // significado uniforme entre frames leves e pesados.
+    const rel = Math.abs(newSwing - current.swing_index) / current.swing_index;
+    penalty += Math.max(0, rel - 0.08) * 260;
+    terms.push({
+      label: 'delta_swing_index',
+      value: 1 - norm(rel, 0, 0.4),
+      weight: 1,
+      note: `Δ ${(rel * 100).toFixed(0)}% de inércia`,
+    });
   }
 
   if (current.head_size_sq_in !== null && specs.head_size_sq_in !== null) {

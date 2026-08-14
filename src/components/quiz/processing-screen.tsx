@@ -53,7 +53,7 @@ export function ProcessingScreen({
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink px-6 text-paper">
       <div className="w-full max-w-md">
-        <div className="wordmark text-sm text-paper/50">Tennis Engineer</div>
+        <div className="wordmark wordmark-on-dark text-sm opacity-60">Tennis Engineer</div>
 
         <ul className="mt-10 space-y-3" aria-live="polite">
           {STEPS.map((label, i) => {
@@ -69,7 +69,7 @@ export function ProcessingScreen({
                 <span
                   className={cn(
                     'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px]',
-                    done ? 'border-signal text-signal' : 'border-paper/30 text-transparent',
+                    done ? 'border-ball text-ball' : 'border-paper/30 text-transparent',
                   )}
                   aria-hidden
                 >

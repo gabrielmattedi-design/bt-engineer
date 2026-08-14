@@ -11,7 +11,7 @@
  */
 
 import { formatTension } from '@/domain/units';
-import type { ScoredRacket } from '@/domain/racket';
+import { averageBeam, type ScoredRacket } from '@/domain/racket';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type {
   RankedRacket,
@@ -66,10 +66,14 @@ export function buildRacketFactSheet(
     specFact('Tamanho da cabeça', specs.head_size_sq_in, 'sq in'),
     specFact('Peso (não encordoada)', specs.unstrung_weight_g, 'g'),
     specFact('Balanço', specs.balance_mm, 'mm'),
-    specFact('Swingweight', specs.swingweight, ''),
-    specFact('Rigidez (RA)', specs.stiffness_ra, ''),
+    specFact('Perfil do quadro (médio)', averageBeam(specs.beam_width_mm), 'mm'),
   ].filter((f): f is Fact => f !== null);
   facts.push(...specFacts);
+
+  // Índices derivados: passos de 5, e nomeados de modo que não se confundam com medições de
+  // laboratório. A IA só pode citar estes números — nunca "swingweight" ou "RA".
+  facts.push(indexFact('Índice de inércia de swing', attributes.swing_index));
+  facts.push(indexFact('Índice de rigidez do quadro', attributes.stiffness_index));
 
   if (specs.string_pattern_mains !== null && specs.string_pattern_crosses !== null) {
     facts.push({

@@ -8,7 +8,7 @@
     "confidence": "medium",
     "notes": "Especificações de catálogo do fabricante. AGUARDANDO verificação humana contra a página oficial (docs/DATA_SOURCING.md §4)."
   },
-  "lab_fields_note": "swingweight, stiffness_ra, twistweight e strung_weight_g permanecem null até anexação de fonte tier 3 com URL.",
+  "methodology_note": "Metodologia v2: o motor usa apenas especificações publicadas pelo fabricante e reproduzidas por qualquer varejista especializado. Swingweight, rigidez RA e twistweight são medições de laboratório, não são publicadas e NÃO fazem parte do modelo. Onde a faixa de tensão do fabricante não foi confirmada, os campos ficam null e a confiança do relatório cai — null é melhor que um número falso (§69).",
   "rackets": [
     {
       "family": "EZONE",
@@ -28,7 +28,12 @@
         "beam_width_mm": "23.5/26/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -49,7 +54,12 @@
         "beam_width_mm": "23/24/19",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -70,7 +80,11 @@
         "beam_width_mm": "23.5/26/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -91,7 +105,11 @@
         "beam_width_mm": "23/24/19",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [2, 3, 4]
+        "grip_sizes_available": [
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -112,7 +130,12 @@
         "beam_width_mm": "23/25/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -133,7 +156,12 @@
         "beam_width_mm": "22/23/21",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -154,7 +182,11 @@
         "beam_width_mm": "23/25/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -175,7 +207,12 @@
         "beam_width_mm": "21/21/21",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -196,7 +233,12 @@
         "beam_width_mm": "22/22/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -217,7 +259,37 @@
         "beam_width_mm": "22/22/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "family": "EZONE",
+      "model": "EZONE 105",
+      "variant": "105",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "Yonex EZONE 105 (2025)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 105,
+        "length_in": 27,
+        "unstrung_weight_g": 275,
+        "balance_mm": 330,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "24/26.5/23.5",
+        "recommended_tension_min_lbs": 40,
+        "recommended_tension_max_lbs": 55,
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     }
   ]

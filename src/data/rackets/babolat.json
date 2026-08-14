@@ -8,7 +8,7 @@
     "confidence": "medium",
     "notes": "Especificações de catálogo do fabricante. AGUARDANDO verificação humana contra a página oficial (docs/DATA_SOURCING.md §4)."
   },
-  "lab_fields_note": "swingweight, stiffness_ra, twistweight e strung_weight_g permanecem null até anexação de fonte tier 3 com URL.",
+  "methodology_note": "Metodologia v2: o motor usa apenas especificações publicadas pelo fabricante e reproduzidas por qualquer varejista especializado. Swingweight, rigidez RA e twistweight são medições de laboratório, não são publicadas e NÃO fazem parte do modelo. Onde a faixa de tensão do fabricante não foi confirmada, os campos ficam null e a confiança do relatório cai — null é melhor que um número falso (§69).",
   "rackets": [
     {
       "family": "Pure Aero",
@@ -28,7 +28,12 @@
         "beam_width_mm": "23/26/23",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -49,7 +54,12 @@
         "beam_width_mm": "21/23/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -70,7 +80,11 @@
         "beam_width_mm": "23/26/23",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -91,7 +105,11 @@
         "beam_width_mm": "23/26/23",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -112,7 +130,12 @@
         "beam_width_mm": "23/26/23",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -133,7 +156,11 @@
         "beam_width_mm": "23/26/23",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -154,7 +181,12 @@
         "beam_width_mm": "21/23/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -175,7 +207,12 @@
         "beam_width_mm": "21/23/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -196,7 +233,12 @@
         "beam_width_mm": "21/23/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3, 4]
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
       }
     },
     {
@@ -217,7 +259,36 @@
         "beam_width_mm": "21/23/21",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 59,
-        "grip_sizes_available": [1, 2, 3]
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "family": "Pure Drive",
+      "model": "Pure Drive 107",
+      "variant": "107",
+      "generation": "2021",
+      "year": 2021,
+      "product_name": "Babolat Pure Drive 107 (2021)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 107,
+        "length_in": 27,
+        "unstrung_weight_g": 285,
+        "balance_mm": 320,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23/26/23",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
       }
     }
   ]

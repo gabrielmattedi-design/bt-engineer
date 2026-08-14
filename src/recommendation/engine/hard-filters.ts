@@ -6,8 +6,12 @@
  * por que uma raquete NÃO apareceu tanto quanto por que outra apareceu.
  */
 
-import { MIN_DATA_COMPLETENESS } from '@/domain/reference-ranges';
+import {
+  MIN_DATA_COMPLETENESS,
+  VERY_STIFF_BEAM_THRESHOLD_MM,
+} from '@/domain/reference-ranges';
 import { hasRequiredSpecs, type ScoredRacket } from '@/domain/racket';
+import { parseBeamAverage } from '@/recommendation/normalize/racket-attributes';
 import { isRecommendable } from '@/domain/sourced';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { ExcludedRacket } from '@/domain/recommendation';
@@ -67,11 +71,25 @@ export function excludeReason(
     };
   }
 
-  // Segurança: nunca recomendar frame rígido a quem relata desconforto significativo.
-  if (profile.arm_sensitivity_score >= 70 && (specs.stiffness_ra ?? 0) >= 68) {
+  // ── Segurança para o braço (R-11) ────────────────────────────────────────────────────────
+  //
+  // Na v2 esta é a camada MAIS FRACA da proteção, e isso é deliberado: o perfil da viga é um
+  // proxy publicado de rigidez, não uma medição, e tem exceções conhecidas (Wilson Clash tem
+  // viga larga e é flexível). Por isso aqui só excluímos os casos mais claros — viga muito
+  // larga somada a sensibilidade alta — e o trabalho pesado fica com as duas camadas
+  // realmente confiáveis, que não dependem deste proxy:
+  //
+  //   • corda:  poliéster é EXCLUÍDO por regra dura em `excludedStringTypes()`
+  //   • tensão: reduzida proporcionalmente à sensibilidade em `computeTension()`
+  //
+  // A faixa intermediária vira penalização graduada em `penalties.ts` (P3), não exclusão.
+  const beam = parseBeamAverage(specs);
+  if (profile.arm_sensitivity_score >= 70 && beam !== null && beam >= VERY_STIFF_BEAM_THRESHOLD_MM) {
     return {
       filter: 'arm_safety',
-      reason: `Frame rígido (RA ${specs.stiffness_ra}) incompatível com o histórico de desconforto informado.`,
+      reason:
+        `Quadro de perfil muito largo (${beam.toFixed(1)} mm), tipicamente mais rígido, ` +
+        'incompatível com o histórico de desconforto informado.',
     };
   }
 

@@ -10,7 +10,13 @@ import { round } from '@/domain/scores';
 import type { ScoredRacket } from '@/domain/racket';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { Penalty } from '@/domain/recommendation';
-import { humanizeMissingFields, resolveStrungWeight } from '@/recommendation/normalize/racket-attributes';
+import {
+  computeSwingIndex,
+  humanizeMissingFields,
+  parseBeamAverage,
+  resolveStrungWeight,
+} from '@/recommendation/normalize/racket-attributes';
+import { STIFF_BEAM_THRESHOLD_MM } from '@/domain/reference-ranges';
 
 export function computePenalties(
   profile: PlayerProfile,
@@ -43,12 +49,15 @@ export function computePenalties(
     );
   }
 
-  // P3 — risco para o braço. Complementa o filtro duro: aqui pega a faixa intermediária.
-  if (profile.arm_sensitivity_score >= 60 && (specs.stiffness_ra ?? 0) >= 67) {
+  // P3 — risco para o braço na faixa intermediária. Penalização GRADUADA a partir do perfil da
+  // viga, que é o proxy de rigidez publicado. Complementa (não substitui) a exclusão de poliéster
+  // e a redução de tensão, que são as proteções fortes.
+  const beamAvg = parseBeamAverage(specs);
+  if (profile.arm_sensitivity_score >= 60 && beamAvg !== null && beamAvg >= STIFF_BEAM_THRESHOLD_MM) {
     push(
       'P3_arm_risk_stiff_frame',
-      ((specs.stiffness_ra as number) - 66) * 4.0,
-      `Rigidez RA ${specs.stiffness_ra} somada ao histórico de desconforto informado.`,
+      (beamAvg - STIFF_BEAM_THRESHOLD_MM + 0.5) * 9.0,
+      `Perfil de quadro largo (${beamAvg.toFixed(1)} mm) somado ao histórico de desconforto informado.`,
     );
   }
 
@@ -65,7 +74,7 @@ export function computePenalties(
   // P5 — transição brusca. Apenas o excedente da zona morta é penalizado.
   const current = profile.current_racket;
   if (current?.weight_g != null) {
-    const newStrung = resolveStrungWeight(specs).value;
+    const newStrung = resolveStrungWeight(specs);
     if (newStrung !== null) {
       const dw = Math.abs(newStrung - (current.weight_g + 16));
       if (dw > 25) {
@@ -77,14 +86,18 @@ export function computePenalties(
       }
     }
   }
-  if (current?.swingweight != null && specs.swingweight !== null) {
-    const ds = Math.abs(specs.swingweight - current.swingweight);
-    if (ds > 25) {
-      push(
-        'P5b_abrupt_sw_change',
-        (ds - 25) * 0.7,
-        `Diferença de ${round(ds)} pontos de swingweight em relação à raquete atual.`,
-      );
+  // P5b — mudança brusca de inércia de swing, medida pelo índice derivado (peso × balanço).
+  if (current?.swing_index != null) {
+    const newSwing = computeSwingIndex(specs);
+    if (newSwing !== null) {
+      const relative = Math.abs(newSwing - current.swing_index) / current.swing_index;
+      if (relative > 0.12) {
+        push(
+          'P5b_abrupt_swing_change',
+          (relative - 0.12) * 120,
+          `Mudança de ${(relative * 100).toFixed(0)}% na inércia de swing em relação à raquete atual.`,
+        );
+      }
     }
   }
 

@@ -9,7 +9,10 @@ import { round } from '@/domain/scores';
 import type { ScoredRacket } from '@/domain/racket';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { SpecComparison, TransitionAnalysis } from '@/domain/recommendation';
-import { resolveStrungWeight } from '@/recommendation/normalize/racket-attributes';
+import {
+  parseBeamAverage,
+  resolveStrungWeight,
+} from '@/recommendation/normalize/racket-attributes';
 
 function compare(
   label: string,
@@ -69,8 +72,8 @@ export function analyzeTransition(
   const comparisons: SpecComparison[] = [
     compare(
       'Peso (encordoada)',
-      resolveStrungWeight(cs).value,
-      resolveStrungWeight(rs).value,
+      resolveStrungWeight(cs),
+      resolveStrungWeight(rs),
       'g',
       (d) =>
         d > 0
@@ -82,20 +85,20 @@ export function analyzeTransition(
         ? 'Área útil maior: mais tolerância em bolas descentralizadas.'
         : 'Área útil menor: mais precisão, exigindo contato mais consistente.',
     ),
-    compare('Swingweight', cs.swingweight, rs.swingweight, '', (d) =>
+    compare('Perfil do quadro', parseBeamAverage(cs), parseBeamAverage(rs), 'mm', (d) =>
       d > 0
-        ? 'Mais inércia: bola mais pesada, exigindo preparação mais cedo.'
-        : 'Menos inércia: mais rápido em defesa e na rede.',
+        ? 'Quadro mais largo: normalmente mais rígido e mais potente, com resposta mais direta.'
+        : 'Quadro mais fino: normalmente mais flexível, com mais sensação de bola.',
     ),
     compare('Balanço', cs.balance_mm, rs.balance_mm, 'mm', (d) =>
       d > 0
         ? 'Mais peso na cabeça: mais potência natural, menos manobrabilidade.'
         : 'Mais peso no cabo: mais manobrabilidade, menos plow-through.',
     ),
-    compare('Rigidez (RA)', cs.stiffness_ra, rs.stiffness_ra, '', (d) =>
+    compare('Inércia de swing (índice)', ca.swing_index, ra.swing_index, '', (d) =>
       d > 0
-        ? 'Frame mais rígido: resposta mais direta, mais vibração transmitida.'
-        : 'Frame mais flexível: mais conforto e sensação de bola, resposta menos imediata.',
+        ? 'Mais inércia: bola mais pesada, exigindo preparação mais cedo.'
+        : 'Menos inércia: mais rápido em defesa e na rede.',
     ),
     compare(
       'Padrão de cordas',
@@ -160,8 +163,11 @@ export function analyzeTransition(
         'até o ajuste do swing.',
     );
   }
-  if (gain('Rigidez (RA)', 1, 3)) {
-    attention.push('Frame mais rígido que o atual: acompanhe o conforto nas primeiras semanas.');
+  if (gain('Perfil do quadro', 1, 1.5)) {
+    attention.push(
+      'Quadro de perfil mais largo que o atual, tipicamente mais rígido: acompanhe o conforto nas ' +
+        'primeiras semanas.',
+    );
   }
   if (gain('Peso (encordoada)', 1, 15)) {
     attention.push(

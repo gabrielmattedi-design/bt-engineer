@@ -19,6 +19,10 @@ import { rankRackets, selectPodium, type RankOptions } from './engine/rank-racke
 import { analyzeTransition } from './engine/transition';
 import { selectStringVariant, type StringCatalog } from './strings/select-string';
 import { computeTension } from './strings/tension';
+import {
+  computeSwingIndex,
+  parseBeamAverage,
+} from './normalize/racket-attributes';
 
 export type RecommendInput = {
   readonly profile: PlayerProfile;
@@ -40,25 +44,48 @@ export function recommend(input: RecommendInput): RecommendationResult {
       ? (input.rackets.find((r) => r.variant.id === input.profile.current_racket?.variant_id) ?? null)
       : null;
 
-  const ranked = rankRackets(input.profile, input.rackets, { mode, currentRacket });
-  const podium = selectPodium(ranked.ranking, input.profile);
+  /**
+   * Enriquecimento do perfil com as specs REAIS da raquete atual.
+   *
+   * `buildPlayerProfile` não tem acesso ao catálogo (é função pura sobre respostas), então o
+   * snapshot sai de lá com os campos nulos. Preenchê-lo aqui é o que faz `transition_fit` e as
+   * penalizações P5/P5b enxergarem o equipamento atual — sem isto o componente devolvia sempre o
+   * valor neutro, silenciosamente.
+   */
+  const profile: PlayerProfile = currentRacket
+    ? {
+        ...input.profile,
+        current_racket: {
+          variant_id: currentRacket.variant.id,
+          unrecognized: false,
+          weight_g: currentRacket.variant.specs.unstrung_weight_g,
+          head_size_sq_in: currentRacket.variant.specs.head_size_sq_in,
+          balance_mm: currentRacket.variant.specs.balance_mm,
+          beam_width_avg_mm: parseBeamAverage(currentRacket.variant.specs),
+          swing_index: computeSwingIndex(currentRacket.variant.specs),
+        },
+      }
+    : input.profile;
+
+  const ranked = rankRackets(profile, input.rackets, { mode, currentRacket });
+  const podium = selectPodium(ranked.ranking, profile);
   const top = podium[0] ?? ranked.ranking[0] ?? null;
 
   const transition = top
-    ? analyzeTransition(input.profile, top.racket, currentRacket)
+    ? analyzeTransition(profile, top.racket, currentRacket)
     : { available: false, comparisons: [], expectations: [], attention_points: [] };
 
   let stringRecommendation = null;
   let tension = null;
 
   if (input.includeSetup && top && input.strings) {
-    stringRecommendation = selectStringVariant(input.profile, top.racket, input.strings, mode);
+    stringRecommendation = selectStringVariant(profile, top.racket, input.strings, mode);
     if (stringRecommendation) {
-      tension = computeTension(top.racket, stringRecommendation.variant, input.profile);
+      tension = computeTension(top.racket, stringRecommendation.variant, profile);
     }
   }
 
-  const confidence = computeConfidence(input.profile, ranked.ranking, {
+  const confidence = computeConfidence(profile, ranked.ranking, {
     tensionBaseIsFallback: tension?.base_source === 'fallback',
   });
 

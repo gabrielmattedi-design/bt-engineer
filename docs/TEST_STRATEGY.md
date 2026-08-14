@@ -33,7 +33,7 @@ Status: `v1` · Runner: Vitest
 | **Monotonicidade — potência** | ↑ `power_need` nunca reduz o ranking de um frame com `power_score` maior, mantendo o resto fixo |
 | **Monotonicidade — conforto** | ↑ `arm_sensitivity` nunca eleva um frame mais rígido acima de um mais flexível equivalente |
 | **Limites** | Todo score derivado ∈ [0,100]; toda tensão ∈ [40,66] e dentro da faixa do frame |
-| **Renormalização** | Remover um campo (`swingweight → null`) não muda o score em mais de 8 pontos e reduz `data_completeness` |
+| **Renormalização** | Remover um campo publicado (`beam_width_mm → null`) não muda o score em mais de 25 pontos e reduz `data_completeness` |
 | **Simetria de unidades** | `lbs → kg → lbs` estável em ±0.05 |
 
 ---
@@ -105,7 +105,7 @@ física (peso 200–400 g, RA 40–90, gauge 0.95–1.45 mm…).
 exatamente 1 pagamento.
 
 `ai-guard.test.ts` — dado um `FactSheet` fixo e uma explicação contendo um número não autorizado
-("swingweight 325"), `guardFactualClaims()` **rejeita** e o sistema cai para o gerador determinístico.
+("swingweight 325" — grandeza que sequer existe no modelo v2), `guardFactualClaims()` **rejeita** e o sistema cai para o gerador determinístico.
 
 ---
 

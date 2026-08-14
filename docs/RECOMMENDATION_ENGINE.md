@@ -25,20 +25,52 @@ inv(t)            = 1 - t
 score(t)          = t * 100                      // t ∈ [0,1] → 0–100
 ```
 
-### Faixas de referência (frames adultos de performance)
+### Faixas de referência (frames adultos, catálogo das 4 marcas)
+
+> **Metodologia v2 — especificações consolidadas de mercado.**
+> O motor usa **exclusivamente** campos que HEAD, Wilson, Babolat e Yonex publicam no próprio
+> catálogo e que qualquer varejista especializado reproduz. Foram **removidos** `swingweight`,
+> `stiffness_ra` (RA), `twistweight` e `strung_weight_g`: são medições de laboratório, não são
+> publicadas pelo fabricante, variam por exemplar e não existem de forma consistente para as quatro
+> marcas. Depender delas travava o catálogo em `data_completeness ≈ 0.61` e impedia qualquer
+> relatório de atingir confiança "Alta".
 
 | Grandeza | lo | hi | Origem da faixa |
 |---|---|---|---|
-| `head_size_sq_in` | 93 | 115 | menor e maior cabeça entre frames adultos das 4 marcas |
-| `unstrung_weight_g` | 255 | 340 | do mais leve "team/lite" ao mais pesado "tour/pro" |
-| `balance_mm` (unstrung) | 290 | 345 | 9 pts HL a 4 pts HH |
-| `swingweight` | 275 | 345 | faixa prática de frames encordoados |
-| `stiffness_ra` | 55 | 75 | flexível clássico a rígido de potência |
-| `beam_width_avg_mm` | 19 | 28 | box beam a widebody |
-| `twistweight` | 12 | 17 | faixa medida em frames adultos |
+| `head_size_sq_in` | 93 | 115 | menor cabeça de torneio ao oversize recreativo |
+| `unstrung_weight_g` | 225 | 340 | do ultraleve de iniciante (HEAD Ti.S6, 225 g) ao tour pesado |
+| `strung_weight_g` (derivado) | 241 | 356 | `unstrung + 16 g` |
+| `balance_mm` (unstrung) | 290 | 385 | 9 pts HL a fortemente head-heavy (frames leves de iniciante) |
+| `beam_width_avg_mm` | 19 | 29 | box beam fino a widebody de iniciante |
+| `swing_index` (derivado) | 1.25e7 | 2.10e7 | ver abaixo |
 
 Estas faixas são **constantes do domínio** (`domain/reference-ranges.ts`). Alterá-las muda todos os
 scores e exige nova `methodology_version`.
+
+### Grandezas derivadas — declaradas, nunca exibidas como spec do fabricante
+
+```
+strung_weight   = unstrung_weight_g + 16                    // massa de um jogo de cordas
+strung_balance  = balance_mm + 8                            // cordas ficam na cabeça
+swing_index     = strung_weight · (strung_balance − 100)²    // g·mm², eixo a 10 cm do cabo
+stiffness_index = norm(beam_width_avg_mm)                    // proxy de rigidez pelo perfil da viga
+```
+
+**`swing_index` NÃO é swingweight.** Mede a mesma grandeza física — momento de inércia em torno do
+eixo de swing — mas calculada a partir de dados publicados em vez de medida em bancada. Captura bem
+a diferença entre um frame leve head-light e um pesado head-heavy; **não** captura a polarização da
+distribuição de massa: dois frames de mesmo peso e balanço com massa distribuída de formas
+diferentes recebem o mesmo índice. Por isso tem outro nome e nunca é rotulado "swingweight".
+
+**`stiffness_index` NÃO é RA.** É a largura média da viga normalizada. A correlação com rigidez é boa
+na média do mercado (viga larga ⇒ mais rígida) e tem exceções conhecidas — a Wilson Clash tem viga
+larga e é notoriamente flexível. Consequência aceita e documentada: a proteção ao braço não pode
+depender deste proxy, e por isso é multicamada (ver §4.4).
+
+Uma consequência contraintuitiva mas fisicamente correta: frames de iniciante são leves **e**
+fortemente head-heavy, então têm `swing_index` **maior** que muitos frames de tour. É exatamente a
+razão pela qual treinadores criticam a alta inércia dos frames de iniciante — o modelo não maquia
+isso.
 
 ### Abertura do padrão de cordas
 
@@ -55,37 +87,40 @@ mecanismo do snap-back). Valores resultantes: `18×20 → 0.00`, `16×20 → 0.3
 
 ## 2. Camada 2 — Normalização de raquetes
 
-Todos os scores saem em 0–100. `h=norm(head)`, `w=norm(weight)`, `b=norm(balance)`, `s=norm(sw)`,
-`r=norm(ra)`, `m=norm(beam)`, `t=norm(twistweight)`, `o=openness`, `d=1−o`.
+Todos os scores saem em 0–100. `h=norm(head)`, `w=norm(strung_weight)`, `b=norm(strung_balance)`,
+`m=norm(beam_avg)`, `s=norm(swing_index)`, `o=openness`, `d=1−o`.
 
 ```
-power_score           = 100·(0.30·h + 0.25·r + 0.20·m + 0.15·o + 0.10·inv(w))
-control_score         = 100·(0.28·inv(h) + 0.24·d + 0.18·inv(m) + 0.16·s + 0.14·inv(r))
-spin_score            = 100·(0.45·o + 0.20·h + 0.20·s + 0.15·inv(r))
-comfort_score         = 100·(0.45·inv(r) + 0.25·w + 0.15·inv(m) + 0.15·o)
-stability_score       = 100·(0.35·s + 0.30·w + 0.25·t + 0.10·b)
-maneuverability_score = 100·(0.45·inv(s) + 0.30·inv(w) + 0.25·inv(b))
-forgiveness_score     = 100·(0.40·h + 0.30·t + 0.15·o + 0.15·w)
-precision_score       = 100·(0.30·d + 0.25·inv(h) + 0.20·s + 0.15·inv(r) + 0.10·t)
-feel_score            = 100·(0.50·inv(r) + 0.30·w + 0.20·d)
-launch_angle_score    = 100·(0.40·o + 0.30·h + 0.20·r + 0.10·m)
-arm_friendliness_score= 100·(0.50·inv(r) + 0.30·w + 0.10·inv(m) + 0.10·o)
-demand_index          = 100·(0.35·s + 0.25·inv(h) + 0.20·d + 0.20·w)
+power_score           = 100·(0.30·h + 0.28·m + 0.17·o + 0.15·inv(w) + 0.10·b)
+control_score         = 100·(0.28·inv(h) + 0.26·d + 0.20·inv(m) + 0.16·s + 0.10·inv(b))
+spin_score            = 100·(0.45·o + 0.20·h + 0.20·s + 0.15·b)
+comfort_score         = 100·(0.38·inv(m) + 0.30·w + 0.17·o + 0.15·h)
+stability_score       = 100·(0.40·s + 0.32·w + 0.18·h + 0.10·b)
+maneuverability_score = 100·(0.55·inv(s) + 0.30·inv(w) + 0.15·inv(b))
+forgiveness_score     = 100·(0.45·h + 0.25·w + 0.18·o + 0.12·s)
+precision_score       = 100·(0.32·d + 0.28·inv(h) + 0.22·s + 0.18·inv(m))
+feel_score            = 100·(0.45·inv(m) + 0.32·w + 0.23·d)
+launch_angle_score    = 100·(0.40·o + 0.32·h + 0.20·m + 0.08·b)
+arm_friendliness_score= 100·(0.45·inv(m) + 0.30·w + 0.15·h + 0.10·o)
+demand_index          = 100·(0.35·s + 0.28·inv(h) + 0.22·d + 0.15·w)
 ```
 
 **Justificativa das escolhas dominantes** (o que impede que estes números sejam arbitrários):
 
 - `power_score` mede **potência gratuita** (o quanto o frame devolve sem esforço do jogador), por isso
-  cabeça grande, RA alto e perfil largo dominam, e peso entra *invertido*: um frame pesado exige o
-  jogador. Plow-through pertence a `stability_score`, não aqui — separar os dois é o que evita a
-  confusão clássica "raquete pesada é potente".
-- `comfort_score` é dominado por RA (0.45) porque a rigidez do frame é o principal determinante da
-  transmissão de choque; massa entra em segundo (0.25) por absorver energia de impacto.
+  cabeça grande e perfil largo dominam, e peso entra *invertido*: um frame pesado exige o jogador.
+  Plow-through pertence a `stability_score`, não aqui — separar os dois é o que evita a confusão
+  clássica "raquete pesada é potente".
+- `comfort_score` é dominado por viga fina (0.38): na ausência de RA publicado, o perfil do quadro é o
+  melhor preditor disponível de flexão. Massa entra em segundo (0.30) por absorver energia de impacto.
 - `spin_score` é dominado por abertura (0.45) pelo mecanismo de snap-back do encordoamento.
-- `maneuverability_score` é dominado por swingweight invertido (0.45) porque swingweight — e não peso
-  estático — é o que o jogador sente ao acelerar o braço.
-- `demand_index` responde "quanto de técnica este frame cobra": massa a acelerar (SW, peso), área de
-  erro pequena (cabeça), e padrão denso, que exige velocidade de swing para gerar altura de bola.
+- `maneuverability_score` é dominado por `swing_index` invertido (0.55) porque a inércia de swing — e
+  não o peso estático — é o que o jogador sente ao acelerar o braço.
+- `forgiveness_score` é dominado por cabeça (0.45): área útil é o determinante direto da tolerância a
+  impactos descentralizados. Na v1 `twistweight` carregava 0.30 deste score; sem ele, o peso migrou
+  para cabeça e massa, que são os dois fatores publicados que realmente resistem à torção.
+- `demand_index` responde "quanto de técnica este frame cobra": inércia a acelerar, área de erro
+  pequena, e padrão denso, que exige velocidade de swing para gerar altura de bola.
 
 ### Degradação graciosa (R-02)
 
@@ -97,11 +132,15 @@ data_completeness(variant) = 1 − (Σ pesos perdidos em todos os scores) / (Σ 
 ```
 
 Regras duras:
-- `data_completeness < 0.55` ⇒ variante **fora do pódio** (pode aparecer na auditoria).
-- `head_size`, `unstrung_weight` e `string_pattern` são **obrigatórios**: sem eles a variante não é
-  recomendável de forma alguma.
-- `strung_weight` ausente usa `unstrung + 16 g` marcado `is_estimated` (derivação declarada, não invenção).
-- `swingweight` ausente **não é estimado**. Os termos que dependem dele desaparecem.
+- `data_completeness < 0.85` ⇒ variante **fora do pódio** (pode aparecer na auditoria). O piso subiu de
+  0.55 para 0.85 na v2 porque agora todos os campos são publicados: uma variante incompleta é uma
+  variante mal cadastrada, não uma limitação do mercado.
+- `head_size`, `unstrung_weight`, `balance`, `beam_width` e `string_pattern` são **obrigatórios**. Todos
+  são publicados pelas quatro marcas, então uma variante bem cadastrada atinge `data_completeness = 1.0`
+  — é isso que permite a confiança do relatório chegar a "Alta".
+- Nenhum campo é estimado por inferência. `strung_weight`, `strung_balance` e `swing_index` são
+  **derivações declaradas** a partir dos publicados, com fórmula visível acima, e nunca são exibidos
+  como especificação do fabricante.
 
 ### Perfis de adequação (§6)
 
@@ -218,7 +257,7 @@ fit = Σ (w_i · component_i)  −  Σ penalties
 
 **`physical_fit`** — o jogador consegue manejar a massa?
 ```
-massIndex    = 100·(0.55·norm(strung_weight, 265, 355) + 0.45·norm(swingweight, 275, 345))
+massIndex    = 100·(0.50·norm(strung_weight) + 0.50·norm(swing_index))
 capacity     = 0.45·physical_capacity_score + 0.35·swing_speed_score + 0.20·player_level_score
 Δ = massIndex − capacity
 physical_fit = Δ > 0 ? 100 − Δ·1.35      // pesada demais: penalidade maior (fadiga, atraso, lesão)
@@ -302,12 +341,27 @@ componente cai (ver 4.2).
 **Ajustes dinâmicos** (renormalizados para somar 1 após cada regra):
 
 ```
-arm_sensitivity ≥ 60           → comfort_fit  = 0.20
-raquete atual desconhecida     → transition_fit = 0
-objetivo "não sei"             → objective_fit = 0.08
+arm_sensitivity ≥ 60            → comfort_fit    = 0.20
+raquete atual desconhecida      → transition_fit = 0
+estilo de jogo NÃO declarado    → playstyle_fit  = 0
+objetivo "não sei"              → objective_fit  = 0.08
 objetivo = "potencializar atual"→ transition_fit = 0.12
-level_mismatch detectado       → skill_fit ×0.8 (o dado está sob suspeita)
+level_mismatch detectado        → skill_fit ×0.8 (o dado está sob suspeita)
 ```
+
+**Sobre `playstyle_fit = 0` — a adaptação para iniciantes.**
+
+Um iniciante não tem estilo de jogo; é isso que "iniciante" significa. Quando o jogador responde
+"ainda não tenho um estilo" ou pula a pergunta, o construtor de perfil preenchia `style_weights` com
+um placeholder difuso (`baseline + all_court + counterpuncher`) e o motor então **cobrava aderência a
+esse placeholder** como se fosse um requisito real. O efeito era perverso: os frames de iniciante —
+projetados para tolerância, não para um padrão tático — pontuavam ~46 em `playstyle_fit` e o
+componente sozinho derrubava o `fit_score` abaixo do piso do pódio. O produto literalmente se recusava
+a recomendar qualquer coisa a um iniciante.
+
+`PlayerProfile.style_declared` distingue "não declarou" de "declarou". Quando é `false`, os 0.14 são
+redistribuídos entre físico, nível, swing e conforto — que é onde a informação real deste jogador
+está. Zerar é honesto; atribuir um valor neutro introduziria ruído igual em todas as raquetes.
 
 ### 4.3 Penalizações (§21)
 
@@ -332,10 +386,21 @@ Aplicados **antes** da pontuação. Uma variante excluída não aparece no pódi
 1. `verification_state ≠ 'verified'` (em modo produção).
 2. `brazil_availability_status = 'not_found'`.
 3. `status = 'discontinued'` **e** não é a raquete atual do jogador.
-4. **Segurança:** `arm_sensitivity ≥ 70` **e** `stiffness_ra ≥ 68` (R-11).
+4. **Segurança:** `arm_sensitivity ≥ 70` **e** `beam_width_avg ≥ 26.5 mm` (R-11).
 5. Frames não adultos: `length_in < 27` ou `head_size > 118`.
-6. Campos obrigatórios ausentes (`head_size`, `unstrung_weight`, `string_pattern`).
-7. `data_completeness < 0.55`.
+6. Campos obrigatórios ausentes (`head_size`, `unstrung_weight`, `balance`, `beam_width`, `string_pattern`).
+7. `data_completeness < 0.85`.
+
+> **Sobre o filtro 4.** Na v1 ele dependia de `stiffness_ra`, que é `null` no catálogo inteiro — o
+> filtro nunca disparava. Na v2 ele age sobre o perfil da viga, que é publicado, mas o perfil é um
+> *proxy* com exceções conhecidas (Wilson Clash). Por isso a proteção ao braço é **multicamada** e
+> este filtro é deliberadamente o elo mais fraco dela:
+>
+> 1. **corda** — poliéster é EXCLUÍDO por regra dura. Proteção mais forte, independe de qualquer proxy.
+> 2. **tensão** — reduzida proporcionalmente à sensibilidade relatada.
+> 3. **quadro** — penalização graduada por largura de viga + exclusão apenas acima de 26.5 mm.
+>
+> Documentar a fraqueza é preferível a fingir uma precisão que o dado publicado não sustenta.
 
 Cada exclusão é registrada em `racket_rankings.excluded_by_filter` — o admin vê **por que** uma raquete
 não apareceu, o que é tão importante quanto ver por que outra apareceu.
@@ -359,21 +424,44 @@ variantes irmãs é informativa e é mantida, com nota explicativa).
 
 ## 6. Confiança (§24) — separada da compatibilidade
 
+**v2: dois eixos independentes, combinados pelo menor.**
+
+Na v1 tudo descontava de um único bolo de 100 pontos, e isso escondia um erro grave: um jogador que
+respondeu "não sei" a 92% do questionário terminava em "Média" porque o catálogo estava bem
+cadastrado. Conhecer bem a raquete não compensa não conhecer o jogador — são conhecimentos sobre
+coisas diferentes, e somá-los fabrica certeza.
+
 ```
-confidence = 100
-  − unknown_answer_ratio · 40
+profile_knowledge = 100                       // quanto sabemos sobre o JOGADOR
+  − unknown_answer_ratio · 70
   − nº_contradições · 8
   − (raquete atual informada mas não reconhecida ? 10 : 0)
   − (texto livre < 15 caracteres ? 5 : 0)
-  − (1 − data_completeness(1º colocado)) · 60
   − (level_mismatch ? 12 : 0)
-  − (empate técnico no topo ? 5 : 0)
+  − (velocidade de swing inferida ? 6 : 0)
+
+data_knowledge = 100                          // quanto sabemos sobre o EQUIPAMENTO
+  − (1 − data_completeness(1º colocado)) · 60
+  − (faixa de tensão do fabricante desconhecida ? 10 : 0)
+
+confidence = min(profile_knowledge, data_knowledge)
+  − (empate técnico no topo ? 5 : 0)          // incerteza sobre o RESULTADO, não sobre o conhecimento
 
 ≥ 75 → Alta   ·   50–74 → Média   ·   < 50 → Baixa
 ```
 
+**Por que "Alta" agora é alcançável.** Na v1 o eixo de dados estava permanentemente travado em ~61%
+porque dependia de medições de laboratório que os fabricantes não publicam — todo relatório perdia
+~23,5 pontos de saída, e nenhuma persona atingia "Alta" por melhor que respondesse. Com as
+especificações consolidadas de mercado da v2, `data_completeness = 1.0` e o eixo de dados chega a
+100. A confiança máxima passa a depender exclusivamente da qualidade das respostas do jogador — que é
+a única coisa sobre a qual ele tem controle, e a única que faz sentido pedir a ele.
+
+O relatório expõe os dois eixos (`profile_knowledge`, `data_knowledge`) além do score final, para que
+o usuário veja **qual** dos dois está limitando a análise.
+
 Cada dedução gera uma `confidence_reason` legível, exibida ao usuário junto com **o que reduziria a
-incerteza** ("informe o swingweight da sua raquete atual"). Não fabricar certeza (§24).
+incerteza** ("informe marca e modelo da sua raquete atual"). Não fabricar certeza (§24).
 
 ---
 
@@ -389,7 +477,7 @@ type ScoreBreakdown = {
   }>;
   penalties: Array<{ code: string; points: number; reason: string }>;
   data_completeness: number;
-  gained: string[];   // "ganhou pontos por: swingweight compatível com swing rápido"
+  gained: string[];   // "ganhou pontos por: inércia de swing compatível com swing rápido"
   lost: string[];     // "perdeu pontos por: 18×20 conflita com necessidade de spin"
 };
 ```

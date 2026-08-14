@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Wordmark } from '@/components/marketing/wordmark';
+import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { catalogStats } from '@/data/load';
 
 /**
@@ -14,13 +14,15 @@ export default function HomePage() {
   return (
     <main className="min-h-screen">
       {/* ── HERO (§40) ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-line bg-ink text-paper">
+      <section className="relative overflow-hidden border-b border-line bg-court text-paper">
         <div className="string-bed absolute inset-0" aria-hidden />
         <div className="relative mx-auto max-w-5xl px-6 py-20 sm:py-28">
-          <Wordmark size="lg" withTagline={false} />
+          {/* Marca em branco sobre o verde institucional — nunca colorida (brand book). */}
+          <Wordmark size="lg" tone="dark" withTagline={false} />
           <p className="mt-4 font-display text-lg text-paper/70 sm:text-2xl">
             Seu jogo. Seu setup. Sob medida.
           </p>
+          <p className="mt-2 text-sm text-ball">Precisão técnica aplicada ao seu jogo.</p>
 
           <p className="mt-10 max-w-prose text-base text-paper/80 sm:text-lg">
             Responda algumas perguntas sobre seu jogo e descubra quais equipamentos realmente
@@ -30,8 +32,8 @@ export default function HomePage() {
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/questionario"
-              className="inline-flex min-h-[56px] items-center justify-center rounded bg-signal px-8
-                         font-semibold text-ink transition-opacity hover:opacity-90"
+              className="inline-flex min-h-[56px] items-center justify-center rounded bg-clay px-8
+                         font-semibold text-white transition-opacity hover:opacity-90"
             >
               Descobrir meu setup
             </Link>
@@ -188,6 +190,7 @@ export default function HomePage() {
 
       <footer className="court-line mx-auto max-w-5xl px-6 py-12">
         <Wordmark size="sm" />
+        <BrandSignature className="mt-6" />
         <p className="mt-6 max-w-prose text-xs text-graphite">
           Os índices Tennis Engineer são métricas internas da nossa análise, não especificações do
           fabricante. Equipamento adequado ajuda, mas não substitui a avaliação de um profissional

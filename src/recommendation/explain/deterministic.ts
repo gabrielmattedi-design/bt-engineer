@@ -250,8 +250,11 @@ export function explainComfort(
       `Você relatou desconforto em ${profile.discomfort_areas.join(', ')}. Isso elevou o peso do ` +
         `conforto na análise e excluiu frames rígidos e cordas de poliéster duras.`,
     );
-    if (current && current.variant.specs.stiffness_ra !== null) {
-      out.push('Compare também com a rigidez do seu equipamento atual antes de decidir.');
+    if (current && current.variant.specs.beam_width_mm !== null) {
+      out.push(
+        'Compare também com o perfil do quadro do seu equipamento atual antes de decidir: quadros ' +
+          'mais largos tendem a ser mais rígidos.',
+      );
     }
   }
 
