@@ -1,0 +1,224 @@
+{
+  "brand": "Babolat",
+  "data_version": "2026.08.0",
+  "default_provenance": {
+    "source": "manufacturer",
+    "source_url": null,
+    "verified_at": null,
+    "confidence": "medium",
+    "notes": "Especificações de catálogo do fabricante. AGUARDANDO verificação humana contra a página oficial (docs/DATA_SOURCING.md §4)."
+  },
+  "lab_fields_note": "swingweight, stiffness_ra, twistweight e strung_weight_g permanecem null até anexação de fonte tier 3 com URL.",
+  "rackets": [
+    {
+      "family": "Pure Aero",
+      "model": "Pure Aero",
+      "variant": "100",
+      "generation": "2023",
+      "year": 2023,
+      "product_name": "Babolat Pure Aero (2023)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 300,
+        "balance_mm": 320,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23/26/23",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3, 4]
+      }
+    },
+    {
+      "family": "Pure Aero",
+      "model": "Pure Aero 98",
+      "variant": "98",
+      "generation": "2023",
+      "year": 2023,
+      "product_name": "Babolat Pure Aero 98 (2023)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 98,
+        "length_in": 27,
+        "unstrung_weight_g": 305,
+        "balance_mm": 315,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 20,
+        "beam_width_mm": "21/23/21",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3, 4]
+      }
+    },
+    {
+      "family": "Pure Aero",
+      "model": "Pure Aero Team",
+      "variant": "Team",
+      "generation": "2023",
+      "year": 2023,
+      "product_name": "Babolat Pure Aero Team (2023)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 285,
+        "balance_mm": 325,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23/26/23",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3]
+      }
+    },
+    {
+      "family": "Pure Aero",
+      "model": "Pure Aero Lite",
+      "variant": "Lite",
+      "generation": "2023",
+      "year": 2023,
+      "product_name": "Babolat Pure Aero Lite (2023)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 270,
+        "balance_mm": 330,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23/26/23",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3]
+      }
+    },
+    {
+      "family": "Pure Drive",
+      "model": "Pure Drive",
+      "variant": "100",
+      "generation": "2021",
+      "year": 2021,
+      "product_name": "Babolat Pure Drive (2021)",
+      "status": "previous_generation",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 300,
+        "balance_mm": 320,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23/26/23",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3, 4]
+      }
+    },
+    {
+      "family": "Pure Drive",
+      "model": "Pure Drive Team",
+      "variant": "Team",
+      "generation": "2021",
+      "year": 2021,
+      "product_name": "Babolat Pure Drive Team (2021)",
+      "status": "previous_generation",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 285,
+        "balance_mm": 325,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23/26/23",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3]
+      }
+    },
+    {
+      "family": "Pure Drive",
+      "model": "Pure Drive 98",
+      "variant": "98",
+      "generation": "2023",
+      "year": 2023,
+      "product_name": "Babolat Pure Drive 98 (2023)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 98,
+        "length_in": 27,
+        "unstrung_weight_g": 305,
+        "balance_mm": 315,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 20,
+        "beam_width_mm": "21/23/21",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3, 4]
+      }
+    },
+    {
+      "family": "Pure Strike",
+      "model": "Pure Strike 16x19",
+      "variant": "98 16x19",
+      "generation": "Gen 4 (2024)",
+      "year": 2024,
+      "product_name": "Babolat Pure Strike 16x19 Gen 4 (2024)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 98,
+        "length_in": 27,
+        "unstrung_weight_g": 305,
+        "balance_mm": 320,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "21/23/21",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3, 4]
+      }
+    },
+    {
+      "family": "Pure Strike",
+      "model": "Pure Strike 18x20",
+      "variant": "98 18x20",
+      "generation": "Gen 4 (2024)",
+      "year": 2024,
+      "product_name": "Babolat Pure Strike 18x20 Gen 4 (2024)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 98,
+        "length_in": 27,
+        "unstrung_weight_g": 305,
+        "balance_mm": 320,
+        "string_pattern_mains": 18,
+        "string_pattern_crosses": 20,
+        "beam_width_mm": "21/23/21",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3, 4]
+      }
+    },
+    {
+      "family": "Pure Strike",
+      "model": "Pure Strike Team",
+      "variant": "Team",
+      "generation": "Gen 4 (2024)",
+      "year": 2024,
+      "product_name": "Babolat Pure Strike Team Gen 4 (2024)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 98,
+        "length_in": 27,
+        "unstrung_weight_g": 285,
+        "balance_mm": 325,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "21/23/21",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 59,
+        "grip_sizes_available": [1, 2, 3]
+      }
+    }
+  ]
+}

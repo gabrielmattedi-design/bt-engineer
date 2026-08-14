@@ -251,11 +251,25 @@ Estilo "ainda não tenho estilo definido" ⇒ vetor uniforme sobre `baseline`, `
 
 **`objective_fit`** — o frame move o jogador na direção desejada:
 ```
+MATERIAL_DELTA = 20   // mudança de atributo que o jogador percebe claramente em quadra
+MAX_ASK        = 40   // intensidade máxima de um pedido em desired_change_vector
+
 para cada atributo a com |desired_change_vector[a]| > 5:
-    delta_a   = racket[a] − reference[a]           // reference = raquete atual, ou média do catálogo
-    aligned_a = clamp(delta_a · sign(desired[a]) / |desired[a]|, −1, 1.5)
-objective_fit = 100 · clamp01(0.5 + média(aligned_a)/2)
+    delta_a       = racket[a] − reference[a]        // reference = raquete atual, ou média do catálogo
+    delivered_a   = clamp(delta_a · sign(desired[a]) / MATERIAL_DELTA, −1, 1.5)
+    askStrength_a = clamp01(|desired[a]| / MAX_ASK)
+
+objective_fit = 100 · clamp01(0.5 + médiaPonderada(delivered_a, peso = askStrength_a) / 2)
 ```
+
+> **Nota de calibração (v1.0.0).** A formulação inicial era
+> `aligned = delta / |desired|`, dividindo pontos de *atributo* por pontos de *necessidade* —
+> unidades diferentes. O efeito era perverso: quanto **mais forte** o pedido, maior o denominador e
+> **mais fraco** o sinal, comprimindo o componente numa faixa estreita em torno de 65 e tornando-o
+> quase não discriminante (verificado empiricamente: spread de 61–68 sobre todo o catálogo).
+> A formulação atual separa "quanto foi entregue" (`delivered`, normalizado por uma mudança
+> perceptível) de "quão forte foi o pedido" (`askStrength`, usado como peso). Spread medido após a
+> correção: 73–86 no mesmo cenário. Os atributos mais pedidos passam a dominar o componente.
 
 **`comfort_fit`**
 ```
