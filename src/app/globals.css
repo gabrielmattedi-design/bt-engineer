@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * docs/DESIGN.md — ferramenta premium de performance esportiva.
+ * Muito branco, bordas de 1px no lugar de sombras, raio pequeno, uma cor de acento por tela.
+ */
+
+@layer base {
+  :root {
+    --font-display: 'Georgia', serif;
+    --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  /* Foco sempre visível — acessibilidade (docs/DESIGN.md §6). */
+  :focus-visible {
+    outline: 2px solid theme('colors.court');
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: theme('colors.signal');
+    color: theme('colors.ink');
+  }
+}
+
+@layer components {
+  .wordmark {
+    @apply font-display font-bold uppercase tracking-[0.18em];
+  }
+
+  /* Números grandes são o elemento gráfico principal (docs/DESIGN.md §2). */
+  .display-number {
+    @apply font-display font-bold tabular-nums tracking-tightest;
+  }
+
+  /* Linha de quadra: divisória fina, nunca sombra. */
+  .court-line {
+    @apply border-t border-line;
+  }
+
+  /* Alvos de toque ≥ 56px no questionário (docs/DESIGN.md §5). */
+  .choice {
+    @apply flex min-h-[56px] w-full items-center gap-3 rounded border-2 border-line
+           bg-white px-4 py-3 text-left text-[15px] transition-colors
+           hover:border-graphite focus-visible:border-court;
+  }
+
+  .choice-selected {
+    @apply border-court bg-court/5;
+  }
+}
+
+@layer utilities {
+  /* Textura de encordoamento — opacidade ≤ 0.06, sempre decorativa e discreta. */
+  .string-bed {
+    background-image:
+      repeating-linear-gradient(90deg, theme('colors.ink') 0 1px, transparent 1px 14px),
+      repeating-linear-gradient(0deg, theme('colors.ink') 0 1px, transparent 1px 14px);
+    opacity: 0.05;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* prefers-reduced-motion desliga a animação de processamento (docs/DESIGN.md §6). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

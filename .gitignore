@@ -8,3 +8,5 @@ build/
 next-env.d.ts
 coverage/
 .DS_Store
+*.png
+e2e-*.mjs

@@ -1,0 +1,199 @@
+import Link from 'next/link';
+import { Wordmark } from '@/components/marketing/wordmark';
+import { catalogStats } from '@/data/load';
+
+/**
+ * Home — §40, §41, §42.
+ *
+ * Mobile-first (§43): desenhada em 390px e escalada para cima. Muito branco, tipografia forte,
+ * uma cor de acento. Sem cronômetro, sem escassez, sem desconto fictício (§58).
+ */
+export default function HomePage() {
+  const stats = catalogStats();
+
+  return (
+    <main className="min-h-screen">
+      {/* ── HERO (§40) ─────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden border-b border-line bg-ink text-paper">
+        <div className="string-bed absolute inset-0" aria-hidden />
+        <div className="relative mx-auto max-w-5xl px-6 py-20 sm:py-28">
+          <Wordmark size="lg" withTagline={false} />
+          <p className="mt-4 font-display text-lg text-paper/70 sm:text-2xl">
+            Seu jogo. Seu setup. Sob medida.
+          </p>
+
+          <p className="mt-10 max-w-prose text-base text-paper/80 sm:text-lg">
+            Responda algumas perguntas sobre seu jogo e descubra quais equipamentos realmente
+            combinam com você.
+          </p>
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/questionario"
+              className="inline-flex min-h-[56px] items-center justify-center rounded bg-signal px-8
+                         font-semibold text-ink transition-opacity hover:opacity-90"
+            >
+              Descobrir meu setup
+            </Link>
+            <Link
+              href="#como-funciona"
+              className="inline-flex min-h-[56px] items-center justify-center rounded border
+                         border-paper/30 px-8 font-medium text-paper transition-colors
+                         hover:border-paper/60"
+            >
+              Como funciona
+            </Link>
+          </div>
+
+          <p className="mt-6 text-sm text-paper/50">
+            Questionário gratuito · 3 a 5 minutos · sem cadastro
+          </p>
+        </div>
+      </section>
+
+      {/* ── FLUXO CONCEITUAL (§2) ──────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-5xl px-6 py-12">
+        <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-sm text-graphite sm:text-base">
+          {['Seu perfil', 'Seu jogo', 'Análise técnica', 'Seu setup'].map((step, i) => (
+            <li key={step} className="flex items-center gap-3">
+              {i > 0 && <span className="text-line" aria-hidden>→</span>}
+              <span className={i === 3 ? 'font-semibold text-ink' : undefined}>{step}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ── COMO FUNCIONA (§41) ────────────────────────────────────────────────── */}
+      <section id="como-funciona" className="court-line mx-auto max-w-5xl px-6 py-16">
+        <h2 className="font-display text-2xl font-bold sm:text-3xl">Como funciona</h2>
+        <div className="mt-10 grid gap-10 sm:grid-cols-3">
+          {[
+            {
+              n: '1',
+              title: 'Conte sobre seu jogo',
+              body:
+                'Analisamos suas características físicas, técnicas, equipamento atual e objetivos.',
+            },
+            {
+              n: '2',
+              title: 'Cruzamos seu perfil com os equipamentos',
+              body:
+                'Nosso sistema compara seu perfil com especificações técnicas de raquetes e cordas.',
+            },
+            {
+              n: '3',
+              title: 'Receba seu setup',
+              body: 'Descubra sua raquete, corda e tensão recomendadas.',
+            },
+          ].map((step) => (
+            <div key={step.n}>
+              <div className="display-number text-5xl text-line">{step.n}</div>
+              <h3 className="mt-3 font-display text-lg font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm text-graphite">{step.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CREDIBILIDADE (§42) ────────────────────────────────────────────────── */}
+      <section className="court-line mx-auto max-w-5xl px-6 py-16">
+        <h2 className="font-display text-2xl font-bold sm:text-3xl">
+          Não recomendamos por nível, idade ou marca favorita.
+        </h2>
+        <p className="mt-4 max-w-prose text-graphite">
+          A análise cruza múltiplas variáveis do seu jogo com as especificações técnicas de cada
+          equipamento. O mesmo conjunto de respostas produz sempre o mesmo resultado — e cada
+          recomendação registra quais dados usou.
+        </p>
+
+        <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            'Perfil físico',
+            'Swing',
+            'Nível técnico',
+            'Estilo de jogo',
+            'Objetivos',
+            'Raquete atual',
+            'Conforto',
+            'Equipamento',
+          ].map((item) => (
+            <li
+              key={item}
+              className="rounded border border-line bg-white px-3 py-3 text-sm font-medium"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        <dl className="mt-10 grid gap-6 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs uppercase tracking-wider text-graphite">Raquetes no catálogo</dt>
+            <dd className="display-number mt-1 text-3xl">{stats.rackets}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wider text-graphite">
+              Variantes de corda
+            </dt>
+            <dd className="display-number mt-1 text-3xl">{stats.stringVariants}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wider text-graphite">
+              Variáveis analisadas
+            </dt>
+            <dd className="display-number mt-1 text-3xl">28</dd>
+          </div>
+        </dl>
+      </section>
+
+      {/* ── O QUE VOCÊ RECEBE (§25, §26) — sem falsa promoção (§58) ────────────── */}
+      <section className="court-line mx-auto max-w-5xl px-6 py-16">
+        <h2 className="font-display text-2xl font-bold sm:text-3xl">O que você recebe</h2>
+        <p className="mt-3 text-sm text-graphite">
+          O questionário e a análise são gratuitos. Você decide se quer o relatório depois de ver o
+          resultado da análise.
+        </p>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="rounded border border-line bg-white p-6">
+            <h3 className="font-display text-lg font-semibold">Descubra sua raquete ideal</h3>
+            <p className="display-number mt-2 text-2xl">R$ 19,99</p>
+            <ul className="mt-4 space-y-2 text-sm text-graphite">
+              <li>Análise completa do seu perfil</li>
+              <li>Raquete recomendada e Fit Score</li>
+              <li>Por que ela combina com você</li>
+              <li>Pontos de atenção</li>
+              <li>Comparação com sua raquete atual</li>
+            </ul>
+          </div>
+
+          <div className="rounded border-2 border-court bg-white p-6">
+            <div className="text-xs font-semibold uppercase tracking-wider text-court">
+              Análise completa
+            </div>
+            <h3 className="mt-2 font-display text-lg font-semibold">
+              Descubra seu setup completo
+            </h3>
+            <p className="display-number mt-2 text-2xl">R$ 49,99</p>
+            <ul className="mt-4 space-y-2 text-sm text-graphite">
+              <li>Tudo do plano anterior</li>
+              <li>Corda e espessura recomendadas</li>
+              <li>Tensão inicial e faixa sugerida</li>
+              <li>Por que essa combinação funciona</li>
+              <li>Como ajustar no próximo encordoamento</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <footer className="court-line mx-auto max-w-5xl px-6 py-12">
+        <Wordmark size="sm" />
+        <p className="mt-6 max-w-prose text-xs text-graphite">
+          Os índices Tennis Engineer são métricas internas da nossa análise, não especificações do
+          fabricante. Equipamento adequado ajuda, mas não substitui a avaliação de um profissional
+          de saúde.
+        </p>
+      </footer>
+    </main>
+  );
+}
