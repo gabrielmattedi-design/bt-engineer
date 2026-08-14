@@ -212,7 +212,7 @@ export function explainCombination(
 
 /** Comparação com a raquete atual (§22). */
 export function explainTransition(transition: TransitionAnalysis): string[] {
-  if (!transition.available) return transition.attention_points;
+  if (!transition.available) return [...transition.attention_points];
   return [...transition.expectations, ...transition.attention_points];
 }
 

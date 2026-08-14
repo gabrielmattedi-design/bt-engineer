@@ -174,10 +174,19 @@ export async function extractFreeText(
 
     // Validação final: o valor precisa pertencer ao enum daquele campo. Um LLM pode devolver
     // um valor plausível mas inexistente; aqui ele é descartado em vez de contaminar o perfil.
-    return parsed.data.signals.filter((signal): signal is ProfileSignal => {
-      const allowed = SIGNAL_FIELDS[signal.field] as readonly string[];
-      return allowed.includes(signal.value);
-    });
+    return parsed.data.signals
+      .filter((signal) => {
+        const allowed = SIGNAL_FIELDS[signal.field] as readonly string[];
+        return allowed.includes(signal.value);
+      })
+      .map(
+        (signal): ProfileSignal => ({
+          field: signal.field,
+          value: signal.value,
+          confidence: signal.confidence,
+          evidence: signal.evidence,
+        }),
+      );
   } catch {
     // Timeout, rede, rate limit, erro de API: seguimos sem os sinais.
     return [];
