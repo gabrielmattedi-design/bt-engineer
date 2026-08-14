@@ -6,13 +6,13 @@
  * A UI NÃO calcula nada (§44). Ela envia respostas; este módulo orquestra as camadas 3, 4 e 5 e
  * devolve view models já serializados por entitlement.
  *
- * ⚠️ PERSISTÊNCIA: o armazenamento abaixo é em memória, por processo. Ele existe para que o fluxo
- * seja demonstrável ponta a ponta; o schema real está definido em docs/DATA_MODEL.md e a troca é
- * localizada — `saveSession`/`loadSession` viram chamadas aos repositórios Drizzle. Nenhuma outra
- * parte do sistema conhece este detalhe.
+ * PERSISTÊNCIA: `src/database/repositories/session-repo.ts`. Com `DATABASE_URL` configurada grava
+ * no Postgres; sem ela, em desenvolvimento, cai para arquivo. Em produção a ausência de banco LANÇA
+ * — um relatório pago não pode viver em `/tmp`.
  */
 
 import { randomUUID } from 'node:crypto';
+import { cookies } from 'next/headers';
 import { extractFreeText } from '@/ai/extract-free-text';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import { recommend } from '@/recommendation';
@@ -22,7 +22,11 @@ import type { QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { datasetMode } from '@/domain/sourced';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RecommendationResult } from '@/domain/recommendation';
-import { loadSession, saveSession } from './session-store';
+import {
+  loadRecommendation,
+  newSessionToken,
+  saveRecommendation,
+} from '@/database/repositories/session-repo';
 import {
   serializeRecommendation,
   serializeTeaser,
@@ -70,7 +74,12 @@ export async function analyzeAnswers(
   });
 
   const sessionId = randomUUID();
-  saveSession(sessionId, { profile, result, createdAt: Date.now() });
+  await saveRecommendation({
+    sessionToken: await visitorToken(),
+    publicId: sessionId,
+    profile,
+    result,
+  });
 
   return { sessionId, teaser: serializeTeaser(result, strings.variants.length) };
 }
@@ -85,13 +94,37 @@ export async function getReport(
   sessionId: string,
   granted: readonly Entitlement[],
 ): Promise<ReportPayload | null> {
-  const stored = loadSession(sessionId);
+  const stored = await loadRecommendation(sessionId);
   if (!stored) return null;
   return serializeRecommendation(stored.result, stored.profile, granted);
 }
 
 export async function getTeaser(sessionId: string): Promise<TeaserPayload | null> {
-  const stored = loadSession(sessionId);
+  const stored = await loadRecommendation(sessionId);
   if (!stored) return null;
   return serializeTeaser(stored.result, loadStringCatalog().variants.length);
+}
+
+/**
+ * Token anônimo do visitante — §57: nenhum cadastro é exigido antes do resultado.
+ *
+ * É um identificador opaco, sem nada sobre a pessoa. No banco guardamos apenas o SHA-256 dele, de
+ * modo que um vazamento do banco não permita se passar por ninguém (LGPD, §51).
+ */
+const VISITOR_COOKIE = 'te_visitor';
+
+async function visitorToken(): Promise<string> {
+  const jar = await cookies();
+  const existing = jar.get(VISITOR_COOKIE)?.value;
+  if (existing) return existing;
+
+  const token = newSessionToken();
+  jar.set(VISITOR_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 180,
+  });
+  return token;
 }

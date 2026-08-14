@@ -3,28 +3,36 @@ import { notFound, redirect } from 'next/navigation';
 import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { Podium } from '@/components/result/podium';
 import { getReport } from '@/app/questionario/actions';
-import { PRODUCT_ENTITLEMENTS, type Entitlement } from '@/payments/entitlements';
+import { grantedEntitlements } from '@/database/repositories/session-repo';
 
 /**
  * Relatório — §35, §36, §64.
  *
- * ⚠️ Os entitlements são derivados do query param APENAS nesta demonstração. Em produção eles vêm
- * da tabela `entitlements`, concedidos exclusivamente por webhook de pagamento confirmado (§33) —
- * ver docs/MONETIZATION.md §4-5. A fronteira já está no lugar certo: a página não decide o que
- * mostrar, ela recebe de `getReport()` um payload já construído por entitlement.
+ * ─── DE ONDE VÊM OS ENTITLEMENTS ─────────────────────────────────────────────────────────────
+ *
+ * Da tabela `entitlements`, e SÓ dela. Até este commit eles eram derivados do query param
+ * (`?plano=full_setup`), o que significava que qualquer pessoa lia o relatório completo editando a
+ * URL — uma violação direta do §32 ("a API não deve entregar dados premium para usuário sem
+ * entitlement").
+ *
+ * A tabela é escrita exclusivamente pelo webhook de pagamento confirmado (§33). Não existe outro
+ * caminho de concessão em nenhum lugar do sistema.
+ *
+ * A fronteira já estava no lugar certo: a página não decide o que mostrar, ela recebe de
+ * `getReport()` um payload CONSTRUÍDO por entitlement — dados não comprados nunca chegam a existir
+ * na resposta.
  */
 export default async function ResultadoPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
-  searchParams: Promise<{ plano?: string; top3?: string }>;
 }) {
   const { sessionId } = await params;
-  const { plano, top3 } = await searchParams;
+  const granted = await grantedEntitlements(sessionId);
 
-  const granted: Entitlement[] = [...(PRODUCT_ENTITLEMENTS[plano ?? 'racket_report'] ?? [])];
-  if (top3 === '1') granted.push('top3_access');
+  // Sem nenhum entitlement não há relatório a servir. Mandamos de volta para a página de análise,
+  // que apresenta os planos honestamente — nunca para uma versão "quase completa" do relatório.
+  if (granted.length === 0) redirect(`/analise/${sessionId}`);
 
   // `getReport` lança se o pódio estiver vazio (nenhuma raquete atingiu o mínimo). Isso é o
   // comportamento correto do motor; aqui traduzimos para uma resposta honesta em vez de um erro.
@@ -253,7 +261,7 @@ export default async function ResultadoPage({
                 </p>
                 <p className="display-number mt-4 text-2xl">R$ 9,99</p>
                 <Link
-                  href={`/resultado/${sessionId}?plano=${plano ?? 'racket_report'}&top3=1`}
+                  href={`/planos/${sessionId}?produto=top3_unlock`}
                   className="mt-4 flex min-h-[56px] items-center justify-center rounded bg-ink
                              font-semibold text-paper transition-opacity hover:opacity-90"
                 >
