@@ -20,7 +20,7 @@ export async function login(_prev: unknown, formData: FormData): Promise<{ error
     path: '/admin',
     maxAge: 60 * 60 * 8, // 8 h, como no ADMIN_SPEC §1
   });
-  redirect('/admin/verificacao');
+  redirect('/admin/setup');
 }
 
 export async function logout(): Promise<void> {

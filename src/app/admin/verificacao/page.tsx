@@ -42,6 +42,13 @@ export default async function VerificacaoPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
+        <nav className="mb-6 flex gap-4 text-sm">
+          <span className="font-semibold">Curadoria</span>
+          <a href="/admin/setup" className="text-graphite underline">
+            Preparar o sistema
+          </a>
+        </nav>
+
         <h1 className="font-display text-2xl font-semibold">Fila de verificação</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">
           Ordenada por <strong>impacto real</strong>: quantas das {22} personas de validação recebem
