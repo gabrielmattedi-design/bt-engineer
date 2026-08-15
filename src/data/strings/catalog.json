@@ -19,10 +19,22 @@
       "firmness": "firm",
       "durability": "high",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["avancado", "competitivo", "swing_rapido"],
+      "recommended_player_type": [
+        "avancado",
+        "competitivo",
+        "swing_rapido"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "widely_available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -34,10 +46,22 @@
       "firmness": "soft",
       "durability": "medium",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["intermediario", "sensibilidade_braco", "conforto"],
+      "recommended_player_type": [
+        "intermediario",
+        "sensibilidade_braco",
+        "conforto"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "limited" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "limited"
+        }
       ]
     },
     {
@@ -49,11 +73,26 @@
       "firmness": "medium",
       "durability": "high",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["intermediario_avancado", "heavy_spin"],
+      "recommended_player_type": [
+        "intermediario_avancado",
+        "heavy_spin"
+      ],
       "variants": [
-        { "gauge_mm": 1.2, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "widely_available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -65,10 +104,22 @@
       "firmness": "firm",
       "durability": "high",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["avancado", "heavy_spin", "quebra_cordas"],
+      "recommended_player_type": [
+        "avancado",
+        "heavy_spin",
+        "quebra_cordas"
+      ],
       "variants": [
-        { "gauge_mm": 1.2, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "widely_available" }
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        }
       ]
     },
     {
@@ -80,9 +131,17 @@
       "firmness": "soft",
       "durability": "medium",
       "tension_maintenance": "high",
-      "recommended_player_type": ["intermediario_avancado", "conforto", "spin"],
+      "recommended_player_type": [
+        "intermediario_avancado",
+        "conforto",
+        "spin"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -94,11 +153,26 @@
       "firmness": "medium",
       "durability": "high",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["intermediario_avancado", "heavy_spin"],
+      "recommended_player_type": [
+        "intermediario_avancado",
+        "heavy_spin"
+      ],
       "variants": [
-        { "gauge_mm": 1.2, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "widely_available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "widely_available" }
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
       ]
     },
     {
@@ -110,10 +184,22 @@
       "firmness": "soft",
       "durability": "low",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["iniciante", "intermediario", "sensibilidade_braco"],
+      "recommended_player_type": [
+        "iniciante",
+        "intermediario",
+        "sensibilidade_braco"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "widely_available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
       ]
     },
     {
@@ -125,10 +211,21 @@
       "firmness": "soft",
       "durability": "low",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["iniciante", "conforto"],
+      "recommended_player_type": [
+        "iniciante",
+        "conforto"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -140,11 +237,27 @@
       "firmness": "medium",
       "durability": "high",
       "tension_maintenance": "high",
-      "recommended_player_type": ["intermediario_avancado", "spin", "controle"],
+      "recommended_player_type": [
+        "intermediario_avancado",
+        "spin",
+        "controle"
+      ],
       "variants": [
-        { "gauge_mm": 1.2, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "widely_available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -156,10 +269,22 @@
       "firmness": "soft",
       "durability": "low",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["iniciante", "intermediario", "sensibilidade_braco"],
+      "recommended_player_type": [
+        "iniciante",
+        "intermediario",
+        "sensibilidade_braco"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -171,11 +296,27 @@
       "firmness": "soft",
       "durability": "medium",
       "tension_maintenance": "high",
-      "recommended_player_type": ["intermediario", "conforto", "controle"],
+      "recommended_player_type": [
+        "intermediario",
+        "conforto",
+        "controle"
+      ],
       "variants": [
-        { "gauge_mm": 1.2, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "widely_available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -187,10 +328,22 @@
       "firmness": "firm",
       "durability": "high",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["avancado", "quebra_cordas", "controle"],
+      "recommended_player_type": [
+        "avancado",
+        "quebra_cordas",
+        "controle"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -202,9 +355,16 @@
       "firmness": "soft",
       "durability": "low",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["sensibilidade_braco", "conforto"],
+      "recommended_player_type": [
+        "sensibilidade_braco",
+        "conforto"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -216,10 +376,22 @@
       "firmness": "soft",
       "durability": "low",
       "tension_maintenance": "high",
-      "recommended_player_type": ["iniciante", "intermediario", "conforto"],
+      "recommended_player_type": [
+        "iniciante",
+        "intermediario",
+        "conforto"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "widely_available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
       ]
     },
     {
@@ -231,10 +403,21 @@
       "firmness": "medium",
       "durability": "medium",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["intermediario", "spin"],
+      "recommended_player_type": [
+        "intermediario",
+        "spin"
+      ],
       "variants": [
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
       ]
     },
     {
@@ -246,54 +429,16 @@
       "firmness": "medium",
       "durability": "medium",
       "tension_maintenance": "medium",
-      "recommended_player_type": ["iniciante", "custo_beneficio"],
+      "recommended_player_type": [
+        "iniciante",
+        "custo_beneficio"
+      ],
       "variants": [
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "widely_available" }
-      ]
-    },
-    {
-      "brand": "Tecnifibre",
-      "model": "Razor Code",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento",
-      "shape": "round",
-      "firmness": "medium",
-      "durability": "medium",
-      "tension_maintenance": "high",
-      "recommended_player_type": ["intermediario_avancado", "controle", "spin"],
-      "variants": [
-        { "gauge_mm": 1.2, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.25, "gauge_us": "16L", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "limited" }
-      ]
-    },
-    {
-      "brand": "Tecnifibre",
-      "model": "X-One Biphase",
-      "string_type": "multifilament",
-      "material": "multifilamento com poliuretano",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "high",
-      "recommended_player_type": ["sensibilidade_braco", "conforto", "potencia"],
-      "variants": [
-        { "gauge_mm": 1.24, "gauge_us": "17", "brazil_availability_status": "available" },
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
-      ]
-    },
-    {
-      "brand": "Tecnifibre",
-      "model": "Multifeel",
-      "string_type": "multifilament",
-      "material": "multifilamento",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": ["iniciante", "conforto", "custo_beneficio"],
-      "variants": [
-        { "gauge_mm": 1.3, "gauge_us": "16", "brazil_availability_status": "available" }
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
       ]
     },
     {
@@ -305,7 +450,11 @@
       "firmness": "soft",
       "durability": "medium",
       "tension_maintenance": "high",
-      "recommended_player_type": ["conforto_maximo", "sensibilidade_braco", "competitivo"],
+      "recommended_player_type": [
+        "conforto_maximo",
+        "sensibilidade_braco",
+        "competitivo"
+      ],
       "variants": [
         {
           "gauge_mm": 1.3,

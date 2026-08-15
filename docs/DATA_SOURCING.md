@@ -153,7 +153,7 @@ relevante, e sempre com aviso visível ao usuário.
 **Raquetes** (§5): HEAD · Wilson · Babolat · Yonex. Alvo: 30–50 variantes, priorizando famílias adultas
 relevantes e encontráveis no Brasil.
 
-**Cordas** (§8): Luxilon · Solinco · Babolat · HEAD · Yonex · Wilson · Tecnifibre. Alvo: 15–25 modelos,
+**Cordas** (§8): Luxilon · Solinco · Babolat · HEAD · Yonex · Wilson. Alvo: 15–25 modelos,
 com variantes de gauge **reais**. Evitar cordas obscuras ou difíceis de comprar no Brasil.
 
 Separação de variantes e gerações é obrigatória (§5): 305 g ≠ 285 g; 2023 ≠ 2025 ≠ 2026. Nunca assumir

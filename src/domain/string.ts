@@ -22,8 +22,7 @@ export type StringBrand =
   | 'Babolat'
   | 'HEAD'
   | 'Yonex'
-  | 'Wilson'
-  | 'Tecnifibre';
+  | 'Wilson';
 
 export const STRING_BRANDS: readonly StringBrand[] = [
   'Luxilon',
@@ -32,7 +31,6 @@ export const STRING_BRANDS: readonly StringBrand[] = [
   'HEAD',
   'Yonex',
   'Wilson',
-  'Tecnifibre',
 ];
 
 export type StringType =

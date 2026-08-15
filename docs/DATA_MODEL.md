@@ -209,7 +209,7 @@ CREATE TYPE string_type AS ENUM (
 
 CREATE TABLE strings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  brand text NOT NULL,               -- Luxilon|Solinco|Babolat|HEAD|Yonex|Wilson|Tecnifibre
+  brand text NOT NULL,               -- Luxilon|Solinco|Babolat|HEAD|Yonex|Wilson
   model text NOT NULL,
   slug text NOT NULL UNIQUE,
   string_type string_type NOT NULL,

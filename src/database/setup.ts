@@ -1,7 +1,7 @@
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { join } from 'node:path';
+import { sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from './client';
 import { products } from './schema';
+import { BOOTSTRAP_STATEMENTS } from './bootstrap-sql';
 
 /**
  * Preparação do banco executável pelo painel — sem terminal.
@@ -85,8 +85,17 @@ export async function setupStatus(): Promise<SetupStatus> {
   }
 }
 
+/**
+ * Cria a estrutura do banco.
+ *
+ * Executa a DDL embutida em `bootstrap-sql.ts`, comando a comando. Não lê nada do disco — ver a
+ * explicação naquele arquivo. Como todos os comandos são idempotentes, rodar de novo é seguro.
+ */
 export async function runMigrations(): Promise<void> {
-  await migrate(db(), { migrationsFolder: join(process.cwd(), 'src', 'database', 'migrations') });
+  const conn = db();
+  for (const statement of BOOTSTRAP_STATEMENTS) {
+    await conn.execute(sql.raw(statement));
+  }
 }
 
 export async function seedProducts(): Promise<number> {

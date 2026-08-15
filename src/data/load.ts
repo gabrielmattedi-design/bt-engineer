@@ -121,7 +121,7 @@ const stringVariantSchema = z.object({
 });
 
 const stringEntrySchema = z.object({
-  brand: z.enum(['Luxilon', 'Solinco', 'Babolat', 'HEAD', 'Yonex', 'Wilson', 'Tecnifibre']),
+  brand: z.enum(['Luxilon', 'Solinco', 'Babolat', 'HEAD', 'Yonex', 'Wilson']),
   model: z.string().min(1),
   string_type: z.enum([
     'polyester',

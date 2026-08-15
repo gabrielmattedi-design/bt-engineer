@@ -16,7 +16,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:seed-products": "tsx scripts/seed-products.ts"
+    "db:seed-products": "tsx scripts/seed-products.ts",
+    "db:bootstrap-sql": "tsx scripts/gen-bootstrap-sql.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",
