@@ -28,42 +28,59 @@ export function LogoMark({ className }: { className?: string }) {
       role="img"
       aria-label="Tennis Engineer"
     >
-      {/* Marcas de registro — desenho técnico (brand book pág. 03, "marcas de blueprint"). */}
-      <g stroke="currentColor" strokeWidth="1.5" opacity="0.85">
-        <line x1="60" y1="2" x2="60" y2="16" />
-        <line x1="60" y1="104" x2="60" y2="118" />
-        <line x1="2" y1="60" x2="16" y2="60" />
-        <line x1="104" y1="60" x2="118" y2="60" />
-      </g>
-
       <defs>
         <clipPath id="te-ball">
           <circle cx="60" cy="60" r="41" />
         </clipPath>
+        {/*
+          Face da raquete: o grid do book não é uma grade retangular cortada pelo círculo — tem
+          contorno CURVO, como a cabeça de uma raquete vista em perspectiva. Recortar por uma elipse
+          inclinada é o que produz essa borda.
+        */}
+        <clipPath id="te-face">
+          <ellipse cx="41" cy="64" rx="21" ry="29" transform="rotate(-8 41 64)" />
+        </clipPath>
       </defs>
 
-      {/* Leito de cordas, recortado pela bola. */}
-      <g clipPath="url(#te-ball)" stroke="currentColor" strokeWidth="1.1" opacity="0.75">
-        {[24, 29, 34, 39, 44, 49].map((x) => (
-          <line key={`v${x}`} x1={x} y1="20" x2={x} y2="100" />
-        ))}
-        {[26, 31, 36, 41, 46, 51, 56, 61, 66, 71, 76, 81, 86, 91].map((y) => (
-          <line key={`h${y}`} x1="19" y1={y} x2="52" y2={y} />
-        ))}
+      {/* Marcas de registro — traço-ponto de desenho técnico, cruzando a borda da bola. */}
+      <g stroke="currentColor" strokeWidth="1.2" strokeDasharray="5 3 1.5 3">
+        <line x1="60" y1="7" x2="60" y2="26" />
+        <line x1="60" y1="94" x2="60" y2="113" />
+        <line x1="7" y1="60" x2="26" y2="60" />
+        <line x1="94" y1="60" x2="113" y2="60" />
       </g>
 
-      {/* Costuras da bola. */}
-      <g clipPath="url(#te-ball)" stroke="currentColor" strokeWidth="2.5" fill="none">
-        <path d="M 33 25 Q 45 60 33 95" />
-        <path d="M 89 25 Q 77 60 89 95" />
+      {/*
+        Leito de cordas em PERSPECTIVA, não em grade reta: no book as linhas convergem, como a
+        face de uma raquete vista de ângulo. O `skewX` é o que produz essa inclinação.
+      */}
+      <g clipPath="url(#te-face)" stroke="currentColor" strokeWidth="0.7" opacity="0.65">
+        <g transform="skewX(-6) translate(5 0)">
+          {[24, 30, 36, 42, 48, 54].map((x) => (
+            <line key={`v${x}`} x1={x} y1="30" x2={x} y2="98" />
+          ))}
+          {[38, 44, 50, 56, 62, 68, 74, 80, 86, 92].map((y) => (
+            <line key={`h${y}`} x1="16" y1={y} x2="58" y2={y} />
+          ))}
+        </g>
+      </g>
+
+      {/* Costuras da bola: arco fino à esquerda, S marcado à direita. */}
+      <g clipPath="url(#te-ball)" fill="none" stroke="currentColor">
+        <path d="M 36 25 Q 20 62 44 95" strokeWidth="1.1" />
+        <path d="M 87 34 Q 95 60 88 90" strokeWidth="1.6" />
       </g>
 
       {/* Contorno da bola. */}
-      <circle cx="60" cy="60" r="41" stroke="currentColor" strokeWidth="3" />
+      <circle cx="60" cy="60" r="41" stroke="currentColor" strokeWidth="2.6" />
 
-      {/* Monograma E. */}
+      {/*
+        LIGADURA T+E — o ponto que eu tinha errado.
+        A barra superior avança à ESQUERDA da haste, formando o T de "Tennis"; a haste com os dois
+        braços à direita forma o E de "Engineer". Não é um E isolado dentro de um círculo.
+      */}
       <path
-        d="M 40 34 H 82 V 46 H 52 V 54 H 74 V 66 H 52 V 74 H 82 V 86 H 40 Z"
+        d="M 40 36 H 84 V 44 H 66 V 58.5 H 81.5 V 66.5 H 66 V 83 H 85 V 91 H 54 V 44 H 40 Z"
         fill="currentColor"
       />
     </svg>
