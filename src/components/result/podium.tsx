@@ -115,26 +115,11 @@ function PodiumCard({
             ))}
           </div>
 
-          {isFirst && (
-            <dl className="mt-6 space-y-2">
-              {Object.entries(entry.indices).map(([key, value]) => (
-                <div key={key} className="flex items-center gap-3">
-                  <dt className="w-32 shrink-0 text-[11px] uppercase tracking-wider text-graphite">
-                    {key}
-                  </dt>
-                  <dd className="flex flex-1 items-center gap-2">
-                    <div className="h-1.5 flex-1 rounded-full bg-line">
-                      <div
-                        className="h-full rounded-full bg-court"
-                        style={{ width: `${value}%` }}
-                      />
-                    </div>
-                    <span className="w-7 text-right text-xs tabular-nums">{value}</span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
+          {/*
+            A leitura técnica NÃO fica aqui. No pódio cada card ocupa ~200px, e uma escala
+            graduada nessa largura vira um risco: as marcas de 25/50/75 colapsam e o ponteiro fica
+            indistinguível do trilho. Ela vive na seção principal do relatório, em largura cheia.
+          */}
         </div>
       )}
     </article>

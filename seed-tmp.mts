@@ -1,0 +1,13 @@
+import { randomUUID } from 'node:crypto';
+import { PERSONAS } from './src/data/personas';
+import { buildPlayerProfile } from './src/recommendation/profile/build-profile';
+import { recommend } from './src/recommendation';
+import { scoreRackets } from './src/recommendation/normalize/racket-attributes';
+import { loadRacketCatalog, loadStringCatalog, DATASET_VERSION } from './src/data/load';
+import { saveRecommendation } from './src/database/repositories/session-repo';
+const token = process.argv[2]!, publicId = process.argv[3]!;
+const p = PERSONAS.find((x) => x.id === 'p05')!;
+const profile = buildPlayerProfile(p.answers);
+const result = recommend({ profile, rackets: scoreRackets(loadRacketCatalog()), strings: loadStringCatalog(), datasetVersion: DATASET_VERSION, mode: 'permissive', includeSetup: true });
+await saveRecommendation({ sessionToken: token, publicId, profile, result });
+console.log(publicId); process.exit(0);

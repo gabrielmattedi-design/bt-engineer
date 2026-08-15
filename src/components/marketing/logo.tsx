@@ -19,7 +19,21 @@
  * O book também proíbe distorcer, aplicar sombra e alterar proporções: por isso o `viewBox` é fixo
  * e o dimensionamento é sempre proporcional, por altura.
  */
-export function LogoMark({ className }: { className?: string }) {
+export function LogoMark({
+  className,
+  simplified = false,
+}: {
+  className?: string;
+  /**
+   * Versão reduzida para tamanhos pequenos — selos, favicons, badges inline.
+   *
+   * O brand book autoriza simplificar quando necessário. Abaixo de ~24px o leito de cordas e as
+   * marcas de registro viram sujeira: as linhas de 0.7 de espessura colapsam num borrão cinza e
+   * pioram a legibilidade do T+E, que é o que precisa ser reconhecido. Some com elas e mantém o
+   * essencial — bola, costura e a ligadura.
+   */
+  simplified?: boolean;
+}) {
   return (
     <svg
       viewBox="0 0 120 120"
@@ -43,7 +57,12 @@ export function LogoMark({ className }: { className?: string }) {
       </defs>
 
       {/* Marcas de registro — traço-ponto de desenho técnico, cruzando a borda da bola. */}
-      <g stroke="currentColor" strokeWidth="1.2" strokeDasharray="5 3 1.5 3">
+      <g
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeDasharray="5 3 1.5 3"
+        className={simplified ? 'hidden' : undefined}
+      >
         <line x1="60" y1="7" x2="60" y2="26" />
         <line x1="60" y1="94" x2="60" y2="113" />
         <line x1="7" y1="60" x2="26" y2="60" />
@@ -54,7 +73,13 @@ export function LogoMark({ className }: { className?: string }) {
         Leito de cordas em PERSPECTIVA, não em grade reta: no book as linhas convergem, como a
         face de uma raquete vista de ângulo. O `skewX` é o que produz essa inclinação.
       */}
-      <g clipPath="url(#te-face)" stroke="currentColor" strokeWidth="0.7" opacity="0.65">
+      <g
+        clipPath="url(#te-face)"
+        stroke="currentColor"
+        strokeWidth="0.7"
+        opacity="0.65"
+        className={simplified ? 'hidden' : undefined}
+      >
         <g transform="skewX(-6) translate(5 0)">
           {[24, 30, 36, 42, 48, 54].map((x) => (
             <line key={`v${x}`} x1={x} y1="30" x2={x} y2="98" />
@@ -67,7 +92,11 @@ export function LogoMark({ className }: { className?: string }) {
 
       {/* Costuras da bola: arco fino à esquerda, S marcado à direita. */}
       <g clipPath="url(#te-ball)" fill="none" stroke="currentColor">
-        <path d="M 36 25 Q 20 62 44 95" strokeWidth="1.1" />
+        <path
+          d="M 36 25 Q 20 62 44 95"
+          strokeWidth="1.1"
+          className={simplified ? 'hidden' : undefined}
+        />
         <path d="M 87 34 Q 95 60 88 90" strokeWidth="1.6" />
       </g>
 

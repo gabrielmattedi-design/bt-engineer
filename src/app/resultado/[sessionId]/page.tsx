@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { Podium } from '@/components/result/podium';
+import { AttributeReadout } from '@/components/result/attribute-readout';
 import { getReport } from '@/app/questionario/actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
 
@@ -89,6 +90,14 @@ export default async function ResultadoPage({
             </div>
 
             <p className="mt-4 text-sm text-graphite">{report.headline}</p>
+
+            {/* Leitura técnica: quanto este frame entrega em cada aspecto, em largura cheia. */}
+            {winner && (
+              <AttributeReadout
+                indices={winner.indices}
+                className="mt-8 rounded border border-line bg-white p-6"
+              />
+            )}
 
             {/* Compatibilidade e confiança são dimensões SEPARADAS (§24). */}
             <div className="mt-6 rounded border border-line bg-white p-5">

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { Logo } from '@/components/marketing/logo';
+import { Pillars } from '@/components/marketing/pillars';
+import { BrandWall } from '@/components/marketing/brand-wall';
 import { catalogStats } from '@/data/load';
 
 /**
@@ -75,6 +77,18 @@ export default function HomePage() {
             Questionário gratuito · 3 a 5 minutos · sem cadastro
           </p>
         </div>
+      </section>
+
+      {/* ── SEIS PILARES (selos proprietários + iconografia do brand book) ─────── */}
+      <section className="bg-court">
+        <div className="mx-auto max-w-5xl px-6 pb-16">
+          <Pillars />
+        </div>
+      </section>
+
+      {/* ── ECOSSISTEMA ANALISADO ──────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-5xl px-6 py-12">
+        <BrandWall />
       </section>
 
       {/* ── FLUXO CONCEITUAL (§2) ──────────────────────────────────────────────── */}
