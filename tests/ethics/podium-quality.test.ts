@@ -108,11 +108,25 @@ describe('ausência de dark patterns (§58)', () => {
     return out;
   }
 
+  /**
+   * Remove comentários antes de varrer.
+   *
+   * O que o §58 proíbe é a LINGUAGEM EXIBIDA ao usuário. Um comentário documentando "aqui não
+   * usamos 'última chance'" é o oposto de um dark pattern, e um scanner ingênuo o acusaria —
+   * criando o incentivo perverso de não documentar a regra para o teste passar.
+   */
+  function renderedText(file: string): string {
+    return readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '')
+      .toLowerCase();
+  }
+
   it('nenhum componente contém linguagem de falsa escassez ou urgência', () => {
     const root = join(__dirname, '..', '..', 'src');
     const offenders: string[] = [];
     for (const file of [...collectSource(join(root, 'components')), ...collectSource(join(root, 'app'))]) {
-      const source = readFileSync(file, 'utf8').toLowerCase();
+      const source = renderedText(file);
       for (const term of FORBIDDEN) {
         if (source.includes(term)) offenders.push(`${file}: "${term}"`);
       }
