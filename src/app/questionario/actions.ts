@@ -13,6 +13,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { cookies } from 'next/headers';
+import { isMissingTable } from '@/database/setup';
 import { extractFreeText } from '@/ai/extract-free-text';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import { recommend } from '@/recommendation';
@@ -42,10 +43,16 @@ function catalog() {
   return scoredCatalog;
 }
 
-export type AnalysisResponse = {
-  readonly sessionId: string;
-  readonly teaser: TeaserPayload;
-};
+/**
+ * Resultado da análise como VALOR, não como exceção.
+ *
+ * Antes esta função podia lançar, e a tela de processamento ficava girando para sempre: as sete
+ * mensagens terminavam, `ready` nunca virava true e o usuário encarava uma tela morta sem nenhuma
+ * explicação. Um erro que vira silêncio é pior que um erro que aparece.
+ */
+export type AnalysisResponse =
+  | { readonly ok: true; readonly sessionId: string; readonly teaser: TeaserPayload }
+  | { readonly ok: false; readonly reason: 'not_ready' | 'failed'; readonly message: string };
 
 /**
  * Roda a análise completa. Retorna apenas o TEASER — o resultado fica no servidor até haver
@@ -74,14 +81,35 @@ export async function analyzeAnswers(
   });
 
   const sessionId = randomUUID();
-  await saveRecommendation({
-    sessionToken: await visitorToken(),
-    publicId: sessionId,
-    profile,
-    result,
-  });
 
-  return { sessionId, teaser: serializeTeaser(result, strings.variants.length) };
+  try {
+    await saveRecommendation({
+      sessionToken: await visitorToken(),
+      publicId: sessionId,
+      profile,
+      result,
+    });
+  } catch (error) {
+    // Causa mais provável em um ambiente recém-publicado: o banco existe, mas as tabelas ainda
+    // não foram criadas. Vale distinguir, porque a ação de conserto é completamente diferente
+    // de uma falha transitória — e quem lê a mensagem costuma ser o dono do site.
+    if (isMissingTable(error)) {
+      return {
+        ok: false,
+        reason: 'not_ready',
+        message:
+          'O sistema ainda não foi preparado: as tabelas do banco não existem. O administrador ' +
+          'precisa concluir a preparação em /admin/setup.',
+      };
+    }
+    return {
+      ok: false,
+      reason: 'failed',
+      message: 'Não conseguimos salvar sua análise. Tente novamente em alguns instantes.',
+    };
+  }
+
+  return { ok: true, sessionId, teaser: serializeTeaser(result, strings.variants.length) };
 }
 
 /**

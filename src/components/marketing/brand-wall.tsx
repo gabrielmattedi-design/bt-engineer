@@ -1,58 +1,115 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { RACKET_BRANDS } from '@/domain/racket';
 import { STRING_BRANDS } from '@/domain/string';
 
 /**
  * Marcas presentes no ecossistema analisado.
  *
- * ─── POR QUE NOMES TIPOGRÁFICOS E NÃO OS LOGOTIPOS ───────────────────────────────────────────
+ * ─── COMO A UNIFORMIDADE É GARANTIDA ─────────────────────────────────────────────────────────
  *
- * Duas razões, e a segunda é de produto.
+ * O pedido é "mesmo destaque, cor e tamanho". Isso NÃO se obtém colocando sete arquivos lado a
+ * lado: cada logotipo vem na sua própria cor, com proporções e margens internas diferentes, e o
+ * resultado seria um mural onde a marca de vermelho salta e a de cinza some.
  *
- * 1. São marcas registradas de terceiros. Não temos os arquivos oficiais, e desenhar imitações
- *    seria pior que não exibir: logotipo aproximado é logotipo errado.
+ * Duas medidas resolvem, e as duas são estruturais:
  *
- * 2. Um mural de logotipos coloridos na home é lido como "parceiros" ou "patrocinadores". Um dos
- *    seis pilares do produto é INDEPENDENTE — sem preferência de marca, sem comissão. Exibir os
- *    logos como se houvesse relação comercial contradiria exatamente a promessa que está três
- *    seções acima.
+ * 1. COR — o arquivo entra como `mask-image`, não como `<img>`. A máscara usa só o formato do
+ *    logotipo; a cor vem do CSS. Todas as marcas saem exatamente na mesma cor, sempre, mesmo que
+ *    alguém troque o arquivo por uma versão colorida amanhã.
  *
- * O tratamento tipográfico uniforme resolve os dois: mesma fonte, mesmo peso, mesmo tamanho, mesma
- * cor para todas — que é literalmente o "mesmo destaque, cor e tamanho" que o mural precisa ter, e
- * torna visualmente impossível uma marca parecer favorecida.
+ * 2. TAMANHO — altura fixa por caixa e `contain`, então proporções diferentes não viram tamanhos
+ *    aparentes diferentes.
+ *
+ * Isso também protege a promessa comercial: um dos seis pilares é INDEPENDENTE, sem comissão. Um
+ * mural onde uma marca aparece maior ou mais colorida contradiz essa promessa em silêncio.
+ *
+ * ─── QUANDO O ARQUIVO NÃO EXISTE ─────────────────────────────────────────────────────────────
+ *
+ * Cai para o nome em tipografia. Deliberado: logotipo aproximado é logotipo ERRADO, e desenhar
+ * imitações de marcas registradas de terceiros seria pior do que não exibir. Ver README em
+ * `public/marcas/`.
  *
  * A ordem é ALFABÉTICA e não a de cadastro: qualquer outra ordenação sugeriria ranking.
  */
-export function BrandWall() {
-  const rackets = [...RACKET_BRANDS].sort((a, b) => a.localeCompare(b));
-  const strings = [...STRING_BRANDS].sort((a, b) => a.localeCompare(b));
+
+const LOGO_DIR = join(process.cwd(), 'public', 'marcas');
+
+function slug(brand: string): string {
+  return brand
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-');
+}
+
+function BrandItem({ brand }: { brand: string }) {
+  const file = `${slug(brand)}.svg`;
+  const hasLogo = existsSync(join(LOGO_DIR, file));
+
+  if (!hasLogo) {
+    return (
+      <span className="flex h-7 items-center font-display text-sm font-semibold text-ink/80">
+        {brand}
+      </span>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 text-xs uppercase tracking-[0.16em] text-graphite">
-        <span className="font-semibold text-ink">Raquetes</span>
-        <span aria-hidden className="h-px w-6 bg-line" />
-        {rackets.map((brand) => (
-          <span key={brand} className="font-display text-sm normal-case tracking-normal text-ink">
-            {brand}
-          </span>
+    <span
+      role="img"
+      aria-label={brand}
+      title={brand}
+      className="block h-7 w-24 bg-ink/80"
+      style={{
+        WebkitMaskImage: `url(/marcas/${file})`,
+        maskImage: `url(/marcas/${file})`,
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center',
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain',
+      }}
+    />
+  );
+}
+
+function Row({ label, brands }: { label: string; brands: readonly string[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+      <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-[0.16em] text-graphite">
+        {label}
+      </span>
+      {[...brands]
+        .sort((a, b) => a.localeCompare(b))
+        .map((brand) => (
+          <BrandItem key={brand} brand={brand} />
         ))}
+    </div>
+  );
+}
+
+export function BrandWall() {
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <span className="h-px w-8 bg-court" aria-hidden />
+        <h2 className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-court">
+          Ecossistema analisado
+        </h2>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 text-xs uppercase tracking-[0.16em] text-graphite">
-        <span className="font-semibold text-ink">Cordas</span>
-        <span aria-hidden className="h-px w-6 bg-line" />
-        {strings.map((brand) => (
-          <span key={brand} className="font-display text-sm normal-case tracking-normal text-ink">
-            {brand}
-          </span>
-        ))}
+      <div className="mt-6 space-y-6">
+        <Row label="Raquetes" brands={RACKET_BRANDS} />
+        <Row label="Cordas" brands={STRING_BRANDS} />
       </div>
 
       {/* O aviso não é rodapé jurídico: é o pilar da independência dito de novo, onde importa. */}
-      <p className="mt-5 text-xs text-graphite">
+      <p className="mt-6 max-w-prose text-xs text-graphite">
         Marcas analisadas pelo Tennis Engineer. Não temos vínculo comercial, patrocínio ou comissão
-        com nenhuma delas — os nomes aparecem com o mesmo peso porque nenhuma tem vantagem no
-        cálculo.
+        com nenhuma delas — todas aparecem no mesmo tamanho e na mesma cor porque nenhuma tem
+        vantagem no cálculo.
       </p>
     </div>
   );

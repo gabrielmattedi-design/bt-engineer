@@ -132,3 +132,13 @@ export function IconFrame({ className }: IconProps) {
     </svg>
   );
 }
+
+/** "sistemas e engenharia" aplicado a independência — escudo com marca de conferência. */
+export function IconShield({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} {...S} aria-hidden>
+      <path d="M 24 6 L 39 12 V 25 C 39 34 32 40 24 43 C 16 40 9 34 9 25 V 12 Z" />
+      <polyline points="17,24 22,29 31,19" />
+    </svg>
+  );
+}

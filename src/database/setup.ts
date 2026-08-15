@@ -109,7 +109,7 @@ export async function seedProducts(): Promise<number> {
 }
 
 /** Percorre a cadeia de `cause` — o Drizzle embrulha o erro original do driver. */
-function isMissingTable(error: unknown): boolean {
+export function isMissingTable(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 5 && current; depth += 1) {
     if (typeof current === 'object' && current !== null) {
