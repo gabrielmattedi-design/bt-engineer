@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Sora } from 'next/font/google';
 import './globals.css';
+import { TestModeBanner } from '@/components/marketing/test-mode-banner';
 
 /** Tipografia do brand book: Sora nos títulos e números, Inter no texto de interface. */
 const sora = Sora({
@@ -39,7 +40,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${sora.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      <body>
+        <TestModeBanner />
+        {children}
+      </body>
     </html>
   );
 }

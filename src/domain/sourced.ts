@@ -102,6 +102,14 @@ export function isRecommendable(
 
 export function datasetMode(): 'strict' | 'permissive' {
   const env = typeof process !== 'undefined' ? process.env : undefined;
+  // Saída explícita para ambiente de testes — ver scripts/dataset-gate.ts.
+  if (env?.ALLOW_UNVERIFIED_DATASET === 'true') return 'permissive';
   if (env?.NODE_ENV === 'production') return 'strict';
   return env?.DATASET_MODE === 'strict' ? 'strict' : 'permissive';
+}
+
+/** true quando o site está no ar com catálogo não conferido. Exibe aviso permanente ao visitante. */
+export function isTestMode(): boolean {
+  const env = typeof process !== 'undefined' ? process.env : undefined;
+  return env?.ALLOW_UNVERIFIED_DATASET === 'true';
 }

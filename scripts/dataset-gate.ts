@@ -5,9 +5,17 @@
  * sustentar uma recomendação PAGA. Isto é um portão de CI, não uma boa intenção: é o que impede
  * o produto de ser vendido com dataset em estado `pending_verification`.
  *
- *   NODE_ENV=production          → estrito, bloqueia
- *   DATASET_MODE=strict          → estrito, bloqueia
- *   caso contrário               → relatório informativo, não bloqueia (desenvolvimento)
+ *   NODE_ENV=production                → estrito, bloqueia
+ *   DATASET_MODE=strict                → estrito, bloqueia
+ *   caso contrário                     → relatório informativo (desenvolvimento)
+ *
+ *   ALLOW_UNVERIFIED_DATASET=true      → não bloqueia, mas grita
+ *
+ * A última é a saída para colocar um AMBIENTE DE TESTES no ar antes de a curadoria terminar. Ela
+ * tem nome longo e explícito de propósito: ninguém a liga por acidente achando que é uma flag de
+ * performance. Quando ativa, o site inteiro exibe um aviso permanente de que está em modo de
+ * testes e não deve cobrar de ninguém — o §69 continua valendo, e o que ele proíbe é VENDER com
+ * dado não conferido, não é publicar uma versão de testes.
  */
 
 import { analyzeCoverage } from '../src/data/coverage';
@@ -21,7 +29,11 @@ const YELLOW = '[33m';
 const GREEN = '[32m';
 const DIM = '[2m';
 
-const strict = process.env.NODE_ENV === 'production' || process.env.DATASET_MODE === 'strict';
+export const ALLOW_UNVERIFIED = process.env.ALLOW_UNVERIFIED_DATASET === 'true';
+
+const strict =
+  !ALLOW_UNVERIFIED &&
+  (process.env.NODE_ENV === 'production' || process.env.DATASET_MODE === 'strict');
 
 function main(): void {
   const rackets = loadRacketCatalog();
@@ -33,6 +45,13 @@ function main(): void {
 
   console.log('\n═══ Tennis Engineer — verificação do dataset ═══\n');
   console.log(`Modo: ${strict ? 'ESTRITO (bloqueia)' : 'permissivo (informativo)'}`);
+  if (ALLOW_UNVERIFIED) {
+    console.log(
+      `${YELLOW}⚠  ALLOW_UNVERIFIED_DATASET=true — a trava de release está DESLIGADA.${RESET}\n` +
+        `${DIM}   Use isto apenas em ambiente de testes. O site exibirá um aviso permanente e${RESET}\n` +
+        `${DIM}   NÃO deve cobrar de ninguém enquanto a curadoria não terminar.${RESET}`,
+    );
+  }
   console.log(
     `Raquetes: ${stats.rackets}  ·  verificadas: ${stats.racketsVerified}/${stats.rackets}`,
   );
