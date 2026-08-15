@@ -94,12 +94,22 @@ export function Pillars() {
             {/* Faixa 1 — ícone, sempre no mesmo lugar e no mesmo tamanho. */}
             <p.Icon className="h-7 w-7 shrink-0 text-ball/70" />
 
-            {/* Faixa 2 — destaque. Altura fixa para que os cards alinhem entre si. */}
+            {/*
+              Faixa 2 — destaque. Altura fixa para que os cards alinhem entre si.
+
+              O RÓTULO do selo tem o mesmo tamanho e a mesma cor dos demais destaques. A regra do
+              brand book ("sempre preto ou branco") vale para a MARCA GRÁFICA — o monograma —, não
+              para a tipografia ao lado dela. Rotular o selo em branco e menor fazia "MATCH ENGINE"
+              e "VERIFIED" parecerem secundários diante de "20+" e "INDEPENDENTE", quando são
+              justamente os dois pilares proprietários.
+
+              O monograma permanece BRANCO, que é onde a regra se aplica.
+            */}
             <div className="mt-5 flex min-h-[2.25rem] items-center">
               {p.seal ? (
-                <span className="flex items-center gap-2 text-white">
-                  <LogoMark className="h-7 w-7 shrink-0" simplified />
-                  <span className="font-display text-base font-bold uppercase tracking-[0.12em]">
+                <span className="flex items-center gap-2.5">
+                  <LogoMark className="h-9 w-9 shrink-0 text-white" simplified />
+                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-ball">
                     {p.seal}
                   </span>
                 </span>

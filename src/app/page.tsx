@@ -80,8 +80,8 @@ export default function HomePage() {
       </section>
 
       {/* ── SEIS PILARES (selos proprietários + iconografia do brand book) ─────── */}
-      <section className="bg-court">
-        <div className="mx-auto max-w-5xl px-6 pb-16">
+      <section className="border-t border-paper/10 bg-court">
+        <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
           <Pillars />
         </div>
       </section>

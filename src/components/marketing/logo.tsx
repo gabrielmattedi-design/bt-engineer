@@ -97,11 +97,22 @@ export function LogoMark({
           strokeWidth="1.1"
           className={simplified ? 'hidden' : undefined}
         />
-        <path d="M 87 34 Q 95 60 88 90" strokeWidth="1.6" />
+        <path d="M 87 34 Q 95 60 88 90" strokeWidth={simplified ? 2.4 : 1.6} />
       </g>
 
-      {/* Contorno da bola. */}
-      <circle cx="60" cy="60" r="41" stroke="currentColor" strokeWidth="2.6" />
+      {/*
+        Contorno da bola.
+        Na versão reduzida o traço é quase DOBRADO e o raio recua para compensar. Em 28 px o traço
+        de 2.6 renderiza com meio pixel: some no antialiasing e a bola vira um fantasma cinza em
+        volta de um borrão. Marca pequena precisa de mais peso, não do mesmo peso reduzido.
+      */}
+      <circle
+        cx="60"
+        cy="60"
+        r={simplified ? 38.5 : 41}
+        stroke="currentColor"
+        strokeWidth={simplified ? 5 : 2.6}
+      />
 
       {/*
         LIGADURA T+E — o ponto que eu tinha errado.
@@ -109,7 +120,13 @@ export function LogoMark({
         braços à direita forma o E de "Engineer". Não é um E isolado dentro de um círculo.
       */}
       <path
-        d="M 40 36 H 84 V 44 H 66 V 58.5 H 81.5 V 66.5 H 66 V 83 H 85 V 91 H 54 V 44 H 40 Z"
+        d={
+          simplified
+            ? // Mesma ligadura, com braços mais curtos e vãos maiores: são as contraformas que
+              // desaparecem primeiro quando a marca encolhe, e são elas que fazem ler "E".
+              'M 41 38 H 82 V 48 H 65 V 56 H 78 V 66 H 65 V 76 H 83 V 86 H 53 V 48 H 41 Z'
+            : 'M 40 36 H 84 V 44 H 66 V 58.5 H 81.5 V 66.5 H 66 V 83 H 85 V 91 H 54 V 44 H 40 Z'
+        }
         fill="currentColor"
       />
     </svg>
