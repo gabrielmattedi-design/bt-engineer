@@ -98,6 +98,46 @@
     opacity: 0.05;
   }
 
+  /**
+   * Grid técnico do brand book (pág. 03, "grid técnico" e "padrão técnico").
+   *
+   * Duas malhas sobrepostas — uma fina de 8px e uma marcada de 48px — que é como papel milimetrado
+   * de projeto se comporta. Sobre o verde institucional ela dá o "fundo de blueprint" das
+   * aplicações do book, sem virar ornamento: a opacidade fica baixa o bastante para o texto
+   * continuar sendo o elemento principal.
+   */
+  .blueprint-grid {
+    background-image:
+      repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 48px);
+    opacity: 0.07;
+  }
+
+  /* Marca de registro em canto — "enquadramento técnico" (brand book pág. 03). */
+  .corner-marks::before,
+  .corner-marks::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: currentColor;
+    opacity: 0.35;
+  }
+  .corner-marks::before {
+    top: -1px;
+    left: -1px;
+    border-top-width: 2px;
+    border-left-width: 2px;
+  }
+  .corner-marks::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
+  }
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

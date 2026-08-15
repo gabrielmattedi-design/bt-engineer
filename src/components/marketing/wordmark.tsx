@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { Logo } from './logo';
 
 /**
  * A marca (§39): "TENNIS ENGINEER / Seu jogo. Seu setup. Sob medida." deve ter bastante destaque.
@@ -12,48 +13,20 @@ import { cn } from '@/lib/cn';
  * permitidas. Não existe caminho para pintar o logotipo de verde, laranja, azul ou amarelo —
  * intencionalmente. `className` ajusta espaçamento e alinhamento, nunca cor.
  */
-export function Wordmark({
-  size = 'md',
-  tone = 'light',
-  withTagline = true,
-  className,
-}: {
+/**
+ * `Wordmark` é hoje um apelido de `Logo` — mantido porque várias telas já o importam.
+ *
+ * A implementação real do monograma está em `logo.tsx`, desenhada a partir do brand book. Até
+ * aqui a marca era só o nome em texto; o símbolo (bola + cordas + E + marcas de registro) não
+ * existia no site.
+ */
+export function Wordmark(props: {
   size?: 'sm' | 'md' | 'lg';
-  /** Fundo sobre o qual a marca é aplicada: `light` → marca preta, `dark` → marca branca. */
   tone?: 'light' | 'dark';
   withTagline?: boolean;
   className?: string;
 }) {
-  const sizes = {
-    sm: 'text-sm',
-    md: 'text-xl sm:text-2xl',
-    lg: 'text-4xl sm:text-6xl',
-  } as const;
-
-  const taglineSizes = {
-    sm: 'text-[10px]',
-    md: 'text-xs',
-    lg: 'text-sm sm:text-base',
-  } as const;
-
-  return (
-    <div className={className}>
-      <div
-        className={cn(
-          'wordmark leading-none',
-          tone === 'dark' ? 'wordmark-on-dark' : 'wordmark-on-light',
-          sizes[size],
-        )}
-      >
-        Tennis Engineer
-      </div>
-      {withTagline && (
-        <p className={cn('mt-2', tone === 'dark' ? 'text-paper/70' : 'text-graphite', taglineSizes[size])}>
-          Seu jogo. Seu setup. Sob medida.
-        </p>
-      )}
-    </div>
-  );
+  return <Logo {...props} />;
 }
 
 /**

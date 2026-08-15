@@ -1,12 +1,25 @@
 import Link from 'next/link';
-import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
+import { BrandSignature } from '@/components/marketing/wordmark';
+import { Logo } from '@/components/marketing/logo';
 import { catalogStats } from '@/data/load';
 
 /**
  * Home — §40, §41, §42.
  *
- * Mobile-first (§43): desenhada em 390px e escalada para cima. Muito branco, tipografia forte,
- * uma cor de acento. Sem cronômetro, sem escassez, sem desconto fictício (§58).
+ * Mobile-first (§43): desenhada em 390px e escalada para cima. Sem cronômetro, sem escassez, sem
+ * desconto fictício (§58).
+ *
+ * ─── DIREÇÃO VISUAL: BRAND BOOK ──────────────────────────────────────────────────────────────
+ *
+ * O DESIGN.md original pedia "muito branco". O brand book pede o oposto no herói: superfícies em
+ * Grand Slam Green, fundo de blueprint, aparência premium e técnica ("texturas reais de quadra",
+ * "fundos escuros premium"). Onde os dois divergem, vale o brand book — ele é a identidade real da
+ * marca. O branco continua valendo no corpo do conteúdo, onde legibilidade manda.
+ *
+ * Papéis de cor, conforme a pág. 01 do book, seção "uso das cores":
+ *   Grand Slam Green  superfícies e fundos     Clay Orange   detalhes e destaques
+ *   Wimbledon Green   gráficos e análises      AO Blue       dados e tecnologia
+ *   Court Yellow      performance e energia
  */
 export default function HomePage() {
   const stats = catalogStats();
@@ -14,15 +27,26 @@ export default function HomePage() {
   return (
     <main className="min-h-screen">
       {/* ── HERO (§40) ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-line bg-court text-paper">
-        <div className="string-bed absolute inset-0" aria-hidden />
+      <section className="relative overflow-hidden bg-court text-paper">
+        <div className="blueprint-grid absolute inset-0 text-white" aria-hidden />
+        {/* Profundidade sutil, sem gradiente colorido: o book pede limpeza, não efeito. */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30"
+          aria-hidden
+        />
         <div className="relative mx-auto max-w-5xl px-6 py-20 sm:py-28">
-          {/* Marca em branco sobre o verde institucional — nunca colorida (brand book). */}
-          <Wordmark size="lg" tone="dark" withTagline={false} />
-          <p className="mt-4 font-display text-lg text-paper/70 sm:text-2xl">
+          {/* Marca em BRANCO sobre o verde institucional — nunca colorida (brand book pág. 04). */}
+          <Logo size="lg" tone="dark" withTagline={false} />
+
+          <p className="mt-8 font-display text-xl leading-tight text-paper sm:text-3xl">
             Seu jogo. Seu setup. Sob medida.
           </p>
-          <p className="mt-2 text-sm text-ball">Precisão técnica aplicada ao seu jogo.</p>
+
+          {/* Linha de conceito do book, em Court Yellow — "performance e energia". */}
+          <p className="mt-3 flex items-center gap-2 text-sm font-medium text-ball">
+            <span className="h-px w-8 bg-ball" aria-hidden />
+            Precisão técnica aplicada ao seu jogo.
+          </p>
 
           <p className="mt-10 max-w-prose text-base text-paper/80 sm:text-lg">
             Responda algumas perguntas sobre seu jogo e descubra quais equipamentos realmente
@@ -89,7 +113,7 @@ export default function HomePage() {
             },
           ].map((step) => (
             <div key={step.n}>
-              <div className="display-number text-5xl text-line">{step.n}</div>
+              <div className="display-number text-5xl text-court-mid/40">{step.n}</div>
               <h3 className="mt-3 font-display text-lg font-semibold">{step.title}</h3>
               <p className="mt-2 text-sm text-graphite">{step.body}</p>
             </div>
@@ -98,11 +122,13 @@ export default function HomePage() {
       </section>
 
       {/* ── CREDIBILIDADE (§42) ────────────────────────────────────────────────── */}
-      <section className="court-line mx-auto max-w-5xl px-6 py-16">
+      <section className="relative overflow-hidden bg-court text-paper">
+        <div className="blueprint-grid absolute inset-0 text-white" aria-hidden />
+        <div className="relative mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">
           Não recomendamos por nível, idade ou marca favorita.
         </h2>
-        <p className="mt-4 max-w-prose text-graphite">
+        <p className="mt-4 max-w-prose text-paper/75">
           A análise cruza múltiplas variáveis do seu jogo com as especificações técnicas de cada
           equipamento. O mesmo conjunto de respostas produz sempre o mesmo resultado — e cada
           recomendação registra quais dados usou.
@@ -121,7 +147,7 @@ export default function HomePage() {
           ].map((item) => (
             <li
               key={item}
-              className="rounded border border-line bg-white px-3 py-3 text-sm font-medium"
+              className="rounded border border-paper/20 bg-white/5 px-3 py-3 text-sm font-medium"
             >
               {item}
             </li>
@@ -129,23 +155,19 @@ export default function HomePage() {
         </ul>
 
         <dl className="mt-10 grid gap-6 sm:grid-cols-3">
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-graphite">Raquetes no catálogo</dt>
-            <dd className="display-number mt-1 text-3xl">{stats.rackets}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-graphite">
-              Variantes de corda
-            </dt>
-            <dd className="display-number mt-1 text-3xl">{stats.stringVariants}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-graphite">
-              Variáveis analisadas
-            </dt>
-            <dd className="display-number mt-1 text-3xl">28</dd>
-          </div>
+          {[
+            ['Raquetes no catálogo', String(stats.rackets)],
+            ['Variantes de corda', String(stats.stringVariants)],
+            ['Variáveis analisadas', '28'],
+          ].map(([label, value]) => (
+            <div key={label} className="border-l-2 border-signal/40 pl-4">
+              <dt className="text-xs uppercase tracking-wider text-paper/60">{label}</dt>
+              {/* Números são dado técnico — AO Blue, "dados e tecnologia" (book pág. 01). */}
+              <dd className="display-number mt-1 text-4xl text-signal">{value}</dd>
+            </div>
+          ))}
         </dl>
+        </div>
       </section>
 
       {/* ── O QUE VOCÊ RECEBE (§25, §26) — sem falsa promoção (§58) ────────────── */}
@@ -169,14 +191,15 @@ export default function HomePage() {
             </ul>
           </div>
 
-          <div className="rounded border-2 border-court bg-white p-6">
-            <div className="text-xs font-semibold uppercase tracking-wider text-court">
+          <div className="relative corner-marks rounded border-2 border-court bg-white p-6 text-court">
+            {/* Clay Orange marca o destaque — "detalhes e destaques" (brand book pág. 01). */}
+            <div className="text-xs font-semibold uppercase tracking-wider text-clay">
               Análise completa
             </div>
-            <h3 className="mt-2 font-display text-lg font-semibold">
+            <h3 className="mt-2 font-display text-lg font-semibold text-ink">
               Descubra seu setup completo
             </h3>
-            <p className="display-number mt-2 text-2xl">R$ 49,99</p>
+            <p className="display-number mt-2 text-3xl text-ink">R$ 49,99</p>
             <ul className="mt-4 space-y-2 text-sm text-graphite">
               <li>Tudo do plano anterior</li>
               <li>Corda e espessura recomendadas</li>
@@ -189,7 +212,7 @@ export default function HomePage() {
       </section>
 
       <footer className="court-line mx-auto max-w-5xl px-6 py-12">
-        <Wordmark size="sm" />
+        <Logo size="sm" />
         <BrandSignature className="mt-6" />
         <p className="mt-6 max-w-prose text-xs text-graphite">
           Os índices Tennis Engineer são métricas internas da nossa análise, não especificações do

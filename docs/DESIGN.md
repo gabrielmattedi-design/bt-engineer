@@ -82,6 +82,18 @@ Precisão técnica aplicada ao seu jogo.        ← linha de conceito
 SUA EVOLUÇÃO É O NOSSO PROJETO.               ← assinatura de rodapé
 ```
 
+### O monograma
+
+O símbolo da marca combina quatro elementos, cada um com significado:
+
+| Elemento | Significado |
+|---|---|
+| círculo + costuras | a bola de tênis |
+| grid recortado | o leito de cordas — o "engineer" do nome |
+| letra E | o monograma |
+| marcas de registro | desenho técnico — a "precisão" da marca |
+
+Implementado em `src/components/marketing/logo.tsx` como SVG, com todo traço em `currentColor`.
 Wordmark em caixa alta, tracking aberto, com o subtítulo sempre presente na home e no cabeçalho do
 relatório (§39, §64). Nunca abreviar para "TE".
 
