@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { visibleSteps, type Question } from './steps';
@@ -21,6 +21,26 @@ export function QuizForm({
 }) {
   const [answers, setAnswers] = useState<QuestionnaireAnswers>(emptyAnswers);
   const [stepIndex, setStepIndex] = useState(0);
+
+  /**
+   * Volta ao topo a cada troca de etapa.
+   *
+   * Sem isso, quem responde uma etapa longa rolando até o fim começa a próxima já no meio da
+   * página — às vezes abaixo do enunciado, o que faz as opções parecerem soltas e sem pergunta.
+   * O navegador preserva a posição de rolagem porque a URL não muda: é a mesma página trocando de
+   * conteúdo.
+   *
+   * `behavior: 'auto'` e não `'smooth'`: a animação de rolagem competiria com a troca de conteúdo,
+   * e quem usa `prefers-reduced-motion` não deveria vê-la de todo.
+   */
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [stepIndex]);
 
   const steps = useMemo(() => visibleSteps(answers), [answers]);
   const step = steps[Math.min(stepIndex, steps.length - 1)]!;
@@ -184,7 +204,19 @@ function QuestionField({
                     {isSelected ? selected + 1 : '0'}
                   </span>
                 )}
-                <span className="flex-1 font-medium">{choice.label}</span>
+                {/*
+                  A explicação aparece nas duas listas — única e múltipla escolha. Ela existia só na
+                  de escolha única, então perguntas como "suas bolas costumam…" e "você sente falta
+                  de…" ficavam sem definição justamente onde o vocabulário é mais técnico.
+                */}
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{choice.label}</span>
+                  {choice.hint && (
+                    <span className="mt-0.5 block text-[13px] font-normal text-graphite">
+                      {choice.hint}
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}

@@ -12,6 +12,7 @@ import type { PlayerProfile } from '@/domain/player-profile';
 import type { RecommendationResult } from '@/domain/recommendation';
 import type { Entitlement } from '@/payments/entitlements';
 import * as fileStore from '@/app/questionario/session-store';
+import { withAutoBootstrap } from '@/database/setup';
 
 /**
  * Persistência de sessões de recomendação.
@@ -97,6 +98,15 @@ export async function saveRecommendation(input: {
     return;
   }
 
+  await withAutoBootstrap(() => persist(input));
+}
+
+async function persist(input: {
+  sessionToken: string;
+  publicId: string;
+  profile: PlayerProfile;
+  result: RecommendationResult;
+}): Promise<void> {
   const conn = db();
   const anonId = await ensureAnonymousSession(input.sessionToken);
   const { profile, result } = input;

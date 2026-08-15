@@ -143,3 +143,32 @@ function describe(error: unknown): string {
   }
   return String(error);
 }
+
+/**
+ * Executa `run`; se o banco ainda não tiver as tabelas, cria a estrutura e tenta UMA vez mais.
+ *
+ * ─── POR QUE AUTO-BOOTSTRAP ──────────────────────────────────────────────────────────────────
+ *
+ * O produto ficou preso num erro que dependia do dono lembrar de abrir `/admin/setup` e clicar em
+ * dois botões — um passo invisível, feito uma única vez na vida do sistema, cuja ausência derruba
+ * o fluxo inteiro com uma mensagem que o VISITANTE vê. É a pior troca possível: risco alto,
+ * benefício nenhum.
+ *
+ * Como toda a DDL é idempotente (ver `bootstrap-sql.ts`), criar a estrutura sob demanda é seguro.
+ * `/admin/setup` continua existindo como diagnóstico e para quem quiser preparar antes do primeiro
+ * acesso — mas deixou de ser obrigatório.
+ *
+ * A retentativa é ÚNICA e condicionada a "tabela não existe". Qualquer outro erro sobe: repetir
+ * cegamente esconderia falhas reais, como credencial errada ou banco fora do ar.
+ */
+export async function withAutoBootstrap<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (!isMissingTable(error)) throw error;
+
+    await runMigrations();
+    await seedProducts();
+    return run();
+  }
+}
