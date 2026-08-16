@@ -18,7 +18,7 @@ export default async function CheckoutSimuladoPage({
   params: Promise<{ orderId: string }>;
   searchParams: Promise<{ retorno?: string }>;
 }) {
-  if (!simulatedPaymentsAllowed()) notFound();
+  if (!(await simulatedPaymentsAllowed())) notFound();
 
   const { orderId } = await params;
   const { retorno } = await searchParams;

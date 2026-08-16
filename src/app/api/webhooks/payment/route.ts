@@ -26,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Trava de cinto e suspensório: o adapter simulado já lança quando não está autorizado, mas se
   // alguém registrar outro adapter permissivo, esta linha continua valendo.
-  if (provider.id === 'fake' && !simulatedPaymentsAllowed()) {
+  if (provider.id === 'fake' && !(await simulatedPaymentsAllowed())) {
     return NextResponse.json({ error: 'provedor inválido para produção' }, { status: 500 });
   }
 

@@ -16,7 +16,7 @@ export async function simulatePayment(
   _prev: unknown,
   formData: FormData,
 ): Promise<{ ok: true; body: string } | { error: string }> {
-  if (!simulatedPaymentsAllowed()) {
+  if (!(await simulatedPaymentsAllowed())) {
     return { error: 'Indisponível: o modo de pagamento simulado está desligado.' };
   }
 

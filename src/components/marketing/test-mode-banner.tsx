@@ -15,9 +15,9 @@ import { inSimulatedPaymentMode } from '@/payments/mode';
  * encontre "R$ 19,99" numa loja que não cobra nada precisa saber disso ANTES de clicar, não
  * depois. As duas condições são independentes e a frase se ajusta para dizer só o que é verdade.
  */
-export function TestModeBanner() {
+export async function TestModeBanner() {
   const unverifiedData = isTestMode();
-  const simulatedPayments = inSimulatedPaymentMode();
+  const simulatedPayments = await inSimulatedPaymentMode();
   if (!unverifiedData && !simulatedPayments) return null;
 
   const messages: string[] = [];

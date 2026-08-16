@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { canTransition, type PaymentStatus } from '@/payments/provider';
 import { fakeProvider, signFakePayload } from '@/payments/adapters/fake';
-import { inSimulatedPaymentMode } from '@/payments/mode';
+import { inSimulatedPaymentMode, simulatedPaymentsAllowedByEnv } from '@/payments/mode';
 
 describe('máquina de estados do pagamento', () => {
   it('permite o caminho feliz', () => {
@@ -92,17 +92,20 @@ describe('o provedor simulado em produção', () => {
   }
 
   function withEnv(
-    env: { NODE_ENV?: string; ALLOW_FAKE_PAYMENTS?: string },
+    env: { NODE_ENV?: string; ALLOW_FAKE_PAYMENTS?: string; PAYMENT_PROVIDER?: string },
     run: () => Promise<void> | void,
   ) {
     const previous = {
       NODE_ENV: process.env.NODE_ENV,
       ALLOW_FAKE_PAYMENTS: process.env.ALLOW_FAKE_PAYMENTS,
+      PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER,
     };
     Object.assign(process.env, env);
     return Promise.resolve(run()).finally(() => {
       Object.assign(process.env, previous);
-      if (previous.ALLOW_FAKE_PAYMENTS === undefined) delete process.env.ALLOW_FAKE_PAYMENTS;
+      for (const key of ['ALLOW_FAKE_PAYMENTS', 'PAYMENT_PROVIDER'] as const) {
+        if (previous[key] === undefined) delete process.env[key];
+      }
     });
   }
 
@@ -131,11 +134,29 @@ describe('o provedor simulado em produção', () => {
   });
 
   it('o aviso ao visitante só liga junto com o modo simulado', async () => {
-    await withEnv({ NODE_ENV: 'production' }, () => {
-      expect(inSimulatedPaymentMode()).toBe(false);
+    await withEnv({ NODE_ENV: 'production' }, async () => {
+      expect(await inSimulatedPaymentMode()).toBe(false);
     });
-    await withEnv({ NODE_ENV: 'production', ALLOW_FAKE_PAYMENTS: 'true' }, () => {
-      expect(inSimulatedPaymentMode()).toBe(true);
+    await withEnv({ NODE_ENV: 'production', ALLOW_FAKE_PAYMENTS: 'true' }, async () => {
+      expect(await inSimulatedPaymentMode()).toBe(true);
     });
+  });
+
+  /**
+   * O interruptor do painel é a SEGUNDA chave da mesma fechadura, e a decisão sobre o ambiente
+   * continua valendo antes dela: fora de produção o simulado já roda, e um gateway real não pode
+   * ser substituído pelo simulado por nenhum caminho.
+   */
+  it('um gateway real não pode ser substituído pelo simulado', async () => {
+    await withEnv(
+      { NODE_ENV: 'production', ALLOW_FAKE_PAYMENTS: 'true', PAYMENT_PROVIDER: 'mercadopago' },
+      async () => {
+        expect(await inSimulatedPaymentMode()).toBe(false);
+      },
+    );
+  });
+
+  it('fora de produção o ambiente decide sozinho, sem consultar o banco', () => {
+    expect(simulatedPaymentsAllowedByEnv()).toBe(true);
   });
 });

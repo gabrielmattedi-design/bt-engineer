@@ -1,3 +1,5 @@
+import { simulatedPaymentsEnabledInDatabase } from '@/database/repositories/settings-repo';
+
 /**
  * Modo de pagamento simulado — o único caminho pelo qual o adapter "fake" roda em produção.
  *
@@ -10,39 +12,52 @@
  * Mas a Vercel define `NODE_ENV=production` em qualquer deploy, inclusive no que existe só para o
  * dono percorrer o próprio funil antes de haver gateway contratado. Com o bloqueio amarrado
  * apenas a `NODE_ENV`, clicar em "continuar para o pagamento" no site publicado devolvia uma
- * exceção de servidor — que foi exatamente o que aconteceu.
+ * exceção de servidor.
  *
- * ─── O DESENHO ───────────────────────────────────────────────────────────────────────────────
+ * ─── DUAS CHAVES, MESMA FECHADURA ────────────────────────────────────────────────────────────
  *
- * O interruptor é a variável `ALLOW_FAKE_PAYMENTS`, seguindo o mesmo padrão de
- * `ALLOW_UNVERIFIED_DATASET`:
+ * O modo liga por qualquer uma das duas:
  *
- *   • ausente        → produção bloqueia o simulado, como antes. Nada mudou para quem esquecer.
- *   • ='true'        → o funil roda inteiro, e TODA página passa a exibir o aviso permanente de
- *                      que nada está sendo cobrado (`TestModeBanner`).
+ *   1. `ALLOW_FAKE_PAYMENTS=true` na hospedagem — para quem administra por infraestrutura;
+ *   2. o interruptor em `/admin/setup` — para o dono do produto.
  *
- * A diferença em relação a simplesmente afrouxar o `NODE_ENV` é que ligar isto exige uma ação
- * deliberada, fica registrado na configuração do projeto, e é VISÍVEL para qualquer visitante.
- * Não existe estado em que o site cobre de verdade e o dono ache que está simulando, nem o
- * inverso.
+ * A segunda existe porque a primeira falhou na prática. Trocar uma variável de ambiente exige
+ * achar a tela certa no painel, marcar o ambiente certo e refazer o deploy: três passos
+ * invisíveis, cada um com uma forma silenciosa de falhar, e o mesmo sintoma observável para todas
+ * — nada muda. Uma trava que o dono legítimo não consegue destravar não está protegendo o
+ * produto, está impedindo o produto.
+ *
+ * As duas exigem ação deliberada e as duas são igualmente VISÍVEIS: enquanto qualquer uma estiver
+ * ativa, toda página exibe o aviso de que nada está sendo cobrado, e `/admin/setup` mostra o
+ * estado real. Não existe configuração em que o dono ache que está simulando e o site cobre, nem
+ * o inverso.
+ *
+ * ─── O QUE NÃO MUDOU ─────────────────────────────────────────────────────────────────────────
+ *
+ * Nada disso alcança um gateway real: se `PAYMENT_PROVIDER` apontar para um provedor de verdade,
+ * o adapter simulado sequer é construído. O interruptor não consegue ressuscitá-lo.
  */
 
-export function simulatedPaymentsAllowed(): boolean {
+/** Parte da decisão que não depende do banco. Pura, e por isso testável sem infraestrutura. */
+export function simulatedPaymentsAllowedByEnv(): boolean {
   if (process.env.NODE_ENV !== 'production') return true;
   return process.env.ALLOW_FAKE_PAYMENTS === 'true';
 }
 
+export async function simulatedPaymentsAllowed(): Promise<boolean> {
+  if (simulatedPaymentsAllowedByEnv()) return true;
+  return simulatedPaymentsEnabledInDatabase();
+}
+
 /** true quando o site publicado está aceitando "pagamentos" que não cobram nada. */
-export function inSimulatedPaymentMode(): boolean {
-  return (
-    process.env.NODE_ENV === 'production' &&
-    process.env.ALLOW_FAKE_PAYMENTS === 'true' &&
-    (process.env.PAYMENT_PROVIDER ?? 'fake') === 'fake'
-  );
+export async function inSimulatedPaymentMode(): Promise<boolean> {
+  if (process.env.NODE_ENV !== 'production') return false;
+  if ((process.env.PAYMENT_PROVIDER ?? 'fake') !== 'fake') return false;
+  return simulatedPaymentsAllowed();
 }
 
 /** Mensagem única para quando o simulado é recusado — diz o que fazer, não só o que falhou. */
 export const SIMULATED_PAYMENTS_BLOCKED =
   'O provedor de pagamento "fake" não pode ser usado em produção: ele concede acesso sem cobrar. ' +
-  'Configure PAYMENT_PROVIDER com um gateway real, ou defina ALLOW_FAKE_PAYMENTS=true para rodar ' +
-  'o funil em modo demonstração (com aviso visível ao visitante em todas as páginas).';
+  'Configure PAYMENT_PROVIDER com um gateway real, ou ligue o modo demonstração em /admin/setup ' +
+  '(ou defina ALLOW_FAKE_PAYMENTS=true) para rodar o funil com aviso visível ao visitante.';

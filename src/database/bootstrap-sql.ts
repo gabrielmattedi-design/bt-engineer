@@ -171,6 +171,11 @@ END $$`,
     ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
 END $$`,
+  `CREATE TABLE IF NOT EXISTS "app_settings" (
+	"key" text PRIMARY KEY NOT NULL,
+	"value" text NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "racket_rankings_session_rank_idx" ON "racket_rankings" USING btree ("recommendation_session_id","rank")`,
   `CREATE INDEX IF NOT EXISTS "recommendation_sessions_session_idx" ON "recommendation_sessions" USING btree ("session_id")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "entitlements_unique_idx" ON "entitlements" USING btree ("session_id","recommendation_session_id","entitlement")`,

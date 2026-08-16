@@ -21,8 +21,8 @@ import type {
  * provedor. Um adapter que concede acesso sem cobrar não pode ficar ligado por descuido.
  */
 
-function assertAllowed(): void {
-  if (!simulatedPaymentsAllowed()) throw new Error(SIMULATED_PAYMENTS_BLOCKED);
+async function assertAllowed(): Promise<void> {
+  if (!(await simulatedPaymentsAllowed())) throw new Error(SIMULATED_PAYMENTS_BLOCKED);
 }
 
 /** Segredo de assinatura do webhook simulado. Fixo, porque nada aqui protege dinheiro real. */
@@ -36,7 +36,7 @@ export const fakeProvider: PaymentProvider = {
   id: 'fake',
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession> {
-    assertAllowed();
+    await assertAllowed();
     const providerPaymentId = `fake_${input.orderId}`;
     return {
       providerPaymentId,
@@ -46,7 +46,7 @@ export const fakeProvider: PaymentProvider = {
   },
 
   async parseWebhook(request: Request): Promise<PaymentEvent | null> {
-    assertAllowed();
+    await assertAllowed();
 
     const body = await request.text();
     const signature = request.headers.get('x-fake-signature') ?? '';
@@ -81,7 +81,7 @@ export const fakeProvider: PaymentProvider = {
   },
 
   async getPaymentStatus(): Promise<PaymentStatus> {
-    assertAllowed();
+    await assertAllowed();
     return 'pending';
   },
 };
