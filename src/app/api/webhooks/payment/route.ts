@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { paymentProvider } from '@/payments/adapters';
+import { simulatedPaymentsAllowed } from '@/payments/mode';
 import { processPaymentEvent } from '@/database/repositories/commerce-repo';
 
 export const dynamic = 'force-dynamic';
@@ -23,9 +24,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request): Promise<NextResponse> {
   const provider = paymentProvider();
 
-  // Trava de cinto e suspensório: o adapter simulado já lança em produção, mas se alguém registrar
-  // outro adapter permissivo, esta linha continua valendo.
-  if (provider.id === 'fake' && process.env.NODE_ENV === 'production') {
+  // Trava de cinto e suspensório: o adapter simulado já lança quando não está autorizado, mas se
+  // alguém registrar outro adapter permissivo, esta linha continua valendo.
+  if (provider.id === 'fake' && !simulatedPaymentsAllowed()) {
     return NextResponse.json({ error: 'provedor inválido para produção' }, { status: 500 });
   }
 

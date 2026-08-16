@@ -111,6 +111,18 @@ export function BrandWall() {
         com nenhuma delas — todas aparecem no mesmo tamanho e na mesma cor porque nenhuma tem
         vantagem no cálculo.
       </p>
+
+      {/*
+        O link fecha a afirmação: dizer "analisamos estas marcas" e não deixar ver a lista é pedir
+        confiança sem oferecer verificação — exatamente o oposto do que o pilar promete.
+      */}
+      <a
+        href="/catalogo"
+        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-clay underline
+                   underline-offset-4"
+      >
+        Ver todas as raquetes e cordas consideradas
+      </a>
     </div>
   );
 }

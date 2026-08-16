@@ -3,6 +3,7 @@
 import { headers } from 'next/headers';
 import { randomUUID } from 'node:crypto';
 import { signFakePayload } from '@/payments/adapters/fake';
+import { simulatedPaymentsAllowed } from '@/payments/mode';
 
 /**
  * Dispara um evento de pagamento assinado contra o próprio webhook.
@@ -15,8 +16,8 @@ export async function simulatePayment(
   _prev: unknown,
   formData: FormData,
 ): Promise<{ ok: true; body: string } | { error: string }> {
-  if (process.env.NODE_ENV === 'production') {
-    return { error: 'Indisponível em produção.' };
+  if (!simulatedPaymentsAllowed()) {
+    return { error: 'Indisponível: o modo de pagamento simulado está desligado.' };
   }
 
   const orderId = String(formData.get('order_id') ?? '');
@@ -32,7 +33,9 @@ export async function simulatePayment(
   });
 
   const host = (await headers()).get('host') ?? 'localhost:3000';
-  const response = await fetch(`http://${host}/api/webhooks/payment`, {
+  // Em produção o host só atende HTTPS — chamar http:// aqui derrubava o webhook simulado.
+  const scheme = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const response = await fetch(`${scheme}://${host}/api/webhooks/payment`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

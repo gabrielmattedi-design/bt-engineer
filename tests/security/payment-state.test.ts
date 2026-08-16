@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { canTransition, type PaymentStatus } from '@/payments/provider';
 import { fakeProvider, signFakePayload } from '@/payments/adapters/fake';
+import { inSimulatedPaymentMode } from '@/payments/mode';
 
 describe('máquina de estados do pagamento', () => {
   it('permite o caminho feliz', () => {
@@ -71,25 +72,70 @@ describe('webhook rejeita quem não é o gateway', () => {
   });
 });
 
-describe('o provedor simulado não pode rodar em produção', () => {
-  it('lança ao criar checkout com NODE_ENV=production', async () => {
-    const original = process.env.NODE_ENV;
-    try {
-      // @ts-expect-error — sobrescrita apenas para o teste
-      process.env.NODE_ENV = 'production';
-      await expect(
-        fakeProvider.createCheckout({
-          orderId: 'ord_1',
-          sku: 'racket_report',
-          productName: 'x',
-          amountCents: 1999,
-          currency: 'BRL',
-          returnUrl: 'https://exemplo.com',
-        }),
-      ).rejects.toThrow(/produção/);
-    } finally {
-      // @ts-expect-error — restauração
-      process.env.NODE_ENV = original;
-    }
+/**
+ * O provedor simulado concede acesso sem cobrar. Ele só pode rodar em produção por decisão
+ * EXPLÍCITA — e, quando roda, o visitante precisa ser avisado. As duas metades são testadas aqui,
+ * porque cada uma sozinha é uma armadilha: bloquear sempre trava o dono fora do próprio funil
+ * antes de existir gateway; liberar sem aviso transforma o site numa loja que exibe preços e não
+ * cobra nada, sem que ninguém perceba.
+ */
+describe('o provedor simulado em produção', () => {
+  async function checkout() {
+    return fakeProvider.createCheckout({
+      orderId: 'ord_1',
+      sku: 'racket_report',
+      productName: 'x',
+      amountCents: 1999,
+      currency: 'BRL',
+      returnUrl: 'https://exemplo.com',
+    });
+  }
+
+  function withEnv(
+    env: { NODE_ENV?: string; ALLOW_FAKE_PAYMENTS?: string },
+    run: () => Promise<void> | void,
+  ) {
+    const previous = {
+      NODE_ENV: process.env.NODE_ENV,
+      ALLOW_FAKE_PAYMENTS: process.env.ALLOW_FAKE_PAYMENTS,
+    };
+    Object.assign(process.env, env);
+    return Promise.resolve(run()).finally(() => {
+      Object.assign(process.env, previous);
+      if (previous.ALLOW_FAKE_PAYMENTS === undefined) delete process.env.ALLOW_FAKE_PAYMENTS;
+    });
+  }
+
+  it('recusa por padrão quando NODE_ENV=production', async () => {
+    await withEnv({ NODE_ENV: 'production' }, async () => {
+      await expect(checkout()).rejects.toThrow(/produção/);
+    });
+  });
+
+  it('a mensagem de recusa diz como liberar o modo demonstração', async () => {
+    await withEnv({ NODE_ENV: 'production' }, async () => {
+      await expect(checkout()).rejects.toThrow(/ALLOW_FAKE_PAYMENTS/);
+    });
+  });
+
+  it('roda quando ALLOW_FAKE_PAYMENTS=true', async () => {
+    await withEnv({ NODE_ENV: 'production', ALLOW_FAKE_PAYMENTS: 'true' }, async () => {
+      await expect(checkout()).resolves.toMatchObject({ providerPaymentId: 'fake_ord_1' });
+    });
+  });
+
+  it('qualquer valor diferente de "true" continua bloqueando', async () => {
+    await withEnv({ NODE_ENV: 'production', ALLOW_FAKE_PAYMENTS: '1' }, async () => {
+      await expect(checkout()).rejects.toThrow(/produção/);
+    });
+  });
+
+  it('o aviso ao visitante só liga junto com o modo simulado', async () => {
+    await withEnv({ NODE_ENV: 'production' }, () => {
+      expect(inSimulatedPaymentMode()).toBe(false);
+    });
+    await withEnv({ NODE_ENV: 'production', ALLOW_FAKE_PAYMENTS: 'true' }, () => {
+      expect(inSimulatedPaymentMode()).toBe(true);
+    });
   });
 });

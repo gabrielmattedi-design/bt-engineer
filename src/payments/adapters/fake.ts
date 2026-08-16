@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { simulatedPaymentsAllowed, SIMULATED_PAYMENTS_BLOCKED } from '../mode';
 import type {
   CheckoutSession,
   CreateCheckoutInput,
@@ -15,18 +16,13 @@ import type {
  * desenvolvimento concedesse o acesso direto, o fluxo de produção seria o único nunca testado, e o
  * primeiro pagamento real seria o primeiro teste do webhook.
  *
- * ⚠️ NUNCA em produção. `assertNotProduction()` lança, e o webhook recusa eventos deste provedor
- * quando `NODE_ENV=production`. Um adapter que concede acesso sem cobrar não pode depender de
- * alguém lembrar de trocar uma variável de ambiente no deploy.
+ * ⚠️ Em produção só roda com `ALLOW_FAKE_PAYMENTS=true` — ver `src/payments/mode.ts` para o
+ * desenho do interruptor. Sem ele, `assertAllowed()` lança e o webhook recusa eventos deste
+ * provedor. Um adapter que concede acesso sem cobrar não pode ficar ligado por descuido.
  */
 
-function assertNotProduction(): void {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(
-      'O provedor de pagamento "fake" não pode ser usado em produção: ele concede acesso sem ' +
-        'cobrar. Configure PAYMENT_PROVIDER com um gateway real.',
-    );
-  }
+function assertAllowed(): void {
+  if (!simulatedPaymentsAllowed()) throw new Error(SIMULATED_PAYMENTS_BLOCKED);
 }
 
 /** Segredo de assinatura do webhook simulado. Fixo, porque nada aqui protege dinheiro real. */
@@ -40,7 +36,7 @@ export const fakeProvider: PaymentProvider = {
   id: 'fake',
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession> {
-    assertNotProduction();
+    assertAllowed();
     const providerPaymentId = `fake_${input.orderId}`;
     return {
       providerPaymentId,
@@ -50,7 +46,7 @@ export const fakeProvider: PaymentProvider = {
   },
 
   async parseWebhook(request: Request): Promise<PaymentEvent | null> {
-    assertNotProduction();
+    assertAllowed();
 
     const body = await request.text();
     const signature = request.headers.get('x-fake-signature') ?? '';
@@ -85,7 +81,7 @@ export const fakeProvider: PaymentProvider = {
   },
 
   async getPaymentStatus(): Promise<PaymentStatus> {
-    assertNotProduction();
+    assertAllowed();
     return 'pending';
   },
 };

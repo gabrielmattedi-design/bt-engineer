@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
+import { simulatedPaymentsAllowed } from '@/payments/mode';
 import { SimulateButton } from './simulate-button';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Checkout simulado — só existe fora de produção.
+ * Checkout simulado — existe fora de produção, e em produção só com ALLOW_FAKE_PAYMENTS=true.
  *
  * Imita a tela hospedada de um gateway: o usuário confirma, o gateway processa e a confirmação
  * chega ao produto POR WEBHOOK, nunca por esta página. É o que garante que o caminho testado em
@@ -17,7 +18,7 @@ export default async function CheckoutSimuladoPage({
   params: Promise<{ orderId: string }>;
   searchParams: Promise<{ retorno?: string }>;
 }) {
-  if (process.env.NODE_ENV === 'production') notFound();
+  if (!simulatedPaymentsAllowed()) notFound();
 
   const { orderId } = await params;
   const { retorno } = await searchParams;

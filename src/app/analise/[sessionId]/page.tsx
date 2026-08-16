@@ -106,6 +106,14 @@ export default async function AnalisePage({
           <p className="mt-3 text-sm text-graphite">
             Confiança da análise: <strong className="text-ink">{teaser.confidence_level}</strong>
           </p>
+          {/*
+            A contagem acima é a afirmação central desta página, e ela vem logo antes do preço.
+            Deixar o visitante conferir a lista ANTES de pagar é o que separa um número apurado de
+            um número de propaganda (§57).
+          */}
+          <Link href="/catalogo" className="mt-4 inline-block text-sm text-clay underline">
+            Ver a lista completa que avaliamos
+          </Link>
         </div>
 
         {/* Planos (§25, §26). */}
