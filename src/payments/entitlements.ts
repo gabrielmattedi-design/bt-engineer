@@ -314,7 +314,14 @@ function unlockedEntry(
 const MATERIAL_FIT_GAP = 6;
 
 function qualityNote(ranked: RankedRacket, first: RankedRacket): string | null {
-  const gap = first.fit_score - ranked.fit_score;
+  /**
+   * A diferença é medida sobre os valores ARREDONDADOS, os mesmos que aparecem na tela.
+   *
+   * Com os valores crus, um card mostrando 81% ao lado de outro de 87% podia não trazer o aviso
+   * porque a distância real era 5,6 — e quem lê vê 6 pontos e um silêncio. A regra precisa
+   * concordar com o número exibido, senão ela vira uma inconsistência visível.
+   */
+  const gap = Math.round(first.fit_score) - Math.round(ranked.fit_score);
   if (gap < MATERIAL_FIT_GAP) return null;
   return (
     `Compatibilidade ${Math.round(gap)} pontos abaixo da 1ª colocada. ` +

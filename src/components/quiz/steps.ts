@@ -124,21 +124,32 @@ export const STEPS: readonly Step[] = [
         key: 'perceived_strength',
         title: 'Como você descreveria sua força física?',
         choices: [
-          { value: 'abaixo', label: 'Abaixo da média', hint: 'Cansa antes do fim da partida; empurrar a bola exige esforço.' },
-          { value: 'media', label: 'Média', hint: 'Aguenta uma partida normal sem grande desgaste.' },
-          { value: 'acima', label: 'Acima da média', hint: 'Tem força de sobra para acelerar o braço quando quer.' },
-          { value: 'bem_acima', label: 'Bem acima da média', hint: 'Treina força regularmente ou tem biotipo bastante forte.' },
+          { value: 'abaixo', label: 'Abaixo da média', hint: 'Raquete pesada atrasa sua preparação; a bola do adversário costuma te empurrar.' },
+          { value: 'media', label: 'Média', hint: 'Segura bola pesada sem sofrer, mas não sobra força para acelerar sempre.' },
+          { value: 'acima', label: 'Acima da média', hint: 'Acelera o braço quando quer, mesmo em bola difícil.' },
+          { value: 'bem_acima', label: 'Bem acima da média', hint: 'Treina força fora da quadra, ou é naturalmente muito forte.' },
         ],
       },
       {
         kind: 'single',
         key: 'fitness_level',
         title: 'E seu condicionamento?',
+        /*
+          Calibrado para o AMADOR DE CLUBE, não para o atleta profissional.
+
+          A régua anterior colocava "sente o cansaço no terceiro set" no nível Moderado e usava
+          "cansa antes do fim da partida" como sinal de força abaixo da média — mas cansar no
+          terceiro set é o normal do público deste produto, não a exceção. Com aquela escala,
+          quase todo mundo se classificava para baixo e recebia raquete mais leve do que precisa.
+
+          Agora a referência é o efeito no JOGO, não a fadiga em si: todo mundo cansa; o que muda é
+          se a qualidade da bola cai junto.
+        */
         choices: [
-          { value: 'sedentario', label: 'Sedentário', hint: 'Não pratica outra atividade física além do tênis.' },
-          { value: 'moderado', label: 'Moderado', hint: 'Alguma atividade na semana; sente o cansaço no terceiro set.' },
-          { value: 'bom', label: 'Bom', hint: 'Treina com regularidade e sustenta partidas longas.' },
-          { value: 'atletico', label: 'Atlético', hint: 'Condicionamento de quem treina quase todo dia.' },
+          { value: 'sedentario', label: 'Só jogo tênis', hint: 'Nenhuma outra atividade na semana. Uma partida longa cobra caro no dia seguinte.' },
+          { value: 'moderado', label: 'Jogo e me movimento', hint: 'Cansa no fim do segundo set e a bola perde qualidade, mas você termina bem.' },
+          { value: 'bom', label: 'Aguento partida longa', hint: 'Cansa no terceiro set, como quase todo mundo, e ainda consegue bater igual.' },
+          { value: 'atletico', label: 'Treino além do tênis', hint: 'Corrida, academia ou funcional na rotina. Três sets não mudam seu jogo.' },
         ],
       },
     ],
@@ -240,8 +251,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'single',
         key: 'can_generate_spin',
-        title: 'Consegue gerar spin conscientemente?',
-        help: 'Fazer a bola girar de propósito, não por acaso.',
+        title: 'Consegue gerar spin quando quer?',
+        help: 'Fazer a bola girar de propósito — subir e cair dentro —, não por acaso.',
         choices: TRI,
       },
       {
@@ -316,11 +327,11 @@ export const STEPS: readonly Step[] = [
         key: 'swing_speed',
         title: 'E a velocidade do seu swing?',
         choices: [
-          { value: 'lenta', label: 'Lenta', hint: 'Priorizo colocar a bola na quadra.' },
-          { value: 'moderada', label: 'Moderada', hint: 'Acelero quando a bola permite.' },
-          { value: 'rapida', label: 'Rápida', hint: 'Acelero na maioria das bolas.' },
-          { value: 'muito_rapida', label: 'Muito rápida', hint: 'Bato forte por padrão.' },
-          { value: 'nao_sei', label: 'Não sei' },
+          { value: 'lenta', label: 'Lenta', hint: 'Você guia a bola para dentro da quadra em vez de acelerar.' },
+          { value: 'moderada', label: 'Moderada', hint: 'Acelera quando a bola vem fácil; nas difíceis, só devolve.' },
+          { value: 'rapida', label: 'Rápida', hint: 'Acelera na maioria das bolas, inclusive em algumas difíceis.' },
+          { value: 'muito_rapida', label: 'Muito rápida', hint: 'Bate forte por padrão; quem joga com você sente o peso da bola.' },
+          { value: 'nao_sei', label: 'Não sei dizer' },
         ],
       },
     ],
@@ -333,21 +344,24 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'single',
         key: 'depth_control',
-        title: 'Você consegue gerar profundidade com facilidade?',
+        title: 'Consegue jogar fundo quando quer?',
+        help: 'Fazer a bola cair perto da linha de fundo e empurrar o adversário para trás.',
         choices: TRI,
       },
       {
         kind: 'multi',
         key: 'ball_tendency',
         title: 'Suas bolas costumam…',
-        help: 'Escolha até duas.',
+        // Uma das perguntas de maior peso: o sintoma daqui é cruzado com swing e nível para
+        // decidir a receita. Por isso cada alternativa precisa ser reconhecível sem vocabulário.
+        help: 'Escolha até duas. Pense nos seus golpes de fundo em um jogo normal.',
         max: 2,
         choices: [
-          { value: 'caem_curtas', label: 'Cair curtas', hint: 'Quicam no meio da quadra e deixam o adversário atacar.' },
-          { value: 'passam_da_linha', label: 'Passar da linha', hint: 'Sobra profundidade e a bola sai pelo fundo.' },
-          { value: 'vao_para_rede', label: 'Ir para a rede', hint: 'Falta altura e a bola bate na fita.' },
-          { value: 'variam_demais', label: 'Variar demais', hint: 'Ora curta, ora longa — falta constância.' },
-          { value: 'geralmente_boa_profundidade', label: 'Geralmente têm boa profundidade', hint: 'Caem perto do fundo com regularidade.' },
+          { value: 'caem_curtas', label: 'Cair curtas', hint: 'Quicam perto da linha de saque e o adversário entra na quadra para atacar.' },
+          { value: 'passam_da_linha', label: 'Sair pelo fundo', hint: 'Você acerta o golpe e a bola passa da linha de fundo.' },
+          { value: 'vao_para_rede', label: 'Bater na rede', hint: 'A bola não sobe o suficiente e morre na fita.' },
+          { value: 'variam_demais', label: 'Variar demais', hint: 'Uma curta, a seguinte longa — o mesmo golpe não repete.' },
+          { value: 'geralmente_boa_profundidade', label: 'Cair perto do fundo', hint: 'Com regularidade, empurrando o adversário para trás.' },
         ],
       },
       {
@@ -435,6 +449,13 @@ export const STEPS: readonly Step[] = [
           { value: 'falta_controle', label: 'Falta controle', hint: 'A bola sai mais do que deveria.' },
           { value: 'sinto_vibracao', label: 'Sinto vibração', hint: 'Tremor desconfortável no braço após o impacto.' },
           { value: 'muito_exigente', label: 'Parece muito exigente', hint: 'Só funciona bem quando você acerta o golpe em cheio.' },
+          /*
+            Simétrico ao "não gosto de nada nela" da pergunta anterior.
+            Estar satisfeito é uma resposta, e uma que muda a recomendação: quem não tem queixa
+            deve receber evolução, não troca de conceito.
+          */
+          { value: 'gosto_de_tudo', label: 'Gosto de tudo nela', hint: 'Nenhuma queixa — você trocaria só por algo claramente melhor.' },
+          { value: 'nao_sei', label: 'Não sei dizer', hint: 'Nunca jogou com outra raquete para saber o que é dela.' },
         ],
       },
       {

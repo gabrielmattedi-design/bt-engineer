@@ -121,6 +121,20 @@ export type PlayerProfile = {
   readonly needs: Readonly<Record<NeedKey, Score>>;
   /** Delta desejado por atributo, em pontos [-40, +40]. */
   readonly desired_change_vector: Readonly<Record<NeedKey, number>>;
+  /**
+   * Eixos que o jogador declarou GOSTAR na raquete atual — não são pedidos, são restrições.
+   *
+   * Ele não quer mais daquilo; não quer perder aquilo. Alimenta a penalização P9.
+   */
+  readonly preserved_needs: readonly NeedKey[];
+  /**
+   * Nitidez do vetor de necessidades, 0–1.
+   *
+   * Perto de 0 significa que a pessoa não marcou preferência forte — o que é uma resposta legítima,
+   * e não a mesma coisa que "precisa de tudo". A confiança do relatório usa isto para não afirmar
+   * convicção que o dado não sustenta.
+   */
+  readonly needs_definition: number;
 
   // Estilo
   readonly style_weights: Readonly<Record<PlayStyle, number>>;

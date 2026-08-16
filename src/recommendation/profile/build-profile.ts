@@ -24,6 +24,7 @@ import {
   OBJECTIVE_NEED_BONUS,
 } from '@/recommendation/config/weights.v1';
 import type { QuestionnaireAnswers, TriState } from './answers';
+import { computeNeeds, preservedNeeds } from './needs';
 import { countUnknowns } from './answers';
 
 const TRISTATE_SCORE: Record<TriState, number> = { sim: 100, as_vezes: 55, nao: 15 };
@@ -65,18 +66,33 @@ const SWING_LENGTH_SCORE: Record<SwingLength, number> = {
   unknown: 50,
 };
 
+/**
+ * ─── A RÉGUA É A DO AMADOR DE CLUBE ──────────────────────────────────────────────────────────
+ *
+ * As duas escalas abaixo alimentam `physical_capacity_score`, que decide quanta massa a pessoa
+ * consegue manejar. Elas estavam calibradas como se o universo fosse de atletas: "abaixo da média"
+ * valia 25 de 100, um valor que descreve alguém que mal sustenta o braço.
+ *
+ * Só que o público deste produto é amador de clube, e nessa população cansar no terceiro set é a
+ * norma, não a exceção. Com a régua antiga, o jogador mediano se classificava para baixo, recebia
+ * `physical_capacity` baixo e, por consequência, uma raquete mais leve do que ele aguenta — leve
+ * demais é instável contra bola pesada, que é justamente o que se joga em clube.
+ *
+ * A base sobe e a amplitude diminui: o meio da escala passa a descrever o jogador de clube típico,
+ * e os extremos ficam reservados a quem realmente está fora dessa média.
+ */
 const STRENGTH_SCORE: Record<string, number> = {
-  abaixo: 25,
-  media: 50,
-  acima: 75,
-  bem_acima: 95,
+  abaixo: 38,
+  media: 58,
+  acima: 78,
+  bem_acima: 93,
 };
 
 const FITNESS_SCORE: Record<string, number> = {
-  sedentario: 20,
-  moderado: 50,
+  sedentario: 35,
+  moderado: 55,
   bom: 75,
-  atletico: 95,
+  atletico: 92,
 };
 
 const BREAKAGE_SCORE: Record<string, number> = {
@@ -259,79 +275,6 @@ const OBJECTIVE_NEED: Partial<Record<ObjectiveKey, NeedKey>> = {
   more_stability: 'stability',
 };
 
-/** Vetor de necessidades — docs/RECOMMENDATION_ENGINE.md §3.3. Base 50, ajustes acumulativos. */
-function computeNeeds(
-  a: QuestionnaireAnswers,
-  objectives: readonly ObjectiveKey[],
-  armSensitivity: number,
-): Record<NeedKey, number> {
-  const needs: Record<NeedKey, number> = {
-    power: 50,
-    control: 50,
-    spin: 50,
-    comfort: 50,
-    stability: 50,
-    maneuverability: 50,
-    forgiveness: 50,
-    precision: 50,
-  };
-
-  const isNeed = (s: string): s is NeedKey => (NEED_KEYS as readonly string[]).includes(s);
-
-  // "Sente falta de" — ordenado por prioridade (+25 / +15 / +8).
-  a.missing_attributes.forEach((attr, index) => {
-    if (!isNeed(attr)) return;
-    needs[attr] += NEED_PRIORITY_BONUS[index] ?? 0;
-  });
-
-  // Objetivos declarados.
-  for (const obj of objectives) {
-    const need = OBJECTIVE_NEED[obj];
-    if (need) needs[need] += OBJECTIVE_NEED_BONUS;
-    if (obj === 'attack_more') {
-      needs.power += 10;
-      needs.stability += 8;
-    }
-    if (obj === 'easier_equipment') {
-      needs.forgiveness += 20;
-      needs.maneuverability += 12;
-      needs.precision -= 8;
-    }
-    if (obj === 'more_demanding_equipment') {
-      needs.control += 15;
-      needs.stability += 15;
-      needs.precision += 10;
-      needs.forgiveness -= 15;
-    }
-  }
-
-  // Comportamento das bolas.
-  for (const t of a.ball_tendency) {
-    if (t === 'caem_curtas') needs.power += 15;
-    if (t === 'passam_da_linha') {
-      needs.control += 18;
-      needs.spin += 10;
-    }
-    if (t === 'vao_para_rede') needs.power += 10;
-    if (t === 'variam_demais') {
-      needs.forgiveness += 15;
-      needs.stability += 10;
-    }
-  }
-
-  // Reclamações sobre a raquete atual — o sinal mais concreto que o jogador consegue dar.
-  for (const d of a.current_racket_dislikes) {
-    const mapping = DISLIKE_NEED_BONUS[d];
-    if (mapping) needs[mapping.need] += mapping.points;
-  }
-
-  // Sensibilidade no braço eleva conforto a piso alto, independentemente do resto.
-  if (armSensitivity >= 60) needs.comfort = Math.max(needs.comfort, 80);
-
-  for (const k of NEED_KEYS) needs[k] = clamp(needs[k], 0, 100);
-  return needs;
-}
-
 /**
  * Merge dos sinais de texto livre — regras de R-05.
  *
@@ -414,7 +357,7 @@ export function buildPlayerProfile(
       ? ['unknown']
       : a.objective.map((o) => OBJECTIVE_MAP[o] ?? 'unknown');
 
-  const needs = computeNeeds(a, objectives, armSensitivity);
+  const { needs, definition } = computeNeeds(a, armSensitivity);
 
   // Vetor de mudança desejada. Quem quer "potencializar o jogo atual" pede evolução, não revolução:
   // o ganho direcional cai pela metade.
@@ -481,6 +424,8 @@ export function buildPlayerProfile(
     discomfort_areas: a.discomfort_areas.filter((x) => x !== 'nenhum'),
     needs,
     desired_change_vector: desired,
+    preserved_needs: preservedNeeds(a),
+    needs_definition: definition,
     style_weights: style.weights,
     style_declared: style.declared,
     current_racket: currentRacket,
