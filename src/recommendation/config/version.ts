@@ -8,6 +8,6 @@
  * correspondente. O teste tests/unit/methodology-parity.test.ts existe para lembrar disso.
  */
 
-export const RECOMMENDATION_ENGINE_VERSION = '1.2.0';
-export const STRING_ENGINE_VERSION = '1.1.0';
+export const RECOMMENDATION_ENGINE_VERSION = '1.3.0';
+export const STRING_ENGINE_VERSION = '1.2.0';
 export const QUESTIONNAIRE_VERSION = '1.1.0';

@@ -182,13 +182,61 @@ describe('REGRA DE INTEGRIDADE — variantes de corda (500 perfis sintéticos)',
     }
   });
 
-  it('nunca recomenda poliéster para jogador com sensibilidade alta ou nível baixo (§37)', () => {
+  /**
+   * §37 — a proteção mudou de FORMA, e não de força.
+   *
+   * Antes: sensibilidade ≥ 70 eliminava o tipo poliéster inteiro. A regra binária tratava o Yonex
+   * Poly Tour Pro (amigabilidade 47, dos mais macios que existem) e o Luxilon ALU Power
+   * (amigabilidade 26, dos mais duros) como a mesma coisa — e é justamente a diferença entre eles
+   * que decide o caso de quem quebra corda toda semana e também sente o braço.
+   *
+   * Agora a rigidez é um peso proporcional (`stiffnessPenalty`). O que este teste trava é a
+   * consequência que importa de verdade, e ela é MAIS forte que a regra antiga: nenhum jogador
+   * sensível recebe corda AGRESSIVA, seja ela de que tipo for. A regra velha permitia entregar um
+   * multifilamento duro a quem tem dor; esta não permite.
+   *
+   * A trava de NÍVEL continua binária, porque o mecanismo é binário: um swing que não gera
+   * velocidade não ativa o poliéster e recebe só o choque.
+   */
+  it('nunca recomenda corda agressiva ao braço para jogador sensível, nem poliéster para nível baixo (§37)', () => {
+    const ARM_FLOOR = 45;
+
     for (let i = 0; i < RUNS; i += 1) {
       const rng = makeRng(i * 7919 + 13);
       const profile = buildPlayerProfile(syntheticAnswers(rng));
-      const type = results[i]!.string_recommendation!.variant.model.string_type;
-      if (profile.arm_sensitivity_score >= 70 || profile.player_level_score < 40) {
-        expect(['polyester', 'co_polyester']).not.toContain(type);
+      const rec = results[i]!.string_recommendation!;
+
+      if (profile.arm_sensitivity_score >= 70) {
+        expect(
+          rec.variant.attributes.arm_friendliness_score,
+          `perfil ${i} (sensibilidade ${profile.arm_sensitivity_score.toFixed(0)}) recebeu ${rec.variant.model.brand} ${rec.variant.model.model}`,
+        ).toBeGreaterThanOrEqual(ARM_FLOOR);
+      }
+
+      if (profile.player_level_score < 40) {
+        expect(['polyester', 'co_polyester']).not.toContain(rec.variant.model.string_type);
+      }
+    }
+  });
+
+  /**
+   * Toda exceção à regra de conforto precisa estar ESCRITA no relatório.
+   *
+   * Um poliéster indicado a quem relatou dor é defensável, mas nunca silencioso: sem a frase, o
+   * relatório se contradiz aos olhos de quem paga por ele.
+   */
+  it('explica sempre que entrega poliéster a quem relatou desconforto', () => {
+    for (let i = 0; i < RUNS; i += 1) {
+      const rng = makeRng(i * 7919 + 13);
+      const profile = buildPlayerProfile(syntheticAnswers(rng));
+      const rec = results[i]!.string_recommendation!;
+      const isStiff = ['polyester', 'co_polyester'].includes(rec.variant.model.string_type);
+
+      if (isStiff && profile.arm_sensitivity_score >= 50) {
+        expect(
+          rec.rationale.some((r) => r.toLowerCase().includes('poliéster')),
+          `perfil ${i} recebeu poliéster com sensibilidade ${profile.arm_sensitivity_score.toFixed(0)} e nenhuma explicação`,
+        ).toBe(true);
       }
     }
   });

@@ -152,8 +152,34 @@ export function explainString(rec: StringRecommendation): string[] {
   const out = [...rec.rationale];
   if (rec.gauge_note) out.push(rec.gauge_note);
   if (rec.variant.availability_warning) out.push(rec.variant.availability_warning);
+
+  /**
+   * Modelos que a análise não conseguiu separar da escolhida — ditos, nunca omitidos.
+   *
+   * Cinco multifilamentos do catálogo têm atributos numericamente idênticos entre si, porque os
+   * números vêm de quatro rótulos qualitativos que eles compartilham. Apresentar um deles como "a
+   * escolha" e calar sobre os outros seria afirmar uma distinção que não foi feita — e tirar do
+   * jogador os únicos critérios capazes de decidir ali: preço, o que a loja dele tem, a marca que
+   * ele já usa. São critérios legítimos que o motor não tem, e fingir que tem é o oposto do que
+   * este relatório vende.
+   */
+  const equivalents = rec.equivalents ?? [];
+  if (equivalents.length > 0) {
+    out.push(
+      `Nossa análise não distingue esta corda de ${listPt(equivalents)}: com os dados publicados ` +
+        `deste catálogo, elas se comportam igual. Se alguma estiver mais barata ou for a que seu ` +
+        `encordoador tem, pode trocar sem prejuízo para a recomendação.`,
+    );
+  }
+
   out.push(...rec.excluded_types);
   return out;
+}
+
+/** "A, B e C" — lista em português, com "e" antes do último. */
+function listPt(items: readonly string[]): string {
+  if (items.length === 1) return items[0]!;
+  return `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`;
 }
 
 /** Explicação da tensão (§36) — mostra COMO chegamos ao número, sem fingir precisão. */

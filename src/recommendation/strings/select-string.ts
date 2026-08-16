@@ -16,6 +16,7 @@
 import { clamp, round } from '@/domain/scores';
 import { RECOMMENDABLE_AVAILABILITY, isRecommendable } from '@/domain/sourced';
 import type { ScoredRacket } from '@/domain/racket';
+import type { CatalogScale, ScaleKey } from '@/recommendation/engine/catalog-scale';
 import type {
   ScoredStringVariant,
   StringBaseAttributes,
@@ -24,6 +25,7 @@ import type {
   StringVariant,
 } from '@/domain/string';
 import { availableGauges, STIFF_STRING_TYPES } from '@/domain/string';
+import { compareByScoreThenTieBreak, profileSignature } from '@/recommendation/engine/tie-break';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { StringRecommendation } from '@/domain/recommendation';
 import {
@@ -46,50 +48,102 @@ export type StringTarget = {
 };
 
 /**
+ * Ganho de contraste por eixo do alvo.
+ *
+ * ═══ O TERCEIRO ANDAR DO MESMO DEFEITO ═══════════════════════════════════════════════════════
+ *
+ * Cada componente do alvo é uma MÉDIA PONDERADA, e média de valores centrados regride ao meio.
+ * Medido sobre 540 perfis que varrem nível, swing, físico, estilo e objetivo:
+ *
+ *     control    32 … 69        comfort    30 … 41
+ *     power      31 … 75        arm        14 … 22
+ *     spin       38 … 79        durability 26 … 93
+ *
+ * Nenhum alvo de controle passava de 69. Como as cordas agora são medidas por POSIÇÃO no catálogo,
+ * isso significava que o terço superior do eixo era território morto: ALU Power (87), Tour Bite
+ * (89), Hyper-G (84), RPM Blast (85), Lynx Tour (85) e Poly Tour Strike (87) ULTRAPASSAVAM o alvo
+ * em qualquer perfil concebível, levavam penalização por excesso, e nunca eram indicadas a
+ * ninguém. Oito dos dez poliésters do catálogo estavam nessa situação.
+ *
+ * `comfort` e `arm` eram piores: 11 e 8 pontos de amplitude. Juntos eles carregam 34% do peso, e
+ * um eixo que não varia não decide nada — na prática o motor decidia com 66% do peso que julgava
+ * ter.
+ *
+ * A correção é a mesma já aplicada ao vetor de necessidades (`needs.ts`): recentrar em 50 e
+ * amplificar. O SIGNIFICADO de cada termo não muda — frame potente ainda pede mais controle, dor
+ * ainda pede mais conforto —, muda a amplitude com que a diferença chega ao ranking.
+ *
+ * Os ganhos abaixo foram medidos, não estimados: cada um é o valor que faz o eixo ocupar
+ * aproximadamente 0–100 na mesma varredura de 540 perfis. `durability` fica em 1.0 porque já
+ * varria 26–93 sozinho — ele depende de `breakage`, que é pergunta direta e não média de nada.
+ */
+const TARGET_GAIN: Readonly<Record<keyof StringTarget, number>> = {
+  control: 2.2,
+  power: 1.8,
+  spin: 1.9,
+  comfort: 3.2,
+  arm: 3.6,
+  durability: 1.0,
+};
+
+/** Recentra em 50 e amplifica, preservando o neutro. */
+function contrast(raw: number, gain: number): number {
+  return clamp(50 + (raw - 50) * gain, 0, 100);
+}
+
+/**
  * Vetor-alvo — §1. Note a COMPENSAÇÃO CRUZADA: um frame rígido eleva o alvo de conforto; um frame
  * potente eleva o alvo de controle. A corda corrige o frame, não o duplica.
+ *
+ * `racketScale` traduz os atributos da raquete para posição de catálogo antes de misturá-los com
+ * scores do jogador — sem isso, os dois lados vivem em escalas diferentes e a média não significa
+ * nada (ver `catalog-scale.ts`). É opcional para não quebrar chamadas diretas em teste; quando
+ * ausente, o valor cru é o melhor disponível.
  */
 export function computeStringTarget(
   profile: PlayerProfile,
   racket: ScoredRacket,
+  racketScale?: CatalogScale,
 ): StringTarget {
   const a = racket.attributes;
   const breakage = profile.current_string?.breakage_frequency ?? 30;
 
+  const pos = (key: ScaleKey, value: number): number =>
+    racketScale ? racketScale.position(key, value) : value;
+
+  const powerPos = pos('power_score', a.power_score);
+
   return {
-    control: clamp(
-      0.45 * profile.needs.control + 0.35 * a.power_score + 0.2 * profile.player_level_score,
-      0,
-      100,
+    control: contrast(
+      0.45 * profile.needs.control + 0.35 * powerPos + 0.2 * profile.player_level_score,
+      TARGET_GAIN.control,
     ),
-    power: clamp(
+    power: contrast(
       0.5 * profile.needs.power +
         0.3 * (100 - profile.natural_power_score) +
-        0.2 * (100 - a.power_score),
-      0,
-      100,
+        0.2 * (100 - powerPos),
+      TARGET_GAIN.power,
     ),
-    spin: clamp(
-      0.55 * profile.needs.spin + 0.25 * a.spin_score + 0.2 * profile.swing_speed_score,
-      0,
-      100,
+    spin: contrast(
+      0.55 * profile.needs.spin +
+        0.25 * pos('spin_score', a.spin_score) +
+        0.2 * profile.swing_speed_score,
+      TARGET_GAIN.spin,
     ),
-    comfort: clamp(
+    comfort: contrast(
       0.5 * profile.needs.comfort +
         0.3 * profile.arm_sensitivity_score +
-        0.2 * (100 - a.comfort_score),
-      0,
-      100,
+        0.2 * (100 - pos('comfort_score', a.comfort_score)),
+      TARGET_GAIN.comfort,
     ),
-    durability: clamp(
+    durability: contrast(
       0.6 * breakage + 0.25 * profile.swing_speed_score + 0.15 * profile.player_level_score,
-      0,
-      100,
+      TARGET_GAIN.durability,
     ),
-    arm: clamp(
-      0.6 * profile.arm_sensitivity_score + 0.4 * (100 - a.arm_friendliness_score),
-      0,
-      100,
+    arm: contrast(
+      0.6 * profile.arm_sensitivity_score +
+        0.4 * (100 - pos('arm_friendliness_score', a.arm_friendliness_score)),
+      TARGET_GAIN.arm,
     ),
   };
 }
@@ -133,13 +187,25 @@ export function excludedStringTypes(profile: PlayerProfile): {
   const types = new Set<StringType>();
   const reasons: string[] = [];
 
-  if (profile.arm_sensitivity_score >= 70) {
-    for (const t of STIFF_STRING_TYPES) types.add(t);
-    reasons.push(
-      'Poliéster excluído pelo histórico de desconforto informado — conforto tratado como restrição, não preferência.',
-    );
-  }
-
+  /**
+   * ─── O QUE SAIU DAQUI, E POR QUÊ ───────────────────────────────────────────────────────────
+   *
+   * Havia uma segunda regra dura: sensibilidade ≥ 70 eliminava todo poliéster. Ela virou PESO
+   * (ver `stiffnessPenalty`), por decisão de produto.
+   *
+   * O motivo é o mesmo que fez a dor deixar de ser um bloco único. Um filtro binário sobre um
+   * sinal que agora é graduado devolve o pior dos dois mundos: a pessoa responde "leve, há muito
+   * tempo", o motor entende corretamente que o sinal é fraco — e mesmo assim dez das dezessete
+   * cordas do catálogo somem da análise dela, por causa de um limiar que não sabe disso.
+   *
+   * Como PESO, a mesma proteção continua existindo e passa a ser proporcional: com dor forte e
+   * atual, nenhum poliéster sobrevive à penalização na prática; com histórico leve, um poliéster
+   * macio volta a ser uma opção legítima — que é exatamente o que um encordoador diria.
+   *
+   * A regra de NÍVEL abaixo continua dura, e de propósito: ela não é sobre intensidade de nada. Um
+   * swing que ainda não gera velocidade não ativa a corda e recebe só o choque — isso é verdadeiro
+   * ou falso, não é mais ou menos (§37).
+   */
   if (profile.player_level_score < 40) {
     for (const t of STIFF_STRING_TYPES) types.add(t);
     reasons.push(
@@ -148,6 +214,37 @@ export function excludedStringTypes(profile: PlayerProfile): {
   }
 
   return { types: [...types], reasons };
+}
+
+/**
+ * Penalização por rigidez, proporcional à sensibilidade declarada — substitui o filtro duro.
+ *
+ * ─── COMO ELA FOI CALIBRADA ────────────────────────────────────────────────────────────────
+ *
+ * Duas grandezas entram: o quanto a pessoa é sensível, e o quanto AQUELA corda é hostil ao braço.
+ * A segunda importa porque "poliéster" não é uma categoria homogênea — o Luxilon Element e o Yonex
+ * Poly Tour Pro marcam 46 de amigabilidade, contra 26 do ALU Power e do Tour Bite. Um filtro por
+ * TIPO tratava os dois como a mesma coisa, e é justamente essa diferença que decide o caso de
+ * quem tem histórico leve.
+ *
+ * A escala foi conferida contra o comportamento que o filtro duro tinha: em sensibilidade 75 com
+ * uma corda de amigabilidade 26, a penalização passa de 35 pontos — nenhum poliéster rígido
+ * sobrevive a isso, que era o efeito do filtro. Já em sensibilidade 11, a mesma corda perde ~5
+ * pontos: um empurrão, não um veto.
+ *
+ * O piso de `NO_CONCERN` existe para não cobrar rigidez de quem nunca relatou nada. Punir todo
+ * mundo por precaução seria viés, não análise — é o mesmo princípio de `comfortFit`.
+ */
+const NO_CONCERN = 25;
+
+export function stiffnessPenalty(
+  armSensitivity: number,
+  stringArmFriendliness: number,
+): number {
+  if (armSensitivity <= NO_CONCERN) return 0;
+  const concern = (armSensitivity - NO_CONCERN) / (100 - NO_CONCERN);
+  const hostility = Math.max(0, 70 - stringArmFriendliness);
+  return concern * hostility * 0.85;
 }
 
 function resolveWeights(profile: PlayerProfile): Record<string, number> {
@@ -307,8 +404,9 @@ export function selectStringVariant(
   racket: ScoredRacket,
   catalog: StringCatalog,
   mode: 'strict' | 'permissive' = 'strict',
+  racketScale?: CatalogScale,
 ): StringRecommendation | null {
-  const target = computeStringTarget(profile, racket);
+  const target = computeStringTarget(profile, racket, racketScale);
   const excluded = excludedStringTypes(profile);
   const weights = resolveWeights(profile);
   const modelsById = new Map(catalog.models.map((m) => [m.id, m]));
@@ -357,30 +455,60 @@ export function selectStringVariant(
     const attributes = adjustForGauge(model.base_attributes, variant.gauge_mm);
     let score = scoreVariant(attributes, target, weights, scale);
 
-    // Bônus: poliéster para quem realmente quebra cordas e tem nível para ativá-lo.
-    if (
-      STIFF_STRING_TYPES.includes(model.string_type) &&
-      (profile.current_string?.breakage_frequency ?? 0) >= 80 &&
-      profile.player_level_score >= 55
-    ) {
-      score += 12;
+    /**
+     * ─── DOIS DEGRAUS QUE VIRARAM RAMPAS ─────────────────────────────────────────────────────
+     *
+     * Os dois bônus abaixo eram `if` com limiar fixo: poliéster ganhava +12 inteiros ao cruzar
+     * "quebra ≥ 80 E nível ≥ 55", e qualquer corda ganhava +6 ao cruzar 75 de manutenção de tensão.
+     *
+     * Degrau é a forma mais cara de expressar uma preferência fraca. O de tensão era o pior: entre
+     * cinco multifilamentos com atributos NUMERICAMENTE IDÊNTICOS, um marca 76 e os outros 64 —
+     * diferença que ninguém sente em quadra e que o degrau transformava em 6 pontos fixos. Aquele
+     * modelo vencia os outros quatro em todo perfil do catálogo, para sempre, e os quatro nunca
+     * eram indicados a ninguém. Não por serem piores: por estarem do lado errado de um limiar.
+     *
+     * Como rampa, a mesma preferência continua existindo e passa a valer o que ela vale — décimos,
+     * não pontos —, e opções que a análise não distingue voltam a empatar de fato, indo para o
+     * desempate por perfil em vez de para o esquecimento.
+     */
+    const breakage = profile.current_string?.breakage_frequency ?? 0;
+    if (STIFF_STRING_TYPES.includes(model.string_type)) {
+      // Quem quebra muito E tem swing para ativar o poliéster; ambos os fatores são graduais.
+      const breaks = clamp((breakage - 45) / 45, 0, 1);
+      const canActivate = clamp((profile.player_level_score - 40) / 25, 0, 1);
+      score += 12 * breaks * canActivate;
     }
 
-    // Bônus: manutenção de tensão entrega o setup por mais tempo — valor real para o usuário.
-    if (attributes.tension_maintenance_score >= 75) score += 6;
+    // Manutenção de tensão entrega o setup por mais tempo — valor real, porém pequeno.
+    score += clamp((attributes.tension_maintenance_score - 55) / 45, 0, 1) * 4;
 
     // Penalidade: disponibilidade limitada no Brasil (acompanhada de aviso obrigatório).
     if (variant.brazil_availability_status === 'limited') score -= 10;
+
+    // Rigidez contra sensibilidade — o que substituiu o filtro duro de poliéster.
+    score -= stiffnessPenalty(profile.arm_sensitivity_score, attributes.arm_friendliness_score);
 
     candidates.push({ model, variant, attributes, score: clamp(score, 0, 100) });
   }
 
   if (candidates.length === 0) return null;
 
-  candidates.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.variant.id.localeCompare(b.variant.id);
-  });
+  const signature = profileSignature([
+    profile.player_level_score,
+    profile.swing_speed_score,
+    profile.natural_power_score,
+    profile.arm_sensitivity_score,
+    profile.current_string?.breakage_frequency ?? 0,
+    ...SCORED_AXES.map((axis) => target[axis]),
+  ]);
+
+  candidates.sort((a, b) =>
+    compareByScoreThenTieBreak(
+      { score: a.score, id: a.variant.id },
+      { score: b.score, id: b.variant.id },
+      signature,
+    ),
+  );
 
   const winner = candidates[0] as Candidate;
 
@@ -403,7 +531,71 @@ export function selectStringVariant(
     rationale: buildRationale(profile, racket, target, winner.model, winner.attributes),
     gauge_note: buildGaugeNote(catalog.variants, winner.variant, winner.model),
     excluded_types: excluded.reasons,
+    equivalents: collectEquivalents(candidates, winner),
   };
+}
+
+/**
+ * Modelos que empatam com a vencedora — entregues ao usuário, não escondidos.
+ *
+ * ═══ POR QUE ISTO EXISTE ═════════════════════════════════════════════════════════════════════
+ *
+ * Cinco multifilamentos do catálogo têm atributos NUMERICAMENTE IDÊNTICOS, porque os números saem
+ * de quatro rótulos qualitativos (maciez, durabilidade, manutenção de tensão, formato) e esses
+ * cinco produtos compartilham os quatro. Três pares de poliésters estão na mesma situação.
+ *
+ * Escolher um e calar sobre os outros seria afirmar uma distinção que a análise não fez. Pior:
+ * seria tirar do jogador a única informação capaz de decidir o caso — preço, disponibilidade na
+ * loja dele, marca que ele já usa. São critérios legítimos que o motor não tem, e o jeito honesto
+ * de tratar o que não se sabe é dizer que não se sabe.
+ *
+ * Só um modelo por linha: variantes do mesmo modelo em espessuras diferentes já são tratadas por
+ * `gauge_note`, e repeti-las aqui viraria ruído.
+ */
+type EquivalenceInput = {
+  readonly model: StringModel;
+  readonly attributes: StringBaseAttributes;
+  readonly score: number;
+};
+
+/** Assinatura dos eixos que a análise realmente compara. Iguais aqui = indistinguíveis. */
+function scoredFingerprint(a: StringBaseAttributes): string {
+  return SCORED_AXES.map((axis) => axisValue(a, axis).toFixed(2)).join('/');
+}
+
+function collectEquivalents(
+  candidates: readonly EquivalenceInput[],
+  winner: EquivalenceInput,
+): readonly string[] {
+  const roundedScore = Math.round(winner.score);
+  const fingerprint = scoredFingerprint(winner.attributes);
+  const seen = new Set<string>([winner.model.id]);
+  const out: string[] = [];
+
+  for (const candidate of candidates) {
+    if (seen.has(candidate.model.id)) continue;
+
+    /*
+      Duas condições, e as duas são necessárias para cobrir os casos reais do catálogo.
+
+      A pontuação arredondada pega o empate no resultado final — inclusive entre cordas de
+      atributos diferentes que, para ESTE jogador, dão no mesmo.
+
+      A impressão digital pega o caso que a pontuação deixa passar, e que é o mais gritante: cinco
+      multifilamentos com atributos idênticos nos seis eixos, separados no ranking por uma
+      diferença de manutenção de tensão que vale um ponto. Um ponto basta para o arredondamento
+      cair de um lado, e aí quatro produtos indistinguíveis somem do relatório sem nunca terem sido
+      distinguidos de nada.
+    */
+    const sameScore = Math.round(candidate.score) === roundedScore;
+    const sameShape = scoredFingerprint(candidate.attributes) === fingerprint;
+    if (!sameScore && !sameShape) continue;
+
+    seen.add(candidate.model.id);
+    out.push(`${candidate.model.brand} ${candidate.model.model}`);
+  }
+
+  return out;
 }
 
 /**
@@ -443,6 +635,28 @@ function buildRationale(
     out.push(
       `Pelo histórico de desconforto informado, priorizamos amigabilidade ao braço (índice ${round(attributes.arm_friendliness_score)}) sobre durabilidade.`,
     );
+
+    /**
+     * Poliéster indicado a quem relatou desconforto EXIGE explicação, sempre.
+     *
+     * O filtro que proibia esta combinação virou peso, e a mudança é boa: o poliéster mais macio do
+     * catálogo, em tensão baixa, é uma resposta legítima para quem destrói um multifilamento em
+     * dois treinos — e era isso que a regra binária impedia.
+     *
+     * Mas quem lê "você relatou dor" e logo abaixo vê uma corda de poliéster tem todo o direito de
+     * achar que o sistema se contradisse. A frase existe para que a exceção apareça como decisão, e
+     * para que a pessoa saiba o que fazer com ela: a tensão já vem reduzida, e a troca frequente é
+     * parte da recomendação, não um detalhe.
+     */
+    if (STIFF_STRING_TYPES.includes(model.string_type)) {
+      out.push(
+        'Mesmo com o desconforto relatado, um poliéster macio venceu aqui pela frequência de ' +
+          'quebra que você informou: uma corda mais macia arrebentaria antes de você voltar à ' +
+          'quadra. Escolhemos o poliéster menos agressivo ao braço do catálogo e já reduzimos a ' +
+          'tensão por isso. Se o braço reclamar, o primeiro ajuste é baixar mais a tensão; o ' +
+          'segundo é passar para multifilamento e aceitar trocar com mais frequência.',
+      );
+    }
   }
   if (target.spin >= 65) {
     out.push(

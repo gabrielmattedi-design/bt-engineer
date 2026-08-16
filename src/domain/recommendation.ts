@@ -132,6 +132,15 @@ export type StringRecommendation = {
   /** Nota quando o gauge ideal não existe para este modelo (Regra de Integridade). */
   readonly gauge_note: string | null;
   readonly excluded_types: readonly string[];
+  /**
+   * Modelos que a análise não conseguiu distinguir da escolhida.
+   *
+   * Vazio na maioria dos casos. Quando não é, é informação de primeira ordem: significa que os
+   * dados publicados não separam estes produtos, e que a escolha entre eles cabe ao jogador, por
+   * preço, disponibilidade ou preferência de marca. Omitir a lista seria afirmar uma distinção que
+   * não foi feita.
+   */
+  readonly equivalents?: readonly string[];
 };
 
 export type ConfidenceReason = {

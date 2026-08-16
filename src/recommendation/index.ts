@@ -80,7 +80,13 @@ export function recommend(input: RecommendInput): RecommendationResult {
   let tension = null;
 
   if (input.includeSetup && top && input.strings) {
-    stringRecommendation = selectStringVariant(profile, top.racket, input.strings, mode);
+    stringRecommendation = selectStringVariant(
+      profile,
+      top.racket,
+      input.strings,
+      mode,
+      ranked.scale,
+    );
     if (stringRecommendation) {
       tension = computeTension(top.racket, stringRecommendation.variant, profile);
     }

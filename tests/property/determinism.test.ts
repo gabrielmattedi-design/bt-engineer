@@ -92,10 +92,21 @@ describe('limites', () => {
         expect(r.fit_score).toBeGreaterThanOrEqual(0);
         expect(r.fit_score).toBeLessThanOrEqual(100);
       }
-      // O ranking é monotonicamente decrescente.
+      /**
+       * O ranking é monotonicamente decrescente NA PRECISÃO QUE O PRODUTO EXIBE.
+       *
+       * A comparação é sobre o valor arredondado porque é ele que o motor usa para ordenar, e é
+       * ele que o usuário lê. Dentro de um mesmo inteiro a ordem passa a ser decidida por chave
+       * estável do perfil (ver `tie-break.ts`), o que faz raquetes tecnicamente empatadas
+       * circularem entre jogadores em vez de uma delas vencer sempre por ordem alfabética.
+       *
+       * Exigir monotonia no valor CRU reintroduziria exatamente o defeito corrigido: uma diferença
+       * de 0.26 ponto — que a tela mostra como dois números iguais — voltaria a decidir para sempre
+       * quem aparece e quem nunca aparece. É precisão que o modelo não tem (R-04).
+       */
       for (let j = 1; j < result.full_ranking.length; j += 1) {
-        expect(result.full_ranking[j]!.fit_score).toBeLessThanOrEqual(
-          result.full_ranking[j - 1]!.fit_score,
+        expect(Math.round(result.full_ranking[j]!.fit_score)).toBeLessThanOrEqual(
+          Math.round(result.full_ranking[j - 1]!.fit_score),
         );
       }
     }

@@ -46,12 +46,18 @@ function runAll() {
 describe('qualidade do pódio (§30)', () => {
   const runs = runAll();
 
+  /**
+   * Decrescente na precisão exibida — ver a nota equivalente em `tests/property/determinism.test.ts`.
+   * Dentro do mesmo inteiro as opções estão tecnicamente empatadas e a ordem entre elas é
+   * deliberadamente dependente do perfil, não do alfabeto.
+   */
   it('o pódio está sempre ordenado por compatibilidade decrescente', () => {
     for (const { persona, result } of runs) {
       for (let i = 1; i < result.podium.length; i += 1) {
-        expect(result.podium[i]!.fit_score, `${persona.id}: rank ${i + 1}`).toBeLessThanOrEqual(
-          result.podium[i - 1]!.fit_score,
-        );
+        expect(
+          Math.round(result.podium[i]!.fit_score),
+          `${persona.id}: rank ${i + 1}`,
+        ).toBeLessThanOrEqual(Math.round(result.podium[i - 1]!.fit_score));
       }
     }
   });

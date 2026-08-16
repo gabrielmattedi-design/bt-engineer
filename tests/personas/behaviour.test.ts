@@ -182,10 +182,17 @@ describe('Persona 4 — sensibilidade no braço (§49) [regra de segurança R-11
     }
   });
 
-  it('exclui poliéster da recomendação de corda', () => {
+  /**
+   * A exclusão de poliéster por dor virou peso (ver `stiffnessPenalty`), então o que se verifica
+   * aqui deixou de ser a existência do filtro e passou a ser o RESULTADO dele: esta persona não
+   * quebra cordas e sente o braço, e para ela nenhum poliéster tem como compensar a rigidez.
+   */
+  it('não entrega poliéster a quem sente o braço e não quebra cordas', () => {
     const type = result.string_recommendation?.variant.model.string_type;
     expect(STIFF_STRING_TYPES).not.toContain(type);
-    expect(result.string_recommendation!.excluded_types.length).toBeGreaterThan(0);
+    expect(
+      result.string_recommendation!.variant.attributes.arm_friendliness_score,
+    ).toBeGreaterThanOrEqual(60);
   });
 
   it('reduz a tensão pela percepção de "muito dura"', () => {

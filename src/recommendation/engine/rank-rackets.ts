@@ -11,7 +11,7 @@ import {
 } from '@/domain/reference-ranges';
 import { clamp, round } from '@/domain/scores';
 import type { ScoredRacket } from '@/domain/racket';
-import type { NeedKey, PlayerProfile } from '@/domain/player-profile';
+import { NEED_KEYS, type NeedKey, type PlayerProfile } from '@/domain/player-profile';
 import type {
   ComponentBreakdown,
   ComponentKey,
@@ -37,6 +37,7 @@ import {
 import { buildCatalogScale, type CatalogScale } from './catalog-scale';
 import { applyHardFilters, type FilterMode } from './hard-filters';
 import { computePenalties } from './penalties';
+import { compareByScoreThenTieBreak, profileSignature } from './tie-break';
 
 /**
  * Resolve os pesos finais aplicando os ajustes dinâmicos e renormalizando para somar 1.
@@ -244,11 +245,29 @@ export function rankRackets(
     return { racket, fit_score: round(finalScore), breakdown };
   });
 
-  // Ordenação determinística: score desc; empates desempatados pelo id, nunca pela ordem de entrada.
-  scored.sort((a, b) => {
-    if (b.fit_score !== a.fit_score) return b.fit_score - a.fit_score;
-    return a.racket.variant.id.localeCompare(b.racket.variant.id);
-  });
+  /**
+   * Ordenação determinística: score desc; empates desempatados por chave estável do PERFIL.
+   *
+   * O desempate antigo era `id.localeCompare` — alfabético, igual para todo jogador. Ver
+   * `tie-break.ts` para a medição do estrago: 24 das 46 raquetes nunca eram indicadas a ninguém,
+   * sete delas empatadas em 0.00 ponto com a vencedora.
+   */
+  const signature = profileSignature([
+    profile.player_level_score,
+    profile.physical_capacity_score,
+    profile.swing_speed_score,
+    profile.natural_power_score,
+    profile.arm_sensitivity_score,
+    ...NEED_KEYS.map((k) => profile.needs[k]),
+  ]);
+
+  scored.sort((a, b) =>
+    compareByScoreThenTieBreak(
+      { score: a.fit_score, id: a.racket.variant.id },
+      { score: b.fit_score, id: b.racket.variant.id },
+      signature,
+    ),
+  );
 
   const limit = options.limit ?? scored.length;
   const ranking: RankedRacket[] = scored.slice(0, limit).map((entry, index) => {
