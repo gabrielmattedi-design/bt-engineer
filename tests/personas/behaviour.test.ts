@@ -199,7 +199,7 @@ describe('Persona 5 — quer mais estabilidade partindo de 300 g (§49)', () => 
   const { result } = runPersona('p05');
 
   it('o Top 1 é mais estável que a raquete atual', () => {
-    const current = testRackets().find((r) => r.variant.id === 'wilson-blade-100-v9-2024')!;
+    const current = testRackets().find((r) => r.variant.id === 'wilson-blade-100-v10-2026')!;
     expect(result.full_ranking[0]!.racket.attributes.stability_score).toBeGreaterThan(
       current.attributes.stability_score,
     );
@@ -319,7 +319,7 @@ describe('Persona 21 — iniciante COM desconforto (combinação de risco)', () 
 
 describe('Persona 22 — quer equipamento mais exigente', () => {
   const { result } = runPersona('p22');
-  const current = testRackets().find((r) => r.variant.id === 'babolat-pure-aero-team-2023')!;
+  const current = testRackets().find((r) => r.variant.id === 'babolat-pure-aero-team-gen-9-2026')!;
 
   it('sobe a exigência em relação ao atual', () => {
     expect(result.full_ranking[0]!.racket.attributes.demand_index).toBeGreaterThan(

@@ -1,6 +1,6 @@
 {
   "brand": "Wilson",
-  "data_version": "2026.08.0",
+  "data_version": "2026.08.1",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -14,9 +14,9 @@
       "family": "Blade",
       "model": "Blade 98 16x19",
       "variant": "98 16x19",
-      "generation": "v9 (2024)",
-      "year": 2024,
-      "product_name": "Wilson Blade 98 16x19 v9 (2024)",
+      "generation": "v10 (2026)",
+      "year": 2026,
+      "product_name": "Wilson Blade 98 16x19 v10 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -34,15 +34,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga do 98 passou a ser cônica no v10; medida por seção não confirmada. Conferir."
       }
     },
     {
       "family": "Blade",
       "model": "Blade 98 18x20",
       "variant": "98 18x20",
-      "generation": "v9 (2024)",
-      "year": 2024,
-      "product_name": "Wilson Blade 98 18x20 v9 (2024)",
+      "generation": "v10 (2026)",
+      "year": 2026,
+      "product_name": "Wilson Blade 98 18x20 v10 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -60,15 +68,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga do 98 passou a ser cônica no v10; medida por seção não confirmada. Conferir."
       }
     },
     {
       "family": "Blade",
       "model": "Blade 100",
       "variant": "100",
-      "generation": "v9 (2024)",
-      "year": 2024,
-      "product_name": "Wilson Blade 100 v9 (2024)",
+      "generation": "v10 (2026)",
+      "year": 2026,
+      "product_name": "Wilson Blade 100 v10 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -86,15 +102,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Blade",
       "model": "Blade 98L",
       "variant": "98L",
-      "generation": "v9 (2024)",
-      "year": 2024,
-      "product_name": "Wilson Blade 98L v9 (2024)",
+      "generation": "v10 (2026)",
+      "year": 2026,
+      "product_name": "Wilson Blade 98L v10 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -111,15 +135,23 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Pro Staff",
       "model": "Pro Staff 97",
       "variant": "97",
-      "generation": "v14 (2023)",
-      "year": 2023,
-      "product_name": "Wilson Pro Staff 97 v14 (2023)",
+      "generation": "Classic v15 (2026)",
+      "year": 2026,
+      "product_name": "Wilson Pro Staff 97 Classic v15 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 97,
@@ -137,15 +169,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Wilson declara as MESMAS especificações do v14."
       }
     },
     {
       "family": "Pro Staff",
       "model": "Pro Staff 97L",
       "variant": "97L",
-      "generation": "v14 (2023)",
-      "year": 2023,
-      "product_name": "Wilson Pro Staff 97L v14 (2023)",
+      "generation": "Classic v15 (2026)",
+      "year": 2026,
+      "product_name": "Wilson Pro Staff 97L Classic v15 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 97,
@@ -162,6 +202,14 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Wilson declara as MESMAS especificações do v14."
       }
     },
     {
@@ -220,10 +268,10 @@
       "family": "Ultra",
       "model": "Ultra 100",
       "variant": "100",
-      "generation": "v4 (2022)",
-      "year": 2022,
-      "product_name": "Wilson Ultra 100 v4 (2022)",
-      "status": "previous_generation",
+      "generation": "v5 (2025)",
+      "year": 2025,
+      "product_name": "Wilson Ultra 100 v5 (2025)",
+      "status": "current",
       "specs": {
         "head_size_sq_in": 100,
         "length_in": 27,
@@ -231,7 +279,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "24/26.5/24",
+        "beam_width_mm": "24/26.5/23.5",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -240,16 +288,24 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Ultra",
       "model": "Ultra 100L",
       "variant": "100L",
-      "generation": "v4 (2022)",
-      "year": 2022,
-      "product_name": "Wilson Ultra 100L v4 (2022)",
-      "status": "previous_generation",
+      "generation": "v5 (2025)",
+      "year": 2025,
+      "product_name": "Wilson Ultra 100L v5 (2025)",
+      "status": "current",
       "specs": {
         "head_size_sq_in": 100,
         "length_in": 27,
@@ -257,7 +313,7 @@
         "balance_mm": 330,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "24/26.5/24",
+        "beam_width_mm": "24/26.5/24.5",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -265,6 +321,14 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {

@@ -1,6 +1,6 @@
 {
   "brand": "Babolat",
-  "data_version": "2026.08.0",
+  "data_version": "2026.08.1",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -14,9 +14,9 @@
       "family": "Pure Aero",
       "model": "Pure Aero",
       "variant": "100",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Babolat Pure Aero (2023)",
+      "generation": "Gen 9 (2026)",
+      "year": 2026,
+      "product_name": "Babolat Pure Aero (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -34,15 +34,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Pure Aero",
       "model": "Pure Aero 98",
       "variant": "98",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Babolat Pure Aero 98 (2023)",
+      "generation": "Gen 9 (2026)",
+      "year": 2026,
+      "product_name": "Babolat Pure Aero 98 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -60,21 +68,29 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Perfil da viga divergente entre fontes (21/23/21 vs 21/23/23) — conferir na ficha oficial."
       }
     },
     {
       "family": "Pure Aero",
       "model": "Pure Aero Team",
       "variant": "Team",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Babolat Pure Aero Team (2023)",
+      "generation": "Gen 9 (2026)",
+      "year": 2026,
+      "product_name": "Babolat Pure Aero Team (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
         "length_in": 27,
         "unstrung_weight_g": 285,
-        "balance_mm": 325,
+        "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
         "beam_width_mm": "23/26/23",
@@ -85,15 +101,23 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Balanço 325→320 mm conforme ficha da geração 2026."
       }
     },
     {
       "family": "Pure Aero",
       "model": "Pure Aero Lite",
       "variant": "Lite",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Babolat Pure Aero Lite (2023)",
+      "generation": "Gen 9 (2026)",
+      "year": 2026,
+      "product_name": "Babolat Pure Aero Lite (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -110,16 +134,24 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Pure Drive",
       "model": "Pure Drive",
       "variant": "100",
-      "generation": "2021",
-      "year": 2021,
-      "product_name": "Babolat Pure Drive (2021)",
-      "status": "previous_generation",
+      "generation": "Gen 11 (2025)",
+      "year": 2025,
+      "product_name": "Babolat Pure Drive (2025)",
+      "status": "current",
       "specs": {
         "head_size_sq_in": 100,
         "length_in": 27,
@@ -136,16 +168,24 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Pure Drive",
       "model": "Pure Drive Team",
       "variant": "Team",
-      "generation": "2021",
-      "year": 2021,
-      "product_name": "Babolat Pure Drive Team (2021)",
-      "status": "previous_generation",
+      "generation": "Gen 11 (2025)",
+      "year": 2025,
+      "product_name": "Babolat Pure Drive Team (2025)",
+      "status": "current",
       "specs": {
         "head_size_sq_in": 100,
         "length_in": 27,
@@ -161,15 +201,23 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Pure Drive",
       "model": "Pure Drive 98",
       "variant": "98",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Babolat Pure Drive 98 (2023)",
+      "generation": "Gen 11 (2025)",
+      "year": 2025,
+      "product_name": "Babolat Pure Drive 98 (2025)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -187,6 +235,14 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
@@ -270,9 +326,9 @@
       "family": "Pure Drive",
       "model": "Pure Drive 107",
       "variant": "107",
-      "generation": "2021",
-      "year": 2021,
-      "product_name": "Babolat Pure Drive 107 (2021)",
+      "generation": "Gen 11 (2025)",
+      "year": 2025,
+      "product_name": "Babolat Pure Drive 107 (2025)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 107,
@@ -289,6 +345,14 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     }
   ]

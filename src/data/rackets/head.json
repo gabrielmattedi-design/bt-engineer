@@ -1,6 +1,6 @@
 {
   "brand": "HEAD",
-  "data_version": "2026.08.0",
+  "data_version": "2026.08.1",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -14,9 +14,9 @@
       "family": "Speed",
       "model": "Speed MP",
       "variant": "MP",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Speed MP (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Speed MP (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -34,15 +34,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Speed",
       "model": "Speed Pro",
       "variant": "Pro",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Speed Pro (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Speed Pro (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -60,15 +68,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Speed",
       "model": "Speed Team",
       "variant": "Team",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Speed Team (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Speed Team (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -85,15 +101,23 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Speed",
       "model": "Speed MP L",
       "variant": "MP L",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Speed MP L (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Speed MP L (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -110,15 +134,23 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Extreme",
       "model": "Extreme MP",
       "variant": "MP",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Extreme MP (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Extreme MP (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -136,15 +168,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Fabricante declara o MESMO molde de 2024; mudança é de layup (Hy-Bor), não de geometria."
       }
     },
     {
       "family": "Extreme",
       "model": "Extreme Tour",
       "variant": "Tour",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Extreme Tour (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Extreme Tour (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -162,15 +202,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Fabricante declara o MESMO molde de 2024; mudança é de layup (Hy-Bor), não de geometria."
       }
     },
     {
       "family": "Radical",
       "model": "Radical MP",
       "variant": "MP",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "HEAD Radical MP (2023)",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "HEAD Radical MP (2025)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -188,15 +236,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Radical",
       "model": "Radical Pro",
       "variant": "Pro",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "HEAD Radical Pro (2023)",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "HEAD Radical Pro (2025)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -214,15 +270,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Gravity",
       "model": "Gravity MP",
       "variant": "MP",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "HEAD Gravity MP (2023)",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "HEAD Gravity MP (2025)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -240,15 +304,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Gravity",
       "model": "Gravity Tour",
       "variant": "Tour",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "HEAD Gravity Tour (2023)",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "HEAD Gravity Tour (2025)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -266,15 +338,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {
       "family": "Boom",
       "model": "Boom MP",
       "variant": "MP",
-      "generation": "2024",
-      "year": 2024,
-      "product_name": "HEAD Boom MP (2024)",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Boom MP (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -292,6 +372,14 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
       }
     },
     {

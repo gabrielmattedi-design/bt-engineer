@@ -1,6 +1,6 @@
 {
   "brand": "Yonex",
-  "data_version": "2026.08.0",
+  "data_version": "2026.08.1",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -116,9 +116,9 @@
       "family": "VCORE",
       "model": "VCORE 100",
       "variant": "100",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Yonex VCORE 100 (2023)",
+      "generation": "V8 (2026)",
+      "year": 2026,
+      "product_name": "Yonex VCORE 100 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -127,7 +127,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "23/25/22",
+        "beam_width_mm": "25.3/25.3/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -136,15 +136,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga redesenhada na 8ª geração."
       }
     },
     {
       "family": "VCORE",
       "model": "VCORE 98",
       "variant": "98",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Yonex VCORE 98 (2023)",
+      "generation": "V8 (2026)",
+      "year": 2026,
+      "product_name": "Yonex VCORE 98 (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -162,15 +170,23 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga redesenhada na 8ª geração; medida por seção não confirmada. Conferir."
       }
     },
     {
       "family": "VCORE",
       "model": "VCORE 100L",
       "variant": "100L",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Yonex VCORE 100L (2023)",
+      "generation": "V8 (2026)",
+      "year": 2026,
+      "product_name": "Yonex VCORE 100L (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -179,7 +195,7 @@
         "balance_mm": 330,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "23/25/22",
+        "beam_width_mm": "25.3/25.3/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -187,6 +203,14 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "unknown",
+        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga redesenhada na 8ª geração."
       }
     },
     {

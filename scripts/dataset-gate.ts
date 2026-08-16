@@ -23,6 +23,15 @@ import { catalogStats, loadRacketCatalog, loadStringCatalog } from '../src/data/
 import { scoreRackets } from '../src/recommendation/normalize/racket-attributes';
 import { MIN_DATA_COMPLETENESS } from '../src/domain/reference-ranges';
 
+/**
+ * Idade a partir da qual uma variante entra no aviso de revisão de catálogo.
+ *
+ * Três anos porque o ciclo típico das quatro marcas é de dois: em três anos, uma linha que não
+ * ganhou sucessora é exceção de verdade (a HEAD Ti.S6 é vendida há duas décadas), e uma que ganhou
+ * já está saindo do estoque das lojas.
+ */
+const CATALOG_REVIEW_AFTER_YEARS = 3;
+
 const RESET = '[0m';
 const RED = '[31m';
 const YELLOW = '[33m';
@@ -84,6 +93,31 @@ function main(): void {
   if (unknownAvailability.length > 0) {
     const msg = `${unknownAvailability.length} variantes de corda com disponibilidade no Brasil desconhecida.`;
     (strict ? errors : warnings).push(msg);
+  }
+
+  /**
+   * ── 1b. Envelhecimento do catálogo ───────────────────────────────────────────────────────
+   *
+   * As marcas renovam cada linha a cada dois anos, e o catálogo não avisa quando fica para trás:
+   * um seed escrito em 2024 continua carregando, validando e pontuando perfeitamente em 2026 —
+   * só que recomendando uma Pure Drive de 2021 que ninguém mais fabrica. Nenhum teste pega isso,
+   * porque a estrutura do dado continua correta; o que envelheceu foi o MUNDO.
+   *
+   * Este bloco é um lembrete visível a cada build, não uma trava. Existe modelo que permanece em
+   * linha por muitos anos (a HEAD Ti.S6 é vendida há duas décadas), então reprovar por idade
+   * produziria falso positivo — mas passar em silêncio produz o erro caro.
+   */
+  const thisYear = new Date().getFullYear();
+  const aging = rackets
+    .filter((r) => r.year !== null && thisYear - r.year >= CATALOG_REVIEW_AFTER_YEARS)
+    .sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
+
+  if (aging.length > 0) {
+    warnings.push(
+      `${aging.length} variantes com ${CATALOG_REVIEW_AFTER_YEARS}+ anos — confira se a marca ` +
+        `já lançou geração nova: ` +
+        aging.map((r) => `${r.product_name}`).join(', '),
+    );
   }
 
   // ── 2. Completude de dados ───────────────────────────────────────────────────────────────
