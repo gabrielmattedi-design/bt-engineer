@@ -155,6 +155,8 @@ export type PlayerProfile = {
   // Qualidade da entrada
   readonly unknown_answer_ratio: number;
   readonly free_text_length: number;
+  /** Primeiro nome, só para o card compartilhável. Não participa de nenhum cálculo. */
+  readonly player_name: string | null;
   readonly contradictions: readonly Contradiction[];
 };
 

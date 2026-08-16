@@ -77,6 +77,16 @@ export type Question =
       readonly help?: string;
     }
   | {
+      /** Campo curto de uma linha — nome. O `text` abre um textarea de seis linhas. */
+      readonly kind: 'shortText';
+      readonly optional?: boolean;
+      readonly key: keyof QuestionnaireAnswers;
+      readonly title: string;
+      readonly help?: string;
+      readonly placeholder: string;
+      readonly maxLength: number;
+    }
+  | {
       readonly kind: 'text';
       readonly optional?: boolean;
       readonly key: keyof QuestionnaireAnswers;
@@ -546,6 +556,16 @@ export const STEPS: readonly Step[] = [
         ],
       },
       {
+        kind: 'shortText',
+        key: 'player_name',
+        // Não entra em cálculo nenhum: serve só para personalizar o card do resultado.
+        optional: true,
+        title: 'Como podemos te chamar?',
+        help: 'Só para personalizar o card do seu resultado. Pode deixar em branco.',
+        maxLength: 24,
+        placeholder: 'Seu primeiro nome',
+      },
+      {
         kind: 'text',
         key: 'free_text',
         // Declaradamente opcional no próprio enunciado.
@@ -598,6 +618,7 @@ export function isAnswered(question: Question, answers: QuestionnaireAnswers): b
     case 'number':
       return typeof value === 'number' && Number.isFinite(value);
     case 'text':
+    case 'shortText':
       return typeof value === 'string' && value.trim().length > 0;
   }
 }

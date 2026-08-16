@@ -15,6 +15,7 @@ import { clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { buildTradeOffs, type TradeOff } from './trade-offs';
 import { buildRadar, type RadarAxis } from './radar';
+import { buildPlayerIdentity, type PlayerIdentity } from './player-identity';
 import {
   explainComfort,
   explainCombination,
@@ -196,6 +197,8 @@ export type ReportPayload = {
    * a sua atual entrega e a média do catálogo. Ver `radar.ts`.
    */
   readonly radar: readonly RadarAxis[];
+  /** Nome e frase de identidade — alimentam o card compartilhável. */
+  readonly identity: PlayerIdentity & { readonly playerName: string | null };
 };
 
 const INDICES_DISCLAIMER =
@@ -474,6 +477,7 @@ export function serializeRecommendation(
     engine_version: result.engine_version,
     dataset_version: result.dataset_version,
     indices_disclaimer: INDICES_DISCLAIMER,
+    identity: { ...buildPlayerIdentity(profile), playerName: profile.player_name },
     radar: buildRadar(
       profile,
       first,

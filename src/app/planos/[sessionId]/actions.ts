@@ -137,16 +137,29 @@ export async function redeemAccessCode(
       return redeemCoupon({ code, publicId, sessionId });
     });
 
+    /**
+     * Cada recusa diz o que aconteceu, e são coisas diferentes.
+     *
+     * "Código inválido" para tudo era o pior de dois mundos: quem digitou errado não sabia se
+     * errou a digitação ou se o código tinha acabado, e quem estava com um link velho procurava
+     * problema no código quando o problema era a análise. Reaplicar o mesmo código na mesma
+     * análise não é erro nenhum — leva ao relatório, porque o acesso já está lá.
+     */
     switch (outcome.kind) {
       case 'granted':
-      case 'already_redeemed':
-        // Reaplicar o mesmo código na mesma análise leva ao relatório, não a um erro: do ponto de
-        // vista de quem digitou, o resultado é idêntico — o acesso está liberado.
         break;
       case 'exhausted':
         return { error: 'Este código já atingiu o limite de usos.' };
-      case 'invalid':
-        return { error: 'Código inválido.' };
+      case 'unknown_code':
+        return { error: 'Não encontramos este código. Confira se digitou exatamente como recebeu.' };
+      case 'unknown_analysis':
+        return {
+          error:
+            'Não encontramos esta análise. Refaça o questionário e aplique o código na tela de ' +
+            'planos.',
+        };
+      case 'empty':
+        return { error: 'Digite o código para continuar.' };
     }
   } catch (error) {
     console.error('[coupon] falha ao resgatar código', error);

@@ -4,6 +4,8 @@ import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { Podium } from '@/components/result/podium';
 import { AttributeReadout } from '@/components/result/attribute-readout';
 import { CompatibilityRadar } from '@/components/result/radar';
+import { ShareCard } from '@/components/result/share-card';
+import { ShareCardDownload } from '@/components/result/share-card-download';
 import { getReport } from '@/app/questionario/actions';
 import { selectSetupRacket } from './actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
@@ -155,6 +157,50 @@ export default async function ResultadoPage({
                 <li key={line} dangerouslySetInnerHTML={{ __html: boldify(line) }} />
               ))}
             </ul>
+          </section>
+        )}
+
+        {/*
+          ── CARD COMPARTILHÁVEL ────────────────────────────────────────────
+
+          Fica logo depois do resultado e antes da leitura técnica: é o momento em que a pessoa
+          acabou de descobrir a raquete e tem vontade de contar. Enterrado no fim do relatório, o
+          card seria visto por quem já leu tudo — que é justamente quem menos precisa de um resumo.
+        */}
+        {winner && report.radar.length > 0 && (
+          <section>
+            <h2 className="font-display text-2xl font-bold">Seu card</h2>
+            <p className="mt-2 max-w-prose text-sm text-graphite">
+              Baixe e compartilhe. O card traz seu perfil, a raquete indicada
+              {report.setup ? ', a corda e a tensão' : ''} — e nada que você não queira mostrar.
+            </p>
+
+            <div className="mt-6 overflow-hidden rounded border border-line">
+              <ShareCard
+                id="te-share-card"
+                data={{
+                  playerName: report.identity.playerName,
+                  phrase: report.identity.phrase,
+                  level: report.identity.level,
+                  matchScore: winner.fit_score,
+                  racketBrand: winner.brand,
+                  racketName: winner.product_name,
+                  radar: report.radar,
+                  setup: report.setup
+                    ? {
+                        stringBrand: report.setup.string_brand,
+                        stringModel: report.setup.string_model,
+                        gaugeMm: report.setup.gauge_mm,
+                        tensionLbs: report.setup.tension_lbs,
+                      }
+                    : null,
+                }}
+              />
+            </div>
+
+            <div className="mt-5">
+              <ShareCardDownload svgId="te-share-card" fileName="tennis-engineer" />
+            </div>
           </section>
         )}
 

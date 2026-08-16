@@ -29,6 +29,23 @@ import { countUnknowns } from './answers';
 
 const TRISTATE_SCORE: Record<TriState, number> = { sim: 100, as_vezes: 55, nao: 15 };
 
+/**
+ * Nome de exibição: só letras, espaços e apóstrofo, no máximo 24 caracteres.
+ *
+ * O nome é o único texto livre que vai parar dentro de um SVG gerado — e SVG é um formato onde
+ * `<` e `&` têm significado. A filtragem acontece aqui, na fronteira de entrada, para que nenhum
+ * ponto de saída precise lembrar de escapar.
+ */
+function sanitizeName(raw: string | null): string | null {
+  if (!raw) return null;
+  const clean = raw
+    .replace(/[^\p{L}\p{M}\s'’-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 24);
+  return clean.length > 0 ? clean : null;
+}
+
 const PERCEIVED_LEVEL_SCORE: Record<string, number> = {
   iniciante: 15,
   iniciante_avancado: 35,
@@ -425,6 +442,9 @@ export function buildPlayerProfile(
     needs,
     desired_change_vector: desired,
     preserved_needs: preservedNeeds(a),
+    // Sanitizado aqui e não na UI: o nome vai para uma imagem gerada no servidor, e é o servidor
+    // que precisa garantir que ele não carregue markup nem tamanho absurdo.
+    player_name: sanitizeName(a.player_name),
     needs_definition: definition,
     style_weights: style.weights,
     style_declared: style.declared,

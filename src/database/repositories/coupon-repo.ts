@@ -21,9 +21,12 @@ export type CouponSummary = {
 
 export type RedeemOutcome =
   | { kind: 'granted'; entitlements: readonly Entitlement[] }
-  | { kind: 'already_redeemed' }
-  | { kind: 'invalid' }
-  | { kind: 'exhausted' };
+  | { kind: 'exhausted' }
+  /** O código não existe. */
+  | { kind: 'unknown_code' }
+  /** A análise não existe no banco — link velho, ou banco trocado desde que ela foi gerada. */
+  | { kind: 'unknown_analysis' }
+  | { kind: 'empty' };
 
 /** Normalização única: o código é sempre comparado e gravado em maiúsculas, sem espaços. */
 export function normalizeCode(raw: string): string {
@@ -96,7 +99,7 @@ export async function redeemCoupon(input: {
   sessionId: string;
 }): Promise<RedeemOutcome> {
   const code = normalizeCode(input.code);
-  if (code.length === 0) return { kind: 'invalid' };
+  if (code.length === 0) return { kind: 'empty' };
 
   const conn = db();
 
@@ -107,7 +110,15 @@ export async function redeemCoupon(input: {
     .limit(1);
 
   const recommendationSessionId = recRows[0]?.id;
-  if (!recommendationSessionId) return { kind: 'invalid' };
+  if (!recommendationSessionId) return { kind: 'unknown_analysis' };
+
+  const existing = await conn
+    .select({ grants: accessCoupons.grants })
+    .from(accessCoupons)
+    .where(eq(accessCoupons.code, code))
+    .limit(1);
+
+  if (!existing[0]) return { kind: 'unknown_code' };
 
   // Registro do resgate ANTES do consumo: é ele que torna a operação idempotente por análise.
   const claimed = await conn
@@ -116,7 +127,30 @@ export async function redeemCoupon(input: {
     .onConflictDoNothing()
     .returning({ id: couponRedemptions.id });
 
-  if (!claimed[0]) return { kind: 'already_redeemed' };
+  /**
+   * Já resgatado nesta análise: RECONCEDE em vez de assumir que deu certo antes.
+   *
+   * ─── O BURACO QUE ISTO FECHA ───────────────────────────────────────────────────────────────
+   *
+   * O registro do resgate é gravado antes da concessão dos entitlements. Se qualquer coisa
+   * falhasse entre os dois — timeout, deploy no meio, erro transitório do banco —, a marca de
+   * "já usou" ficava e o acesso não. E aí a pessoa entrava num beco permanente: toda nova
+   * tentativa via o registro, devolvia "já resgatado", era mandada ao relatório, o relatório não
+   * encontrava entitlement e a devolvia para a página de planos. Um laço, indistinguível de
+   * "o cupom não funciona".
+   *
+   * Reconceder é seguro porque a concessão é idempotente (índice único de sessão + análise +
+   * entitlement) e porque nenhum uso novo é consumido aqui — o contador só avança no UPDATE
+   * abaixo, que esta ramificação não alcança.
+   */
+  if (!claimed[0]) {
+    const granted = await grantEntitlements(
+      input.sessionId,
+      recommendationSessionId,
+      existing[0].grants,
+    );
+    return { kind: 'granted', entitlements: granted };
+  }
 
   const consumed = await conn
     .update(accessCoupons)
@@ -133,35 +167,36 @@ export async function redeemCoupon(input: {
   if (!consumed[0]) {
     // Desfaz o registro para que o código, se for reativado ou tiver o limite ampliado, ainda possa
     // ser usado por esta análise. Sem isso, uma tentativa com código esgotado queimaria a chance.
-    await conn
-      .delete(couponRedemptions)
-      .where(eq(couponRedemptions.id, claimed[0].id));
-
-    const exists = await conn
-      .select({ code: accessCoupons.code })
-      .from(accessCoupons)
-      .where(eq(accessCoupons.code, code))
-      .limit(1);
-
-    return exists[0] ? { kind: 'exhausted' } : { kind: 'invalid' };
+    await conn.delete(couponRedemptions).where(eq(couponRedemptions.id, claimed[0].id));
+    return { kind: 'exhausted' };
   }
 
-  const granted = consumed[0].grants.filter((g): g is Entitlement =>
-    (ALL_ENTITLEMENTS as readonly string[]).includes(g),
+  const granted = await grantEntitlements(
+    input.sessionId,
+    recommendationSessionId,
+    consumed[0].grants,
   );
 
-  if (granted.length > 0) {
-    await conn
-      .insert(entitlements)
-      .values(
-        granted.map((entitlement) => ({
-          sessionId: input.sessionId,
-          recommendationSessionId,
-          entitlement,
-        })),
-      )
-      .onConflictDoNothing();
-  }
-
   return { kind: 'granted', entitlements: granted };
+}
+
+/** Concessão idempotente. Nomes desconhecidos são descartados em silêncio, nunca concedidos. */
+async function grantEntitlements(
+  sessionId: string,
+  recommendationSessionId: string,
+  grants: readonly string[],
+): Promise<readonly Entitlement[]> {
+  const valid = grants.filter((g): g is Entitlement =>
+    (ALL_ENTITLEMENTS as readonly string[]).includes(g),
+  );
+  if (valid.length === 0) return [];
+
+  await db()
+    .insert(entitlements)
+    .values(
+      valid.map((entitlement) => ({ sessionId, recommendationSessionId, entitlement })),
+    )
+    .onConflictDoNothing();
+
+  return valid;
 }

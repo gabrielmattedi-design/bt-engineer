@@ -195,6 +195,7 @@ const MISSING_PROMPT: Record<Question['kind'], string> = {
   number: 'Arraste para responder.',
   racket: 'Busque sua raquete ou descreva a que você usa.',
   text: 'Preencha para continuar.',
+  shortText: 'Preencha para continuar.',
 };
 
 function QuestionField({
@@ -321,6 +322,21 @@ function QuestionField({
             question={question}
             value={typeof value === 'number' ? value : null}
             onSet={(v) => onSet(question.key, v as QuestionnaireAnswers[typeof question.key])}
+          />
+        )}
+
+        {question.kind === 'shortText' && (
+          <input
+            type="text"
+            value={typeof value === 'string' ? value : ''}
+            maxLength={question.maxLength}
+            placeholder={question.placeholder}
+            autoComplete="given-name"
+            onChange={(e) =>
+              onSet(question.key, e.target.value as QuestionnaireAnswers[typeof question.key])
+            }
+            className="min-h-[56px] w-full rounded border-2 border-line bg-white px-4 text-[15px]
+                       placeholder:text-graphite/50 focus:border-court focus:outline-none"
           />
         )}
 

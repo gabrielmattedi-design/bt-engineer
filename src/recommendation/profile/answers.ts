@@ -73,6 +73,13 @@ export type QuestionnaireAnswers = {
   discomfort_areas: readonly string[];
 
   // Etapa 7 — objetivo e texto livre
+  /**
+   * Primeiro nome, só para personalizar o card compartilhável.
+   *
+   * Não entra em cálculo nenhum e não é obrigatório. Fica separado do resto do perfil por isso:
+   * é dado de apresentação, não de análise.
+   */
+  player_name: string | null;
   objective: readonly string[];
   free_text: string | null;
 };
@@ -116,6 +123,7 @@ export function emptyAnswers(): QuestionnaireAnswers {
     string_breakage: null,
     discomfort_areas: [],
     objective: [],
+    player_name: null,
     free_text: null,
   };
 }

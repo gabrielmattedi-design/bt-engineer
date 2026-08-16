@@ -40,6 +40,8 @@ const OPCIONAIS_PERMITIDAS = [
   'current_racket_dislikes',
   'current_tension_lbs',
   'current_tension_feeling',
+  // Nome: dado de apresentação, não de análise. Não entra em cálculo nenhum.
+  'player_name',
   'free_text',
 ];
 
