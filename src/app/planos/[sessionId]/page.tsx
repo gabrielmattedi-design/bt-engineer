@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { activeProducts } from '@/database/repositories/commerce-repo';
 import { loadRecommendation } from '@/database/repositories/session-repo';
+import { seedProducts, withAutoBootstrap } from '@/database/setup';
 import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { CheckoutButton } from './checkout-button';
 
@@ -26,7 +27,21 @@ export default async function PlanosPage({
   const stored = await loadRecommendation(sessionId);
   if (!stored) notFound();
 
-  const all = await activeProducts();
+  /**
+   * Semeia os produtos sob demanda se a tabela existir vazia.
+   *
+   * `withAutoBootstrap` só reage a "tabela não existe". Um banco cuja estrutura foi criada mas
+   * nunca semeada passa por ele sem erro e chega aqui com zero produtos — e a tela então pedia
+   * para o dono "rodar npm run db:seed-products", um comando de terminal, para um produto cujo
+   * dono é declaradamente não-técnico. Semear é idempotente (`onConflictDoNothing` na SKU), então
+   * fazê-lo aqui não tem custo nem risco.
+   */
+  const all = await withAutoBootstrap(async () => {
+    const products = await activeProducts();
+    if (products.length > 0) return products;
+    await seedProducts();
+    return activeProducts();
+  });
   // O upsell do Top 3 vem do relatório e mostra só aquele item; a entrada normal mostra os planos
   // principais. Em nenhum dos casos inventamos uma opção que não existe no catálogo.
   const visible = produto ? all.filter((p) => p.sku === produto) : all.filter((p) => p.sku !== 'top3_unlock');
@@ -66,8 +81,8 @@ export default async function PlanosPage({
 
         {visible.length === 0 && (
           <p className="mt-8 rounded border border-warn/40 bg-warn/5 p-4 text-sm text-warn">
-            Nenhum produto disponível no momento. Se o banco acabou de subir, rode{' '}
-            <code>npm run db:seed-products</code>.
+            Nenhum produto disponível no momento. Abra <code>/admin/setup</code> e clique em
+            &ldquo;Criar produtos&rdquo;.
           </p>
         )}
 

@@ -1,5 +1,14 @@
-import { LogoMark } from './logo';
-import { IconChart, IconData, IconEngine, IconGauge, IconPrecision, IconShield } from './icons';
+import { countSetupCombinations, formatThousands } from "@/data/combinations";
+import { loadRacketCatalog, loadStringCatalog } from "@/data/load";
+import { LogoMark } from "./logo";
+import {
+  IconChart,
+  IconData,
+  IconEngine,
+  IconGauge,
+  IconPrecision,
+  IconShield,
+} from "./icons";
 
 /**
  * Os seis pilares comerciais — a seção que explica por que a recomendação tem valor.
@@ -21,6 +30,12 @@ import { IconChart, IconData, IconEngine, IconGauge, IconPrecision, IconShield }
  * afirma que o catálogo já está conferido. A diferença não é retórica: hoje o catálogo está em
  * curadoria, e um selo dizendo "dados verificados" numa home enquanto 0 de 46 raquetes foram
  * conferidas seria exatamente a promessa falsa que o §58 proíbe.
+ *
+ * ─── O NÚMERO DE COMBINAÇÕES É CALCULADO ─────────────────────────────────────────────────────
+ *
+ * O destaque dizia "Milhares", que é vago o bastante para nunca estar errado — e por isso não
+ * afirma nada. Agora ele vem de `countSetupCombinations()`, medido sobre o catálogo que está no
+ * ar. Cresce quando o catálogo cresce, e nunca passa a prometer mais do que o motor pode entregar.
  */
 
 type Pillar = {
@@ -33,52 +48,61 @@ type Pillar = {
   readonly Icon: (props: { className?: string }) => React.ReactElement;
 };
 
-const PILLARS: readonly Pillar[] = [
-  {
-    key: 'variaveis',
-    headline: '20+',
-    title: 'Variáveis analisadas',
-    body: 'Físico, técnica, swing, estilo, objetivos, conforto e equipamento atual.',
-    Icon: IconData,
-  },
-  {
-    key: 'combinacoes',
-    headline: 'Milhares',
-    title: 'De combinações possíveis',
-    body: 'Raquete, corda, espessura e tensão avaliadas como um conjunto, não isoladamente.',
-    Icon: IconChart,
-  },
-  {
-    key: 'engine',
-    seal: 'Match Engine',
-    title: 'Motor de recomendação proprietário',
-    body: 'O mesmo conjunto de respostas produz sempre o mesmo resultado.',
-    Icon: IconEngine,
-  },
-  {
-    key: 'ia',
-    headline: 'IA + Engenharia',
-    title: 'Cada uma no seu lugar',
-    body: 'IA para interpretar o que você escreve. Engenharia para recomendar — a IA nunca escolhe o equipamento.',
-    Icon: IconPrecision,
-  },
-  {
-    key: 'verified',
-    seal: 'Verified',
-    title: 'Dados técnicos verificados',
-    body: 'Cada especificação tem fonte registrada e conferência humana antes de sustentar uma recomendação paga.',
-    Icon: IconGauge,
-  },
-  {
-    key: 'independente',
-    headline: 'Independente',
-    title: 'Sem preferência de marca',
-    body: 'Não vendemos equipamento e não recebemos por indicação. Nenhuma marca tem vantagem no cálculo.',
-    Icon: IconShield,
-  },
-];
+function buildPillars(): readonly Pillar[] {
+  const combinations = countSetupCombinations(
+    loadRacketCatalog(),
+    loadStringCatalog(),
+  );
+
+  return [
+    {
+      key: "variaveis",
+      headline: "20+",
+      title: "Variáveis analisadas",
+      body: "Físico, técnica, swing, estilo, objetivos, conforto e equipamento atual.",
+      Icon: IconData,
+    },
+    {
+      key: "combinacoes",
+      headline: `+ de ${formatThousands(combinations)}`,
+      title: "Combinações possíveis",
+      body: "Raquete, corda, espessura e tensão avaliadas como um conjunto, não isoladamente.",
+      Icon: IconChart,
+    },
+    {
+      key: "engine",
+      seal: "Match Engine",
+      title: "Motor de recomendação proprietário",
+      body: "O mesmo conjunto de respostas produz sempre o mesmo resultado.",
+      Icon: IconEngine,
+    },
+    {
+      key: "ia",
+      headline: "IA + Engenharia",
+      title: "Cada uma no seu lugar",
+      body: "IA para interpretar o que você escreve. Engenharia para recomendar — a IA nunca escolhe o equipamento.",
+      Icon: IconPrecision,
+    },
+    {
+      key: "verified",
+      seal: "Verified",
+      title: "Dados técnicos verificados",
+      body: "Cada especificação tem fonte registrada e conferência humana antes de sustentar uma recomendação paga.",
+      Icon: IconGauge,
+    },
+    {
+      key: "independente",
+      headline: "Independente",
+      title: "Sem preferência de marca",
+      body: "Não vendemos equipamento e não recebemos por indicação. Nenhuma marca tem vantagem no cálculo.",
+      Icon: IconShield,
+    },
+  ];
+}
 
 export function Pillars() {
+  const PILLARS = buildPillars();
+
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -108,7 +132,10 @@ export function Pillars() {
             <div className="mt-5 flex min-h-[2.25rem] items-center">
               {p.seal ? (
                 <span className="flex items-center gap-2.5">
-                  <LogoMark className="h-9 w-9 shrink-0 text-white" simplified />
+                  <LogoMark
+                    className="h-9 w-9 shrink-0 text-white"
+                    simplified
+                  />
                   <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-ball">
                     {p.seal}
                   </span>
@@ -126,7 +153,9 @@ export function Pillars() {
             </h3>
 
             {/* Faixa 4 — corpo, empurrado para o fim para alinhar a base dos cards. */}
-            <p className="mt-2 text-xs leading-relaxed text-paper/65">{p.body}</p>
+            <p className="mt-2 text-xs leading-relaxed text-paper/65">
+              {p.body}
+            </p>
           </article>
         ))}
       </div>

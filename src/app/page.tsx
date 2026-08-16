@@ -3,6 +3,7 @@ import { BrandSignature } from '@/components/marketing/wordmark';
 import { Logo } from '@/components/marketing/logo';
 import { Pillars } from '@/components/marketing/pillars';
 import { BrandWall } from '@/components/marketing/brand-wall';
+import { CourtDivider } from '@/components/marketing/court-divider';
 import { catalogStats } from '@/data/load';
 
 /**
@@ -79,17 +80,36 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/*
+        Do herói em diante a página é lida como uma quadra vista de cima. O quadriculado do topo
+        fica intocado — é ele que dá o ar de prancha de engenharia; o que muda é o que vem depois.
+      */}
+      <div className="bg-court px-6">
+        <div className="mx-auto max-w-5xl">
+          <CourtDivider variant="baseline" tone="dark" />
+        </div>
+      </div>
+
       {/* ── SEIS PILARES (selos proprietários + iconografia do brand book) ─────── */}
-      <section className="border-t border-paper/10 bg-court">
+      <section className="bg-court">
         <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
           <Pillars />
         </div>
       </section>
 
+      {/* Corredor de duplas: aqui a página passa do institucional para o comercial. */}
+      <div className="mx-auto max-w-5xl px-6 pt-12">
+        <CourtDivider variant="alley" />
+      </div>
+
       {/* ── ECOSSISTEMA ANALISADO ──────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 py-12">
         <BrandWall />
       </section>
+
+      <div className="mx-auto max-w-5xl px-6">
+        <CourtDivider variant="service" />
+      </div>
 
       {/* ── FLUXO CONCEITUAL (§2) ──────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 py-12">
@@ -103,8 +123,12 @@ export default function HomePage() {
         </ol>
       </section>
 
+      <div className="mx-auto max-w-5xl px-6">
+        <CourtDivider variant="service" />
+      </div>
+
       {/* ── COMO FUNCIONA (§41) ────────────────────────────────────────────────── */}
-      <section id="como-funciona" className="court-line mx-auto max-w-5xl px-6 py-16">
+      <section id="como-funciona" className="mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">Como funciona</h2>
         <div className="mt-10 grid gap-10 sm:grid-cols-3">
           {[
@@ -185,7 +209,11 @@ export default function HomePage() {
       </section>
 
       {/* ── O QUE VOCÊ RECEBE (§25, §26) — sem falsa promoção (§58) ────────────── */}
-      <section className="court-line mx-auto max-w-5xl px-6 py-16">
+      <div className="mx-auto max-w-5xl px-6">
+        <CourtDivider variant="baseline" />
+      </div>
+
+      <section className="mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">O que você recebe</h2>
         <p className="mt-3 text-sm text-graphite">
           O questionário e a análise são gratuitos. Você decide se quer o relatório depois de ver o
