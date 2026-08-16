@@ -116,7 +116,7 @@ export default async function AnalisePage({
             </ul>
             <p className="mt-4 text-xs text-graphite">Não inclui corda, espessura nem tensão.</p>
             <Link
-              href={`/resultado/${sessionId}?plano=racket_report`}
+              href={`/planos/${sessionId}?produto=racket_report`}
               className="mt-5 flex min-h-[56px] items-center justify-center rounded border-2
                          border-ink font-semibold transition-colors hover:bg-ink hover:text-paper"
             >
@@ -141,7 +141,7 @@ export default async function AnalisePage({
               <li>Análise de conforto</li>
             </ul>
             <Link
-              href={`/resultado/${sessionId}?plano=full_setup`}
+              href={`/planos/${sessionId}?produto=full_setup`}
               className="mt-5 flex min-h-[56px] items-center justify-center rounded bg-court
                          font-semibold text-white transition-opacity hover:opacity-90"
             >
