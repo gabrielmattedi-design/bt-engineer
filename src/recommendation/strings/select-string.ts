@@ -131,6 +131,35 @@ const BUDGET_TARGET: Record<string, number> = {
   sem_limite: 12,
 };
 
+/**
+ * Penalização por estourar um orçamento DECLARADO.
+ *
+ * ═══ POR QUE O EIXO DE CUSTO NÃO BASTAVA ═════════════════════════════════════════════════════
+ *
+ * O eixo de custo pesa 0.12, e metade disso para quem relata dor. Medido: um iniciante com dor
+ * forte no cotovelo que respondeu "o mais econômico possível" recebia uma TRIPA NATURAL — a corda
+ * mais cara do catálogo, quatro a seis vezes o que ele disse querer gastar. O eixo estava certo em
+ * existir e fraco demais para significar alguma coisa contra a vantagem de conforto da tripa.
+ *
+ * O erro de fundo era tratar orçamento como preferência. Não é: é a única resposta do questionário
+ * que descreve uma impossibilidade. Quem não vai gastar não vai gastar, e uma recomendação fora da
+ * faixa declarada não é ambiciosa — ela é inútil, e queima a confiança no resto do relatório.
+ *
+ * Continua não sendo filtro duro, porque a faixa seguinte pode valer muito a pena e o usuário
+ * merece ver isso quando a diferença é pequena. Mas estourar dois níveis acima do declarado passa a
+ * custar caro o bastante para só acontecer quando não existe alternativa nenhuma.
+ */
+const BUDGET_OVERSHOOT: Record<string, Record<PriceTier, number>> = {
+  economico: { budget: 0, mid: 9, premium: 24, ultra: 42 },
+  equilibrado: { budget: 0, mid: 0, premium: 7, ultra: 20 },
+  sem_limite: { budget: 0, mid: 0, premium: 0, ultra: 0 },
+};
+
+export function budgetPenalty(declared: string | null, tier: PriceTier): number {
+  if (!declared) return 0;
+  return BUDGET_OVERSHOOT[declared]?.[tier] ?? 0;
+}
+
 function costTarget(profile: PlayerProfile): number {
   const declared = BUDGET_TARGET[profile.string_budget ?? ''];
   if (declared !== undefined) return declared;
@@ -584,6 +613,9 @@ export function selectStringVariant(
     // Rigidez contra sensibilidade — o que substituiu o filtro duro de poliéster.
     score -= stiffnessPenalty(profile.arm_sensitivity_score, attributes.arm_friendliness_score);
 
+    // Orçamento declarado: respeitar o que a pessoa disse que vai gastar.
+    score -= budgetPenalty(profile.string_budget, model.price_tier);
+
     candidates.push({ model, variant, attributes, score: clamp(score, 0, 100) });
   }
 
@@ -654,6 +686,16 @@ type EquivalenceInput = {
   readonly score: number;
 };
 
+/** Ordem de preço, para dizer quando uma equivalente sai mais barata. */
+const TIER_RANK: Record<PriceTier, number> = { budget: 0, mid: 1, premium: 2, ultra: 3 };
+
+const TIER_LABEL_PT: Record<PriceTier, string> = {
+  budget: 'mais barata',
+  mid: 'de preço médio',
+  premium: 'premium',
+  ultra: 'importada, a mais cara',
+};
+
 /** Assinatura dos eixos que a análise realmente compara. Iguais aqui = indistinguíveis. */
 function scoredFingerprint(a: StringBaseAttributes): string {
   return SCORED_AXES.filter((axis) => axis !== 'cost')
@@ -690,7 +732,20 @@ function collectEquivalents(
     if (!sameScore && !sameShape) continue;
 
     seen.add(candidate.model.id);
-    out.push(`${candidate.model.brand} ${candidate.model.model}`);
+
+    /*
+      Quando a equivalente é de faixa de preço menor, isso ENTRA na frase.
+
+      É a informação mais acionável que este relatório consegue dar sobre corda: duas cordas que a
+      análise não distingue, e uma custa uma fração da outra. Dizer só os nomes deixaria o trabalho
+      de descobrir isso com o usuário, que é justamente quem tem menos como fazê-lo.
+    */
+    const cheaper = TIER_RANK[candidate.model.price_tier] < TIER_RANK[winner.model.price_tier];
+    out.push(
+      cheaper
+        ? `${candidate.model.brand} ${candidate.model.model} (${TIER_LABEL_PT[candidate.model.price_tier]})`
+        : `${candidate.model.brand} ${candidate.model.model}`,
+    );
   }
 
   return out;

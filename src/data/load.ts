@@ -21,7 +21,7 @@ import babolatJson from './rackets/babolat.json';
 import yonexJson from './rackets/yonex.json';
 import stringsJson from './strings/catalog.json';
 
-export const DATASET_VERSION = '2026.08.4';
+export const DATASET_VERSION = '2026.08.5';
 
 const provenanceSchema = z.object({
   source: z.enum([

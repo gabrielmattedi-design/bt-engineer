@@ -1,5 +1,5 @@
 {
-  "data_version": "2026.08.4",
+  "data_version": "2026.08.5",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -573,8 +573,8 @@
         }
       ],
       "feel": "plush",
-      "launch": "high",
-      "bite": "high",
+      "launch": "medium",
+      "bite": "medium",
       "price_tier": "premium"
     },
     {
