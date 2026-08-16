@@ -50,7 +50,6 @@ function PodiumCard({
   height: 'sm' | 'lg';
   order: string;
 }) {
-  const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉';
   const isFirst = entry.rank === 1;
 
   return (
@@ -63,8 +62,20 @@ function PodiumCard({
       )}
     >
       <div className="flex items-baseline justify-between">
-        <span className="text-2xl" aria-label={`${entry.rank}º lugar`}>
-          {medal}
+        {/*
+          Posição em tipografia, não em emoji de medalha.
+          Emojis de pódio são renderizados pelo SISTEMA: mudam de desenho entre Android, iOS e
+          Windows, chegam coloridos — o que contraria a paleta — e trazem um tom de gamificação
+          que briga com "instrumento técnico". Um numeral tem aparência idêntica em todo aparelho.
+        */}
+        <span
+          className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-full font-display text-sm font-bold',
+            isFirst ? 'bg-court text-paper' : 'border border-line text-graphite',
+          )}
+          aria-label={`${entry.rank}º lugar`}
+        >
+          {entry.rank}
         </span>
         <div className="text-right">
           <div className={cn('display-number leading-none', isFirst ? 'text-5xl' : 'text-3xl')}>
@@ -80,7 +91,11 @@ function PodiumCard({
           <div className="relative h-16 overflow-hidden rounded bg-line/60">
             <div className="string-bed absolute inset-0 blur-[6px]" aria-hidden />
             <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-medium text-graphite">
-              <span aria-hidden>🔒</span> Modelo bloqueado
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M 8 10 V 7 a 4 4 0 0 1 8 0 v 3" />
+              </svg>
+              Modelo bloqueado
             </div>
           </div>
           <p className="mt-3 text-sm text-graphite">{entry.teaser}</p>

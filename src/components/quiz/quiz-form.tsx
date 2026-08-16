@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { RacketPicker, type RacketOption } from './racket-picker';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { visibleSteps, type Question } from './steps';
 
@@ -16,8 +17,10 @@ import { visibleSteps, type Question } from './steps';
  */
 export function QuizForm({
   onComplete,
+  rackets,
 }: {
   onComplete: (answers: QuestionnaireAnswers) => void;
+  readonly rackets: readonly RacketOption[];
 }) {
   const [answers, setAnswers] = useState<QuestionnaireAnswers>(emptyAnswers);
   const [stepIndex, setStepIndex] = useState(0);
@@ -103,6 +106,7 @@ export function QuizForm({
               key={String(question.key)}
               question={question}
               answers={answers}
+              rackets={rackets}
               onSet={set}
               onToggleMulti={toggleMulti}
             />
@@ -140,11 +144,13 @@ export function QuizForm({
 function QuestionField({
   question,
   answers,
+  rackets,
   onSet,
   onToggleMulti,
 }: {
   question: Question;
   answers: QuestionnaireAnswers;
+  readonly rackets: readonly RacketOption[];
   onSet: <K extends keyof QuestionnaireAnswers>(k: K, v: QuestionnaireAnswers[K]) => void;
   onToggleMulti: (k: keyof QuestionnaireAnswers, v: string, max: number) => void;
 }) {
@@ -220,6 +226,23 @@ function QuestionField({
               </button>
             );
           })}
+
+        {question.kind === 'racket' && (
+          <RacketPicker
+            options={rackets}
+            valueId={typeof value === 'string' ? value : null}
+            freeText={answers.current_racket_free_text}
+            onSelect={(id) => {
+              onSet('current_racket_id', id);
+              // Escolher no catálogo apaga a descrição livre: as duas juntas seriam ambíguas.
+              if (id) onSet('current_racket_free_text', null);
+            }}
+            onFreeText={(text) => {
+              onSet('current_racket_free_text', text);
+              if (text) onSet('current_racket_id', null);
+            }}
+          />
+        )}
 
         {question.kind === 'number' && (
           <NumberField

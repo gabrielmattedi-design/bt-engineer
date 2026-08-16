@@ -44,6 +44,24 @@ export type Question =
       readonly unit: string;
     }
   | {
+      /**
+       * Seleção da raquete atual, buscando no NOSSO catálogo.
+       *
+       * Existem centenas de modelos no mundo, multiplicados por geração e por peso — pedir para
+       * digitar seria pedir um dado que não temos como interpretar. Mas a comparação só é possível
+       * contra uma variante cujas especificações nós conhecemos, então o universo real da pergunta
+       * é exatamente o nosso catálogo. Buscar nele resolve o problema no tamanho certo.
+       *
+       * Quem não encontra a própria raquete responde em texto livre e o motor registra
+       * `unrecognized`, reduzindo a confiança e dizendo isso ao usuário — em vez de fingir uma
+       * comparação.
+       */
+      readonly kind: 'racket';
+      readonly key: keyof QuestionnaireAnswers;
+      readonly title: string;
+      readonly help?: string;
+    }
+  | {
       readonly kind: 'text';
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
@@ -341,6 +359,14 @@ export const STEPS: readonly Step[] = [
     label: 'Equipamento atual',
     showIf: (a) => !a.no_current_racket,
     questions: [
+      {
+        kind: 'racket',
+        key: 'current_racket_id',
+        title: 'Qual raquete você usa hoje?',
+        help:
+          'Digite a marca ou o modelo para buscar. Se a sua não aparecer, você pode descrevê-la — ' +
+          'nesse caso não conseguimos comparar as especificações, e dizemos isso no relatório.',
+      },
       {
         kind: 'multi',
         key: 'current_racket_likes',
