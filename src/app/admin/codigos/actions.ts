@@ -4,35 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
 import { setCouponActive, upsertCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
-import type { Entitlement } from '@/payments/entitlements';
-
-/**
- * Conjuntos de acesso oferecidos na criação do código.
- *
- * A alternativa seria cinco caixas de seleção com os nomes internos dos entitlements. Elas dariam
- * mais liberdade e produziriam combinações sem sentido — um código que abre a 3ª colocada mas não
- * a 1ª, por exemplo. Os três conjuntos abaixo cobrem o que se quer de fato oferecer.
- */
-export const ACCESS_PRESETS = {
-  completo: {
-    label: 'Acesso completo',
-    description: 'Raquete, as três posições do pódio, corda e tensão.',
-    grants: ['racket_report_access', 'rank2_access', 'rank3_access', 'full_setup_access'],
-  },
-  podio: {
-    label: 'Raquete e pódio',
-    description: 'As três posições, sem corda e tensão.',
-    grants: ['racket_report_access', 'rank2_access', 'rank3_access'],
-  },
-  raquete: {
-    label: 'Somente a raquete',
-    description: 'O relatório da 1ª colocada, sem pódio nem setup.',
-    grants: ['racket_report_access'],
-  },
-} as const satisfies Record<
-  string,
-  { label: string; description: string; grants: readonly Entitlement[] }
->;
+import { ACCESS_PRESETS, type AccessPresetKey } from './presets';
 
 export type CodeResult = { ok: string } | { error: string };
 
@@ -44,7 +16,7 @@ export async function createCode(_prev: unknown, formData: FormData): Promise<Co
     return { error: 'Use de 3 a 32 caracteres: letras, números, hífen ou sublinhado.' };
   }
 
-  const preset = ACCESS_PRESETS[String(formData.get('preset') ?? '') as keyof typeof ACCESS_PRESETS];
+  const preset = ACCESS_PRESETS[String(formData.get('preset') ?? '') as AccessPresetKey];
   if (!preset) return { error: 'Escolha o que o código libera.' };
 
   /**

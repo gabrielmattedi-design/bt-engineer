@@ -3,7 +3,8 @@ import { isAuthenticated } from '../auth';
 import { listCoupons } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { Wordmark } from '@/components/marketing/wordmark';
-import { ACCESS_PRESETS, toggleCode } from './actions';
+import { toggleCode } from './actions';
+import { ACCESS_PRESETS } from './presets';
 import { CreateCodeForm } from './create-form';
 
 export const dynamic = 'force-dynamic';
