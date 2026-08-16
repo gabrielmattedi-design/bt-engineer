@@ -21,6 +21,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
+
+/** `vazio()` é uma FÁBRICA (o formulário a usa como inicializador preguiçoso do useState). */
+const vazio = (): QuestionnaireAnswers => emptyAnswers();
 import { isAnswered, unansweredIn, visibleSteps } from '@/components/quiz/steps';
 
 const OPCIONAIS_PERMITIDAS = [
@@ -31,7 +34,7 @@ const OPCIONAIS_PERMITIDAS = [
 ];
 
 describe('perguntas obrigatórias', () => {
-  const steps = visibleSteps(emptyAnswers);
+  const steps = visibleSteps(vazio());
 
   it('o questionário tem etapas', () => {
     expect(steps.length).toBeGreaterThan(3);
@@ -41,7 +44,7 @@ describe('perguntas obrigatórias', () => {
     for (const step of steps) {
       const required = step.questions.filter((q) => !q.optional);
       expect(required.length, `etapa "${step.id}" não exige nada`).toBeGreaterThan(0);
-      expect(unansweredIn(step, emptyAnswers).length, step.id).toBe(required.length);
+      expect(unansweredIn(step, vazio()).length, step.id).toBe(required.length);
     }
   });
 
@@ -64,8 +67,8 @@ describe('perguntas obrigatórias', () => {
     const idade = steps.flatMap((s) => s.questions).find((q) => q.key === 'age');
     expect(idade, 'pergunta de idade não encontrada').toBeDefined();
 
-    expect(isAnswered(idade!, emptyAnswers)).toBe(false);
-    expect(isAnswered(idade!, { ...emptyAnswers, age: 30 })).toBe(true);
+    expect(isAnswered(idade!, vazio())).toBe(false);
+    expect(isAnswered(idade!, { ...vazio(), age: 30 })).toBe(true);
   });
 
   it('escolha múltipla exige ao menos um item', () => {
@@ -74,8 +77,8 @@ describe('perguntas obrigatórias', () => {
       .find((q) => q.kind === 'multi' && !q.optional);
     expect(multi).toBeDefined();
 
-    expect(isAnswered(multi!, emptyAnswers)).toBe(false);
-    const answered = { ...emptyAnswers, [multi!.key]: ['x'] } as QuestionnaireAnswers;
+    expect(isAnswered(multi!, vazio())).toBe(false);
+    const answered = { ...vazio(), [multi!.key]: ['x'] } as QuestionnaireAnswers;
     expect(isAnswered(multi!, answered)).toBe(true);
   });
 
@@ -87,20 +90,20 @@ describe('perguntas obrigatórias', () => {
     const racket = steps.flatMap((s) => s.questions).find((q) => q.kind === 'racket');
     expect(racket).toBeDefined();
 
-    expect(isAnswered(racket!, emptyAnswers)).toBe(false);
+    expect(isAnswered(racket!, vazio())).toBe(false);
     expect(
-      isAnswered(racket!, { ...emptyAnswers, current_racket_id: 'babolat-pure-drive-gen-11-2025' }),
+      isAnswered(racket!, { ...vazio(), current_racket_id: 'babolat-pure-drive-gen-11-2025' }),
     ).toBe(true);
     expect(
-      isAnswered(racket!, { ...emptyAnswers, current_racket_free_text: 'Head Speed branca 2019' }),
+      isAnswered(racket!, { ...vazio(), current_racket_free_text: 'Head Speed branca 2019' }),
     ).toBe(true);
     // Texto só com espaços não é resposta.
-    expect(isAnswered(racket!, { ...emptyAnswers, current_racket_free_text: '   ' })).toBe(false);
+    expect(isAnswered(racket!, { ...vazio(), current_racket_free_text: '   ' })).toBe(false);
   });
 
   it('quem não tem raquete própria não é obrigado a informar uma', () => {
     // A etapa inteira de equipamento desaparece — a pergunta nunca chega a ser cobrada.
-    const semRaquete = { ...emptyAnswers, no_current_racket: true };
+    const semRaquete = { ...vazio(), no_current_racket: true };
     const ids = visibleSteps(semRaquete).map((s) => s.id);
     expect(ids).not.toContain('equipamento');
   });

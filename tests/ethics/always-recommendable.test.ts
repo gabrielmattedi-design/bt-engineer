@@ -99,11 +99,14 @@ describe('nenhum perfil fica sem recomendação', () => {
     expect(average, `média atual ${average.toFixed(1)}`).toBeGreaterThanOrEqual(82);
   });
 
-  it('o pódio continua respeitando o piso a partir da segunda posição (§30)', () => {
+  /**
+   * O pódio traz até três alternativas REAIS, sem piso de fit — a proteção do §30 passou a ser o
+   * fit visível antes do pagamento, não a omissão da opção. Ver `tests/ethics/podium-quality`.
+   */
+  it('o pódio traz até três opções, sem repetir família sem motivo', () => {
     for (const { persona, result } of runs) {
-      for (const entry of result.podium.slice(1)) {
-        expect(entry.fit_score, `${persona.id}: rank ${entry.rank}`).toBeGreaterThanOrEqual(75);
-      }
+      expect(result.podium.length, persona.id).toBeLessThanOrEqual(3);
+      expect(result.podium.length, persona.id).toBeGreaterThanOrEqual(1);
     }
   });
 });

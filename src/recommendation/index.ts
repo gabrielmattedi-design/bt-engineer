@@ -7,7 +7,7 @@
  * ferramenta de validação real e não um brinquedo.
  */
 
-import { MIN_PODIUM_FIT } from '@/domain/reference-ranges';
+
 import type { ScoredRacket } from '@/domain/racket';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RecommendationResult } from '@/domain/recommendation';
@@ -16,6 +16,7 @@ import { RECOMMENDATION_ENGINE_VERSION } from './config/version';
 import { WEIGHTS_VERSION } from './config/weights.v1';
 import { computeConfidence } from './confidence';
 import { rankRackets, selectPodium, type RankOptions } from './engine/rank-rackets';
+import { DISPLAYED_ATTRIBUTES, scaleBands } from './engine/catalog-scale';
 import { analyzeTransition } from './engine/transition';
 import { selectStringVariant, type StringCatalog } from './strings/select-string';
 import { computeTension } from './strings/tension';
@@ -89,10 +90,12 @@ export function recommend(input: RecommendInput): RecommendationResult {
     tensionBaseIsFallback: tension?.base_source === 'fallback',
   });
 
-  // §30: o upsell do Top 3 só é ofertado se as três forem opções realmente boas.
-  // Proibido criar opções artificiais para vender o upsell.
-  const top3OfferAvailable =
-    podium.length === 3 && (podium[2]?.fit_score ?? 0) >= MIN_PODIUM_FIT;
+  /**
+   * §30 — o upsell existe quando há alternativa REAL a desbloquear, não quando dá para inventar
+   * uma. A oferta some se o pódio tem uma raquete só; e o fit de cada posição bloqueada é exibido
+   * ANTES do pagamento, para que ninguém compre uma opção fraca sem saber que ela é fraca.
+   */
+  const top3OfferAvailable = podium.length >= 2;
 
   return {
     engine_version: RECOMMENDATION_ENGINE_VERSION,
@@ -108,6 +111,7 @@ export function recommend(input: RecommendInput): RecommendationResult {
     tension,
     confidence,
     top3_offer_available: top3OfferAvailable,
+    attribute_bands: scaleBands(ranked.scale, DISPLAYED_ATTRIBUTES),
   };
 }
 

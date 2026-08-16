@@ -6,7 +6,7 @@
  */
 
 import {
-  MIN_PODIUM_FIT,
+
   TECHNICAL_TIE_THRESHOLD,
 } from '@/domain/reference-ranges';
 import { clamp, round } from '@/domain/scores';
@@ -280,21 +280,25 @@ export function rankRackets(
  * Duas variantes da mesma família ocupando o pódio raramente ajudam o usuário — exceto quando a
  * diferença entre elas É o eixo do objetivo declarado (peso), caso em que a comparação é informativa.
  *
- * ─── O PISO SE APLICA AO 2º E AO 3º, NUNCA AO 1º ─────────────────────────────────────────────
+ * ─── POR QUE NÃO EXISTE MAIS PISO DE FIT AQUI ────────────────────────────────────────────────
  *
- * O §30 proíbe ENCHER o pódio com opções fracas para viabilizar o upsell do Top 3. É uma regra
- * sobre opções ACRESCENTADAS — e é por isso que `MIN_PODIUM_FIT` continua valendo, integralmente,
- * da segunda posição em diante.
+ * O §30 proíbe ENCHER o pódio com opções fracas para viabilizar o upsell do Top 3. A leitura
+ * inicial foi aplicar `MIN_PODIUM_FIT` como corte: quem não chegasse a 75 sumia do pódio.
  *
- * Aplicá-lo também ao primeiro colocado era um erro de leitura com consequência grave: quando
- * nenhuma raquete atingia 75, o pódio saía VAZIO e o usuário que respondeu o questionário inteiro
- * recebia "ainda não podemos recomendar com segurança" — como se o catálogo não tivesse sido
- * avaliado. Ele foi: 46 raquetes, todas pontuadas e ordenadas. Existe uma que é a melhor para
- * aquele perfil, e sonegá-la não protege ninguém.
+ * Duas coisas mostraram que o corte estava errado.
  *
- * Recomendar a melhor entre as reais não cria opção artificial nenhuma — é o oposto disso. O que
- * o produto deve ao usuário quando essa melhor opção é fraca é DIZER que ela é fraca, e isso é
- * trabalho da confiança e dos pontos de atenção do relatório, não de uma tela em branco.
+ * Primeiro, aplicado ao 1º colocado ele esvaziava o pódio inteiro: o usuário respondia tudo, o
+ * motor pontuava as 46 raquetes, e a resposta era "ainda não podemos recomendar com segurança".
+ *
+ * Depois, aplicado ao 2º e ao 3º, ele produzia um pódio de uma raquete só — escondendo do usuário
+ * que existiam alternativas reais, avaliadas e ordenadas. O que o §30 quer impedir é apresentar
+ * uma opção fraca COMO SE FOSSE boa. Sonegar a existência dela não é o mesmo cuidado: é tirar do
+ * usuário a informação para decidir.
+ *
+ * O pódio agora traz as três melhores, sempre, e cada uma exibe seu fit REAL antes de qualquer
+ * pagamento. Quem desbloqueia a 2ª sabendo que ela marca 71% está fazendo uma escolha informada,
+ * que é uma proteção mais forte do que a ausência da informação. Cabe a `top3_offer_available` e
+ * ao rótulo de qualidade da vitrine dizer quando a diferença é grande.
  */
 export function selectPodium(
   ranking: readonly RankedRacket[],
@@ -309,7 +313,6 @@ export function selectPodium(
 
   for (const entry of ranking) {
     if (podium.length >= 3) break;
-    if (podium.length > 0 && entry.fit_score < MIN_PODIUM_FIT) break;
 
     const familyKey = `${entry.racket.variant.brand}::${entry.racket.variant.family}`;
     if (familiesUsed.has(familyKey) && !wantsWeightChange) continue;

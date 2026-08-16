@@ -99,6 +99,13 @@ function PodiumCard({
             </div>
           </div>
           <p className="mt-3 text-sm text-graphite">{entry.teaser}</p>
+          {/*
+            O aviso vem ANTES do pagamento, junto do preço, e não depois no relatório.
+            É a única posição em que ele faz diferença para a decisão.
+          */}
+          {entry.quality_note && (
+            <p className="mt-2 text-xs text-warn">{entry.quality_note}</p>
+          )}
         </div>
       ) : (
         <div className="mt-5">

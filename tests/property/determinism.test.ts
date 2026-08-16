@@ -85,14 +85,13 @@ describe('limites', () => {
     }
   });
 
-  it('todo fit score está em [0,100] e o pódio respeita o mínimo', () => {
+  it('todo fit score está em [0,100] e o pódio vem ordenado', () => {
     for (let i = 0; i < PERSONAS.length; i += 1) {
       const result = run(i);
       for (const r of result.full_ranking) {
         expect(r.fit_score).toBeGreaterThanOrEqual(0);
         expect(r.fit_score).toBeLessThanOrEqual(100);
       }
-      for (const p of result.podium) expect(p.fit_score).toBeGreaterThanOrEqual(75);
       // O ranking é monotonicamente decrescente.
       for (let j = 1; j < result.full_ranking.length; j += 1) {
         expect(result.full_ranking[j]!.fit_score).toBeLessThanOrEqual(

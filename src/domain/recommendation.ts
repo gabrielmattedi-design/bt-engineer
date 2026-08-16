@@ -6,6 +6,7 @@
  */
 
 import type { ScoredRacket } from './racket';
+import type { NeedKey } from './player-profile';
 import type { ScoredStringVariant } from './string';
 import type { ConfidenceLevel } from './sourced';
 import type { Score, WeightedTerm } from './scores';
@@ -43,6 +44,15 @@ export type Penalty = {
   readonly code: string;
   readonly points: number;
   readonly reason: string;
+  /**
+   * Eixo de necessidade envolvido, quando a penalização é sobre um objetivo declarado.
+   *
+   * Sem ele o relatório só conseguia repetir a frase da penalização — "você pediu mais
+   * estabilidade, mas este frame vai na direção contrária" —, que informa o problema e esconde o
+   * raciocínio. Com o eixo dá para ir buscar no ranking o que a alternativa mais estável custaria,
+   * e transformar a constatação numa troca explicada.
+   */
+  readonly axis?: NeedKey;
 };
 
 export type ScoreBreakdown = {
@@ -159,6 +169,16 @@ export type RecommendationResult = {
   readonly tension: TensionRecommendation | null;
 
   readonly confidence: RecommendationConfidence;
-  /** false quando o 3º colocado não atinge MIN_PODIUM_FIT — o upsell não é ofertado (§30). */
+  /** false quando não existe 2º ou 3º colocado para ofertar (§30). */
   readonly top3_offer_available: boolean;
+
+  /**
+   * Faixa [mín, máx] que o catálogo ocupa em cada atributo exibido, no momento desta análise.
+   *
+   * Viaja junto com o resultado, e não é recalculada na hora de mostrar, porque um relatório
+   * comprado precisa continuar sendo lido exatamente como foi vendido. Se as faixas fossem
+   * derivadas do catálogo vigente, incluir uma raquete nova amanhã mudaria os números de um
+   * relatório de ontem — sem que nada tivesse acontecido com a raquete recomendada.
+   */
+  readonly attribute_bands: Readonly<Record<string, readonly [number, number]>>;
 };

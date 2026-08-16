@@ -51,8 +51,8 @@ export function computePenalties(
   const { attributes, variant } = racket;
   const specs = variant.specs;
 
-  const push = (code: string, points: number, reason: string): void => {
-    if (points > 0.01) penalties.push({ code, points: round(points), reason });
+  const push = (code: string, points: number, reason: string, axis?: NeedKey): void => {
+    if (points > 0.01) penalties.push({ code, points: round(points), reason, axis });
   };
 
   // P1 — iniciante em frame muito exigente.
@@ -154,7 +154,7 @@ export function computePenalties(
      *
      * Um conflito é a mensagem; cinco conflitos continuam sendo a mesma mensagem.
      */
-    let worst: { points: number; reason: string } | null = null;
+    let worst: { points: number; reason: string; axis: NeedKey } | null = null;
 
     for (const need of NEED_KEYS) {
       const desired = profile.desired_change_vector[need];
@@ -183,6 +183,7 @@ export function computePenalties(
       if (worst === null || points > worst.points) {
         worst = {
           points,
+          axis: need,
           reason:
             `Você pediu mais ${NEED_LABEL_PT[need]}, mas este frame vai na direção contrária ` +
             `à da sua referência.`,
@@ -190,7 +191,7 @@ export function computePenalties(
       }
     }
 
-    if (worst) push('P6_objective_conflict', worst.points, worst.reason);
+    if (worst) push('P6_objective_conflict', worst.points, worst.reason, worst.axis);
   } else if (referencePower !== null) {
     // Sem a escala do catálogo (chamada legada), resta a checagem original sobre potência.
     const wantsControl = profile.desired_change_vector.control > 10;

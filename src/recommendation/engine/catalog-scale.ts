@@ -184,6 +184,33 @@ export function buildCatalogScale(catalog: readonly ScoredRacket[]): CatalogScal
   };
 }
 
+/**
+ * Faixas em DADO PURO, para viajarem dentro do resultado até o relatório.
+ *
+ * `CatalogScale` carrega funções, e o resultado da recomendação é persistido como JSON — funções
+ * não sobrevivem à serialização. O relatório precisa das mesmas faixas para exibir os índices na
+ * escala do catálogo, então elas vão junto como pares de números.
+ */
+export function scaleBands(
+  scale: CatalogScale,
+  keys: readonly ScaleKey[],
+): Record<string, readonly [number, number]> {
+  const out: Record<string, readonly [number, number]> = {};
+  for (const key of keys) out[key] = scale.band(key);
+  return out;
+}
+
+/** Eixos que o relatório exibe ao usuário. */
+export const DISPLAYED_ATTRIBUTES = [
+  'power_score',
+  'control_score',
+  'spin_score',
+  'comfort_score',
+  'stability_score',
+  'maneuverability_score',
+  'precision_score',
+] as const satisfies readonly ScaleKey[];
+
 /** Descrição legível da escala, para a auditoria do admin (§48). */
 export function describeScale(scale: CatalogScale, keys: readonly ScaleKey[]): string[] {
   return keys.map((key) => {

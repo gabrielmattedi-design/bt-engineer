@@ -143,13 +143,34 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── PONTOS DE ATENÇÃO (§35) — mesmo destaque dos ganhos ──────────── */}
+        {/*
+          ── AS TROCAS DA ESCOLHA (§35) ─────────────────────────────────────
+
+          Antes esta seção se chamava "Pontos de atenção" e listava as penalizações do motor. O
+          efeito, logo abaixo do nome do produto recém-comprado, era o de uma confissão: "você
+          pediu mais estabilidade, mas este frame vai na direção contrária". Verdadeiro, e lido
+          como falha do sistema.
+
+          O fato continua dito com todas as letras — o que muda é que ele vem com o raciocínio ao
+          lado, e o raciocínio é verificável: a alternativa citada existe no ranking e o que ela
+          custaria sai do mesmo breakdown que sustenta o resto do relatório. Esconder a troca seria
+          o §35 ao contrário; mostrá-la sem o motivo é o que estava errado.
+        */}
         {winner && winner.attention.length > 0 && (
           <section>
-            <h2 className="font-display text-2xl font-bold">Pontos de atenção</h2>
-            <ul className="mt-4 max-w-prose space-y-2 border-l-2 border-warn pl-4 text-[15px]">
-              {winner.attention.map((line) => (
-                <li key={line}>{line}</li>
+            <h2 className="font-display text-2xl font-bold">As trocas desta escolha</h2>
+            <p className="mt-2 max-w-prose text-sm text-graphite">
+              Nenhuma raquete é a melhor em tudo — melhorar um eixo custa outro. Estas foram as
+              trocas feitas para chegar ao melhor conjunto para o seu jogo.
+            </p>
+            <ul className="mt-5 max-w-prose space-y-5 border-l-2 border-court pl-5 text-[15px]">
+              {winner.attention.map((item) => (
+                <li key={item.headline}>
+                  <p className="font-medium">{item.headline}</p>
+                  {item.rationale && (
+                    <p className="mt-1.5 text-sm text-graphite">{item.rationale}</p>
+                  )}
+                </li>
               ))}
             </ul>
           </section>

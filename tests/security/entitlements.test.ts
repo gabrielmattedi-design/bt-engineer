@@ -90,10 +90,21 @@ describe('racket_report_access (R$ 19,99)', () => {
     }
   });
 
-  it('2º e 3º vêm APENAS como {rank, fit_score, teaser, locked}', () => {
+  /**
+   * `quality_note` entrou junto com o pódio de três posições: ele avisa, antes do pagamento,
+   * quando a opção bloqueada é bem mais fraca que a 1ª. É texto sobre a DIFERENÇA de score, nunca
+   * sobre o produto — a lista fechada de chaves é o que garante isso.
+   */
+  it('2º e 3º vêm APENAS como {rank, fit_score, teaser, quality_note, locked}', () => {
     for (const entry of payload.podium.slice(1)) {
       expect(entry.locked).toBe(true);
-      expect(Object.keys(entry).sort()).toEqual(['fit_score', 'locked', 'rank', 'teaser']);
+      expect(Object.keys(entry).sort()).toEqual([
+        'fit_score',
+        'locked',
+        'quality_note',
+        'rank',
+        'teaser',
+      ]);
     }
   });
 

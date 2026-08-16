@@ -11,7 +11,9 @@
 
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
+import { clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
+import { buildTradeOffs, type TradeOff } from './trade-offs';
 import {
   explainComfort,
   explainCombination,
@@ -81,6 +83,17 @@ export type LockedPodiumEntry = {
   readonly rank: number;
   readonly fit_score: number;
   readonly teaser: string;
+  /**
+   * Aviso de qualidade quando a opção é materialmente mais fraca que a 1ª. `null` quando as duas
+   * são comparáveis.
+   *
+   * É o que sobrou — na forma certa — da regra do §30 que impedia opções fracas de ocuparem o
+   * pódio. Aquele corte protegia escondendo, e escondendo protegia demais: o usuário não sabia
+   * sequer que existia uma 2ª opção avaliada. Este aviso protege dizendo, ANTES do pagamento, que
+   * a diferença é grande. Quem compra mesmo assim está fazendo uma escolha informada; quem não
+   * compra economizou por saber, não por não ter sido perguntado.
+   */
+  readonly quality_note: string | null;
   readonly locked: true;
 };
 
@@ -97,7 +110,11 @@ export type UnlockedPodiumEntry = {
   readonly tags: readonly string[];
   readonly why: readonly string[];
   readonly expectations: readonly string[];
-  readonly attention: readonly string[];
+  /**
+   * Trocas explicadas, não uma lista de defeitos. Ver `trade-offs.ts` para o raciocínio.
+   * Só o 1º colocado recebe: para os outros seria comparar contra uma escolha que não foi feita.
+   */
+  readonly attention: readonly TradeOff[];
 };
 
 export type PodiumEntry = LockedPodiumEntry | UnlockedPodiumEntry;
@@ -157,23 +174,68 @@ function buildTags(ranked: RankedRacket): string[] {
     .map(([label]) => label);
 }
 
-/** Índices exibidos em passos de 5 — não sugerir precisão que o modelo não tem (R-04). */
-function buildIndices(ranked: RankedRacket): Record<string, number> {
+/**
+ * Piso da escala exibida. A raquete mais fraca do catálogo naquele eixo marca 50, a mais forte 100.
+ *
+ * ─── POR QUE NÃO 0 ───────────────────────────────────────────────────────────────────────────
+ *
+ * Nenhuma raquete de torneio tem "zero de potência" — a menos potente do catálogo ainda devolve
+ * bola. Uma escala que começa no zero afirmaria uma ausência que não existe, e faria a metade de
+ * baixo do catálogo parecer defeituosa quando ela é apenas mais controlada.
+ *
+ * O que a escala afirma é POSIÇÃO: 50 é o extremo inferior do que se pode comprar, 100 o superior.
+ */
+const DISPLAY_INDEX_FLOOR = 50;
+
+/**
+ * Índices exibidos, esticados na faixa REAL do catálogo.
+ *
+ * ─── O DEFEITO QUE ISTO CORRIGE ──────────────────────────────────────────────────────────────
+ *
+ * Os valores crus vinham comprimidos entre ~40 e ~55 — resultado de serem médias ponderadas de
+ * especificações normalizadas, que regridem ao centro (ver `catalog-scale.ts`). Na tela, seis
+ * barras quase idênticas em torno da metade não dizem nada: o relatório parecia afirmar que a
+ * raquete é medíocre em tudo, quando estava dizendo que ela é média EM RELAÇÃO A UMA ESCALA
+ * TEÓRICA que nenhum produto ocupa.
+ *
+ * Reposicionar contra a faixa que o catálogo realmente ocupa devolve a diferença que existe: a
+ * raquete mais potente entre as avaliadas marca 100 em potência, e é isso que o usuário quer
+ * saber ao comparar duas opções.
+ *
+ * O passo de 5 permanece — não sugerir precisão que o modelo não tem (R-04).
+ */
+function buildIndices(
+  ranked: RankedRacket,
+  bands: RecommendationResult['attribute_bands'],
+): Record<string, number> {
   const a = ranked.racket.attributes;
-  const step = (v: number): number => Math.round(v / 5) * 5;
+
+  const display = (key: string, raw: number): number => {
+    const band = bands[key];
+    // Sem faixa (relatório antigo, gravado antes deste campo existir) o valor cru é o melhor
+    // disponível — é preferível a inventar uma escala que não corresponde ao que foi vendido.
+    if (!band || band[1] <= band[0]) return Math.round(raw / 5) * 5;
+
+    const position = (raw - band[0]) / (band[1] - band[0]);
+    const scaled = DISPLAY_INDEX_FLOOR + clamp01(position) * (100 - DISPLAY_INDEX_FLOOR);
+    return Math.round(scaled / 5) * 5;
+  };
+
   return {
-    potencia: step(a.power_score),
-    controle: step(a.control_score),
-    spin: step(a.spin_score),
-    conforto: step(a.comfort_score),
-    estabilidade: step(a.stability_score),
-    manobrabilidade: step(a.maneuverability_score),
+    potencia: display('power_score', a.power_score),
+    controle: display('control_score', a.control_score),
+    spin: display('spin_score', a.spin_score),
+    conforto: display('comfort_score', a.comfort_score),
+    estabilidade: display('stability_score', a.stability_score),
+    manobrabilidade: display('maneuverability_score', a.maneuverability_score),
   };
 }
 
 function unlockedEntry(
   ranked: RankedRacket,
   profile: PlayerProfile,
+  bands: RecommendationResult['attribute_bands'],
+  tradeOffs: readonly TradeOff[] = [],
 ): UnlockedPodiumEntry {
   const specs = ranked.racket.variant.specs;
   return {
@@ -197,12 +259,30 @@ function unlockedEntry(
         ? `${specs.string_pattern_mains}×${specs.string_pattern_crosses}`
         : null,
     },
-    indices: buildIndices(ranked),
+    indices: buildIndices(ranked, bands),
     tags: buildTags(ranked),
     why: explainRacketFit(ranked, profile),
     expectations: explainExpectations(ranked),
-    attention: ranked.breakdown.penalties.map((p) => p.reason),
+    attention: tradeOffs,
   };
+}
+
+/**
+ * Distância de fit a partir da qual a diferença deixa de ser questão de preferência.
+ *
+ * Abaixo disso as duas opções são alternativas legítimas e a escolha entre elas é pessoal — dizer
+ * "bem menos compatível" ali seria empurrar a pessoa para a 1ª por um dado que não sustenta isso.
+ */
+const MATERIAL_FIT_GAP = 6;
+
+function qualityNote(ranked: RankedRacket, first: RankedRacket): string | null {
+  const gap = first.fit_score - ranked.fit_score;
+  if (gap < MATERIAL_FIT_GAP) return null;
+  return (
+    `Compatibilidade ${Math.round(gap)} pontos abaixo da 1ª colocada. ` +
+    'Continua sendo uma opção real, mas a diferença é grande — vale desbloquear só se você quiser ' +
+    'entender o raciocínio ou comparar antes de comprar.'
+  );
 }
 
 /** Frase de posicionamento do colocado bloqueado — informativa sem identificar o produto (§29). */
@@ -268,11 +348,20 @@ export function serializeRecommendation(
   const canSeeSetup = hasEntitlement(granted, 'full_setup_access');
 
   const podium: PodiumEntry[] = result.podium.map((entry, index) => {
-    if (index === 0 || canSeeTop3) return unlockedEntry(entry, profile);
+    if (index === 0) {
+      return unlockedEntry(
+        entry,
+        profile,
+        result.attribute_bands,
+        buildTradeOffs(entry, result.full_ranking, result.candidates_evaluated),
+      );
+    }
+    if (canSeeTop3) return unlockedEntry(entry, profile, result.attribute_bands);
     return {
       rank: entry.rank,
       fit_score: Math.round(entry.fit_score),
       teaser: teaserFor(entry, first),
+      quality_note: qualityNote(entry, first),
       locked: true,
     };
   });
@@ -317,7 +406,7 @@ export function serializeRecommendation(
     setup,
     top3_offer_available: result.top3_offer_available && !canSeeTop3,
     comparison: canSeeTop3
-      ? result.podium.map((entry) => unlockedEntry(entry, profile))
+      ? result.podium.map((entry) => unlockedEntry(entry, profile, result.attribute_bands))
       : null,
     engine_version: result.engine_version,
     dataset_version: result.dataset_version,

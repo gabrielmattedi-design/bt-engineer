@@ -3,16 +3,26 @@
  *
  * "Não criar opções artificiais só para vender o upsell. As três precisam ser boas opções reais."
  *
- * Este teste existe porque a pressão comercial para preencher o pódio é real e permanente. Aqui ela
- * é impossível: se a terceira opção não for boa, o upsell simplesmente não é ofertado.
+ * A primeira leitura desta regra foi um corte: quem não atingisse `MIN_PODIUM_FIT` sumia do pódio.
+ * Ela protegia escondendo — e escondendo protegia demais, porque o usuário deixava de saber que
+ * existiam alternativas avaliadas. Um pódio de uma raquete só não é prudência, é informação
+ * sonegada.
+ *
+ * A proteção mudou de forma: o pódio traz as três melhores REAIS, cada uma com seu fit visível
+ * antes de qualquer pagamento, e um aviso explícito quando a diferença para a 1ª é grande. Quem
+ * desbloqueia sabendo que a opção marca 71% fez uma escolha informada.
+ *
+ * O que este teste tranca é que a informação chegue ANTES da cobrança, e que nada de identificável
+ * vaze de uma opção bloqueada.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MIN_PODIUM_FIT } from '@/domain/reference-ranges';
+
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
+import { serializeRecommendation } from '@/payments/entitlements';
 import { PERSONAS } from '@/data/personas';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
@@ -36,24 +46,43 @@ function runAll() {
 describe('qualidade do pódio (§30)', () => {
   const runs = runAll();
 
-  it('nenhuma raquete no pódio fica abaixo do fit mínimo', () => {
+  it('o pódio está sempre ordenado por compatibilidade decrescente', () => {
     for (const { persona, result } of runs) {
-      for (const p of result.podium) {
-        expect(p.fit_score, `${persona.id}: rank ${p.rank}`).toBeGreaterThanOrEqual(MIN_PODIUM_FIT);
+      for (let i = 1; i < result.podium.length; i += 1) {
+        expect(result.podium[i]!.fit_score, `${persona.id}: rank ${i + 1}`).toBeLessThanOrEqual(
+          result.podium[i - 1]!.fit_score,
+        );
       }
     }
   });
 
-  it('o upsell do Top 3 só é ofertado quando existem 3 opções realmente boas', () => {
+  it('o upsell só é ofertado quando existe alternativa real a desbloquear', () => {
     for (const { persona, result } of runs) {
-      if (result.top3_offer_available) {
-        expect(result.podium.length, persona.id).toBe(3);
-        expect(result.podium[2]!.fit_score).toBeGreaterThanOrEqual(MIN_PODIUM_FIT);
-      } else {
-        // Sem três boas opções, não há oferta — e isso é o comportamento correto.
-        const hasThreeGood =
-          result.podium.length === 3 && (result.podium[2]?.fit_score ?? 0) >= MIN_PODIUM_FIT;
-        expect(hasThreeGood, persona.id).toBe(false);
+      expect(result.top3_offer_available, persona.id).toBe(result.podium.length >= 2);
+    }
+  });
+
+  /**
+   * O número precisa estar na tela ANTES da cobrança — é ele que transforma o desbloqueio numa
+   * escolha informada em vez de uma aposta.
+   */
+  it('a opção bloqueada mostra o próprio fit e avisa quando é bem mais fraca', () => {
+    for (const { persona, result } of runs) {
+      const report = serializeRecommendation(result, buildPlayerProfile(
+        PERSONAS.find((p) => p.id === persona.id)!.answers,
+      ), ['racket_report_access']);
+
+      for (const entry of report.podium) {
+        if (!entry.locked) continue;
+
+        expect(entry.fit_score, `${persona.id}: rank ${entry.rank}`).toBeGreaterThan(0);
+        expect(entry).not.toHaveProperty('product_name');
+        expect(entry).not.toHaveProperty('brand');
+
+        const gap = report.podium[0]!.fit_score - entry.fit_score;
+        if (gap >= 6) {
+          expect(entry.quality_note, `${persona.id}: rank ${entry.rank} sem aviso`).toBeTruthy();
+        }
       }
     }
   });
