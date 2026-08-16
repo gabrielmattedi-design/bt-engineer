@@ -84,6 +84,15 @@ export const recommendationSessions = pgTable(
 
     /** Resultado completo, para servir o relatório sem recalcular. */
     result: jsonb('result').notNull(),
+    /**
+     * Variante do pódio escolhida para receber o setup de corda e tensão.
+     *
+     * `null` significa a 1ª colocada, que é o padrão e cobre todo mundo que comprou o plano
+     * completo. Só passa a valer outra coisa quando o jogador compra o upgrade de setup e escolhe
+     * outra posição. Fica aqui, e não numa tabela à parte, porque é atributo desta análise
+     * específica: nasce com ela e morre com ela.
+     */
+    setupVariantId: text('setup_variant_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('recommendation_sessions_session_idx').on(t.sessionId)],

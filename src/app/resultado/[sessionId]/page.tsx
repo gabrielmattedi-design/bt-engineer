@@ -5,6 +5,7 @@ import { Podium } from '@/components/result/podium';
 import { AttributeReadout } from '@/components/result/attribute-readout';
 import { CompatibilityRadar } from '@/components/result/radar';
 import { getReport } from '@/app/questionario/actions';
+import { selectSetupRacket } from './actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
 
 /**
@@ -48,6 +49,19 @@ export default async function ResultadoPage({
 
   const first = report.podium[0];
   const winner = first && !first.locked ? first : null;
+
+  /**
+   * Raquetes do pódio elegíveis a receber o setup: só as DESBLOQUEADAS.
+   *
+   * Oferecer o setup de uma posição ainda bloqueada revelaria por tabela qual é o produto — a
+   * corda e a tensão descrevem o frame com precisão suficiente para identificá-lo.
+   */
+  const setupChoices = report.podium.filter((entry) => !entry.locked);
+
+  const setupTarget =
+    setupChoices.find((entry) => entry.variant_id === report.setup_for_variant_id) ??
+    setupChoices[0] ??
+    null;
 
   return (
     <main className="min-h-screen pb-20">
@@ -247,10 +261,87 @@ export default async function ResultadoPage({
           )}
         </section>
 
+        {/*
+          ── UPGRADE DE SETUP ───────────────────────────────────────────────
+
+          Aparece só para quem tem a raquete e ainda não tem corda e tensão. A escolha de PARA QUAL
+          das desbloqueadas fica dentro da própria seção de setup, depois da compra — oferecer a
+          escolha antes exigiria explicar uma decisão que ainda não é possível tomar.
+        */}
+        {!report.setup && winner && (
+          <section>
+            <div className="rounded border-2 border-court bg-white p-6">
+              <div className="text-xs font-semibold uppercase tracking-wider text-court">
+                Completar a análise
+              </div>
+              <h2 className="mt-2 font-display text-xl font-semibold">
+                Corda, espessura e tensão
+              </h2>
+              <p className="mt-2 max-w-prose text-sm text-graphite">
+                A raquete é metade do setup. A corda define o que você sente no impacto e quanto a
+                bola gira; a tensão ajusta o resto. Você escolhe para qual das raquetes já
+                desbloqueadas quer o cálculo — e pode trocar depois.
+              </p>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link
+                  href={`/planos/${sessionId}?produto=setup_upgrade`}
+                  className="flex min-h-[56px] items-center justify-center gap-3 rounded bg-court
+                             px-6 font-semibold text-white transition-opacity hover:opacity-90"
+                >
+                  <span className="display-number text-lg">R$ 39,99</span>
+                  <span>Completar meu setup</span>
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ── SETUP COMPLETO (§36) ─────────────────────────────────────────── */}
         {report.setup && (
           <section>
             <h2 className="font-display text-2xl font-bold">Seu setup completo</h2>
+
+            {/*
+              PARA QUAL raquete o setup vale.
+
+              Com o pódio desbloqueado, corda e tensão flutuando ao lado de três nomes seriam
+              ambíguas — e a escolha da corda depende do frame: padrão, cabeça e rigidez mudam a
+              tensão recomendada. Dizer a raquete é obrigatório; poder trocar é o que o upgrade de
+              R$ 39,99 comprou.
+            */}
+            <p className="mt-2 max-w-prose text-sm text-graphite">
+              Calculado para a{' '}
+              <strong className="text-ink">{setupTarget?.product_name ?? 'sua raquete'}</strong>.
+              Corda e tensão dependem do frame — trocar de raquete muda a recomendação.
+            </p>
+
+            {setupChoices.length > 1 && (
+              <div className="mt-4 rounded border border-line bg-white p-5">
+                <p className="text-sm font-medium">Calcular o setup para outra do pódio</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {setupChoices.map((entry) => {
+                    const active = entry.variant_id === setupTarget?.variant_id;
+                    return (
+                      <form key={entry.variant_id} action={selectSetupRacket}>
+                        <input type="hidden" name="session_id" value={sessionId} />
+                        <input type="hidden" name="variant_id" value={entry.variant_id} />
+                        <button
+                          type="submit"
+                          disabled={active}
+                          className={
+                            active
+                              ? 'min-h-[48px] rounded border-2 border-court bg-court/5 px-4 text-sm font-semibold'
+                              : 'min-h-[48px] rounded border-2 border-line px-4 text-sm transition-colors hover:border-court'
+                          }
+                        >
+                          {entry.rank}ª · {entry.product_name}
+                        </button>
+                      </form>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               <div className="rounded border border-line bg-white p-5">

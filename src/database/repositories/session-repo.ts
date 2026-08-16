@@ -33,6 +33,8 @@ export type StoredSession = {
   readonly profile: PlayerProfile;
   readonly result: RecommendationResult;
   readonly createdAt: number;
+  /** Variante escolhida para o setup. `null` = a 1ª colocada. */
+  readonly setupVariantId: string | null;
 };
 
 function usingDatabase(): boolean {
@@ -175,7 +177,7 @@ async function persist(input: {
 export async function loadRecommendation(publicId: string): Promise<StoredSession | null> {
   if (!usingDatabase()) {
     const stored = fileStore.loadSession(publicId);
-    return stored ?? null;
+    return stored ? { ...stored, setupVariantId: null } : null;
   }
 
   const conn = db();
@@ -184,6 +186,7 @@ export async function loadRecommendation(publicId: string): Promise<StoredSessio
       result: recommendationSessions.result,
       profile: playerProfiles.profile,
       createdAt: recommendationSessions.createdAt,
+      setupVariantId: recommendationSessions.setupVariantId,
     })
     .from(recommendationSessions)
     .innerJoin(playerProfiles, eq(playerProfiles.id, recommendationSessions.playerProfileId))
@@ -197,7 +200,30 @@ export async function loadRecommendation(publicId: string): Promise<StoredSessio
     profile: row.profile as PlayerProfile,
     result: row.result as RecommendationResult,
     createdAt: row.createdAt.getTime(),
+    setupVariantId: row.setupVariantId,
   };
+}
+
+/**
+ * Grava para qual raquete do pódio o setup deve ser calculado.
+ *
+ * Só aceita uma variante que esteja de fato no pódio daquela análise. Sem essa checagem, o cliente
+ * poderia pedir o setup de QUALQUER raquete do catálogo mandando um id na requisição — e receberia
+ * corda e tensão de um produto que nunca lhe foi recomendado, contornando o pódio inteiro.
+ */
+export async function chooseSetupVariant(publicId: string, variantId: string): Promise<boolean> {
+  const stored = await loadRecommendation(publicId);
+  if (!stored) return false;
+  if (!stored.result.podium.some((entry) => entry.racket.variant.id === variantId)) return false;
+
+  if (!usingDatabase()) return false;
+
+  await db()
+    .update(recommendationSessions)
+    .set({ setupVariantId: variantId })
+    .where(eq(recommendationSessions.publicId, publicId));
+
+  return true;
 }
 
 /**

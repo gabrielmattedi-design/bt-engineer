@@ -16,7 +16,7 @@ import { cookies } from 'next/headers';
 import { isMissingTable } from '@/database/setup';
 import { extractFreeText } from '@/ai/extract-free-text';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
-import { recommend } from '@/recommendation';
+import { computeTension, recommend, selectStringVariant } from '@/recommendation';
 import { scoreRackets } from '@/recommendation/normalize/racket-attributes';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import type { QuestionnaireAnswers } from '@/recommendation/profile/answers';
@@ -124,7 +124,46 @@ export async function getReport(
 ): Promise<ReportPayload | null> {
   const stored = await loadRecommendation(sessionId);
   if (!stored) return null;
-  return serializeRecommendation(stored.result, stored.profile, granted);
+
+  /**
+   * O setup pode ter sido comprado para uma raquete que NÃO é a 1ª colocada.
+   *
+   * O resultado gravado traz corda e tensão da vencedora, porque é o que o motor calcula por
+   * padrão. Quando o jogador compra o upgrade e escolhe a 2ª ou a 3ª, recalculamos aqui — só a
+   * parte de corda e tensão, sobre o mesmo ranking já persistido.
+   *
+   * Recalcular é preferível a gravar os três setups de antemão: dois deles nunca seriam lidos, e
+   * o cálculo depende do catálogo de cordas, que muda com mais frequência que o de raquetes.
+   */
+  const result = withSetupFor(stored.result, stored.profile, stored.setupVariantId);
+  return serializeRecommendation(result, stored.profile, granted);
+}
+
+/**
+ * Devolve o resultado com corda e tensão recalculadas para a variante escolhida.
+ *
+ * Quando não há escolha, ou quando ela é a própria 1ª colocada, o resultado volta intacto.
+ */
+function withSetupFor(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+  variantId: string | null,
+): RecommendationResult {
+  if (!variantId) return result;
+
+  const chosen = result.podium.find((entry) => entry.racket.variant.id === variantId);
+  if (!chosen || chosen.rank === 1) return result;
+
+  const strings = loadStringCatalog();
+  const recommendation = selectStringVariant(profile, chosen.racket, strings, 'permissive');
+  if (!recommendation) return result;
+
+  return {
+    ...result,
+    string_recommendation: recommendation,
+    tension: computeTension(chosen.racket, recommendation.variant, profile),
+    setup_for_variant_id: variantId,
+  };
 }
 
 export async function getTeaser(sessionId: string): Promise<TeaserPayload | null> {

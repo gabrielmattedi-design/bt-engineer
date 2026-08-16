@@ -181,4 +181,13 @@ export type RecommendationResult = {
    * relatório de ontem — sem que nada tivesse acontecido com a raquete recomendada.
    */
   readonly attribute_bands: Readonly<Record<string, readonly [number, number]>>;
+
+  /**
+   * Variante do pódio para a qual `string_recommendation` e `tension` foram calculados.
+   *
+   * `null` = a 1ª colocada, que é o padrão. Só muda quando o jogador compra o upgrade de setup e
+   * escolhe outra posição — e é este campo que faz o relatório dizer PARA QUAL raquete o setup
+   * vale, em vez de deixar a corda solta ao lado de três nomes.
+   */
+  readonly setup_for_variant_id?: string | null;
 };

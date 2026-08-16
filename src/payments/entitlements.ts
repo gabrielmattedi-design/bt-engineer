@@ -134,6 +134,11 @@ export type UnlockedPodiumEntry = {
   readonly rank: number;
   readonly fit_score: number;
   readonly locked: false;
+  /**
+   * Id da variante. Só existe na entrada DESBLOQUEADA — na bloqueada ele identificaria o produto
+   * tão bem quanto o nome, e a lista fechada de chaves daquele tipo garante que não vaze.
+   */
+  readonly variant_id: string;
   readonly brand: string;
   readonly product_name: string;
   readonly image_url: string | null;
@@ -179,6 +184,8 @@ export type ReportPayload = {
     readonly reasons: readonly { message: string; remedy: string | null }[];
   };
   readonly setup: SetupPayload | null;
+  /** Para qual raquete do pódio o setup foi calculado. `null` = a 1ª colocada. */
+  readonly setup_for_variant_id: string | null;
   readonly top3_offer_available: boolean;
   readonly comparison: readonly UnlockedPodiumEntry[] | null;
   readonly engine_version: string;
@@ -280,6 +287,7 @@ function unlockedEntry(
     rank: ranked.rank,
     fit_score: Math.round(ranked.fit_score),
     locked: false,
+    variant_id: ranked.racket.variant.id,
     brand: ranked.racket.variant.brand,
     product_name: ranked.racket.variant.product_name,
     // §54: só exibimos foto confirmada como sendo desta variante e geração.
@@ -451,6 +459,7 @@ export function serializeRecommendation(
       })),
     },
     setup,
+    setup_for_variant_id: result.setup_for_variant_id ?? first.racket.variant.id,
     top3_offer_available:
       result.top3_offer_available && result.podium.some((e) => !canSeeRank(granted, e.rank)),
     /**

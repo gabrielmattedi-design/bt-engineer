@@ -171,6 +171,7 @@ END $$`,
     ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
 END $$`,
+  `ALTER TABLE "recommendation_sessions" ADD COLUMN IF NOT EXISTS "setup_variant_id" text`,
   `CREATE TABLE IF NOT EXISTS "app_settings" (
 	"key" text PRIMARY KEY NOT NULL,
 	"value" text NOT NULL,
