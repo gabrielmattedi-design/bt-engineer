@@ -17,6 +17,7 @@ import { clamp, round } from '@/domain/scores';
 import { RECOMMENDABLE_AVAILABILITY, isRecommendable } from '@/domain/sourced';
 import type { ScoredRacket } from '@/domain/racket';
 import type { CatalogScale, ScaleKey } from '@/recommendation/engine/catalog-scale';
+import type { PriceTier } from '@/domain/string';
 import type {
   ScoredStringVariant,
   StringBaseAttributes,
@@ -45,6 +46,33 @@ export type StringTarget = {
   readonly comfort: number;
   readonly durability: number;
   readonly arm: number;
+  /**
+   * Quanto o BOLSO precisa ser respeitado, 0–100.
+   *
+   * ═══ POR QUE ESTE EIXO PRECISOU EXISTIR ════════════════════════════════════════════════════
+   *
+   * A análise de dominância mostrou que a tripa natural vence TODOS os multifilamentos em todos os
+   * eixos do modelo: conforto, potência, amigabilidade ao braço, manutenção de tensão. E isso está
+   * fisicamente certo — tripa natural é, de fato, a melhor corda que existe nesses quesitos.
+   *
+   * O problema é que o modelo só tinha eixos em que a tripa ganha. Levado a sério, ele mandaria
+   * todo mundo comprar tripa; e cinco multifilamentos do catálogo não podiam ser a resposta de
+   * ninguém, porque não havia dimensão nenhuma em que eles fossem melhores.
+   *
+   * Preço é essa dimensão, e ela não é detalhe: uma tripa custa quatro a seis vezes um
+   * multifilamento no Brasil, e dura menos. Recomendar tripa a quem arrebenta corda toda semana não
+   * é ambição, é conta que não fecha. Um multifilamento não é uma tripa pior — é conforto que cabe
+   * no orçamento, e esse é um fim específico, legítimo e de longe o mais comum.
+   */
+  readonly cost: number;
+};
+
+/** Quão acessível é a corda, 0–100. Mais alto = mais barata. */
+const PRICE_ACCESSIBILITY: Record<PriceTier, number> = {
+  budget: 100,
+  mid: 68,
+  premium: 38,
+  ultra: 10,
 };
 
 /**
@@ -84,7 +112,33 @@ const TARGET_GAIN: Readonly<Record<keyof StringTarget, number>> = {
   comfort: 3.2,
   arm: 3.6,
   durability: 1.0,
+  // O custo já nasce em 0–100 a partir de uma pergunta direta; amplificar seria distorcer.
+  cost: 1.0,
 };
+
+/**
+ * Quanto o preço precisa ser respeitado, a partir do que o jogador disse.
+ *
+ * A resposta explícita manda. Sem ela, a necessidade é INFERIDA de dois fatos que o questionário já
+ * coleta e que mudam a conta de verdade: quem arrebenta corda toda semana paga a corda 40 vezes por
+ * ano e não tem como bancar tripa; e quem ainda está começando raramente quer investir no topo da
+ * faixa antes de saber do que gosta. Nenhuma das duas é palpite sobre a renda de ninguém — são
+ * consequências aritméticas do uso declarado.
+ */
+const BUDGET_TARGET: Record<string, number> = {
+  economico: 88,
+  equilibrado: 55,
+  sem_limite: 12,
+};
+
+function costTarget(profile: PlayerProfile): number {
+  const declared = BUDGET_TARGET[profile.string_budget ?? ''];
+  if (declared !== undefined) return declared;
+
+  const breakage = profile.current_string?.breakage_frequency ?? 30;
+  // Quebra alta multiplica o custo anual; nível baixo raramente justifica o topo da faixa.
+  return clamp(30 + 0.45 * breakage + 0.25 * (100 - profile.player_level_score), 0, 100);
+}
 
 /** Recentra em 50 e amplifica, preservando o neutro. */
 function contrast(raw: number, gain: number): number {
@@ -145,6 +199,7 @@ export function computeStringTarget(
         0.4 * (100 - pos('arm_friendliness_score', a.arm_friendliness_score)),
       TARGET_GAIN.arm,
     ),
+    cost: costTarget(profile),
   };
 }
 
@@ -283,7 +338,14 @@ function resolveWeights(profile: PlayerProfile): Record<string, number> {
  *
  * Com o excesso liberado nesses três eixos, cada grupo volta a poder ganhar pelo que ele É.
  */
-const REQUIREMENT_AXES: ReadonlySet<keyof StringTarget> = new Set(['comfort', 'arm', 'durability']);
+const REQUIREMENT_AXES: ReadonlySet<keyof StringTarget> = new Set([
+  'comfort',
+  'arm',
+  'durability',
+  // Custo é requisito pelo mesmo motivo dos outros três: ninguém foi prejudicado por uma corda ser
+  // mais barata do que o orçamento permitia. Só a falta é cobrada.
+  'cost',
+]);
 
 /** Os seis eixos comparáveis, na ordem em que são pontuados. */
 const SCORED_AXES: readonly (keyof StringTarget)[] = [
@@ -293,11 +355,18 @@ const SCORED_AXES: readonly (keyof StringTarget)[] = [
   'comfort',
   'arm',
   'durability',
+  'cost',
 ];
 
 /** Extrai do conjunto de atributos o valor do eixo — o par que o `scoreVariant` compara. */
-function axisValue(a: StringBaseAttributes, axis: keyof StringTarget): number {
+function axisValue(
+  a: StringBaseAttributes,
+  axis: keyof StringTarget,
+  accessibility = 50,
+): number {
   switch (axis) {
+    case 'cost':
+      return accessibility;
     case 'control':
       return a.control_score;
     case 'power':
@@ -346,6 +415,10 @@ export function buildStringScale(attributeSets: readonly StringBaseAttributes[])
   const out = {} as Record<keyof StringTarget, readonly [number, number]>;
 
   for (const axis of SCORED_AXES) {
+    if (axis === 'cost') {
+      out[axis] = [0, 100];
+      continue;
+    }
     const values = attributeSets.map((a) => axisValue(a, axis)).filter((v) => Number.isFinite(v));
     if (values.length === 0) {
       out[axis] = [0, 100];
@@ -375,13 +448,23 @@ function scoreVariant(
   target: StringTarget,
   weights: Record<string, number>,
   scale: StringScale,
+  accessibility: number,
 ): number {
   let penalty = 0;
   let weightSum = 0;
 
   for (const axis of SCORED_AXES) {
     const w = weights[axis] ?? 0;
-    const value = positionOf(scale, axis, axisValue(attributes, axis));
+    /*
+      Custo NÃO passa pela régua do catálogo.
+
+      As outras cinco dimensões são posição relativa: "controle 80" significa "entre os 20% mais
+      controladores do que existe". Preço não funciona assim — R$ 300 é caro em termos absolutos,
+      não em relação ao catálogo. Reposicionar transformaria a corda mais barata da lista em
+      "acessível 100" mesmo que a lista inteira fosse cara.
+    */
+    const raw = axisValue(attributes, axis, accessibility);
+    const value = axis === 'cost' ? accessibility : positionOf(scale, axis, raw);
     const targetValue = target[axis];
     const distance = REQUIREMENT_AXES.has(axis)
       ? Math.max(0, targetValue - value)
@@ -453,7 +536,8 @@ export function selectStringVariant(
     if (excluded.types.includes(model.string_type)) continue;
 
     const attributes = adjustForGauge(model.base_attributes, variant.gauge_mm);
-    let score = scoreVariant(attributes, target, weights, scale);
+    const accessibility = PRICE_ACCESSIBILITY[model.price_tier];
+    let score = scoreVariant(attributes, target, weights, scale, accessibility);
 
     /**
      * ─── DOIS DEGRAUS QUE VIRARAM RAMPAS ─────────────────────────────────────────────────────
@@ -482,8 +566,20 @@ export function selectStringVariant(
     // Manutenção de tensão entrega o setup por mais tempo — valor real, porém pequeno.
     score += clamp((attributes.tension_maintenance_score - 55) / 45, 0, 1) * 4;
 
-    // Penalidade: disponibilidade limitada no Brasil (acompanhada de aviso obrigatório).
-    if (variant.brazil_availability_status === 'limited') score -= 10;
+    /*
+      Disponibilidade limitada: penalidade, não veto.
+
+      Eram 10 pontos fixos — outro degrau, e o mais consequente que restava. As duas tripas naturais
+      do catálogo são `limited` (importação), e 10 pontos bastavam para nenhuma delas jamais vencer,
+      em nenhum perfil. Um produto que o motor nunca pode indicar não deveria estar no catálogo; e
+      tripa natural DEVE estar, porque para quem tem braço sensível, não quebra corda e pode pagar,
+      ela é objetivamente a resposta certa.
+
+      Cinco pontos continuam desempatando a favor do que se acha na esquina, sem apagar a categoria.
+      O aviso obrigatório de disponibilidade permanece — quem receber a indicação lê que vai precisar
+      encomendar.
+    */
+    if (variant.brazil_availability_status === 'limited') score -= 5;
 
     // Rigidez contra sensibilidade — o que substituiu o filtro duro de poliéster.
     score -= stiffnessPenalty(profile.arm_sensitivity_score, attributes.arm_friendliness_score);
@@ -560,7 +656,9 @@ type EquivalenceInput = {
 
 /** Assinatura dos eixos que a análise realmente compara. Iguais aqui = indistinguíveis. */
 function scoredFingerprint(a: StringBaseAttributes): string {
-  return SCORED_AXES.map((axis) => axisValue(a, axis).toFixed(2)).join('/');
+  return SCORED_AXES.filter((axis) => axis !== 'cost')
+    .map((axis) => axisValue(a, axis).toFixed(2))
+    .join('/');
 }
 
 function collectEquivalents(

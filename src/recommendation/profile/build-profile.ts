@@ -258,6 +258,25 @@ const DISCOMFORT_INTENSITY: Record<string, number> = {
   forte: 1.0,
 };
 
+/**
+ * A origem do desconforto — o fator que mais separa dois casos que pareciam iguais.
+ *
+ * Um cotovelo lesionado na academia não é evidência de que a raquete está errada; o mesmo cotovelo
+ * lesionado JOGANDO é o sinal mais forte do questionário inteiro. Antes desta pergunta os dois
+ * entravam idênticos no motor, e o equipamento era escolhido pelo primeiro.
+ *
+ * `nao` não zera. Uma articulação sensível continua sensível seja qual for a origem, e um frame
+ * rígido vai castigá-la do mesmo jeito — o que muda é que a raquete deixa de ser tratada como causa
+ * do problema, e passa a ser tratada como algo que não deve piorá-lo. Daí 0.55, e não 0.
+ *
+ * `nao_sei` fica perto do topo de propósito: na dúvida sobre a origem, protege-se.
+ */
+const DISCOMFORT_ORIGIN: Record<string, number> = {
+  sim: 1.0,
+  nao_sei: 0.85,
+  nao: 0.55,
+};
+
 function computeArmSensitivity(a: QuestionnaireAnswers): number {
   const relevant = a.discomfort_areas.filter((x) => x !== 'nenhum');
   if (relevant.length === 0) return 0;
@@ -266,11 +285,26 @@ function computeArmSensitivity(a: QuestionnaireAnswers): number {
   const values = relevant.map((r) => scores[r] ?? 60);
   const base = clamp(relevant.length > 1 ? Math.max(...values) + 10 : Math.max(...values), 0, 95);
 
-  // Sem qualificação, peso integral: o desconto é resposta a uma resposta, nunca ao silêncio.
-  const recency = DISCOMFORT_RECENCY[a.discomfort_when ?? ''] ?? 1.0;
-  const intensity = DISCOMFORT_INTENSITY[a.discomfort_intensity ?? ''] ?? 1.0;
+  /**
+   * Recência agora vem de DUAS perguntas, e a primeira manda.
+   *
+   * `discomfort_status` é a pergunta direta — está ou esteve. Quem responde "atual" recebe peso
+   * integral sem precisar datar nada, porque não há o que datar. Só quem responde "passado" vê a
+   * pergunta de quando, e é ali que o desconto acontece.
+   *
+   * O `?? a.discomfort_when` cobre os questionários respondidos antes desta mudança, que só tinham
+   * a pergunta antiga: eles continuam sendo lidos exatamente como foram respondidos.
+   */
+  const recency =
+    a.discomfort_status === 'atual'
+      ? 1.0
+      : (DISCOMFORT_RECENCY[a.discomfort_when ?? ''] ?? 1.0);
 
-  return clamp(base * recency * intensity, 0, 95);
+  // Sem qualificação, peso integral: o desconto é resposta a uma resposta, nunca ao silêncio.
+  const intensity = DISCOMFORT_INTENSITY[a.discomfort_intensity ?? ''] ?? 1.0;
+  const origin = DISCOMFORT_ORIGIN[a.discomfort_from_tennis ?? ''] ?? 1.0;
+
+  return clamp(base * recency * intensity * origin, 0, 95);
 }
 
 const STYLE_ANSWER_MAP: Record<string, PlayStyle[]> = {
@@ -493,6 +527,7 @@ export function buildPlayerProfile(
     physical_capacity_score: round(physicalCapacity),
     age: a.age,
     arm_sensitivity_score: armSensitivity,
+    string_budget: a.string_budget,
     discomfort_areas: a.discomfort_areas.filter((x) => x !== 'nenhum'),
     needs,
     desired_change_vector: desired,

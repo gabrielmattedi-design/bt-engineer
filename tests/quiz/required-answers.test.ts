@@ -43,6 +43,16 @@ const OPCIONAIS_PERMITIDAS = [
   // Nome: dado de apresentação, não de análise. Não entra em cálculo nenhum.
   'player_name',
   'free_text',
+  /**
+   * Orçamento da corda: não responder é resposta legítima, e o motor sabe o que fazer com ela.
+   *
+   * Muita gente simplesmente não pensou em quanto quer gastar antes de ver a recomendação, e
+   * obrigar uma escolha ali produziria um número inventado num eixo que pesa 0.12. Sem resposta, a
+   * necessidade de economia é INFERIDA de dois fatos já coletados e aritméticos: quem arrebenta
+   * corda toda semana paga a corda quarenta vezes por ano, e quem está começando raramente investe
+   * no topo da faixa. É estimativa declarada, não silêncio tratado como zero.
+   */
+  'string_budget',
 ];
 
 describe('perguntas obrigatórias', () => {

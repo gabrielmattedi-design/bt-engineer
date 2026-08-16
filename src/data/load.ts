@@ -21,7 +21,7 @@ import babolatJson from './rackets/babolat.json';
 import yonexJson from './rackets/yonex.json';
 import stringsJson from './strings/catalog.json';
 
-export const DATASET_VERSION = '2026.08.2';
+export const DATASET_VERSION = '2026.08.4';
 
 const provenanceSchema = z.object({
   source: z.enum([
@@ -136,6 +136,10 @@ const stringEntrySchema = z.object({
   firmness: z.enum(['very_soft', 'soft', 'medium', 'firm', 'very_firm']),
   durability: z.enum(['low', 'medium', 'high']),
   tension_maintenance: z.enum(['low', 'medium', 'high']),
+  feel: z.enum(['muted', 'crisp', 'plush', 'lively']),
+  launch: z.enum(['low', 'medium', 'high']),
+  bite: z.enum(['low', 'medium', 'high']),
+  price_tier: z.enum(['budget', 'mid', 'premium', 'ultra']),
   recommended_player_type: z.array(z.string()),
   variants: z.array(stringVariantSchema).min(1),
 });
@@ -299,10 +303,14 @@ export function loadStringCatalog(): LoadedStringCatalog {
         string_type: entry.string_type,
         shape: entry.shape as StringShape | null,
         firmness: entry.firmness,
+        feel: entry.feel,
+        launch: entry.launch,
+        bite: entry.bite,
         durability: entry.durability,
         tension_maintenance: entry.tension_maintenance,
       }),
       recommended_player_type: entry.recommended_player_type,
+      price_tier: entry.price_tier,
       provenance: { descriptors: file.default_provenance },
     });
 

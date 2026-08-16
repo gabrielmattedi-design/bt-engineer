@@ -115,6 +115,8 @@ export type PlayerProfile = {
 
   // Conforto
   readonly arm_sensitivity_score: Score;
+  /** Orçamento declarado para a corda. `null` = não respondeu; a necessidade é então inferida. */
+  readonly string_budget: 'economico' | 'equilibrado' | 'sem_limite' | null;
   readonly discomfort_areas: readonly string[];
 
   // Necessidades (0–100, base 50)

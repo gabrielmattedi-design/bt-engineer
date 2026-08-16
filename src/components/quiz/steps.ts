@@ -533,7 +533,9 @@ export const STEPS: readonly Step[] = [
         kind: 'multi',
         key: 'discomfort_areas',
         title: 'Você sente ou já sentiu desconforto recorrente em…',
-        help: 'Desconforto ligado ao tênis. Se nunca teve, marque "nenhum" e siga.',
+        help:
+          'Marque só onde o desconforto é ou foi recorrente. Se nunca teve, marque "nenhum" e ' +
+          'siga — nas próximas perguntas a gente detalha o que você marcar aqui.',
         max: 3,
         choices: [
           { value: 'cotovelo', label: 'Cotovelo', hint: 'A famosa "epicondilite" — dor na parte de fora do cotovelo.' },
@@ -543,28 +545,58 @@ export const STEPS: readonly Step[] = [
         ],
       },
       /*
-        ─── POR QUE QUANDO E QUANTO ────────────────────────────────────────────────────────────
+        ─── POR QUE UMA PERGUNTA VIROU QUATRO ─────────────────────────────────────────────────
 
         Marcar "ombro" era suficiente para o motor tratar conforto como prioridade máxima. Só que a
-        pergunta anterior aceita "sente OU JÁ SENTIU", e quase todo jogador de clube com alguns anos
+        primeira pergunta aceita "sente OU JÁ SENTIU", e quase todo jogador de clube com alguns anos
         de quadra já sentiu alguma coisa em algum lugar. Uma dor leve de três anos atrás, que pode
         nem ter vindo da raquete, passava a governar a recomendação inteira.
 
-        Estas duas perguntas separam o histórico do problema ATUAL. Só existem para quem marcou uma
-        área — quem respondeu "nenhum" não as vê.
+        As três perguntas seguintes separam quatro coisas que estavam coladas numa só:
+
+          ESTÁ ou ESTEVE   um problema ativo muda o equipamento; um episódio encerrado informa
+          HÁ QUANTO TEMPO  só se aplica a quem já não sente — quem sente hoje não tem o que datar
+          QUÃO FORTE       incômodo e afastamento da quadra não podem pesar igual
+          VEIO DO TÊNIS    é o filtro que faltava, e é o que mais separa os casos
+
+        A última é a que o usuário pediu explicitamente, e ela é a mais discriminante das quatro: um
+        cotovelo machucado na academia não diz nada sobre a raquete errada, enquanto o mesmo cotovelo
+        machucado jogando é o sinal mais forte do questionário inteiro. Sem essa pergunta, o motor
+        tratava os dois casos como idênticos — e escolhia equipamento pelo primeiro.
+
+        Todas só existem para quem marcou uma área; quem respondeu "nenhum" não vê nenhuma delas.
       */
       {
         kind: 'single',
-        key: 'discomfort_when',
-        // Só faz sentido para quem tem o quê datar.
+        key: 'discomfort_status',
         showIf: (a) => a.discomfort_areas.some((d) => d !== 'nenhum'),
-        title: 'Quando foi a última vez?',
-        help: 'Um desconforto antigo pesa menos que um que você sente hoje.',
+        title: 'Esse desconforto é atual ou já passou?',
+        help: 'Um problema ativo muda a recomendação. Um episódio encerrado só informa.',
         choices: [
-          { value: 'agora', label: 'Sinto atualmente', hint: 'Aparece nos jogos ou treinos desta temporada.' },
+          {
+            value: 'atual',
+            label: 'Sinto atualmente',
+            hint: 'Aparece nos jogos ou treinos de agora, mesmo que de vez em quando.',
+          },
+          {
+            value: 'passado',
+            label: 'Já senti, não sinto mais',
+            hint: 'Episódio encerrado — você joga sem essa dor hoje.',
+          },
+        ],
+      },
+      {
+        kind: 'single',
+        key: 'discomfort_when',
+        // Só quem já não sente tem o quê datar. Para quem sente hoje, a resposta é "agora".
+        showIf: (a) =>
+          a.discomfort_areas.some((d) => d !== 'nenhum') && a.discomfort_status === 'passado',
+        title: 'Há quanto tempo foi a última vez?',
+        help: 'Quanto mais antigo, menos ele pesa na escolha do equipamento.',
+        choices: [
           { value: 'ultimos_meses', label: 'Nos últimos meses', hint: 'Passou, mas foi recente.' },
           { value: 'ano_passado', label: 'No último ano', hint: 'Não voltou desde então.' },
-          { value: 'ha_mais_tempo', label: 'Há mais tempo', hint: 'Episódio antigo, já resolvido.' },
+          { value: 'ha_mais_tempo', label: 'Há mais de um ano', hint: 'Episódio antigo, já resolvido.' },
         ],
       },
       {
@@ -572,10 +604,63 @@ export const STEPS: readonly Step[] = [
         key: 'discomfort_intensity',
         showIf: (a) => a.discomfort_areas.some((d) => d !== 'nenhum'),
         title: 'Qual a intensidade?',
+        help: 'Pense no pior momento, não na média.',
         choices: [
           { value: 'leve', label: 'Leve', hint: 'Incomoda, mas você joga normalmente.' },
           { value: 'moderada', label: 'Moderada', hint: 'Atrapalha alguns golpes ou encurta o treino.' },
           { value: 'forte', label: 'Forte', hint: 'Já te tirou da quadra, ou exigiu tratamento.' },
+        ],
+      },
+      {
+        kind: 'single',
+        key: 'string_budget',
+        optional: true,
+        title: 'Quanto você pretende investir na corda?',
+        help:
+          'Opcional. Uma tripa natural custa quatro a seis vezes um multifilamento e dura menos — ' +
+          'sem saber sua faixa, a gente estima pelo seu uso.',
+        choices: [
+          {
+            value: 'economico',
+            label: 'O mais econômico possível',
+            hint: 'Prioriza custo por encordoamento. Ainda escolhemos a melhor da faixa para você.',
+          },
+          {
+            value: 'equilibrado',
+            label: 'Custo-benefício',
+            hint: 'Paga um pouco mais por uma corda claramente melhor, dentro do razoável.',
+          },
+          {
+            value: 'sem_limite',
+            label: 'Quero a melhor, o preço é secundário',
+            hint: 'Abre a porta para tripa natural e para os poliésters de topo.',
+          },
+        ],
+      },
+      {
+        kind: 'single',
+        key: 'discomfort_from_tennis',
+        showIf: (a) => a.discomfort_areas.some((d) => d !== 'nenhum'),
+        title: 'Você associa esse desconforto ao tênis?',
+        help:
+          'Se a origem é outra, o equipamento continua sendo escolhido com cuidado — mas deixa de ' +
+          'ser tratado como a causa do problema.',
+        choices: [
+          {
+            value: 'sim',
+            label: 'Sim, apareceu jogando',
+            hint: 'Surge ou piora durante e depois de jogar.',
+          },
+          {
+            value: 'nao',
+            label: 'Não, veio de outra coisa',
+            hint: 'Academia, trabalho, uma lesão antiga sem relação com a quadra.',
+          },
+          {
+            value: 'nao_sei',
+            label: 'Não sei dizer',
+            hint: 'Não dá para separar as causas com segurança.',
+          },
         ],
       },
     ],

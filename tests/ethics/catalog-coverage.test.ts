@@ -114,6 +114,18 @@ const QUEBRAS: Fragment[] = [
   { string_breakage: 'semanalmente' },
 ];
 
+/**
+ * Orçamento é dimensão própria — sem ela, metade do catálogo fica fora de alcance na varredura.
+ *
+ * Foi o eixo que passou a permitir que tripa natural e multifilamentos de faixas diferentes fossem
+ * a resposta certa de alguém. Uma grade que não varia orçamento mede um mercado que não existe.
+ */
+const ORCAMENTOS: Fragment[] = [
+  {},
+  { string_budget: 'economico' },
+  { string_budget: 'sem_limite' },
+];
+
 function* grid(): Generator<Fragment> {
   for (const nivel of NIVEIS)
     for (const swing of SWINGS)
@@ -122,7 +134,17 @@ function* grid(): Generator<Fragment> {
           for (const objetivo of OBJETIVOS)
             for (const dor of DORES)
               for (const quebra of QUEBRAS)
-                yield { ...nivel, ...swing, ...fisico, ...estilo, ...objetivo, ...dor, ...quebra };
+                for (const orcamento of ORCAMENTOS)
+                  yield {
+                    ...nivel,
+                    ...swing,
+                    ...fisico,
+                    ...estilo,
+                    ...objetivo,
+                    ...dor,
+                    ...quebra,
+                    ...orcamento,
+                  };
 }
 
 const rackets = testRackets();
@@ -158,7 +180,7 @@ for (const fragment of grid()) {
 
 /** Pisos de regressão, abaixo da meta de curadoria (100%) e acima do medido hoje menos folga. */
 const MIN_RACKET_COVERAGE = 0.6;
-const MIN_STRING_COVERAGE = 0.7;
+const MIN_STRING_COVERAGE = 0.85;
 
 describe('cobertura de catálogo', () => {
   it('a varredura é grande o bastante para a conclusão significar alguma coisa', () => {
@@ -199,5 +221,56 @@ describe('cobertura de catálogo', () => {
   it('nenhuma corda concentra mais de um terço das recomendações', () => {
     const worst = [...stringCounts.entries()].sort((a, b) => b[1] - a[1])[0]!;
     expect(worst[1] / profiles, `${worst[0]} concentra ${worst[1]}/${profiles}`).toBeLessThan(0.34);
+  });
+});
+
+/**
+ * Nenhuma corda pode ser indistinguível de outra.
+ *
+ * ═══ POR QUE ISTO É REGRA, E NÃO META ════════════════════════════════════════════════════════
+ *
+ * Empate exato entre dois modelos não é um detalhe estatístico: é a garantia de que um deles nunca
+ * será a resposta de ninguém. O desempate por perfil (`tie-break.ts`) distribui os empates, mas
+ * distribuir empate é remendo — o certo é não haver empate, porque ele não existe em quadra. Quem
+ * joga percebe a diferença entre uma NXT e uma Xcel, e um sistema que afirma não haver diferença
+ * está errado sobre um fato, não sendo prudente sobre uma incerteza.
+ *
+ * A construção (tipo, formato, firmeza, durabilidade, tensão) não bastava para separá-las: seis
+ * grupos, dezesseis modelos com gêmeo exato. Os descritores de caráter — feel, launch, bite —
+ * existem para carregar o que as resenhas descrevem e a ficha técnica não registra.
+ */
+describe('diferenciação de catálogo', () => {
+  it('nenhum par de cordas tem o mesmo vetor de atributos', () => {
+    const byFingerprint = new Map<string, string[]>();
+
+    for (const model of strings.models) {
+      const a = model.base_attributes;
+      const fingerprint = [
+        a.control_score,
+        a.power_score,
+        a.spin_score,
+        a.comfort_score,
+        a.arm_friendliness_score,
+        a.durability_score,
+      ]
+        .map((v) => v.toFixed(2))
+        .join('/');
+
+      const list = byFingerprint.get(fingerprint) ?? [];
+      list.push(`${model.brand} ${model.model}`);
+      byFingerprint.set(fingerprint, list);
+    }
+
+    const ties = [...byFingerprint.values()].filter((l) => l.length > 1);
+    expect(ties, `grupos idênticos: ${ties.map((l) => l.join(' = ')).join(' | ')}`).toEqual([]);
+  });
+
+  it('cada corda declara para que serve', () => {
+    for (const model of strings.models) {
+      expect(
+        model.recommended_player_type?.length ?? 0,
+        `${model.brand} ${model.model} sem propósito declarado`,
+      ).toBeGreaterThan(0);
+    }
   });
 });

@@ -43,6 +43,40 @@ import type { StringBaseAttributes, StringShape, StringType } from '@/domain/str
 export type Firmness = 'very_soft' | 'soft' | 'medium' | 'firm' | 'very_firm';
 export type QualitativeLevel = 'low' | 'medium' | 'high';
 
+/**
+ * ═══ OS TRÊS DESCRITORES DE CARÁTER ══════════════════════════════════════════════════════════
+ *
+ * Tipo, formato, firmeza, durabilidade e manutenção de tensão descrevem a CONSTRUÇÃO da corda.
+ * Duas cordas podem coincidir nos cinco e ainda assim jogar diferente — e jogam: quem troca de
+ * corda percebe, e as resenhas descrevem a diferença com um vocabulário estável.
+ *
+ * Estes três capturam exatamente esse vocabulário:
+ *
+ *   `feel`    a resposta no impacto — abafada, seca, macia ou viva
+ *   `launch`  o ângulo natural de saída da bola — rasante, médio ou alto
+ *   `bite`    quanto a corda agarra e devolve a bola (snapback), além do que o formato explica
+ *
+ * ─── DE ONDE SAEM ESSES VALORES ────────────────────────────────────────────────────────────
+ *
+ * Da mesma lugar que os outros descritores: posicionamento do fabricante e resenhas técnicas. Eles
+ * são MENOS objetivos que peso e formato, e isso está registrado na procedência de cada modelo —
+ * `technical_review`, não `manufacturer`. O que eles NÃO são é invenção livre: "a Velocity MLT é a
+ * multifilamento de controle, segura tensão e não vira trampolim" e "a NXT é a mais macia da
+ * categoria" são afirmações que qualquer pessoa encontra repetidas nas mesmas fontes.
+ *
+ * ─── POR QUE ISTO PRECISOU EXISTIR ─────────────────────────────────────────────────────────
+ *
+ * Sem eles, seis grupos do catálogo tinham vetores idênticos — dezesseis modelos com gêmeo exato.
+ * Empate permanente significa que um dos gêmeos nunca é indicado a ninguém, e um catálogo com
+ * produtos que nunca são resposta de ninguém está mentindo sobre o próprio tamanho.
+ *
+ * O §6 continua intacto: nenhum score é digitado. Continuam sendo derivados — de um descritor a
+ * mais, que é conferível contra as mesmas fontes.
+ */
+export type Feel = 'muted' | 'crisp' | 'plush' | 'lively';
+export type Launch = 'low' | 'medium' | 'high';
+export type Bite = 'low' | 'medium' | 'high';
+
 export type StringDescriptors = {
   readonly string_type: StringType;
   readonly shape: StringShape | null;
@@ -50,6 +84,9 @@ export type StringDescriptors = {
   readonly firmness: Firmness;
   readonly durability: QualitativeLevel;
   readonly tension_maintenance: QualitativeLevel;
+  readonly feel: Feel;
+  readonly launch: Launch;
+  readonly bite: Bite;
 };
 
 /** Arquétipo por tipo de corda. Base física antes dos modificadores. */
@@ -74,15 +111,28 @@ const TYPE_ARCHETYPE: Record<StringType, StringBaseAttributes> = {
     tension_maintenance_score: 58,
     arm_friendliness_score: 34,
   },
+  /**
+   * NOTA DE CALIBRAÇÃO (v2.4.0): conforto e braço saíram de 88 para 76 e 74.
+   *
+   * Não é uma reavaliação da categoria — multifilamento continua sendo, depois da tripa, o que
+   * existe de mais macio. É espaço de manobra. Com a base em 88, qualquer firmeza macia somada a
+   * qualquer feel já estourava o teto de 100, e os SEIS multifilamentos do catálogo terminavam com
+   * conforto 100 e braço 100, idênticos, nos dois eixos que mais decidem nessa categoria. A
+   * diferenciação era calculada e jogada fora no clamp.
+   *
+   * Com a base mais baixa, os modificadores voltam a caber: a Rexis Comfort chega a 100, a
+   * Sensation a 98, NXT e Addiction a 95, a Velocity MLT a 91. A ordem passa a existir, e ela é a
+   * que as resenhas descrevem.
+   */
   multifilament: {
     power_score: 76,
     control_score: 54,
     spin_score: 44,
-    comfort_score: 88,
+    comfort_score: 76,
     stiffness_score: 28,
     durability_score: 38,
     tension_maintenance_score: 64,
-    arm_friendliness_score: 88,
+    arm_friendliness_score: 74,
   },
   synthetic_gut: {
     power_score: 64,
@@ -168,6 +218,38 @@ const FIRMNESS_MODIFIER: Record<Firmness, Partial<StringBaseAttributes>> = {
 
 const LEVEL_DELTA: Record<QualitativeLevel, number> = { low: -12, medium: 0, high: 12 };
 
+/**
+ * Deltas de caráter — deliberadamente MENORES que os de construção.
+ *
+ * Feel, launch e bite ajustam o retrato; eles não redefinem a corda. Um multifilamento de resposta
+ * seca continua sendo um multifilamento, e precisa continuar mais macio que qualquer poliéster.
+ * Por isso nenhum destes passa de 8 pontos: o suficiente para separar dois produtos que a
+ * construção não separa, insuficiente para atravessar a fronteira entre categorias.
+ */
+const FEEL_MODIFIER: Record<Feel, Partial<StringBaseAttributes>> = {
+  // Abafada: a bola sai sem informação de volta para a mão. Previsível, pouco elástica.
+  muted: { control_score: 5, power_score: -5, comfort_score: 3, tension_maintenance_score: 3 },
+  // Seca: resposta rápida e nítida, com menos amortecimento.
+  crisp: { control_score: 4, comfort_score: -5, arm_friendliness_score: -4, power_score: -2 },
+  // Acolchoada: o leito de cordas afunda no impacto. É o extremo do conforto.
+  plush: { comfort_score: 7, arm_friendliness_score: 8, control_score: -4, power_score: 3 },
+  // Viva: devolve energia, sensação de mola.
+  lively: { power_score: 7, comfort_score: 2, control_score: -5, tension_maintenance_score: -3 },
+};
+
+const LAUNCH_MODIFIER: Record<Launch, Partial<StringBaseAttributes>> = {
+  low: { control_score: 6, power_score: -6, spin_score: -3 },
+  medium: {},
+  high: { power_score: 6, spin_score: 4, control_score: -5 },
+};
+
+/** Snapback: o quanto as cordas escorregam e voltam, agarrando a bola. */
+const BITE_MODIFIER: Record<Bite, Partial<StringBaseAttributes>> = {
+  low: { spin_score: -6, durability_score: 4 },
+  medium: {},
+  high: { spin_score: 7, durability_score: -4 },
+};
+
 function applyModifier(
   base: StringBaseAttributes,
   mod: Partial<StringBaseAttributes>,
@@ -197,6 +279,9 @@ export function computeStringBaseAttributes(d: StringDescriptors): StringBaseAtt
     durability_score: LEVEL_DELTA[d.durability],
     tension_maintenance_score: LEVEL_DELTA[d.tension_maintenance],
   });
+  attrs = applyModifier(attrs, FEEL_MODIFIER[d.feel]);
+  attrs = applyModifier(attrs, LAUNCH_MODIFIER[d.launch]);
+  attrs = applyModifier(attrs, BITE_MODIFIER[d.bite]);
   return clampAll(attrs);
 }
 

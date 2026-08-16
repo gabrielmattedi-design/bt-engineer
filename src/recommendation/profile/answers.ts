@@ -71,10 +71,27 @@ export type QuestionnaireAnswers = {
     | null;
   string_breakage: 'nunca' | 'raramente' | 'a_cada_2_3_meses' | 'mensalmente' | 'semanalmente' | null;
   discomfort_areas: readonly string[];
-  /** Quando foi a última vez. Um desconforto de anos atrás não governa a recomendação de hoje. */
+  /** Ativo ou encerrado — a distinção que mais muda a recomendação. */
+  discomfort_status: 'atual' | 'passado' | null;
+  /**
+   * Quando foi a última vez. Só perguntado a quem respondeu `passado`.
+   *
+   * `agora` permanece no tipo porque questionários já respondidos usaram esse valor, e um perfil
+   * gravado não pode deixar de ser legível porque a pergunta mudou de forma.
+   */
   discomfort_when: 'agora' | 'ultimos_meses' | 'ano_passado' | 'ha_mais_tempo' | null;
   /** Intensidade. "Incomoda" e "me tira da quadra" pedem respostas muito diferentes. */
   discomfort_intensity: 'leve' | 'moderada' | 'forte' | null;
+  /**
+   * O desconforto veio do tênis?
+   *
+   * É o filtro que faltava. Um cotovelo machucado na academia não diz nada sobre a raquete estar
+   * errada; o mesmo cotovelo machucado jogando é o sinal mais forte do questionário. Sem esta
+   * pergunta os dois casos entravam idênticos no motor.
+   */
+  discomfort_from_tennis: 'sim' | 'nao' | 'nao_sei' | null;
+  /** Orçamento para a corda. Opcional — sem resposta, a necessidade é inferida do uso declarado. */
+  string_budget: 'economico' | 'equilibrado' | 'sem_limite' | null;
 
   // Etapa 7 — objetivo e texto livre
   /**
@@ -126,8 +143,11 @@ export function emptyAnswers(): QuestionnaireAnswers {
     current_tension_feeling: null,
     string_breakage: null,
     discomfort_areas: [],
+    discomfort_status: null,
     discomfort_when: null,
     discomfort_intensity: null,
+    discomfort_from_tennis: null,
+    string_budget: null,
     objective: [],
     player_name: null,
     free_text: null,

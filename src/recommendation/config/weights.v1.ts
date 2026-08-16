@@ -160,15 +160,31 @@ export const STRING_FIT_WEIGHTS: Readonly<Record<string, WeightEntry>> = {
       'Importa economicamente para quem quebra cordas com frequência, mas nunca deve sobrepor ' +
       'conforto ou controle. Menor peso do conjunto.',
   },
+  cost: {
+    weight: 0.12,
+    rationale:
+      'Sem este eixo o modelo só media dimensões em que a tripa natural vence, e a conclusão ' +
+      'coerente com ele seria mandar todo mundo comprar tripa. Peso próximo ao da durabilidade: ' +
+      'preço decide de verdade — quatro a seis vezes de diferença — mas nunca deve fazer alguém ' +
+      'com dor receber uma corda que castiga o braço por ser mais barata.',
+  },
 };
 
+/**
+ * Para quem relata desconforto, conforto e braço dominam — e o custo cai pela metade.
+ *
+ * É deliberado: economizar na corda é uma escolha legítima, mas não à custa de um cotovelo que já
+ * dói. Quem tem dor recebe a melhor corda para o braço dentro do que sobrou, e o preço volta a
+ * pesar só entre as que passam nesse critério.
+ */
 export const STRING_FIT_WEIGHTS_ARM_SENSITIVE: Readonly<Record<string, number>> = {
-  comfort: 0.28,
-  arm: 0.22,
-  control: 0.18,
-  spin: 0.14,
-  power: 0.11,
-  durability: 0.07,
+  comfort: 0.26,
+  arm: 0.2,
+  control: 0.16,
+  spin: 0.13,
+  power: 0.1,
+  durability: 0.09,
+  cost: 0.06,
 };
 
 /** Necessidades que os "sente falta de" elevam, por posição de prioridade (§14). */

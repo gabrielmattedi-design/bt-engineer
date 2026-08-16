@@ -68,6 +68,35 @@ export type RadarAxis = {
  */
 const ASK_TO_POSITION = 1.0;
 
+/**
+ * Distância de fit que ainda define uma opção CONSIDERÁVEL para este jogador.
+ *
+ * ═══ POR QUE O ALVO PRECISA DE UMA FRONTEIRA ═════════════════════════════════════════════════
+ *
+ * Reclamação do usuário, e ela estava certa: "o gráfico da raquete indicada precisa minimamente se
+ * parecer com o resultado das necessidades do teste".
+ *
+ * O alvo era um DESEJO SEM RESTRIÇÃO — posição de hoje mais o que o perfil pediu, sem passar por
+ * nenhuma checagem de existência. Um intermediário pedindo potência recebia alvo 90 num eixo em que
+ * toda raquete compatível com o resto do perfil dele vive entre 30 e 60. O laranja apontava para um
+ * lugar onde não há produto, o verde ficava onde há, e o gráfico parecia denunciar um erro do motor
+ * quando estava só desenhando um lugar vazio.
+ *
+ * O alvo passa a ser limitado pela FRONTEIRA DO POSSÍVEL: o melhor e o pior que se pode alcançar
+ * naquele eixo entre as raquetes que continuam sendo opções reais para este jogador — as que estão
+ * a menos de `VIABLE_FIT_GAP` do primeiro colocado. Não é o catálogo inteiro, porque o catálogo
+ * inteiro inclui frames que já foram descartados por peso, nível ou conforto, e apontar para eles
+ * seria apontar de novo para o vazio.
+ *
+ * ─── O QUE ISTO NÃO FAZ ────────────────────────────────────────────────────────────────────
+ *
+ * Não aproxima os polígonos por conveniência. Quando existe uma raquete viável bem melhor naquele
+ * eixo, a fronteira fica lá em cima e a distância continua aparecendo inteira — que é exatamente
+ * quando ela É informação. O que some é só a distância impossível de fechar, e essa some do gráfico
+ * porque ela já é dita em palavras nos pontos de atenção, onde cabe a explicação.
+ */
+const VIABLE_FIT_GAP = 12;
+
 const AXIS_LABEL_PT: Record<NeedKey, string> = {
   power: 'Potência',
   control: 'Controle',
@@ -113,6 +142,16 @@ export function buildRadar(
   bands: RecommendationResult['attribute_bands'],
   currentRacket: RankedRacket | null,
 ): readonly RadarAxis[] {
+  /**
+   * As opções que ainda estão em jogo para este jogador.
+   *
+   * Inclui sempre a vencedora, mesmo que o ranking venha vazio por algum caminho degenerado — sem
+   * isso a fronteira poderia excluir a própria raquete recomendada, e o alvo seria clampado para
+   * longe dela.
+   */
+  const viable = ranking.filter((r) => winner.fit_score - r.fit_score <= VIABLE_FIT_GAP);
+  const frontier = viable.length > 0 ? viable : [winner];
+
   return RADAR_AXES.filter((need) => NEED_KEYS.includes(need)).map((need) => {
     const attribute = NEED_TO_RACKET_ATTRIBUTE[need];
     const valueOf = (r: RankedRacket): number =>
@@ -136,12 +175,21 @@ export function buildRadar(
      * é o que faz "quero mais X" significar a mesma coisa para os dois.
      */
     const reference = currentPosition ?? catalogPosition;
-    const target = Math.round(
-      Math.max(
-        0,
-        Math.min(100, reference + profile.desired_change_vector[need] * ASK_TO_POSITION),
-      ),
-    );
+    const wish = reference + profile.desired_change_vector[need] * ASK_TO_POSITION;
+
+    /*
+      A fronteira é sempre alargada até incluir a raquete ATUAL do jogador.
+
+      Sem isso, alguém que já usa um frame mais extremo do que qualquer opção viável veria o alvo
+      puxado para trás da própria raquete só porque o topo do que sobrou é mais baixo — e o gráfico
+      diria "seu jogo pede menos potência do que você já tem" para quem acabou de pedir mais.
+    */
+    const positions = frontier.map((r) => position(bands, attribute, valueOf(r)));
+    if (currentPosition !== null) positions.push(currentPosition);
+
+    const reachableMax = Math.max(...positions);
+    const reachableMin = Math.min(...positions);
+    const target = Math.round(Math.max(reachableMin, Math.min(reachableMax, wish)));
 
     return {
       key: need,

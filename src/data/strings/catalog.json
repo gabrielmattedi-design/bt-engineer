@@ -1,5 +1,5 @@
 {
-  "data_version": "2026.08.2",
+  "data_version": "2026.08.4",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -8,7 +8,7 @@
     "notes": "Descritores de posicionamento do fabricante. AGUARDANDO verificação humana."
   },
   "integrity_note": "REGRA DE INTEGRIDADE: cada entrada em `variants` representa uma combinação marca+modelo+gauge que deve existir COMERCIALMENTE. Nunca adicionar um gauge por analogia com outro modelo da mesma linha. Se a corda não existe em 1.30, a variante 1.30 NÃO deve constar aqui — mesmo que 1.30 fosse tecnicamente ideal para algum perfil.",
-  "scores_note": "Os scores NÃO são digitados. São derivados dos descritores (string_type, shape, firmness, durability, tension_maintenance) por src/recommendation/normalize/string-attributes.ts. Ver §6: 'nunca atribuir scores subjetivos aleatoriamente'.",
+  "scores_note": "Os scores NÃO são digitados. São derivados dos descritores (string_type, shape, firmness, durability, tension_maintenance) por src/recommendation/normalize/string-attributes.ts. Ver §6: 'nunca atribuir scores subjetivos aleatoriamente'. Os descritores de carater (feel, launch, bite) vem de resenhas tecnicas e do posicionamento do fabricante, nao de medicao de laboratorio; sao menos objetivos que peso e formato e estao registrados como tal.",
   "strings": [
     {
       "brand": "Luxilon",
@@ -20,9 +20,9 @@
       "durability": "high",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "avancado",
         "competitivo",
-        "swing_rapido"
+        "controle",
+        "sensacao_seca"
       ],
       "variants": [
         {
@@ -35,7 +35,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "low",
+      "bite": "medium",
+      "price_tier": "premium"
     },
     {
       "brand": "Luxilon",
@@ -47,9 +51,9 @@
       "durability": "medium",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "intermediario",
+        "conforto",
         "sensibilidade_braco",
-        "conforto"
+        "absorcao_impacto"
       ],
       "variants": [
         {
@@ -62,7 +66,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "limited"
         }
-      ]
+      ],
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "low",
+      "price_tier": "mid"
     },
     {
       "brand": "Solinco",
@@ -74,8 +82,9 @@
       "durability": "high",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "intermediario_avancado",
-        "heavy_spin"
+        "spin",
+        "controle",
+        "competitivo"
       ],
       "variants": [
         {
@@ -93,7 +102,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "muted",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid"
     },
     {
       "brand": "Solinco",
@@ -105,9 +118,9 @@
       "durability": "high",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "avancado",
-        "heavy_spin",
-        "quebra_cordas"
+        "competitivo",
+        "spin",
+        "controle"
       ],
       "variants": [
         {
@@ -120,7 +133,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "widely_available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "low",
+      "bite": "high",
+      "price_tier": "mid"
     },
     {
       "brand": "Solinco",
@@ -132,9 +149,9 @@
       "durability": "medium",
       "tension_maintenance": "high",
       "recommended_player_type": [
-        "intermediario_avancado",
         "conforto",
-        "spin"
+        "spin",
+        "controle"
       ],
       "variants": [
         {
@@ -142,7 +159,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "muted",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid"
     },
     {
       "brand": "Babolat",
@@ -154,91 +175,6 @@
       "durability": "high",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "intermediario_avancado",
-        "heavy_spin"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.2,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "widely_available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "widely_available"
-        }
-      ]
-    },
-    {
-      "brand": "Babolat",
-      "model": "Xcel",
-      "string_type": "multifilament",
-      "material": "multifilamento de poliamida",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "iniciante",
-        "intermediario",
-        "sensibilidade_braco"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "widely_available"
-        }
-      ]
-    },
-    {
-      "brand": "Babolat",
-      "model": "Addiction",
-      "string_type": "multifilament",
-      "material": "multifilamento",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "iniciante",
-        "conforto"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ]
-    },
-    {
-      "brand": "HEAD",
-      "model": "Lynx Tour",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento",
-      "shape": "pentagonal",
-      "firmness": "medium",
-      "durability": "high",
-      "tension_maintenance": "high",
-      "recommended_player_type": [
-        "intermediario_avancado",
         "spin",
         "controle"
       ],
@@ -256,13 +192,47 @@
         {
           "gauge_mm": 1.3,
           "gauge_us": "16",
-          "brazil_availability_status": "available"
+          "brazil_availability_status": "widely_available"
         }
-      ]
+      ],
+      "feel": "muted",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "premium"
     },
     {
-      "brand": "HEAD",
-      "model": "Velocity MLT",
+      "brand": "Babolat",
+      "model": "Xcel",
+      "string_type": "multifilament",
+      "material": "multifilamento de poliamida",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "low",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "conforto",
+        "potencia"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
+      ],
+      "feel": "lively",
+      "launch": "high",
+      "bite": "medium",
+      "price_tier": "mid"
+    },
+    {
+      "brand": "Babolat",
+      "model": "Addiction",
       "string_type": "multifilament",
       "material": "multifilamento",
       "shape": "round",
@@ -270,9 +240,9 @@
       "durability": "low",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "iniciante",
-        "intermediario",
-        "sensibilidade_braco"
+        "conforto",
+        "potencia",
+        "spin"
       ],
       "variants": [
         {
@@ -285,21 +255,25 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "plush",
+      "launch": "high",
+      "bite": "high",
+      "price_tier": "budget"
     },
     {
-      "brand": "Yonex",
-      "model": "Poly Tour Pro",
+      "brand": "HEAD",
+      "model": "Lynx Tour",
       "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento com camada de silicone",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "medium",
+      "material": "co-poliéster monofilamento",
+      "shape": "pentagonal",
+      "firmness": "medium",
+      "durability": "high",
       "tension_maintenance": "high",
       "recommended_player_type": [
-        "intermediario",
-        "conforto",
-        "controle"
+        "controle",
+        "spin",
+        "manutencao_tensao"
       ],
       "variants": [
         {
@@ -317,7 +291,79 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid"
+    },
+    {
+      "brand": "HEAD",
+      "model": "Velocity MLT",
+      "string_type": "multifilament",
+      "material": "multifilamento",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "low",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "conforto",
+        "controle",
+        "manutencao_tensao"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ],
+      "feel": "muted",
+      "launch": "low",
+      "bite": "low",
+      "price_tier": "mid"
+    },
+    {
+      "brand": "Yonex",
+      "model": "Poly Tour Pro",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento com camada de silicone",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "medium",
+      "tension_maintenance": "high",
+      "recommended_player_type": [
+        "controle",
+        "spin",
+        "conforto",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ],
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid"
     },
     {
       "brand": "Yonex",
@@ -329,9 +375,9 @@
       "durability": "high",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "avancado",
-        "quebra_cordas",
-        "controle"
+        "competitivo",
+        "controle",
+        "resposta_abafada"
       ],
       "variants": [
         {
@@ -344,7 +390,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "muted",
+      "launch": "low",
+      "bite": "medium",
+      "price_tier": "premium"
     },
     {
       "brand": "Yonex",
@@ -356,8 +406,8 @@
       "durability": "low",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "sensibilidade_braco",
-        "conforto"
+        "conforto_maximo",
+        "sensibilidade_braco"
       ],
       "variants": [
         {
@@ -365,7 +415,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid"
     },
     {
       "brand": "Wilson",
@@ -377,9 +431,8 @@
       "durability": "low",
       "tension_maintenance": "high",
       "recommended_player_type": [
-        "iniciante",
-        "intermediario",
-        "conforto"
+        "conforto_maximo",
+        "sensibilidade_braco"
       ],
       "variants": [
         {
@@ -392,7 +445,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "widely_available"
         }
-      ]
+      ],
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "low",
+      "price_tier": "mid"
     },
     {
       "brand": "Wilson",
@@ -404,8 +461,9 @@
       "durability": "medium",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "intermediario",
-        "spin"
+        "spin",
+        "potencia",
+        "custo_beneficio"
       ],
       "variants": [
         {
@@ -418,7 +476,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "lively",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid"
     },
     {
       "brand": "Wilson",
@@ -430,8 +492,9 @@
       "durability": "medium",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "iniciante",
-        "custo_beneficio"
+        "custo_beneficio",
+        "potencia",
+        "iniciante"
       ],
       "variants": [
         {
@@ -439,7 +502,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "widely_available"
         }
-      ]
+      ],
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "budget"
     },
     {
       "brand": "Babolat",
@@ -462,7 +529,11 @@
           "brazil_availability_status": "limited",
           "commercial_availability_note": "Importação frequente; disponibilidade e preço variam bastante no Brasil."
         }
-      ]
+      ],
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "ultra"
     },
     {
       "brand": "Solinco",
@@ -500,7 +571,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "plush",
+      "launch": "high",
+      "bite": "high",
+      "price_tier": "premium"
     },
     {
       "brand": "Luxilon",
@@ -514,7 +589,7 @@
       "recommended_player_type": [
         "competitivo",
         "controle",
-        "durabilidade"
+        "manutencao_tensao"
       ],
       "variants": [
         {
@@ -527,7 +602,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "muted",
+      "launch": "low",
+      "bite": "low",
+      "price_tier": "premium"
     },
     {
       "brand": "Luxilon",
@@ -549,7 +628,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "premium"
     },
     {
       "brand": "Yonex",
@@ -580,7 +663,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid"
     },
     {
       "brand": "Yonex",
@@ -606,7 +693,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "mid"
     },
     {
       "brand": "HEAD",
@@ -618,9 +709,9 @@
       "durability": "medium",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "conforto",
         "controle",
-        "sensibilidade_braco"
+        "precisao",
+        "conforto"
       ],
       "variants": [
         {
@@ -633,7 +724,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "muted",
+      "launch": "low",
+      "bite": "low",
+      "price_tier": "mid"
     },
     {
       "brand": "Solinco",
@@ -660,7 +755,11 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid"
     },
     {
       "brand": "Babolat",
@@ -672,8 +771,8 @@
       "durability": "medium",
       "tension_maintenance": "medium",
       "recommended_player_type": [
-        "conforto",
         "spin",
+        "conforto",
         "sensibilidade_braco"
       ],
       "variants": [
@@ -687,7 +786,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "lively",
+      "launch": "high",
+      "bite": "high",
+      "price_tier": "mid"
     },
     {
       "brand": "Wilson",
@@ -701,7 +804,6 @@
       "recommended_player_type": [
         "conforto",
         "potencia",
-        "sensibilidade_braco",
         "custo_beneficio"
       ],
       "variants": [
@@ -715,7 +817,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "budget"
     },
     {
       "brand": "HEAD",
@@ -728,7 +834,8 @@
       "tension_maintenance": "medium",
       "recommended_player_type": [
         "custo_beneficio",
-        "iniciante"
+        "iniciante",
+        "durabilidade"
       ],
       "variants": [
         {
@@ -736,7 +843,11 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ]
+      ],
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "budget"
     },
     {
       "brand": "Wilson",
@@ -749,7 +860,7 @@
       "tension_maintenance": "high",
       "recommended_player_type": [
         "conforto_maximo",
-        "sensibilidade_braco",
+        "potencia",
         "competitivo"
       ],
       "variants": [
@@ -759,7 +870,11 @@
           "brazil_availability_status": "limited",
           "commercial_availability_note": "Importação frequente; disponibilidade e preço variam bastante no Brasil."
         }
-      ]
+      ],
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "ultra"
     }
   ]
 }

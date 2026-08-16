@@ -46,6 +46,9 @@ export const STIFF_STRING_TYPES: readonly StringType[] = ['polyester', 'co_polye
 
 export type StringShape = 'round' | 'pentagonal' | 'hexagonal' | 'textured' | 'square';
 
+/** Faixa de preço praticada no varejo brasileiro, por set. */
+export type PriceTier = 'budget' | 'mid' | 'premium' | 'ultra';
+
 /** Características do MODELO. A variante ajusta estes valores pelo gauge (§3.1). */
 export type StringBaseAttributes = {
   readonly power_score: Score;
@@ -68,6 +71,16 @@ export type StringModel = {
   readonly shape: StringShape | null;
   readonly base_attributes: StringBaseAttributes;
   readonly recommended_player_type: readonly string[];
+  /**
+   * Faixa de preço no varejo brasileiro.
+   *
+   * Existe porque sem ela o modelo estava errado sobre um fato: a tripa natural DOMINA todos os
+   * multifilamentos em conforto, potência, sensação e manutenção de tensão — e domina de verdade,
+   * isso não é artefato. O que a tripa perde é preço e resistência à umidade, e nenhum dos dois
+   * estava no modelo. O resultado era um motor que, levado a sério, mandaria todo mundo comprar
+   * tripa, e cinco multifilamentos que nunca poderiam ser a resposta de ninguém.
+   */
+  readonly price_tier: PriceTier;
   readonly provenance: ProvenanceMap;
 };
 
