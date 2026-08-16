@@ -18,13 +18,35 @@ import { clamp } from '@/domain/scores';
 import { METHODOLOGY_VERSION } from '@/domain/reference-ranges';
 import type { StringBaseAttributes, StringShape, StringType } from '@/domain/string';
 
-export type Firmness = 'soft' | 'medium' | 'firm';
+/**
+ * Firmeza em CINCO níveis.
+ *
+ * ═══ POR QUE TRÊS NÃO BASTAVAM ═══════════════════════════════════════════════════════════════
+ *
+ * Com `soft | medium | firm`, os descritores admitiam 3 × 3 × 3 × 5 combinações por tipo — e o
+ * mercado real de poliésters não cabe nisso. A consequência era medida e visível: cordas
+ * diferentes recebiam vetores IDÊNTICOS, empatavam para sempre e sumiam do relatório.
+ *
+ * O caso que forçou a mudança: a Solinco Mach-10 é descrita pelas fontes com rigidez de 160–180
+ * lb/in contra 200–220 de um poliéster comum — ou seja, ela é bem mais macia do que a Confidential,
+ * que também é "soft". Com três níveis as duas caem no mesmo balde, com o mesmo formato pentagonal
+ * e a mesma manutenção de tensão alta, e o motor passa a tratá-las como o mesmo produto. O
+ * vocabulário, não a fórmula, era o teto da análise.
+ *
+ * Cinco níveis é o que as fontes sustentam. As resenhas ordenam maciez de forma consistente e
+ * comparativa — "mais macia que a RPM Blast", "entre a RPM Power e a Hyper-G", "muito mais rígida
+ * que a ALU Power" —, e ordenação relativa é exatamente o que um nível a mais para cada lado
+ * expressa. Não inventamos número de laboratório: continuamos afirmando só o que dá para conferir.
+ *
+ * O §6 segue valendo: nenhum score é digitado. O que mudou é a resolução do descritor de entrada.
+ */
+export type Firmness = 'very_soft' | 'soft' | 'medium' | 'firm' | 'very_firm';
 export type QualitativeLevel = 'low' | 'medium' | 'high';
 
 export type StringDescriptors = {
   readonly string_type: StringType;
   readonly shape: StringShape | null;
-  /** Posicionamento do fabricante quanto à sensação: macia, média ou firme. */
+  /** Posicionamento do fabricante e das resenhas quanto à sensação, em cinco graus. */
   readonly firmness: Firmness;
   readonly durability: QualitativeLevel;
   readonly tension_maintenance: QualitativeLevel;
@@ -103,7 +125,23 @@ const SHAPE_MODIFIER: Record<string, Partial<StringBaseAttributes>> = {
   textured: { spin_score: 8, control_score: 2, durability_score: -4, comfort_score: -2 },
 };
 
+/**
+ * Os dois níveis extremos ESTENDEM a escala, não a reescalam.
+ *
+ * `soft`, `medium` e `firm` mantêm exatamente os valores que já tinham: toda corda já classificada
+ * continua com os mesmos scores, e a comparação com relatórios antigos segue de pé. `very_soft` e
+ * `very_firm` acrescentam um degrau adiante de cada ponta, com passo próximo ao anterior — não o
+ * dobro, porque a diferença entre uma poli macia e uma poli muito macia é real e é menor do que a
+ * diferença entre macia e média.
+ */
 const FIRMNESS_MODIFIER: Record<Firmness, Partial<StringBaseAttributes>> = {
+  very_soft: {
+    comfort_score: 20,
+    arm_friendliness_score: 21,
+    stiffness_score: -26,
+    control_score: -10,
+    power_score: 11,
+  },
   soft: {
     comfort_score: 12,
     arm_friendliness_score: 12,
@@ -118,6 +156,13 @@ const FIRMNESS_MODIFIER: Record<Firmness, Partial<StringBaseAttributes>> = {
     stiffness_score: 10,
     control_score: 5,
     power_score: -5,
+  },
+  very_firm: {
+    comfort_score: -14,
+    arm_friendliness_score: -15,
+    stiffness_score: 18,
+    control_score: 9,
+    power_score: -9,
   },
 };
 

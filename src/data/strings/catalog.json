@@ -1,5 +1,5 @@
 {
-  "data_version": "2026.08.0",
+  "data_version": "2026.08.2",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -352,7 +352,7 @@
       "string_type": "multifilament",
       "material": "multifilamento com núcleo de poliuretano",
       "shape": "round",
-      "firmness": "soft",
+      "firmness": "very_soft",
       "durability": "low",
       "tension_maintenance": "medium",
       "recommended_player_type": [
@@ -447,7 +447,304 @@
       "string_type": "natural_gut",
       "material": "tripa natural bovina",
       "shape": "round",
+      "firmness": "very_soft",
+      "durability": "medium",
+      "tension_maintenance": "high",
+      "recommended_player_type": [
+        "conforto_maximo",
+        "sensibilidade_braco",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "limited",
+          "commercial_availability_note": "Importação frequente; disponibilidade e preço variam bastante no Brasil."
+        }
+      ]
+    },
+    {
+      "brand": "Solinco",
+      "model": "Mach-10",
+      "string_type": "co_polyester",
+      "material": "co-poliéster com aditivo CloudFORM",
+      "shape": "pentagonal",
+      "firmness": "very_soft",
+      "durability": "medium",
+      "tension_maintenance": "high",
+      "recommended_player_type": [
+        "conforto",
+        "spin",
+        "potencia",
+        "sensibilidade_braco"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.15,
+          "gauge_us": "18",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Luxilon",
+      "model": "4G",
+      "string_type": "co_polyester",
+      "material": "co-poliéster",
+      "shape": "round",
+      "firmness": "very_firm",
+      "durability": "high",
+      "tension_maintenance": "high",
+      "recommended_player_type": [
+        "competitivo",
+        "controle",
+        "durabilidade"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Luxilon",
+      "model": "ALU Power Rough",
+      "string_type": "co_polyester",
+      "material": "co-poliéster de alumínio",
+      "shape": "textured",
+      "firmness": "firm",
+      "durability": "high",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "competitivo",
+        "spin",
+        "controle"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Yonex",
+      "model": "Poly Tour Rev",
+      "string_type": "co_polyester",
+      "material": "poliéster",
+      "shape": "pentagonal",
+      "firmness": "medium",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "spin",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Yonex",
+      "model": "Poly Tour Fire",
+      "string_type": "co_polyester",
+      "material": "poliéster",
+      "shape": "round",
+      "firmness": "medium",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "potencia",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "HEAD",
+      "model": "Hawk Touch",
+      "string_type": "co_polyester",
+      "material": "co-poliéster",
+      "shape": "round",
       "firmness": "soft",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "conforto",
+        "controle",
+        "sensibilidade_braco"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Solinco",
+      "model": "Tour Bite Soft",
+      "string_type": "co_polyester",
+      "material": "co-poliéster",
+      "shape": "square",
+      "firmness": "soft",
+      "durability": "high",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "spin",
+        "controle",
+        "conforto"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "RPM Soft",
+      "string_type": "co_polyester",
+      "material": "co-poliéster",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "conforto",
+        "spin",
+        "sensibilidade_braco"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Wilson",
+      "model": "Sensation",
+      "string_type": "multifilament",
+      "material": "multifilamento de nylon",
+      "shape": "round",
+      "firmness": "very_soft",
+      "durability": "low",
+      "tension_maintenance": "low",
+      "recommended_player_type": [
+        "conforto",
+        "potencia",
+        "sensibilidade_braco",
+        "custo_beneficio"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "HEAD",
+      "model": "Synthetic Gut PPS",
+      "string_type": "synthetic_gut",
+      "material": "nylon com núcleo PPS",
+      "shape": "round",
+      "firmness": "medium",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "recommended_player_type": [
+        "custo_beneficio",
+        "iniciante"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Wilson",
+      "model": "Natural Gut",
+      "string_type": "natural_gut",
+      "material": "tripa natural bovina",
+      "shape": "round",
+      "firmness": "very_soft",
       "durability": "medium",
       "tension_maintenance": "high",
       "recommended_player_type": [
