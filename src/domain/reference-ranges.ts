@@ -17,7 +17,7 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-export const METHODOLOGY_VERSION = '2.0.0';
+export const METHODOLOGY_VERSION = '2.1.0';
 
 export type Range = readonly [lo: number, hi: number];
 
@@ -75,8 +75,32 @@ export const HYBRID_CROSS_OFFSET_LBS = 2;
 /** Diferença de fit abaixo da qual duas raquetes são um empate técnico (§23, §62). */
 export const TECHNICAL_TIE_THRESHOLD = 2.0;
 
-/** Fit mínimo para ocupar posição no pódio (regra ética do §30). */
+/**
+ * Fit mínimo para ocupar a SEGUNDA e a TERCEIRA posição do pódio (regra ética do §30).
+ *
+ * Não se aplica ao primeiro colocado: ver a explicação em `selectPodium`. O §30 proíbe acrescentar
+ * opções fracas para viabilizar o upsell, não entregar a melhor opção que existe.
+ */
 export const MIN_PODIUM_FIT = 75;
+
+/**
+ * Fit que o produto se propõe a entregar ao primeiro colocado de QUALQUER perfil.
+ *
+ * É uma meta de calibração, verificada pela matriz de personas — não uma trava de execução. Se o
+ * motor não a atinge para algum perfil, o defeito é do motor ou do catálogo, e o lugar de corrigir
+ * é lá. Inflar o número exibido para alcançá-la seria mentir sobre a qualidade da recomendação,
+ * que é justamente o que este produto vende.
+ */
+export const TARGET_TOP_MATCH = 80;
+
+/**
+ * Piso absoluto do primeiro colocado, verificado em teste.
+ *
+ * Fica abaixo de `TARGET_TOP_MATCH` porque existem perfis cujo pedido é internamente
+ * contraditório — mais estabilidade E mais manobrabilidade, que puxam a massa em direções opostas.
+ * Para eles a melhor raquete do mercado ainda deixa algo por atender, e o número honesto é menor.
+ */
+export const MIN_TOP_MATCH = 75;
 
 /** Abaixo disto a variante não tem dados suficientes para uma recomendação paga. */
 export const MIN_DATA_COMPLETENESS = 0.85;

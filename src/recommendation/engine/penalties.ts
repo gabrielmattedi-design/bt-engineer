@@ -6,10 +6,12 @@
  * do admin e alimenta a lista de "pontos de atenção" do relatório.
  */
 
-import { round } from '@/domain/scores';
+import { clamp, round } from '@/domain/scores';
 import type { ScoredRacket } from '@/domain/racket';
-import type { PlayerProfile } from '@/domain/player-profile';
+import type { NeedKey, PlayerProfile } from '@/domain/player-profile';
+import { NEED_KEYS, NEED_TO_RACKET_ATTRIBUTE } from '@/domain/player-profile';
 import type { Penalty } from '@/domain/recommendation';
+import type { CatalogScale, ScaleKey } from './catalog-scale';
 import {
   computeSwingIndex,
   humanizeMissingFields,
@@ -18,10 +20,32 @@ import {
 } from '@/recommendation/normalize/racket-attributes';
 import { STIFF_BEAM_THRESHOLD_MM } from '@/domain/reference-ranges';
 
+/** Rótulos em português dos eixos de necessidade, para as frases de penalização. */
+const NEED_LABEL_PT: Record<NeedKey, string> = {
+  power: 'potência',
+  control: 'controle',
+  spin: 'spin',
+  comfort: 'conforto',
+  stability: 'estabilidade',
+  maneuverability: 'manobrabilidade',
+  forgiveness: 'tolerância a impactos descentralizados',
+  precision: 'precisão',
+};
+
+/** Abaixo desta intensidade o pedido é uma preferência, não um requisito — P6 não se aplica. */
+const STRONG_ASK = 20;
+
+/** Intensidade máxima possível de um pedido (§3.4). */
+const MAX_ASK = 40;
+
 export function computePenalties(
   profile: PlayerProfile,
   racket: ScoredRacket,
   referencePower: number | null,
+  context?: {
+    readonly reference: Readonly<Record<NeedKey, number>>;
+    readonly scale: CatalogScale;
+  },
 ): Penalty[] {
   const penalties: Penalty[] = [];
   const { attributes, variant } = racket;
@@ -101,8 +125,74 @@ export function computePenalties(
     }
   }
 
-  // P6 — conflito com o objetivo declarado.
-  if (referencePower !== null) {
+  /**
+   * P6 — o frame anda na direção CONTRÁRIA a um objetivo declarado com força.
+   *
+   * ─── POR QUE UMA PENALIZAÇÃO, E NÃO SÓ UM COMPONENTE BAIXO ───────────────────────────────
+   *
+   * `objective_fit` já mede a direção, mas ele é uma MÉDIA com peso 0.16: um frame que acerta
+   * tudo o mais compensa facilmente o objetivo e sobe ao topo mesmo contradizendo o único pedido
+   * que a pessoa fez. Foi exatamente o que passou a acontecer com a persona 5, que pede mais
+   * estabilidade na intensidade máxima e recebia um frame MENOS estável que o dela.
+   *
+   * Recomendar o contrário do que foi pedido não é um trade-off aceitável — é a falha mais
+   * visível que este produto pode cometer, e quem paga percebe na primeira leitura. A penalização
+   * existe para que nenhum outro componente possa comprá-la de volta.
+   *
+   * A regra vale para os OITO eixos. Antes cobria apenas potência e controle, o que deixava
+   * estabilidade, manobrabilidade, spin, conforto, tolerância e precisão sem proteção alguma.
+   */
+  const { reference, scale } = context ?? {};
+  if (reference && scale) {
+    /**
+     * Só o PIOR conflito é cobrado, nunca a soma.
+     *
+     * Perfis com objetivos que se opõem entre si — mais estabilidade E mais manobrabilidade —
+     * contrariam necessariamente algum eixo, faça o motor o que fizer. Somar uma penalização por
+     * eixo cobraria da raquete a contradição do pedido, e ainda por cima de forma cumulativa: a
+     * pessoa com o perfil mais difícil receberia a maior punição, que é o incentivo invertido.
+     *
+     * Um conflito é a mensagem; cinco conflitos continuam sendo a mesma mensagem.
+     */
+    let worst: { points: number; reason: string } | null = null;
+
+    for (const need of NEED_KEYS) {
+      const desired = profile.desired_change_vector[need];
+      if (Math.abs(desired) < STRONG_ASK) continue;
+
+      const attrKey = NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey;
+      const value = attributes[attrKey as keyof typeof attributes] as number;
+      const moved =
+        (scale.position(attrKey, value) - scale.position(attrKey, reference[need])) *
+        Math.sign(desired);
+      const strength = clamp(Math.abs(desired) / MAX_ASK, 0, 1);
+
+      /**
+       * A penalização cobre CONTRADIÇÃO, não estagnação — zona morta de 3 pontos, que absorve
+       * diferenças imperceptíveis em quadra.
+       *
+       * Exigir movimento POSITIVO num pedido de intensidade máxima foi testado e descartado: como
+       * a estagnação costuma atingir todas as candidatas ao mesmo tempo, a regra derrubava o score
+       * do ranking inteiro sem reordenar nada — punia o usuário por uma limitação do catálogo em
+       * vez de escolher melhor para ele. Não entregar avanço já aparece em `objective_fit`, que é
+       * o lugar certo: lá é um componente proporcional, e não um desconto sobre todo mundo.
+       */
+      if (moved >= -3) continue;
+
+      const points = Math.min(Math.abs(moved) * 0.8, 25) * strength;
+      if (worst === null || points > worst.points) {
+        worst = {
+          points,
+          reason:
+            `Você pediu mais ${NEED_LABEL_PT[need]}, mas este frame vai na direção contrária ` +
+            `à da sua referência.`,
+        };
+      }
+    }
+
+    if (worst) push('P6_objective_conflict', worst.points, worst.reason);
+  } else if (referencePower !== null) {
+    // Sem a escala do catálogo (chamada legada), resta a checagem original sobre potência.
     const wantsControl = profile.desired_change_vector.control > 10;
     const wantsPower = profile.desired_change_vector.power > 10;
     if (wantsControl && attributes.power_score > referencePower + 15) {

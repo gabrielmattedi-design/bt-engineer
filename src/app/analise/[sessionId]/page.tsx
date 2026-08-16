@@ -21,12 +21,19 @@ export default async function AnalisePage({
   if (!teaser) notFound();
 
   /**
-   * Estado honesto: nenhuma raquete sobreviveu aos filtros.
+   * Estado honesto: nenhuma raquete sobreviveu aos FILTROS DUROS.
    *
    * Acontece quando o catálogo está em modo estrito e ainda não foi verificado (a trava de
    * release fazendo seu trabalho — docs/DATA_SOURCING.md §3). Nesse caso NÃO oferecemos um
    * relatório para venda. Vender uma análise que não temos como sustentar seria exatamente o que
    * o §62 proíbe.
+   *
+   * ⚠️ Esta tela NÃO deve aparecer por score baixo. Já apareceu: enquanto `selectPodium` aplicava
+   * `MIN_PODIUM_FIT` também ao primeiro colocado, um perfil legítimo cujo melhor fit era 74
+   * chegava aqui depois de o motor avaliar 46 raquetes — e o rodapé exibia "46 raquetes
+   * elegíveis" logo abaixo de "não podemos recomendar", que é a própria contradição. Hoje o pódio
+   * só é vazio quando `full_ranking` é vazio, e aí o texto abaixo é literalmente verdadeiro.
+   * Trancado por tests/ethics/always-recommendable.test.ts.
    */
   if (teaser.matches_found === 0) {
     return (

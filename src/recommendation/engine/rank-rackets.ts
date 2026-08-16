@@ -34,6 +34,7 @@ import {
   swingFit,
   transitionFit,
 } from './fit-components';
+import { buildCatalogScale, type CatalogScale } from './catalog-scale';
 import { applyHardFilters, type FilterMode } from './hard-filters';
 import { computePenalties } from './penalties';
 
@@ -118,6 +119,51 @@ function explainBreakdown(
   return { gained, lost };
 }
 
+/**
+ * Reescala `objective_fit` contra o que é ALCANÇÁVEL, não contra o que foi pedido.
+ *
+ * ─── O PROBLEMA ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Objetivos declarados frequentemente se opõem entre si dentro da física da raquete: mais controle
+ * e mais spin puxam o padrão de cordas em direções contrárias; mais estabilidade e mais
+ * manobrabilidade puxam a massa. Quando isso acontece, NENHUMA raquete do catálogo consegue um
+ * `objective_fit` alto — para o júnior avançado (p09) o teto era 64 em 46 raquetes avaliadas.
+ *
+ * Cobrar da recomendação uma contradição que estava no próprio pedido não informa nada: o usuário
+ * via um score baixo sem que existisse escolha melhor. É o mesmo defeito de teto inalcançável que
+ * `catalog-scale.ts` corrige nos outros componentes, só que aqui o teto varia por PERFIL, e por
+ * isso precisa ser medido sobre o ranking em vez de sair da escala do catálogo.
+ *
+ * ─── O QUE CONTINUA SENDO DITO ───────────────────────────────────────────────────────────────
+ *
+ * A reescala é linear e monotônica: a ordem entre as raquetes não muda, nenhuma ultrapassa outra.
+ * E os TERMOS do componente continuam trazendo o número cru, eixo por eixo ("entregue −64% do
+ * espaço disponível") — que é o que o relatório mostra ao usuário e o que a auditoria do admin lê.
+ * O conflito não some; ele deixa de ser cobrado da raquete que não tinha como resolvê-lo.
+ */
+function objectiveRescaler(
+  outputs: readonly (readonly { key: ComponentKey; raw: number }[])[],
+): (raw: number) => number {
+  let lo = Number.POSITIVE_INFINITY;
+  let hi = Number.NEGATIVE_INFINITY;
+
+  for (const row of outputs) {
+    for (const o of row) {
+      if (o.key !== 'objective_fit') continue;
+      if (o.raw < lo) lo = o.raw;
+      if (o.raw > hi) hi = o.raw;
+    }
+  }
+
+  // Faixa inexistente ou já saudável: não mexe. Reescalar uma faixa estreita perto do topo só
+  // amplificaria ruído, e o componente já está dizendo "todas entregam mais ou menos o mesmo".
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi - lo < 1 || hi >= 95) {
+    return (raw) => raw;
+  }
+
+  return (raw) => clamp(lo + ((raw - lo) * (100 - lo)) / (hi - lo), 0, 100);
+}
+
 export type RankOptions = {
   readonly mode?: FilterMode;
   /** Raquete atual já pontuada, quando reconhecida no catálogo. Habilita transição e referência. */
@@ -132,6 +178,7 @@ export type RankResult = {
   readonly candidates_evaluated: number;
   readonly weights: Readonly<Record<ComponentKey, number>>;
   readonly reference: Readonly<Record<NeedKey, number>>;
+  readonly scale: CatalogScale;
 };
 
 export function rankRackets(
@@ -142,6 +189,13 @@ export function rankRackets(
   const mode = options.mode ?? 'strict';
   const { kept, excluded } = applyHardFilters(catalog, profile, mode);
 
+  /**
+   * A régua sai do catálogo COMPLETO, antes dos filtros duros — ver `catalog-scale.ts`. Se saísse
+   * de `kept`, cada perfil teria sua própria escala e dois usuários veriam percentuais que não
+   * podem ser comparados entre si.
+   */
+  const scale = buildCatalogScale(catalog);
+
   const weights = resolveWeights(profile);
   const reference = options.currentRacket
     ? currentRacketReference(options.currentRacket)
@@ -150,16 +204,22 @@ export function rankRackets(
     ? options.currentRacket.attributes.power_score
     : (reference.power ?? null);
 
-  const scored = kept.map((racket) => {
-    const outputs = [
-      physicalFit(profile, racket),
-      skillFit(profile, racket),
-      swingFit(profile, racket),
-      playstyleFit(profile, racket),
-      objectiveFit(profile, racket, reference),
-      comfortFit(profile, racket),
-      transitionFit(profile, racket),
-    ];
+  const rawOutputs = kept.map((racket) => [
+    physicalFit(profile, racket, scale),
+    skillFit(profile, racket, scale),
+    swingFit(profile, racket, scale),
+    playstyleFit(profile, racket, scale),
+    objectiveFit(profile, racket, reference, scale),
+    comfortFit(profile, racket, scale),
+    transitionFit(profile, racket),
+  ]);
+
+  const rescaleObjective = objectiveRescaler(rawOutputs);
+
+  const scored = kept.map((racket, racketIndex) => {
+    const outputs = rawOutputs[racketIndex]!.map((o) =>
+      o.key === 'objective_fit' ? { ...o, raw: rescaleObjective(o.raw) } : o,
+    );
 
     const components: ComponentBreakdown[] = outputs.map((o) => {
       const weight = weights[o.key];
@@ -167,7 +227,7 @@ export function rankRackets(
     });
 
     const weightedSum = components.reduce((s, c) => s + c.raw * c.weight, 0);
-    const penalties = computePenalties(profile, racket, referencePower);
+    const penalties = computePenalties(profile, racket, referencePower, { reference, scale });
     const penaltyTotal = penalties.reduce((s, p) => s + p.points, 0);
     const finalScore = clamp(weightedSum - penaltyTotal, 0, 100);
     const { gained, lost } = explainBreakdown(components, penalties);
@@ -210,6 +270,7 @@ export function rankRackets(
     candidates_evaluated: kept.length,
     weights,
     reference,
+    scale,
   };
 }
 
@@ -219,8 +280,21 @@ export function rankRackets(
  * Duas variantes da mesma família ocupando o pódio raramente ajudam o usuário — exceto quando a
  * diferença entre elas É o eixo do objetivo declarado (peso), caso em que a comparação é informativa.
  *
- * Só entram raquetes com fit ≥ MIN_PODIUM_FIT: a regra ética do §30 proíbe encher o pódio com opções
- * fracas para viabilizar o upsell.
+ * ─── O PISO SE APLICA AO 2º E AO 3º, NUNCA AO 1º ─────────────────────────────────────────────
+ *
+ * O §30 proíbe ENCHER o pódio com opções fracas para viabilizar o upsell do Top 3. É uma regra
+ * sobre opções ACRESCENTADAS — e é por isso que `MIN_PODIUM_FIT` continua valendo, integralmente,
+ * da segunda posição em diante.
+ *
+ * Aplicá-lo também ao primeiro colocado era um erro de leitura com consequência grave: quando
+ * nenhuma raquete atingia 75, o pódio saía VAZIO e o usuário que respondeu o questionário inteiro
+ * recebia "ainda não podemos recomendar com segurança" — como se o catálogo não tivesse sido
+ * avaliado. Ele foi: 46 raquetes, todas pontuadas e ordenadas. Existe uma que é a melhor para
+ * aquele perfil, e sonegá-la não protege ninguém.
+ *
+ * Recomendar a melhor entre as reais não cria opção artificial nenhuma — é o oposto disso. O que
+ * o produto deve ao usuário quando essa melhor opção é fraca é DIZER que ela é fraca, e isso é
+ * trabalho da confiança e dos pontos de atenção do relatório, não de uma tela em branco.
  */
 export function selectPodium(
   ranking: readonly RankedRacket[],
@@ -235,7 +309,7 @@ export function selectPodium(
 
   for (const entry of ranking) {
     if (podium.length >= 3) break;
-    if (entry.fit_score < MIN_PODIUM_FIT) break;
+    if (podium.length > 0 && entry.fit_score < MIN_PODIUM_FIT) break;
 
     const familyKey = `${entry.racket.variant.brand}::${entry.racket.variant.family}`;
     if (familiesUsed.has(familyKey) && !wantsWeightChange) continue;

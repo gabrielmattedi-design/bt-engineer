@@ -17,6 +17,7 @@ import {
   massIndex,
   resolveStrungWeight,
 } from '@/recommendation/normalize/racket-attributes';
+import type { CatalogScale, ScaleKey } from './catalog-scale';
 
 type ComponentOutput = Omit<ComponentBreakdown, 'weight' | 'contribution'>;
 
@@ -30,28 +31,56 @@ function output(
 }
 
 /**
+ * Todos os componentes abaixo comparam a raquete com o JOGADOR. Para que a comparação seja
+ * legítima, os dois lados precisam viver na mesma escala — ver o cabeçalho de `catalog-scale.ts`
+ * para o defeito de unidades que isso corrige. Na prática: sempre que um número da raquete
+ * encontra um número do jogador, o da raquete passa antes por `scale.position()`.
+ */
+
+/**
+ * Capacidade de manejo do jogador, 0–100 — quanto de frame o CORPO dele sustenta.
+ *
+ * Vive fora de `physicalFit` porque `skillFit` precisa exatamente do mesmo número: os dois
+ * componentes se contradiziam quando cada um tinha sua própria noção do que o jogador aguenta.
+ */
+function handlingCapacity(profile: PlayerProfile): number {
+  return (
+    0.45 * profile.physical_capacity_score +
+    0.35 * profile.swing_speed_score +
+    0.2 * profile.player_level_score
+  );
+}
+
+/**
  * `physical_fit` — o jogador consegue manejar a massa?
  *
  * A ASSIMETRIA é a decisão mais relevante deste componente: subir de peso além da capacidade produz
  * atraso de preparação e sobrecarga física (penalidade 1.35); descer de peso produz apenas perda de
  * desempenho, que é recuperável e às vezes desejada (penalidade 0.75).
  */
-export function physicalFit(profile: PlayerProfile, racket: ScoredRacket): ComponentOutput {
+export function physicalFit(
+  profile: PlayerProfile,
+  racket: ScoredRacket,
+  scale: CatalogScale,
+): ComponentOutput {
   const mass = massIndex(racket.variant.specs);
   if (mass === null) {
     return output('physical_fit', 50, [], ['unstrung_weight_g']);
   }
 
-  const capacity =
-    0.45 * profile.physical_capacity_score +
-    0.35 * profile.swing_speed_score +
-    0.2 * profile.player_level_score;
+  const massPosition = scale.position('mass_index', mass);
+  const capacity = handlingCapacity(profile);
 
-  const delta = mass - capacity;
+  const delta = massPosition - capacity;
   const raw = delta > 0 ? 100 - delta * 1.35 : 100 - Math.abs(delta) * 0.75;
 
   return output('physical_fit', raw, [
-    { label: 'mass_index', value: mass / 100, weight: 1, note: `índice de massa ${round(mass)}` },
+    {
+      label: 'mass_index',
+      value: massPosition / 100,
+      weight: 1,
+      note: `massa no percentil ${round(massPosition)} do catálogo`,
+    },
     {
       label: 'player_capacity',
       value: capacity / 100,
@@ -61,19 +90,56 @@ export function physicalFit(profile: PlayerProfile, racket: ScoredRacket): Compo
   ]);
 }
 
-/** `skill_fit` — a exigência do frame bate com o nível calibrado? */
-export function skillFit(profile: PlayerProfile, racket: ScoredRacket): ComponentOutput {
-  const targetDemand = 0.85 * profile.player_level_score + 8;
-  const demand = racket.attributes.demand_index;
-  const raw = 100 - Math.abs(demand - targetDemand) * 1.5;
+/**
+ * `skill_fit` — a exigência do frame bate com o nível calibrado?
+ *
+ * O alvo é o próprio `player_level_score`, lido como posição na faixa de exigência do catálogo:
+ * nível 30 procura a raquete no percentil 30 de exigência, nível 95 procura o topo. A fórmula
+ * anterior (`0.85 × nível + 8`) foi calibrada contra a escala crua dos atributos e cobrava de todo
+ * jogador avançado uma exigência que nenhuma raquete do mercado entrega.
+ *
+ * ─── O TETO FÍSICO ───────────────────────────────────────────────────────────────────────────
+ *
+ * `demand_index` tem 35% de índice de balanço e 15% de peso — ou seja, mais da metade do que ele
+ * chama de "exigência" é, na verdade, massa. E massa é exatamente o que `physical_fit` cobra pelo
+ * lado oposto.
+ *
+ * Para quem tem técnica acima do preparo físico, os dois componentes passavam a brigar: o de nível
+ * pedia um frame mais pesado, o físico punia o mesmo frame por ser pesado demais, e NENHUMA
+ * raquete do catálogo conseguia agradar aos dois. O jogador perdia pontos por uma contradição
+ * interna do motor.
+ *
+ * O alvo de exigência passa a ser limitado pela capacidade de manejo, com uma folga de 10 pontos
+ * (a capacidade é uma estimativa, e um pouco acima dela ainda é jogável). Quem tem técnica de
+ * sobra e corpo limitado recebe o frame mais exigente que consegue de fato manejar — que é a
+ * resposta certa, e a que um consultor humano daria.
+ */
+const CAPACITY_TOLERANCE = 10;
+
+export function skillFit(
+  profile: PlayerProfile,
+  racket: ScoredRacket,
+  scale: CatalogScale,
+): ComponentOutput {
+  const demand = scale.position('demand_index', racket.attributes.demand_index);
+  const target = Math.min(
+    profile.player_level_score,
+    handlingCapacity(profile) + CAPACITY_TOLERANCE,
+  );
+  const raw = 100 - Math.abs(demand - target) * 1.5;
 
   return output('skill_fit', raw, [
-    { label: 'demand_index', value: demand / 100, weight: 1, note: `exigência ${round(demand)}` },
+    {
+      label: 'demand_index',
+      value: demand / 100,
+      weight: 1,
+      note: `exigência no percentil ${round(demand)} do catálogo`,
+    },
     {
       label: 'target_demand',
-      value: targetDemand / 100,
+      value: target / 100,
       weight: 1,
-      note: `alvo para o nível ${round(targetDemand)}`,
+      note: `alvo para o nível ${round(target)}`,
     },
   ]);
 }
@@ -84,22 +150,41 @@ export function skillFit(profile: PlayerProfile, racket: ScoredRacket): Componen
  * Jogador que gera muita potência precisa de frame contido; quem gera pouca precisa do frame.
  * Somar potência a quem já tem é a causa clássica de bolas longas.
  */
-export function swingFit(profile: PlayerProfile, racket: ScoredRacket): ComponentOutput {
+export function swingFit(
+  profile: PlayerProfile,
+  racket: ScoredRacket,
+  scale: CatalogScale,
+): ComponentOutput {
+  const framePower = scale.position('power_score', racket.attributes.power_score);
   const requiredFramePower = 100 - profile.natural_power_score;
-  const powerTerm = 100 - Math.abs(racket.attributes.power_score - requiredFramePower) * 1.15;
+  const powerTerm = 100 - Math.abs(framePower - requiredFramePower) * 1.15;
 
-  const maneuver = racket.attributes.maneuverability_score;
+  /**
+   * Comprimento do swing → faixa aceitável de manobrabilidade, penalizando só o que sai dela.
+   *
+   * As três formas são deadbands, e isso é deliberado: um swing curto precisa de um frame que ele
+   * consiga acelerar, mas não existe "manobrável demais" para ele — ganhar mais manobrabilidade
+   * depois de certo ponto não melhora nada. As versões anteriores de `short` e `medium` somavam
+   * manobrabilidade e potência como se fossem bens absolutos, e como os dois eixos são
+   * anticorrelacionados no catálogo real, o componente ficava com teto de ~73 para todo swing
+   * curto — nenhuma raquete do mercado podia zerar aquela perda.
+   */
+  const maneuver = scale.position(
+    'maneuverability_score',
+    racket.attributes.maneuverability_score,
+  );
   let lengthTerm: number;
   switch (profile.swing_length) {
     case 'long':
-      // Swing longo tolera swingweight alto; penaliza-se apenas o excesso de leveza.
+      // Swing longo tolera inércia alta; penaliza-se apenas o excesso de leveza.
       lengthTerm = 100 - Math.max(0, maneuver - 70) * 0.4;
       break;
     case 'short':
-      lengthTerm = 0.7 * maneuver + 0.3 * racket.attributes.power_score;
+      // Swing curto não completa a preparação com um frame lento.
+      lengthTerm = 100 - Math.max(0, 60 - maneuver) * 1.4;
       break;
     default:
-      lengthTerm = 0.5 * maneuver + 0.5 * clamp(powerTerm, 0, 100);
+      lengthTerm = 100 - Math.max(0, 35 - maneuver) * 1.2 - Math.max(0, maneuver - 85) * 0.5;
   }
 
   const raw = 0.65 * clamp(powerTerm, 0, 100) + 0.35 * clamp(lengthTerm, 0, 100);
@@ -109,7 +194,7 @@ export function swingFit(profile: PlayerProfile, racket: ScoredRacket): Componen
       label: 'power_complement',
       value: clamp(powerTerm, 0, 100) / 100,
       weight: 0.65,
-      note: `frame ${round(racket.attributes.power_score)} vs necessário ${round(requiredFramePower)}`,
+      note: `frame ${round(framePower)} vs necessário ${round(requiredFramePower)}`,
     },
     {
       label: 'swing_length_match',
@@ -120,8 +205,31 @@ export function swingFit(profile: PlayerProfile, racket: ScoredRacket): Componen
   ]);
 }
 
-/** `playstyle_fit` — produto interno entre o vetor de estilo do jogador e os fits do frame. */
-export function playstyleFit(profile: PlayerProfile, racket: ScoredRacket): ComponentOutput {
+/**
+ * `playstyle_fit` — produto interno entre o vetor de estilo do jogador e os fits do frame,
+ * expresso como FRAÇÃO DO MELHOR FRAME DISPONÍVEL para aquele estilo.
+ *
+ * ─── POR QUE FRAÇÃO DO MELHOR, E NÃO O VALOR BRUTO ───────────────────────────────────────────
+ *
+ * Os eixos de estilo são combinações de atributos, e por isso herdam a mesma compressão deles: o
+ * catálogo inteiro cabe entre 46.7 e 53.7 em `baseline`, entre 47.7 e 53.5 em `counterpuncher`.
+ * Usar o valor bruto significava que um jogador de fundo de quadra jamais passava de ~54 neste
+ * componente — e, com peso 0.14, isso descontava ~7 pontos do score final de TODA recomendação,
+ * por uma razão que não tem nada a ver com a raquete escolhida.
+ *
+ * Percentil dentro do catálogo também não serve: esticar uma faixa real de 7 pontos até 0–100
+ * transformaria diferenças imperceptíveis em quadra num veredicto de 100 pontos.
+ *
+ * A pergunta certa é a terceira: comparado com a melhor raquete que existe para o seu estilo,
+ * quão perto esta chega? Num eixo pouco discriminante todas as raquetes ficam perto de 100 — o
+ * que é a leitura honesta de "para o seu estilo, tanto faz". Num eixo discriminante como
+ * `heavy_spin` (24.8 a 73.7), a diferença entre a melhor e a pior continua valendo 60 pontos.
+ */
+export function playstyleFit(
+  profile: PlayerProfile,
+  racket: ScoredRacket,
+  scale: CatalogScale,
+): ComponentOutput {
   let weightSum = 0;
   let acc = 0;
   const terms: WeightedTerm[] = [];
@@ -135,19 +243,33 @@ export function playstyleFit(profile: PlayerProfile, racket: ScoredRacket): Comp
     terms.push({ label: `style:${style}`, value: fit / 100, weight: w });
   }
 
-  const raw = weightSum === 0 ? 50 : acc / weightSum;
+  if (weightSum === 0) return output('playstyle_fit', 50, terms);
+
+  const mix = acc / weightSum;
+  const ceiling = scale.styleCeiling(profile.style_weights);
+  const raw = ceiling <= 0 ? 50 : (mix / ceiling) * 100;
+
   return output('playstyle_fit', raw, terms);
 }
 
-/**
- * Mudança de atributo considerada MATERIALMENTE grande, em pontos de score. Serve de denominador
- * para normalizar o quanto o frame entregou: 20 pontos é uma diferença que o jogador percebe
- * claramente em quadra (ex.: um 18×20 contra um 16×19 de mesma cabeça em `spin_score`).
- */
-const MATERIAL_DELTA = 20;
-
 /** Intensidade máxima possível de um pedido, conforme `desired_change_vector` é construído (§3.4). */
 const MAX_ASK = 40;
+
+/**
+ * Piso do espaço de manobra, em pontos de posição.
+ *
+ * Quando a referência já está colada no extremo do catálogo — alguém com a raquete mais potente do
+ * mercado pedindo ainda mais potência — o espaço restante tende a zero e a divisão explodiria.
+ * O piso transforma esse caso em "quase nada a entregar aqui", que é a leitura correta.
+ */
+const MIN_HEADROOM = 15;
+
+/**
+ * Valor do componente para quem não declarou objetivo nenhum — e âncora para pedidos fracos.
+ *
+ * Acima de 50 porque "não pedi nada" não é uma falha da raquete: nenhuma direção foi contrariada.
+ */
+const NEUTRAL_OBJECTIVE = 65;
 
 /**
  * `objective_fit` — o frame move o jogador na direção desejada?
@@ -159,76 +281,129 @@ const MAX_ASK = 40;
  * perverso: quanto MAIS forte o pedido, maior o denominador e mais fraco o sinal, comprimindo o
  * componente numa faixa estreita em torno de 65 e tornando-o quase não discriminante.
  *
- * A formulação atual separa as duas dimensões:
- *   • `delivered`   — quanto o frame entregou, normalizado por uma mudança perceptível;
- *   • `askStrength` — quão forte foi o pedido, usado como PESO na média.
+ * NOTA DE CALIBRAÇÃO (v2.1.0): o denominador passou a ser o ESPAÇO DE MANOBRA — a distância entre
+ * a referência do jogador e o extremo do catálogo na direção pedida. `delivered = 1` deixa de
+ * significar "andou uma quantidade arbitrária de pontos" e passa a significar "levou você tão
+ * longe nessa direção quanto o mercado permite", que é literalmente a pergunta que o usuário fez.
  *
- * Assim, os atributos que o jogador mais pediu dominam o componente, e entregar mais continua
- * valendo mais que entregar menos.
+ * A diferença não é cosmética. Com um denominador fixo, um jogador cujo pedido é modesto em termos
+ * absolutos — porque sua raquete atual já é boa naquele eixo — nunca conseguia pontuar bem,
+ * embora estivesse recebendo tudo o que existia para receber.
+ *
+ * As duas dimensões continuam separadas:
+ *   • `delivered`   — que fração do espaço disponível o frame percorreu;
+ *   • `askStrength` — quão forte foi o pedido, usado como PESO na média.
  */
 export function objectiveFit(
   profile: PlayerProfile,
   racket: ScoredRacket,
   reference: Readonly<Record<NeedKey, number>>,
+  scale: CatalogScale,
 ): ComponentOutput {
   const terms: WeightedTerm[] = [];
   let weightedSum = 0;
   let weightTotal = 0;
+  let strongestAsk = 0;
 
   for (const need of NEED_KEYS) {
     const desired = profile.desired_change_vector[need];
     if (Math.abs(desired) <= 5) continue;
 
-    const attrKey = NEED_TO_RACKET_ATTRIBUTE[need];
+    const attrKey = NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey;
     const racketValue = racket.attributes[attrKey as keyof typeof racket.attributes] as number;
-    const delta = racketValue - reference[need];
+    // Ambos os lados em posição de catálogo: o delta passa a ser comparável entre eixos.
+    const referencePosition = scale.position(attrKey, reference[need]);
+    const delta = scale.position(attrKey, racketValue) - referencePosition;
 
-    // Superar o pedido vale mais, com retorno decrescente (teto 1.5).
-    // Ir na direcao contraria e o pior caso (piso -1).
-    const delivered = clamp((delta * Math.sign(desired)) / MATERIAL_DELTA, -1, 1.5);
+    // Quanto ainda existe para andar nessa direção, a partir de onde o jogador está hoje.
+    const headroom = Math.max(
+      desired > 0 ? 100 - referencePosition : referencePosition,
+      MIN_HEADROOM,
+    );
+
+    // Ir na direção contrária é o pior caso (piso -1); percorrer todo o espaço disponível é 1.
+    const delivered = clamp((delta * Math.sign(desired)) / headroom, -1, 1);
     const askStrength = clamp(Math.abs(desired) / MAX_ASK, 0, 1);
 
     weightedSum += delivered * askStrength;
     weightTotal += askStrength;
+    strongestAsk = Math.max(strongestAsk, askStrength);
 
     terms.push({
       label: `objective:${need}`,
-      value: clamp((delivered + 1) / 2.5, 0, 1),
+      value: clamp((delivered + 1) / 2, 0, 1),
       weight: round(askStrength, 3),
-      note: `pedido ${desired > 0 ? '+' : ''}${round(desired)}, entregue ${delta > 0 ? '+' : ''}${round(delta)}`,
+      note:
+        `pedido ${desired > 0 ? '+' : ''}${round(desired)}, ` +
+        `entregue ${round(delivered * 100)}% do espaço disponível`,
     });
   }
 
   // Nenhum objetivo declarado: valor neutro. Nao penalizamos nem premiamos ninguem.
-  if (weightTotal === 0) return output('objective_fit', 65, terms);
+  if (weightTotal === 0) return output('objective_fit', NEUTRAL_OBJECTIVE, terms);
 
   const avg = weightedSum / weightTotal;
-  return output('objective_fit', 100 * clamp(0.5 + avg / 2, 0, 1), terms);
+  const measured = 100 * clamp(0.5 + avg / 2, 0, 1);
+
+  /**
+   * A DECISIVIDADE do componente acompanha a força do pedido.
+   *
+   * `askStrength` já pondera um pedido contra outro, mas não regulava o quanto o componente
+   * inteiro pesava na decisão. O resultado era desproporcional: alguém que marcou um interesse
+   * moderado em spin (12.5 de 40 possíveis) tinha 17% do seu score final decidido por aquele
+   * interesse com a mesma força de quem declarou o pedido no máximo.
+   *
+   * Entre "não pedi nada" (neutro) e "pedi com toda a força" (medição integral) o componente agora
+   * interpola pelo pedido mais forte que a pessoa fez. Pedido fraco desloca pouco o score — para
+   * cima ou para baixo —, que é o que "fraco" significa.
+   */
+  return output(
+    'objective_fit',
+    NEUTRAL_OBJECTIVE + (measured - NEUTRAL_OBJECTIVE) * strongestAsk,
+    terms,
+  );
 }
 
 /**
  * `comfort_fit` — conforto do frame contra a sensibilidade declarada.
  *
- * Quando não há sensibilidade, o componente não zera o score de um frame rígido: ele apenas deixa de
- * discriminar (piso em 50). Punir rigidez em quem nunca teve desconforto seria viés, não análise.
+ * A sensibilidade define uma EXIGÊNCIA, e só o que falta para atingi-la é descontado. Punir rigidez
+ * em quem nunca teve desconforto seria viés, não análise — por isso a exigência de quem não relata
+ * nada é baixa e quase todo frame a satisfaz.
+ *
+ * A formulação anterior multiplicava a amigabilidade por `0.6 + 0.4 × sensibilidade`, o que produzia
+ * dois defeitos: a mesma raquete valia MAIS para quem era mais sensível (o fator crescia com a
+ * sensibilidade), e o componente só chegava a 100 por um atalho — um `if` que devolvia 100 acima de
+ * 80 pontos de amigabilidade e nada entre 80 e o valor calculado.
  */
-export function comfortFit(profile: PlayerProfile, racket: ScoredRacket): ComponentOutput {
-  const armFriendly = racket.attributes.arm_friendliness_score;
+export function comfortFit(
+  profile: PlayerProfile,
+  racket: ScoredRacket,
+  scale: CatalogScale,
+): ComponentOutput {
+  const armFriendly = scale.position('arm_friendliness_score', racket.attributes.arm_friendliness_score);
   const sensitivity = profile.arm_sensitivity_score;
 
-  const raw =
-    sensitivity < 30
-      ? 0.5 * armFriendly + 50
-      : armFriendly >= 80
-        ? 100
-        : armFriendly * (0.6 + 0.4 * (sensitivity / 100));
+  /**
+   * Duas parcelas, porque conforto é ao mesmo tempo requisito e qualidade.
+   *
+   * A rampa suave (`60 + 0.4 × amigabilidade`) mantém o componente DISCRIMINANTE para a maioria,
+   * que não relata desconforto nenhum: sem ela, todo frame acima da exigência empatava em 100 e o
+   * motor perdia um critério de desempate inteiro — a concentração de recomendações num único
+   * modelo saltou para 36% quando isso aconteceu.
+   *
+   * O desconto abrupto abaixo da exigência é o que protege quem já sente dor. Sem histórico de
+   * desconforto exige-se pouco (40); no extremo da sensibilidade, quase o topo do catálogo (90).
+   */
+  const required = 40 + 0.5 * sensitivity;
+  const raw = 60 + 0.4 * armFriendly - Math.max(0, required - armFriendly) * 1.6;
 
   return output('comfort_fit', raw, [
     {
       label: 'arm_friendliness',
       value: armFriendly / 100,
       weight: 1,
-      note: `frame ${round(armFriendly)}`,
+      note: `amigabilidade no percentil ${round(armFriendly)} do catálogo`,
     },
     {
       label: 'arm_sensitivity',
