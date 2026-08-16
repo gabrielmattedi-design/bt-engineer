@@ -159,28 +159,136 @@ function resolveWeights(profile: PlayerProfile): Record<string, number> {
   return w;
 }
 
+/**
+ * Eixos em que ULTRAPASSAR o alvo não é defeito nenhum.
+ *
+ * ═══ O BUG QUE ISTO CORRIGE ══════════════════════════════════════════════════════════════════
+ *
+ * `scoreVariant` media `|valor − alvo|` em todos os seis eixos. Para `control`, `power` e `spin`
+ * isso está certo: são eixos de CARÁTER, e excesso é defeito de verdade — corda potente demais
+ * manda a bola longa, corda de controle demais morre num swing lento.
+ *
+ * Mas `comfort`, `arm` e `durability` não são caráter, são REQUISITO. Ninguém foi prejudicado por
+ * uma corda ser mais macia, mais amiga do braço ou mais durável do que o necessário. Cobrar o
+ * excesso nesses eixos é cobrar por uma qualidade.
+ *
+ * E o efeito era brutal, porque o catálogo é BIMODAL — dez poliésters de um lado (conforto 22–46,
+ * braço 26–46), cinco multifilamentos do outro (conforto 100, braço 100). Com distância nos dois
+ * sentidos, o poliéster era punido no braço, o multifilamento era punido por ser confortável
+ * DEMAIS, e sobrava exatamente uma corda no meio da tabela:
+ *
+ *     Wilson Synthetic Gut Power — 56 / 64 / 46 / 62 / 50 / 56 / 62
+ *
+ * A única do catálogo perto do centro em todos os eixos. Ela vencia quase todo perfil, com ou sem
+ * dor, incluindo quem quebra corda toda semana. Não por ser a melhor para alguém — por ser a menos
+ * distante de todo mundo. É o mesmo defeito do "hexágono perfeito", agora do lado das cordas: uma
+ * métrica de distância sobre uma população bimodal sempre elege o centroide.
+ *
+ * Com o excesso liberado nesses três eixos, cada grupo volta a poder ganhar pelo que ele É.
+ */
+const REQUIREMENT_AXES: ReadonlySet<keyof StringTarget> = new Set(['comfort', 'arm', 'durability']);
+
+/** Os seis eixos comparáveis, na ordem em que são pontuados. */
+const SCORED_AXES: readonly (keyof StringTarget)[] = [
+  'control',
+  'power',
+  'spin',
+  'comfort',
+  'arm',
+  'durability',
+];
+
+/** Extrai do conjunto de atributos o valor do eixo — o par que o `scoreVariant` compara. */
+function axisValue(a: StringBaseAttributes, axis: keyof StringTarget): number {
+  switch (axis) {
+    case 'control':
+      return a.control_score;
+    case 'power':
+      return a.power_score;
+    case 'spin':
+      return a.spin_score;
+    case 'comfort':
+      return a.comfort_score;
+    case 'arm':
+      return a.arm_friendliness_score;
+    case 'durability':
+      return a.durability_score;
+  }
+}
+
+/** Faixa realmente ocupada pelo catálogo de cordas em cada eixo. */
+export type StringScale = Readonly<Record<keyof StringTarget, readonly [number, number]>>;
+
+/** Largura mínima, pelo mesmo motivo de `MIN_BAND_WIDTH` em `catalog-scale.ts`. */
+const MIN_STRING_BAND = 10;
+
+/**
+ * ═══ POR QUE O ALVO PRECISA DE UMA RÉGUA ═════════════════════════════════════════════════════
+ *
+ * `computeStringTarget` devolve números em "demanda do jogador", 0–100. Os atributos das cordas
+ * vivem em faixas próprias, e nada garantia que as duas coisas se encontrassem. Medido no catálogo
+ * de produção:
+ *
+ *     control  — multifilamento 48 | synthetic gut 56 | poliéster 76 … 89
+ *     alvo de controle de um intermediário que PEDE controle: ~45
+ *
+ * O alvo ficava ABAIXO de todas as cordas do catálogo. Consequência: no eixo de maior peso (0.22),
+ * o multifilamento era sempre o mais próximo e o poliéster levava 30 pontos de distância — mesmo
+ * quando quem pedia controle era exatamente quem deveria receber poliéster. Pedir mais controle
+ * empurrava para a corda de menos controle.
+ *
+ * É o mesmo erro de unidades que `catalog-scale.ts` corrigiu do lado das raquetes, e a correção é a
+ * mesma: comparar POSIÇÃO com POSIÇÃO. "Alvo de controle 45" passa a significar "no meio do que
+ * existe", e não um valor absoluto que nenhum produto ocupa.
+ *
+ * A régua sai do catálogo recomendável INTEIRO, antes das exclusões por tipo — pelo mesmo motivo
+ * documentado do lado das raquetes: se ela saísse do que sobrou para cada perfil, dois usuários
+ * veriam números incomparáveis.
+ */
+export function buildStringScale(attributeSets: readonly StringBaseAttributes[]): StringScale {
+  const out = {} as Record<keyof StringTarget, readonly [number, number]>;
+
+  for (const axis of SCORED_AXES) {
+    const values = attributeSets.map((a) => axisValue(a, axis)).filter((v) => Number.isFinite(v));
+    if (values.length === 0) {
+      out[axis] = [0, 100];
+      continue;
+    }
+    let lo = Math.min(...values);
+    let hi = Math.max(...values);
+    if (hi - lo < MIN_STRING_BAND) {
+      const pad = (MIN_STRING_BAND - (hi - lo)) / 2;
+      lo -= pad;
+      hi += pad;
+    }
+    out[axis] = [lo, hi];
+  }
+
+  return out;
+}
+
+function positionOf(scale: StringScale, axis: keyof StringTarget, value: number): number {
+  const [lo, hi] = scale[axis];
+  return clamp(((value - lo) / (hi - lo)) * 100, 0, 100);
+}
+
 /** Distância ponderada entre a variante e o alvo, convertida em 0–100. */
 function scoreVariant(
   attributes: StringBaseAttributes,
   target: StringTarget,
   weights: Record<string, number>,
+  scale: StringScale,
 ): number {
-  const pairs: Array<[keyof StringTarget, number]> = [
-    ['control', attributes.control_score],
-    ['power', attributes.power_score],
-    ['spin', attributes.spin_score],
-    ['comfort', attributes.comfort_score],
-    ['arm', attributes.arm_friendliness_score],
-    ['durability', attributes.durability_score],
-  ];
-
   let penalty = 0;
   let weightSum = 0;
-  for (const [key, value] of pairs) {
-    const w = weights[key] ?? 0;
-    // `arm` é invertido: alvo alto significa "precisa de corda amiga do braço".
-    const targetValue = target[key];
-    const distance = Math.abs(value - targetValue);
+
+  for (const axis of SCORED_AXES) {
+    const w = weights[axis] ?? 0;
+    const value = positionOf(scale, axis, axisValue(attributes, axis));
+    const targetValue = target[axis];
+    const distance = REQUIREMENT_AXES.has(axis)
+      ? Math.max(0, targetValue - value)
+      : Math.abs(value - targetValue);
     penalty += w * distance;
     weightSum += w;
   }
@@ -214,29 +322,40 @@ export function selectStringVariant(
 
   const candidates: Candidate[] = [];
 
-  for (const variant of catalog.variants) {
+  /**
+   * Tudo o que é recomendável, ANTES das exclusões por tipo — é o universo que define a régua.
+   *
+   * As exclusões vêm depois: uma corda proibida para este jogador não deixa de existir no mercado,
+   * e tirá-la da régua faria o significado de "controle 100" mudar de pessoa para pessoa.
+   */
+  const recommendable = catalog.variants.filter((variant) => {
+    const model = modelsById.get(variant.string_id);
+    if (!model) return false;
+    return isRecommendable(
+      {
+        verification_state: variant.verification_state,
+        status: variant.status,
+        brazil_availability_status: variant.brazil_availability_status,
+      },
+      mode,
+    );
+  });
+
+  const scale = buildStringScale(
+    recommendable.map((variant) =>
+      adjustForGauge(modelsById.get(variant.string_id)!.base_attributes, variant.gauge_mm),
+    ),
+  );
+
+  for (const variant of recommendable) {
     const model = modelsById.get(variant.string_id);
     if (!model) continue;
-
-    // Filtro de recomendabilidade: verificada, não descontinuada, encontrável no Brasil.
-    if (
-      !isRecommendable(
-        {
-          verification_state: variant.verification_state,
-          status: variant.status,
-          brazil_availability_status: variant.brazil_availability_status,
-        },
-        mode,
-      )
-    ) {
-      continue;
-    }
 
     // Regras duras de tipo (§2).
     if (excluded.types.includes(model.string_type)) continue;
 
     const attributes = adjustForGauge(model.base_attributes, variant.gauge_mm);
-    let score = scoreVariant(attributes, target, weights);
+    let score = scoreVariant(attributes, target, weights, scale);
 
     // Bônus: poliéster para quem realmente quebra cordas e tem nível para ativá-lo.
     if (

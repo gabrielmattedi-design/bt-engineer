@@ -9,5 +9,5 @@
  */
 
 export const RECOMMENDATION_ENGINE_VERSION = '1.2.0';
-export const STRING_ENGINE_VERSION = '1.0.0';
+export const STRING_ENGINE_VERSION = '1.1.0';
 export const QUESTIONNAIRE_VERSION = '1.1.0';
