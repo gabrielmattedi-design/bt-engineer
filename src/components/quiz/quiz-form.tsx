@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { RacketPicker, type RacketOption } from './racket-picker';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
-import { visibleSteps, type Question } from './steps';
+import { unansweredIn, visibleSteps, type Question } from './steps';
 
 /**
  * Questionário — §10, §43.
@@ -49,6 +49,35 @@ export function QuizForm({
   const step = steps[Math.min(stepIndex, steps.length - 1)]!;
   const isLast = stepIndex >= steps.length - 1;
   const progress = ((stepIndex + 1) / steps.length) * 100;
+
+  /**
+   * A cobrança só aparece DEPOIS da primeira tentativa de avançar.
+   *
+   * Marcar de vermelho o que a pessoa ainda nem teve chance de responder transforma a tela de
+   * abertura de cada etapa numa lista de erros — ela é repreendida por não ter feito algo que
+   * acabou de receber. O estado começa limpo, a validação entra quando ela diz "Continuar", e sai
+   * assim que a pergunta é respondida.
+   */
+  const [showErrors, setShowErrors] = useState(false);
+  const missing = unansweredIn(step, answers);
+  const missingKeys = new Set(missing.map((q) => String(q.key)));
+
+  useEffect(() => {
+    setShowErrors(false);
+  }, [stepIndex]);
+
+  function advance(): void {
+    if (missing.length > 0) {
+      setShowErrors(true);
+      // Leva à primeira pendência: numa etapa longa ela pode estar fora da tela.
+      document
+        .getElementById(`q-${String(missing[0]!.key)}`)
+        ?.scrollIntoView({ block: 'center', behavior: 'auto' });
+      return;
+    }
+    if (isLast) onComplete(answers);
+    else setStepIndex((i) => i + 1);
+  }
 
   const set = <K extends keyof QuestionnaireAnswers>(
     key: K,
@@ -107,6 +136,7 @@ export function QuizForm({
               question={question}
               answers={answers}
               rackets={rackets}
+              missing={showErrors && missingKeys.has(String(question.key))}
               onSet={set}
               onToggleMulti={toggleMulti}
             />
@@ -116,6 +146,17 @@ export function QuizForm({
 
       {/* CTA fixo no rodapé em telas de decisão (docs/DESIGN.md §5). */}
       <div className="safe-bottom fixed inset-x-0 bottom-0 border-t border-line bg-paper/95 backdrop-blur">
+        {showErrors && missing.length > 0 && (
+          <p
+            role="alert"
+            id="quiz-missing"
+            className="mx-auto max-w-2xl px-6 pt-3 text-sm text-warn"
+          >
+            {missing.length === 1
+              ? 'Falta responder uma pergunta desta etapa.'
+              : `Faltam responder ${missing.length} perguntas desta etapa.`}
+          </p>
+        )}
         <div className="mx-auto flex max-w-2xl gap-3 px-6 py-4">
           {stepIndex > 0 && (
             <button
@@ -129,7 +170,14 @@ export function QuizForm({
           )}
           <button
             type="button"
-            onClick={() => (isLast ? onComplete(answers) : setStepIndex((i) => i + 1))}
+            onClick={advance}
+            /*
+              O botão continua HABILITADO mesmo com pendências.
+              Desabilitar economizaria a validação, mas deixaria a pessoa presa diante de um botão
+              morto, sem nada explicando o motivo — em etapas longas a pergunta em falta costuma
+              estar fora da tela. Clicar e ser levado até ela ensina; um botão cinza não.
+            */
+            aria-describedby={showErrors && missing.length > 0 ? 'quiz-missing' : undefined}
             className="min-h-[56px] flex-1 rounded bg-ink px-6 font-semibold text-paper
                        transition-opacity hover:opacity-90"
           >
@@ -141,27 +189,51 @@ export function QuizForm({
   );
 }
 
+const MISSING_PROMPT: Record<Question['kind'], string> = {
+  single: 'Escolha uma opção para continuar.',
+  multi: 'Escolha ao menos uma opção para continuar.',
+  number: 'Arraste para responder.',
+  racket: 'Busque sua raquete ou descreva a que você usa.',
+  text: 'Preencha para continuar.',
+};
+
 function QuestionField({
   question,
   answers,
   rackets,
+  missing,
   onSet,
   onToggleMulti,
 }: {
   question: Question;
   answers: QuestionnaireAnswers;
   readonly rackets: readonly RacketOption[];
+  readonly missing: boolean;
   onSet: <K extends keyof QuestionnaireAnswers>(k: K, v: QuestionnaireAnswers[K]) => void;
   onToggleMulti: (k: keyof QuestionnaireAnswers, v: string, max: number) => void;
 }) {
   const value = answers[question.key];
 
   return (
-    <fieldset>
+    <fieldset id={`q-${String(question.key)}`} className="scroll-mt-24">
       <legend className="font-display text-xl font-semibold leading-snug sm:text-2xl">
         {question.title}
       </legend>
       {question.help && <p className="mt-2 text-sm text-graphite">{question.help}</p>}
+      {/*
+        A cobrança fala a língua do CONTROLE, não a do formulário.
+        "Escolha uma opção" sobre um slider está errado — nele não se escolhe, se arrasta —, e o
+        pedido de raquete não é uma escolha entre alternativas visíveis, é uma busca.
+      */}
+      {missing && (
+        <p className="mt-2 flex items-center gap-2 text-sm font-medium text-warn">
+          <span
+            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warn"
+            aria-hidden
+          />
+          {MISSING_PROMPT[question.kind]}
+        </p>
+      )}
 
       <div className="mt-5 space-y-2">
         {question.kind === 'single' &&
@@ -306,7 +378,7 @@ function NumberField({
       </div>
       {value === null && (
         <p className="mt-3 text-xs text-graphite">
-          Arraste para responder, ou siga adiante para deixar em branco.
+          Arraste para responder. O ponto no meio é só a posição inicial, não uma resposta.
         </p>
       )}
     </div>

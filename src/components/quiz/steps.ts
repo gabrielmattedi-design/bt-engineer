@@ -15,9 +15,21 @@ export type Choice = {
   readonly hint?: string;
 };
 
+/**
+ * Perguntas são OBRIGATÓRIAS por padrão.
+ *
+ * O questionário inteiro pode ser atravessado sem responder nada, e o motor então trabalha com um
+ * perfil vazio: produz um resultado, com aparência normal, apoiado em nada. Exigir resposta é o
+ * que faz `unknown_answer_ratio` e a confiança do relatório significarem alguma coisa — se a
+ * pessoa pode simplesmente pular, "não sei" deixa de ser uma informação e vira ausência de dado.
+ *
+ * `optional: true` fica reservado às perguntas em que NÃO responder é uma resposta legítima e
+ * distinta — ver os poucos casos marcados abaixo. Marcar por conveniência anula a regra.
+ */
 export type Question =
   | {
       readonly kind: 'single';
+      readonly optional?: boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -25,6 +37,7 @@ export type Question =
     }
   | {
       readonly kind: 'multi';
+      readonly optional?: boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -35,6 +48,7 @@ export type Question =
     }
   | {
       readonly kind: 'number';
+      readonly optional?: boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -57,12 +71,14 @@ export type Question =
        * comparação.
        */
       readonly kind: 'racket';
+      readonly optional?: boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
     }
   | {
       readonly kind: 'text';
+      readonly optional?: boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -337,6 +353,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'multi',
         key: 'missing_attributes',
+        // Não faltar nada é a resposta do jogador satisfeito — e ela precisa caber.
+        optional: true,
         title: 'Você sente falta de…',
         help: 'Escolha até três, na ordem de importância para você. A ordem importa.',
         max: 3,
@@ -364,12 +382,16 @@ export const STEPS: readonly Step[] = [
         key: 'current_racket_id',
         title: 'Qual raquete você usa hoje?',
         help:
-          'Digite a marca ou o modelo para buscar. Se a sua não aparecer, você pode descrevê-la — ' +
-          'nesse caso não conseguimos comparar as especificações, e dizemos isso no relatório.',
+          'Digite a marca ou o modelo para buscar. Não precisa saber o ano nem a versão: o que ' +
+          'importa é o modelo e o peso, e esses quase não mudam entre gerações. Se a sua não ' +
+          'aparecer, você pode descrevê-la — nesse caso não conseguimos comparar as ' +
+          'especificações, e dizemos isso no relatório.',
       },
       {
         kind: 'multi',
         key: 'current_racket_likes',
+        // Pode não haver nada que se destaque; forçar uma escolha inventaria preferência.
+        optional: true,
         title: 'O que você gosta na sua raquete atual?',
         help: 'Pode escolher mais de uma. Se não tiver raquete própria, siga adiante.',
         max: 4,
@@ -385,6 +407,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'multi',
         key: 'current_racket_dislikes',
+        // Idem: quem está contente com a raquete não tem o que marcar aqui.
+        optional: true,
         title: 'E o que não gosta?',
         help: 'Esta resposta influencia bastante a recomendação.',
         max: 4,
@@ -485,6 +509,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'text',
         key: 'free_text',
+        // Declaradamente opcional no próprio enunciado.
+        optional: true,
         title: 'Existe mais alguma coisa sobre seu jogo que você acha importante nos contar?',
         help: 'Opcional. Quanto mais específico, melhor a análise.',
         maxLength: 1200,
@@ -499,4 +525,45 @@ export const STEPS: readonly Step[] = [
 
 export function visibleSteps(answers: QuestionnaireAnswers): readonly Step[] {
   return STEPS.filter((step) => !step.showIf || step.showIf(answers));
+}
+
+/**
+ * Uma pergunta está respondida quando o usuário DECIDIU algo — não quando o campo tem valor.
+ *
+ * A distinção importa em dois lugares que já morderam este produto:
+ *
+ *   • o slider de número mostra a posição do meio antes de qualquer interação, então "aparenta"
+ *     estar preenchido enquanto o valor no estado ainda é `null`. É por isso que o teste é contra
+ *     o estado e nunca contra o que está na tela;
+ *
+ *   • a raquete atual tem DOIS caminhos válidos — escolher no catálogo ou descrever em texto —, e
+ *     qualquer um dos dois conclui a pergunta. Exigir o primeiro deixaria de fora exatamente quem
+ *     tem uma raquete que não está no catálogo, que é o caso que o texto livre existe para cobrir.
+ */
+export function isAnswered(question: Question, answers: QuestionnaireAnswers): boolean {
+  if (question.optional) return true;
+
+  if (question.kind === 'racket') {
+    const id = answers.current_racket_id;
+    const free = answers.current_racket_free_text;
+    return (typeof id === 'string' && id.length > 0) || (typeof free === 'string' && free.trim().length > 0);
+  }
+
+  const value = answers[question.key];
+
+  switch (question.kind) {
+    case 'single':
+      return typeof value === 'string' && value.length > 0;
+    case 'multi':
+      return Array.isArray(value) && value.length > 0;
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'text':
+      return typeof value === 'string' && value.trim().length > 0;
+  }
+}
+
+/** Perguntas obrigatórias ainda em branco na etapa, na ordem em que aparecem na tela. */
+export function unansweredIn(step: Step, answers: QuestionnaireAnswers): readonly Question[] {
+  return step.questions.filter((q) => !isAnswered(q, answers));
 }
