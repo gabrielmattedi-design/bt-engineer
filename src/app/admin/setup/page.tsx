@@ -3,6 +3,7 @@ import { isAuthenticated } from '../auth';
 import { setupStatus } from '@/database/setup';
 import { catalogStats } from '@/data/load';
 import { SetupPanel } from './panel';
+import { PaymentStatus } from './payment-status';
 import { Wordmark } from '@/components/marketing/wordmark';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,8 @@ export default async function SetupPage() {
           catalogTotal={catalog.rackets}
           catalogVerified={catalog.racketsVerified}
         />
+
+        <PaymentStatus />
       </div>
     </main>
   );

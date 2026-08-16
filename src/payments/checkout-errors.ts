@@ -15,10 +15,19 @@ export function describeCheckoutFailure(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
   if (message.includes('ALLOW_FAKE_PAYMENTS')) {
+    /**
+     * O ponteiro para `/admin/setup` é a parte que faltava.
+     *
+     * Dizer "adicione a variável" não fecha o problema, porque a causa mais comum não é esquecer
+     * de adicionar: é adicionar e a variável não chegar ao servidor — deploy não refeito, ambiente
+     * errado, valor com maiúscula. O painel mostra o que o processo REALMENTE recebeu, que é a
+     * única forma de sair da tentativa e erro contra um deploy de dois minutos.
+     */
     return (
       'O pagamento ainda não está configurado neste site. Para rodar em modo demonstração, ' +
       'adicione a variável ALLOW_FAKE_PAYMENTS com o valor true nas configurações do projeto na ' +
-      'Vercel e refaça o deploy.'
+      'Vercel, marque o ambiente Production e refaça o deploy. Abra /admin/setup para conferir se ' +
+      'a variável chegou ao servidor.'
     );
   }
 
