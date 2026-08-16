@@ -31,14 +31,37 @@ export const PRODUCT_SEED = [
     description:
       'Raquete + corda + espessura + tensão inicial, com a faixa de ajuste e o motivo de cada escolha.',
     priceCents: 4999,
-    grantsEntitlements: ['racket_report_access', 'full_setup_access'],
+    grantsEntitlements: [
+      'racket_report_access',
+      'full_setup_access',
+      'rank2_access',
+      'rank3_access',
+    ],
   },
   {
-    sku: 'top3_unlock',
-    name: 'Desbloquear Top 3',
-    description: 'As outras duas melhores opções, com a comparação técnica completa entre as três.',
+    sku: 'unlock_rank_2',
+    name: 'Desbloquear a 2ª colocada',
+    description:
+      'A segunda raquete com maior compatibilidade, com marca, modelo e a leitura técnica completa.',
     priceCents: 999,
-    grantsEntitlements: ['top3_access'],
+    grantsEntitlements: ['rank2_access'],
+  },
+  {
+    sku: 'unlock_rank_3',
+    name: 'Desbloquear a 3ª colocada',
+    description:
+      'A terceira raquete com maior compatibilidade, com marca, modelo e a leitura técnica completa.',
+    priceCents: 999,
+    grantsEntitlements: ['rank3_access'],
+  },
+  {
+    sku: 'setup_upgrade',
+    name: 'Completar com corda e tensão',
+    description:
+      'Corda, espessura e tensão inicial para a raquete que você escolher entre as do pódio, ' +
+      'com a faixa de ajuste e o motivo de cada escolha.',
+    priceCents: 3999,
+    grantsEntitlements: ['full_setup_access'],
   },
 ] as const;
 

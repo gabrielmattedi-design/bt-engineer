@@ -4,6 +4,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createOrder, attachPayment } from '@/database/repositories/commerce-repo';
 import { ensureAnonymousSession } from '@/database/repositories/session-repo';
+import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
@@ -99,3 +100,58 @@ export async function startCheckout(
   redirect(destination);
 }
 
+
+/**
+ * Resgata um código de acesso e libera o relatório sem passar pelo pagamento.
+ *
+ * ─── POR QUE ISTO NÃO É UM FURO NO §32 ───────────────────────────────────────────────────────
+ *
+ * O §32 exige que nenhum caminho entregue conteúdo pago sem autorização — e o webhook de pagamento
+ * era a única origem de entitlement justamente para que não houvesse porta lateral esquecida.
+ *
+ * O código de acesso é uma segunda origem, e ela é legítima por três motivos que a porta lateral
+ * não teria: é criada deliberadamente por quem é dono do produto, dentro do painel protegido por
+ * senha; tem lastro no banco, com limite de usos e histórico de quem resgatou; e o entitlement que
+ * ela concede é o mesmo objeto, com os mesmos nomes, que o pagamento concederia. Não existe estado
+ * novo no sistema — existe uma segunda forma de chegar ao mesmo estado, auditável.
+ *
+ * O que continua PROIBIDO é o que sempre foi: o cliente pedir um entitlement. O código é validado
+ * no servidor contra a tabela, e um código inexistente não concede nada.
+ */
+export async function redeemAccessCode(
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ error: string } | void> {
+  const publicId = String(formData.get('session_id') ?? '');
+  const code = String(formData.get('code') ?? '');
+
+  if (code.trim().length === 0) return { error: 'Digite o código para continuar.' };
+
+  try {
+    const jar = await cookies();
+    const token = jar.get('te_visitor')?.value;
+    if (!token) return { error: 'Sessão expirada. Refaça o questionário para continuar.' };
+
+    const outcome = await withAutoBootstrap(async () => {
+      const sessionId = await ensureAnonymousSession(token);
+      return redeemCoupon({ code, publicId, sessionId });
+    });
+
+    switch (outcome.kind) {
+      case 'granted':
+      case 'already_redeemed':
+        // Reaplicar o mesmo código na mesma análise leva ao relatório, não a um erro: do ponto de
+        // vista de quem digitou, o resultado é idêntico — o acesso está liberado.
+        break;
+      case 'exhausted':
+        return { error: 'Este código já atingiu o limite de usos.' };
+      case 'invalid':
+        return { error: 'Código inválido.' };
+    }
+  } catch (error) {
+    console.error('[coupon] falha ao resgatar código', error);
+    return { error: describeCheckoutFailure(error) };
+  }
+
+  redirect(`/resultado/${publicId}`);
+}

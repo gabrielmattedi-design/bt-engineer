@@ -380,6 +380,13 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'racket',
         key: 'current_racket_id',
+        /**
+         * Opcional porque a resposta depende de uma informação que a pessoa pode simplesmente não
+         * ter — e o custo de não responder recai sobre ela, de forma visível: sem a raquete atual
+         * não há comparação, `transition_fit` sai do cálculo e a confiança do relatório cai. É um
+         * incentivo honesto. Obrigar produziria a resposta errada, não a resposta ausente.
+         */
+        optional: true,
         title: 'Qual raquete você usa hoje?',
         help:
           'Digite a marca ou o modelo para buscar. Não precisa saber o ano nem a versão: o que ' +
@@ -393,7 +400,7 @@ export const STEPS: readonly Step[] = [
         // Pode não haver nada que se destaque; forçar uma escolha inventaria preferência.
         optional: true,
         title: 'O que você gosta na sua raquete atual?',
-        help: 'Pode escolher mais de uma. Se não tiver raquete própria, siga adiante.',
+        help: 'Pode escolher mais de uma, ou seguir adiante sem responder.',
         max: 4,
         choices: [
           { value: 'gosto_da_potencia', label: 'Gosto da potência', hint: 'A bola sai forte sem que você precise forçar.' },
@@ -402,6 +409,13 @@ export const STEPS: readonly Step[] = [
           { value: 'gosto_do_peso', label: 'Gosto do peso', hint: 'O peso parece certo para o seu braço.' },
           { value: 'gosto_da_estabilidade', label: 'Gosto da estabilidade', hint: 'Firme no impacto, mesmo contra bola pesada.' },
           { value: 'gosto_do_conforto', label: 'Gosto do conforto', hint: 'Não incomoda o braço mesmo jogando bastante.' },
+          /*
+            Marcar "nada" é diferente de não marcar nada.
+            Quem passa direto pode ter pulado; quem escolhe aqui está dizendo que a raquete não
+            tem ponto forte para ela — informação valiosa, e que antes não cabia em lugar nenhum.
+          */
+          { value: 'nao_gosto_de_nada', label: 'Não gosto de nada nela', hint: 'Nenhuma característica se destaca positivamente.' },
+          { value: 'nao_sei', label: 'Não sei dizer', hint: 'Nunca comparou com outra raquete para saber o que é dela.' },
         ],
       },
       {
@@ -410,7 +424,7 @@ export const STEPS: readonly Step[] = [
         // Idem: quem está contente com a raquete não tem o que marcar aqui.
         optional: true,
         title: 'E o que não gosta?',
-        help: 'Esta resposta influencia bastante a recomendação.',
+        help: 'Esta resposta influencia bastante a recomendação — mas responda só se tiver certeza.',
         max: 4,
         choices: [
           { value: 'falta_estabilidade', label: 'Falta estabilidade', hint: 'A raquete torce ou treme em bolas fortes.' },
@@ -426,6 +440,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'number',
         key: 'current_tension_lbs',
+        // A maioria dos jogadores não sabe a própria tensão — quem encordoa é a loja.
+        optional: true,
         title: 'Em quantas libras você encordoa hoje?',
         help: 'Se não souber, siga adiante — a pergunta é opcional.',
         min: 35,
@@ -435,6 +451,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'single',
         key: 'current_tension_feeling',
+        // Depende de perceber a tensão como variável, o que nem todo jogador faz.
+        optional: true,
         title: 'O que você acha da tensão atual?',
         help: 'Esta é a informação mais útil que você pode nos dar sobre tensão.',
         choices: [

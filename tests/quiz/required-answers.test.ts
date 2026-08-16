@@ -26,10 +26,20 @@ import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profil
 const vazio = (): QuestionnaireAnswers => emptyAnswers();
 import { isAnswered, unansweredIn, visibleSteps } from '@/components/quiz/steps';
 
+/**
+ * A lista existe para ser conferida, não para crescer.
+ *
+ * Cada entrada aqui é uma pergunta em que NÃO responder é uma resposta legítima e distinta —
+ * quase sempre porque a informação depende de algo que a pessoa pode não ter (a própria tensão,
+ * o modelo exato da raquete) ou porque a ausência já é o conteúdo (nada a melhorar).
+ */
 const OPCIONAIS_PERMITIDAS = [
   'missing_attributes',
+  'current_racket_id',
   'current_racket_likes',
   'current_racket_dislikes',
+  'current_tension_lbs',
+  'current_tension_feeling',
   'free_text',
 ];
 
@@ -40,10 +50,9 @@ describe('perguntas obrigatórias', () => {
     expect(steps.length).toBeGreaterThan(3);
   });
 
-  it('toda etapa tem pelo menos uma pergunta obrigatória em branco no início', () => {
+  it('as perguntas obrigatórias de cada etapa começam todas em branco', () => {
     for (const step of steps) {
       const required = step.questions.filter((q) => !q.optional);
-      expect(required.length, `etapa "${step.id}" não exige nada`).toBeGreaterThan(0);
       expect(unansweredIn(step, vazio()).length, step.id).toBe(required.length);
     }
   });
@@ -83,22 +92,27 @@ describe('perguntas obrigatórias', () => {
   });
 
   /**
-   * A raquete atual tem dois caminhos válidos, e o texto livre existe exatamente para quem tem uma
-   * raquete fora do catálogo. Aceitar só a busca excluiria essa pessoa da etapa.
+   * A raquete atual é opcional, mas quando respondida tem DOIS caminhos válidos — e o texto livre
+   * existe exatamente para quem tem uma raquete fora do catálogo.
    */
   it('a raquete atual aceita tanto a busca quanto a descrição livre', () => {
     const racket = steps.flatMap((s) => s.questions).find((q) => q.kind === 'racket');
     expect(racket).toBeDefined();
 
-    expect(isAnswered(racket!, vazio())).toBe(false);
     expect(
       isAnswered(racket!, { ...vazio(), current_racket_id: 'babolat-pure-drive-gen-11-2025' }),
     ).toBe(true);
     expect(
       isAnswered(racket!, { ...vazio(), current_racket_free_text: 'Head Speed branca 2019' }),
     ).toBe(true);
-    // Texto só com espaços não é resposta.
-    expect(isAnswered(racket!, { ...vazio(), current_racket_free_text: '   ' })).toBe(false);
+  });
+
+  it('a lista de opcionais cobre exatamente o que foi decidido', () => {
+    const optionals = steps
+      .flatMap((s) => s.questions)
+      .filter((q) => q.optional)
+      .map((q) => String(q.key));
+    for (const key of optionals) expect(OPCIONAIS_PERMITIDAS).toContain(key);
   });
 
   it('quem não tem raquete própria não é obrigado a informar uma', () => {

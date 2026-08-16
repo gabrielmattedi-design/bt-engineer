@@ -176,6 +176,23 @@ END $$`,
 	"value" text NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 )`,
+  `CREATE TABLE IF NOT EXISTS "access_coupons" (
+	"code" text PRIMARY KEY NOT NULL,
+	"grants" text[] NOT NULL,
+	"max_uses" integer,
+	"used_count" integer DEFAULT 0 NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	"note" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+)`,
+  `CREATE TABLE IF NOT EXISTS "coupon_redemptions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"code" text NOT NULL,
+	"session_id" uuid NOT NULL,
+	"recommendation_session_id" uuid NOT NULL,
+	"redeemed_at" timestamp with time zone DEFAULT now() NOT NULL
+)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "coupon_redemptions_unique_idx" ON "coupon_redemptions" USING btree ("code","recommendation_session_id")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "racket_rankings_session_rank_idx" ON "racket_rankings" USING btree ("recommendation_session_id","rank")`,
   `CREATE INDEX IF NOT EXISTS "recommendation_sessions_session_idx" ON "recommendation_sessions" USING btree ("session_id")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "entitlements_unique_idx" ON "entitlements" USING btree ("session_id","recommendation_session_id","entitlement")`,

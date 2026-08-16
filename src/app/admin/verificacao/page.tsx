@@ -47,6 +47,9 @@ export default async function VerificacaoPage() {
           <a href="/admin/setup" className="text-graphite underline">
             Preparar o sistema
           </a>
+          <a href="/admin/codigos" className="text-graphite underline">
+            Códigos de acesso
+          </a>
         </nav>
 
         <h1 className="font-display text-2xl font-semibold">Fila de verificação</h1>

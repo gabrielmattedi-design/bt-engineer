@@ -4,6 +4,7 @@ import { loadRecommendation } from '@/database/repositories/session-repo';
 import { seedProducts, withAutoBootstrap } from '@/database/setup';
 import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { CheckoutButton } from './checkout-button';
+import { CouponForm } from './coupon-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,8 @@ export default async function PlanosPage({
             &ldquo;Criar produtos&rdquo;.
           </p>
         )}
+
+        <CouponForm sessionId={sessionId} />
 
         <p className="mt-10 max-w-prose text-xs text-graphite">
           Pagamento único, sem assinatura e sem renovação automática. Os índices Tennis Engineer são

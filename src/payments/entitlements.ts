@@ -25,20 +25,52 @@ import {
   explainTransition,
 } from '@/recommendation/explain/deterministic';
 
-export type Entitlement = 'racket_report_access' | 'full_setup_access' | 'top3_access';
+/**
+ * ─── DESBLOQUEIO POR POSIÇÃO ─────────────────────────────────────────────────────────────────
+ *
+ * `rank2_access` e `rank3_access` substituem o antigo `top3_access` porque as posições passaram a
+ * ser vendidas separadamente: quem só tem curiosidade sobre a 2ª não precisa pagar pela 3ª.
+ *
+ * `top3_access` PERMANECE e concede as duas. Ele existe em entitlements já concedidos, gravados no
+ * banco de quem comprou antes — remover o nome faria esses relatórios perderem acesso a algo que
+ * foi pago. Um entitlement é uma promessa cumprida; ela não expira porque o catálogo de produtos
+ * mudou de forma.
+ */
+export type Entitlement =
+  | 'racket_report_access'
+  | 'full_setup_access'
+  | 'rank2_access'
+  | 'rank3_access'
+  | 'top3_access';
 
 export const ALL_ENTITLEMENTS: readonly Entitlement[] = [
   'racket_report_access',
   'full_setup_access',
+  'rank2_access',
+  'rank3_access',
   'top3_access',
 ];
 
 /** Produtos e o que cada um concede (§25, §26, §30). Os PREÇOS vivem no banco (§34). */
 export const PRODUCT_ENTITLEMENTS: Readonly<Record<string, readonly Entitlement[]>> = {
   racket_report: ['racket_report_access'],
-  full_setup: ['racket_report_access', 'full_setup_access'],
+  full_setup: ['racket_report_access', 'full_setup_access', 'rank2_access', 'rank3_access'],
+  unlock_rank_2: ['rank2_access'],
+  unlock_rank_3: ['rank3_access'],
+  /** Upgrade para quem já tem o relatório da raquete e quer corda e tensão. */
+  setup_upgrade: ['full_setup_access'],
+  /** Produto legado: uma compra só que abria as duas posições. */
   top3_unlock: ['top3_access'],
 };
+
+/** A posição está liberada? Aceita tanto o entitlement específico quanto o legado. */
+export function canSeeRank(granted: readonly Entitlement[], rank: number): boolean {
+  if (rank <= 1) return true;
+  if (hasEntitlement(granted, 'top3_access')) return true;
+  if (rank === 2) return hasEntitlement(granted, 'rank2_access');
+  if (rank === 3) return hasEntitlement(granted, 'rank3_access');
+  return false;
+}
 
 export function hasEntitlement(
   granted: readonly Entitlement[],
@@ -344,7 +376,7 @@ export function serializeRecommendation(
     throw new Error('Nenhuma raquete atingiu o mínimo de compatibilidade para o pódio.');
   }
 
-  const canSeeTop3 = hasEntitlement(granted, 'top3_access');
+  // Cada posição é avaliada isoladamente — 2ª e 3ª são compras independentes.
   const canSeeSetup = hasEntitlement(granted, 'full_setup_access');
 
   const podium: PodiumEntry[] = result.podium.map((entry, index) => {
@@ -356,7 +388,9 @@ export function serializeRecommendation(
         buildTradeOffs(entry, result.full_ranking, result.candidates_evaluated),
       );
     }
-    if (canSeeTop3) return unlockedEntry(entry, profile, result.attribute_bands);
+    if (canSeeRank(granted, entry.rank)) {
+      return unlockedEntry(entry, profile, result.attribute_bands);
+    }
     return {
       rank: entry.rank,
       fit_score: Math.round(entry.fit_score),
@@ -404,8 +438,15 @@ export function serializeRecommendation(
       })),
     },
     setup,
-    top3_offer_available: result.top3_offer_available && !canSeeTop3,
-    comparison: canSeeTop3
+    top3_offer_available:
+      result.top3_offer_available && result.podium.some((e) => !canSeeRank(granted, e.rank)),
+    /**
+     * A comparação lado a lado exige TODAS as posições liberadas.
+     *
+     * Ela contrasta as três entre si; montá-la com uma bloqueada produziria uma tabela com buraco,
+     * que informa menos do que não existir — e revelaria por diferença o que a coluna oculta traz.
+     */
+    comparison: result.podium.every((e) => canSeeRank(granted, e.rank))
       ? result.podium.map((entry) => unlockedEntry(entry, profile, result.attribute_bands))
       : null,
     engine_version: result.engine_version,
