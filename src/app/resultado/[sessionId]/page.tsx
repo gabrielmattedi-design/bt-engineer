@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { Podium } from '@/components/result/podium';
 import { AttributeReadout } from '@/components/result/attribute-readout';
+import { CompatibilityRadar } from '@/components/result/radar';
 import { getReport } from '@/app/questionario/actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
 
@@ -143,6 +144,21 @@ export default async function ResultadoPage({
           </section>
         )}
 
+        {/* ── RADAR: quatro leituras nos mesmos eixos ──────────────────────── */}
+        {report.radar.length > 0 && (
+          <section>
+            <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
+            <p className="mt-2 max-w-prose text-sm text-graphite">
+              A linha laranja é o que o seu jogo pede. Onde o verde encosta nela, aquele aspecto
+              está resolvido; onde fica aquém, houve uma troca — e a linha cinza mostra se o limite
+              é do mercado ou da escolha.
+            </p>
+            <div className="mt-6 rounded border border-line bg-white p-6">
+              <CompatibilityRadar axes={report.radar} />
+            </div>
+          </section>
+        )}
+
         {/*
           ── AS TROCAS DA ESCOLHA (§35) ─────────────────────────────────────
 
@@ -279,24 +295,44 @@ export default async function ResultadoPage({
         {/* ── PÓDIO (§28) ──────────────────────────────────────────────────── */}
         <Podium
           entries={report.podium}
+          /*
+            Uma oferta POR POSIÇÃO bloqueada, não uma oferta para o conjunto.
+
+            O preço é o mesmo para cada uma, e quem só tem curiosidade sobre a 2ª não precisa
+            pagar pela 3ª. Cada card já mostra o próprio fit e, quando a diferença para a 1ª é
+            grande, o aviso de qualidade — então a decisão de desbloquear é tomada com o número na
+            frente, não no escuro.
+          */
           onUnlock={
             report.top3_offer_available ? (
-              <div className="mt-8 rounded border-2 border-ink bg-white p-6">
-                <h3 className="font-display text-lg font-semibold">
-                  Desbloquear as outras duas melhores opções
-                </h3>
-                <p className="mt-2 max-w-prose text-sm text-graphite">
-                  As três foram calculadas pelo mesmo algoritmo e as três são boas opções reais.
-                  Desbloqueando, você vê os nomes, os trade-offs e a comparação completa entre elas.
-                </p>
-                <p className="display-number mt-4 text-2xl">R$ 9,99</p>
-                <Link
-                  href={`/planos/${sessionId}?produto=top3_unlock`}
-                  className="mt-4 flex min-h-[56px] items-center justify-center rounded bg-ink
-                             font-semibold text-paper transition-opacity hover:opacity-90"
-                >
-                  Desbloquear Top 3
-                </Link>
+              <div className="mt-8 space-y-3">
+                {report.podium
+                  .filter((entry) => entry.locked)
+                  .map((entry) => (
+                    <div
+                      key={entry.rank}
+                      className="flex flex-col gap-3 rounded border-2 border-ink bg-white p-5
+                                 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <h3 className="font-display font-semibold">
+                          Desbloquear a {entry.rank}ª colocada
+                        </h3>
+                        <p className="mt-1 text-sm text-graphite">
+                          Marca, modelo, leitura técnica e por que ela ficou nesta posição.
+                        </p>
+                      </div>
+                      <Link
+                        href={`/planos/${sessionId}?produto=unlock_rank_${entry.rank}`}
+                        className="flex min-h-[56px] shrink-0 items-center justify-center gap-3
+                                   rounded bg-ink px-6 font-semibold text-paper
+                                   transition-opacity hover:opacity-90"
+                      >
+                        <span className="display-number text-lg">R$ 9,99</span>
+                        <span>Desbloquear</span>
+                      </Link>
+                    </div>
+                  ))}
               </div>
             ) : null
           }

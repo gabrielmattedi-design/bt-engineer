@@ -14,6 +14,7 @@ import type { RankedRacket, RecommendationResult } from '@/domain/recommendation
 import { clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { buildTradeOffs, type TradeOff } from './trade-offs';
+import { buildRadar, type RadarAxis } from './radar';
 import {
   explainComfort,
   explainCombination,
@@ -183,6 +184,11 @@ export type ReportPayload = {
   readonly engine_version: string;
   readonly dataset_version: string;
   readonly indices_disclaimer: string;
+  /**
+   * Quatro leituras sobre os mesmos eixos: o que seu jogo pede, o que a recomendada entrega, o que
+   * a sua atual entrega e a média do catálogo. Ver `radar.ts`.
+   */
+  readonly radar: readonly RadarAxis[];
 };
 
 const INDICES_DISCLAIMER =
@@ -452,5 +458,15 @@ export function serializeRecommendation(
     engine_version: result.engine_version,
     dataset_version: result.dataset_version,
     indices_disclaimer: INDICES_DISCLAIMER,
+    radar: buildRadar(
+      profile,
+      first,
+      result.full_ranking,
+      result.attribute_bands,
+      // A raquete atual está no ranking quando foi reconhecida no catálogo e passou pelos filtros.
+      result.full_ranking.find(
+        (r) => r.racket.variant.id === profile.current_racket?.variant_id,
+      ) ?? null,
+    ),
   };
 }
