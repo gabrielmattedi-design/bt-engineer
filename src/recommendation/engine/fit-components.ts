@@ -392,11 +392,38 @@ export function comfortFit(
    * motor perdia um critério de desempate inteiro — a concentração de recomendações num único
    * modelo saltou para 36% quando isso aconteceu.
    *
-   * O desconto abrupto abaixo da exigência é o que protege quem já sente dor. Sem histórico de
-   * desconforto exige-se pouco (40); no extremo da sensibilidade, quase o topo do catálogo (90).
+   * O desconto abaixo da exigência é o que protege quem já sente dor.
+   *
+   * ─── NOTA DE CALIBRAÇÃO (v2.2.0) ───────────────────────────────────────────────────────────
+   *
+   * As constantes anteriores — `40 + 0.5 × s`, inclinação 1.6 — foram calibradas quando a faixa de
+   * `arm_friendliness_score` ia de 22.3 a 66.4. Ao passar a recuar de vãos destacados
+   * (`catalog-scale.ts`), a faixa desse eixo encolheu para 42.1 … 66.4: o frame mais hostil do
+   * catálogo era um caso solto, e sair dele foi correto.
+   *
+   * Mas TODA constante desta função é expressa em posição de faixa, e uma faixa 45% mais estreita
+   * torna cada constante proporcionalmente mais dura sem que ninguém tenha decidido isso. Medido: a
+   * mesma Babolat Pure Drive 107, sem mudar uma especificação sequer, caiu de `comfort_fit` 64 para
+   * 23. Um iniciante com dor no cotovelo (p21) passou a não ter NENHUMA raquete acima do piso de
+   * match do produto — não porque o catálogo piorasse, mas porque a régua encolheu.
+   *
+   * As constantes abaixo restauram a severidade REAL: a exigência e a inclinação foram remapeadas
+   * para que, em pontos de atributo, elas cobrem hoje o mesmo que cobravam antes. O que mudou de
+   * verdade é só a resolução — o eixo passou a distinguir melhor os frames que existem de fato.
+   *
+   * ─── O QUE ESTA FUNÇÃO NÃO CONSEGUE CONSERTAR ──────────────────────────────────────────────
+   *
+   * O diagnóstico de p21 expôs um buraco de DADOS, e ele continua aberto: não existe no catálogo um
+   * frame leve, de cabeça grande e flexível. Todos os arm-friendly têm 300–315 g; todos os de
+   * iniciante têm viga larga. Some-se que `arm_friendliness_score` usa a largura da viga como proxy
+   * de rigidez com peso 0.45 — proxy que a linha Clash quebra, porque ela é de viga larga E muito
+   * flexível, e o catálogo não carrega o RA medido para desmentir a largura.
+   *
+   * Nenhuma constante resolve isso. Resolve-se medindo rigidez (§ curadoria) ou ampliando o
+   * catálogo, e é assim que deve ser registrado.
    */
-  const required = 40 + 0.5 * sensitivity;
-  const raw = 60 + 0.4 * armFriendly - Math.max(0, required - armFriendly) * 1.6;
+  const required = 0.8 * sensitivity;
+  const raw = 60 + 0.4 * armFriendly - Math.max(0, required - armFriendly) * 0.9;
 
   return output('comfort_fit', raw, [
     {

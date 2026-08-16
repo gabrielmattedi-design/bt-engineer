@@ -203,11 +203,31 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
     T('head_size', n.h, 0.15),
   ]);
 
+  /**
+   * Estabilidade — resistência a ser deslocado pela bola.
+   *
+   * ─── NOTA DE CALIBRAÇÃO (v2.2.0) ───────────────────────────────────────────────────────────
+   *
+   * A formulação anterior era `swing_index 0.40 + weight 0.32 + head_size 0.18 + balance 0.10`, e
+   * ela produzia um veredicto impossível: a HEAD Ti.S6 — 225 g, cabeça de 115 pol² — saía como a
+   * raquete MAIS ESTÁVEL do catálogo, à frente de frames de 320 g.
+   *
+   * O erro tem duas metades, e as duas apontam para o mesmo lugar. `swing_index` é massa × braço²,
+   * então um frame leve e muito head-heavy (balanço 380 mm) o infla sem ter massa nenhuma; e
+   * `head_size` entrava como bônus, quando cabeça grande, a massa constante, é área a mais para a
+   * bola torcer. Somados, os dois deixavam o balanço substituir a massa — e massa é exatamente o
+   * que estabilidade significa.
+   *
+   * A física é direta: o que impede o quadro de recuar no impacto é inércia, e inércia contra uma
+   * bola que chega é massa. Balanço redistribui a massa que existe; ele não cria massa. Por isso o
+   * peso passa a dominar, `swing_index` vira termo secundário (ele CONTÉM a massa, e conta como
+   * confirmação, não como substituto) e `head_size` sai — ele já paga o que deve em
+   * `forgiveness_score`, que é onde cabeça grande de fato ajuda.
+   */
   const stability_score = build([
-    T('swing_index', n.s, 0.4),
-    T('weight', n.w, 0.32),
-    T('head_size', n.h, 0.18),
-    T('balance', n.b, 0.1),
+    T('weight', n.w, 0.5),
+    T('swing_index', n.s, 0.35),
+    T('balance', n.b, 0.15),
   ]);
 
   // Índice de balanço invertido domina: é o que o jogador sente ao acelerar o braço.

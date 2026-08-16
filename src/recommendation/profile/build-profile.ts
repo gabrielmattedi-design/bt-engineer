@@ -209,13 +209,68 @@ function computeSwingLength(a: QuestionnaireAnswers): SwingLength {
 }
 
 /** Sensibilidade no braço (§17). Nunca é diagnóstico — é um peso de decisão de equipamento. */
-function computeArmSensitivity(areas: readonly string[]): number {
-  const relevant = areas.filter((x) => x !== 'nenhum');
+/**
+ * Sensibilidade no braço — graduada por ÁREA, RECÊNCIA e INTENSIDADE.
+ *
+ * ═══ POR QUE ISTO PRECISOU MUDAR ═════════════════════════════════════════════════════════════
+ *
+ * Marcar "ombro" bastava para o motor tratar conforto como prioridade máxima. E a pergunta aceita
+ * "sente OU JÁ SENTIU" — praticamente todo jogador de clube com alguns anos de quadra marca
+ * alguma coisa. O efeito era desproporcional e em quatro frentes ao mesmo tempo: o peso do
+ * componente de conforto quase triplicava, a necessidade de conforto era fixada em 80, uma
+ * penalização passava a cobrar de todo frame de viga larga, e o poliéster saía da lista de cordas.
+ *
+ * Uma dor leve de três anos atrás — que pode nem ter vindo da raquete — governava a recomendação
+ * inteira. E o jogador via uma raquete confortável e fraca sem entender por quê.
+ *
+ * ═══ COMO FICA ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * A área dá a base. A recência e a intensidade MULTIPLICAM, e as duas juntas separam o histórico
+ * do problema atual: dor forte e presente mantém o comportamento antigo, dor leve e antiga vira um
+ * sinal fraco que informa sem mandar.
+ *
+ * ─── E POR QUE O SILÊNCIO NÃO REDUZ NADA ─────────────────────────────────────────────────────
+ *
+ * Quem marca "cotovelo" e não qualifica recebe o peso INTEGRAL da área, como se a dor fosse atual
+ * e relevante. Isso parece contradizer o parágrafo acima e não contradiz: o que foi calibrado é a
+ * resposta a uma qualificação DADA, não a ausência dela.
+ *
+ * A primeira versão desta função descontava o não-respondido para 0.49 do peso, e a consequência
+ * foi medida pelos testes de persona: um jogador que relatava cotovelo caía de 75 para 36.75, o
+ * suficiente para desligar o filtro de viga muito larga E devolver poliéster à lista de cordas —
+ * as duas travas de segurança da R-11 — sem que ele tivesse dito nada que justificasse isso.
+ *
+ * Silêncio não é evidência de leveza. Uma dor não qualificada pode ser qualquer uma das nove
+ * combinações, incluindo a pior, e é a pior que define o risco. O caminho para baixo existe e é
+ * barato: são duas perguntas, exibidas assim que a área é marcada. Quem quiser menos conforto e
+ * mais raquete responde "leve" e "há mais tempo", e o motor obedece na hora.
+ */
+const DISCOMFORT_RECENCY: Record<string, number> = {
+  agora: 1.0,
+  ultimos_meses: 0.8,
+  ano_passado: 0.5,
+  ha_mais_tempo: 0.3,
+};
+
+const DISCOMFORT_INTENSITY: Record<string, number> = {
+  leve: 0.55,
+  moderada: 0.8,
+  forte: 1.0,
+};
+
+function computeArmSensitivity(a: QuestionnaireAnswers): number {
+  const relevant = a.discomfort_areas.filter((x) => x !== 'nenhum');
   if (relevant.length === 0) return 0;
+
   const scores: Record<string, number> = { cotovelo: 75, ombro: 65, punho: 60 };
   const values = relevant.map((r) => scores[r] ?? 60);
-  const max = Math.max(...values);
-  return clamp(relevant.length > 1 ? max + 10 : max, 0, 95);
+  const base = clamp(relevant.length > 1 ? Math.max(...values) + 10 : Math.max(...values), 0, 95);
+
+  // Sem qualificação, peso integral: o desconto é resposta a uma resposta, nunca ao silêncio.
+  const recency = DISCOMFORT_RECENCY[a.discomfort_when ?? ''] ?? 1.0;
+  const intensity = DISCOMFORT_INTENSITY[a.discomfort_intensity ?? ''] ?? 1.0;
+
+  return clamp(base * recency * intensity, 0, 95);
 }
 
 const STYLE_ANSWER_MAP: Record<string, PlayStyle[]> = {
@@ -343,7 +398,7 @@ export function buildPlayerProfile(
 
   const level = calibrateLevel(a);
   const physicalCapacity = computePhysicalCapacity(a);
-  const armSensitivity = computeArmSensitivity(a.discomfort_areas);
+  const armSensitivity = computeArmSensitivity(a);
   const swingLength = computeSwingLength(a);
 
   // Swing desconhecido é INFERIDO, e a inferência é marcada — nunca fingimos que o usuário respondeu.

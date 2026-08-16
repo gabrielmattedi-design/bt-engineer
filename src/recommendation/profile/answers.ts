@@ -71,6 +71,10 @@ export type QuestionnaireAnswers = {
     | null;
   string_breakage: 'nunca' | 'raramente' | 'a_cada_2_3_meses' | 'mensalmente' | 'semanalmente' | null;
   discomfort_areas: readonly string[];
+  /** Quando foi a última vez. Um desconforto de anos atrás não governa a recomendação de hoje. */
+  discomfort_when: 'agora' | 'ultimos_meses' | 'ano_passado' | 'ha_mais_tempo' | null;
+  /** Intensidade. "Incomoda" e "me tira da quadra" pedem respostas muito diferentes. */
+  discomfort_intensity: 'leve' | 'moderada' | 'forte' | null;
 
   // Etapa 7 — objetivo e texto livre
   /**
@@ -122,6 +126,8 @@ export function emptyAnswers(): QuestionnaireAnswers {
     current_tension_feeling: null,
     string_breakage: null,
     discomfort_areas: [],
+    discomfort_when: null,
+    discomfort_intensity: null,
     objective: [],
     player_name: null,
     free_text: null,

@@ -183,6 +183,21 @@ export type RecommendationResult = {
   readonly attribute_bands: Readonly<Record<string, readonly [number, number]>>;
 
   /**
+   * Ponto de partida contra o qual o objetivo foi medido: a raquete atual quando reconhecida, a
+   * média do catálogo filtrado quando não.
+   *
+   * Viaja no resultado pelo mesmo motivo de `attribute_bands` — o relatório precisa continuar
+   * dizendo AMANHÃ o que disse na hora da compra —, mas serve a um propósito diferente: sem ele o
+   * relatório consegue afirmar que a raquete entrega X, e não consegue afirmar o quanto isso
+   * AVANÇOU em relação ao que a pessoa já tinha. É a diferença entre um número e uma resposta.
+   *
+   * Opcional porque relatórios gravados antes deste campo existir não o têm. Quem os lê perde a
+   * explicação de pedido não atendido, e não ganha uma explicação inventada a partir de uma
+   * referência recalculada hoje — que descreveria outra análise.
+   */
+  readonly objective_reference?: Readonly<Record<NeedKey, number>>;
+
+  /**
    * Variante do pódio para a qual `string_recommendation` e `tension` foram calculados.
    *
    * `null` = a 1ª colocada, que é o padrão. Só muda quando o jogador compra o upgrade de setup e

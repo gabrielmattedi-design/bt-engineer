@@ -15,37 +15,58 @@ import type { RankedRacket, RecommendationResult } from '@/domain/recommendation
  * Quando houver volume de questionários respondidos, essa série passa a ser calculável de verdade,
  * e entra sem mudar mais nada aqui: os eixos e a escala já são estes.
  *
- * ─── AS QUATRO SÉRIES, E O QUE CADA UMA É ────────────────────────────────────────────────────
+ * ═══ O ERRO QUE ESTE ARQUIVO JÁ COMETEU ══════════════════════════════════════════════════════
  *
- *   perfil     — o que o SEU JOGO pede. Sai do questionário, não de raquete nenhuma.
- *   recomendada — o que a raquete escolhida entrega.
- *   atual      — o que a sua raquete de hoje entrega. Ausente quando não informada.
- *   catálogo   — a média das 46 avaliadas, que é a régua de "normal".
+ * A primeira versão desenhava, no MESMO eixo, duas grandezas que não são comparáveis:
  *
- * A leitura que o gráfico permite é a que o relatório inteiro tenta sustentar: onde a recomendada
- * encosta no perfil, ela está resolvendo; onde ela se afasta, existe uma troca — e a série do
- * catálogo mostra se aquele afastamento é uma limitação do mercado ou uma escolha do motor.
+ *   • as raquetes entravam como POSIÇÃO NO CATÁLOGO (0 = a menos potente que existe, 100 = a mais);
+ *   • o jogador entrava como PRIORIDADE (0 = não me importo, 100 = é o que mais quero mudar).
  *
- * ─── A ESCALA É A MESMA DOS ÍNDICES ──────────────────────────────────────────────────────────
+ * Prioridade 85 em potência não significa "quero uma raquete no percentil 85 de potência" —
+ * significa "potência é o que mais quero melhorar". Sobrepostas, as duas leituras produziam um
+ * abismo visual onde muitas vezes não havia nenhum, e o gráfico acusava o motor de um erro que
+ * ele não tinha cometido. Pior: escondia os casos em que o erro era real, porque toda a diferença
+ * parecia ruído de escala.
  *
- * Todos os valores passam pelas faixas do catálogo (`attribute_bands`), pelo mesmo motivo de
- * sempre: os atributos crus se aglomeram entre 40 e 55, e quatro polígonos quase sobrepostos não
- * mostram nada. Aqui a distorção seria pior que nos índices, porque a forma do polígono É a
- * informação.
+ * ═══ AS QUATRO SÉRIES, TODAS EM POSIÇÃO DE CATÁLOGO ══════════════════════════════════════════
  *
- * O perfil já nasce em 0–100 e não passa por faixa nenhuma — ele não é uma raquete, é uma
- * exigência. Colocá-lo na mesma escala visual é o que torna a comparação legível.
+ *   alvo        — ONDE seu jogo pede que a raquete esteja. É a posição de hoje mais a mudança
+ *                 que o perfil pediu. Agora comparável com as outras três.
+ *   recomendada — onde a raquete escolhida está.
+ *   atual       — onde a sua de hoje está. Ausente quando não informada.
+ *   catálogo    — a média das avaliadas, a régua de "normal".
+ *
+ * Com as quatro na mesma unidade, a leitura passa a ser verificável: se o verde fica abaixo do
+ * laranja em potência, a recomendação REALMENTE entrega menos potência do que o perfil pediu, e
+ * isso é uma troca que o relatório precisa explicar — não um artefato do desenho.
+ *
+ * ═══ POR QUE POSIÇÃO DE CATÁLOGO, E NÃO O VALOR CRU ══════════════════════════════════════════
+ *
+ * Os atributos crus se aglomeram entre 40 e 55 (ver `catalog-scale.ts`), e quatro polígonos quase
+ * sobrepostos não mostram nada. Aqui a compressão seria pior que nos índices, porque a FORMA do
+ * polígono é a informação.
  */
 
 export type RadarAxis = {
   readonly key: NeedKey;
   readonly label: string;
-  /** O que o jogo do usuário pede neste eixo, 0–100. */
+  /** Posição de catálogo que o perfil pede neste eixo, 0–100. */
   readonly profile: number;
   readonly recommended: number;
   readonly current: number | null;
   readonly catalog: number;
 };
+
+/**
+ * Quantos pontos de POSIÇÃO um pedido de intensidade máxima representa.
+ *
+ * `desired_change_vector` vai de −40 a +40 e é medido em pontos de prioridade. Traduzi-lo para o
+ * eixo do catálogo exige uma taxa, e 1:1 é a escolha defensável: pedir a mudança mais forte que o
+ * questionário permite move o alvo 40 pontos percentuais — de um frame mediano para perto do
+ * extremo, sem exigir o extremo. Uma taxa maior faria o alvo estourar o topo em qualquer pedido
+ * forte e o gráfico voltaria a acusar o motor por diferença que ninguém consegue fechar.
+ */
+const ASK_TO_POSITION = 1.0;
 
 const AXIS_LABEL_PT: Record<NeedKey, string> = {
   power: 'Potência',
@@ -102,13 +123,33 @@ export function buildRadar(
         ? 50
         : ranking.reduce((sum, r) => sum + valueOf(r), 0) / ranking.length;
 
+    const catalogPosition = position(bands, attribute, catalogMean);
+    const currentPosition = currentRacket
+      ? position(bands, attribute, valueOf(currentRacket))
+      : null;
+
+    /**
+     * O alvo parte de ONDE A PESSOA ESTÁ, não do meio da escala.
+     *
+     * Quem já usa um frame potente e pede mais potência está pedindo outra coisa — em posição
+     * absoluta — do que quem pede o mesmo partindo de um frame fraco. Ancorar no ponto de partida
+     * é o que faz "quero mais X" significar a mesma coisa para os dois.
+     */
+    const reference = currentPosition ?? catalogPosition;
+    const target = Math.round(
+      Math.max(
+        0,
+        Math.min(100, reference + profile.desired_change_vector[need] * ASK_TO_POSITION),
+      ),
+    );
+
     return {
       key: need,
       label: AXIS_LABEL_PT[need],
-      profile: Math.round(profile.needs[need]),
+      profile: target,
       recommended: position(bands, attribute, valueOf(winner)),
-      current: currentRacket ? position(bands, attribute, valueOf(currentRacket)) : null,
-      catalog: position(bands, attribute, catalogMean),
+      current: currentPosition,
+      catalog: catalogPosition,
     };
   });
 }

@@ -120,6 +120,100 @@ function widen([lo, hi]: Band): Band {
   return [lo - pad, hi + pad];
 }
 
+/**
+ * ═══ POR QUE A FAIXA NÃO É SIMPLESMENTE O MÍNIMO E O MÁXIMO ══════════════════════════════════
+ *
+ * `[min, max]` entrega a régua inteira ao produto mais extremo do catálogo, e um único item
+ * atípico basta para arruiná-la. O caso real, medido:
+ *
+ *     power_score — HEAD Ti.S6: 90.1 | Wilson Clash 108: 57.8 | Yonex EZONE 105: 54.3
+ *
+ * A Ti.S6 é um frame de 225 g e 115 pol², de uma categoria que as outras 45 raquetes não
+ * disputam. Com a faixa esticada até 90, TODO o catálogo que um jogador de clube consideraria
+ * cabia nos 45% de baixo da escala — e o relatório dizia a um intermediário que a raquete
+ * recomendada para ele tinha "potência 34 de 100". O número era aritmeticamente correto e
+ * comunicava uma falsidade: não que a raquete seja fraca, mas que ela é fraca perto de um produto
+ * que não é alternativa para ninguém que esteja lendo aquilo.
+ *
+ * O estrago não parava na tela. `position()` alimenta todos os componentes de fit, então a
+ * compressão entrava na DECISÃO: `objectiveFit` media avanços numa escala em que quase não havia
+ * espaço para andar, e o motor concluía — corretamente, dentro da própria régua — que pouco podia
+ * ser feito por quem pedia potência.
+ *
+ * ─── POR QUE VÃO, E NÃO PERCENTIL NEM CERCA DE TUKEY ─────────────────────────────────────────
+ *
+ * Duas tentativas anteriores erraram, e cada uma ensinou metade da resposta.
+ *
+ * A primeira aparava 5% de cada ponta. Consertou a potência e estragou o resto, o que os testes de
+ * persona mostraram na hora: em `demand_index` a ponta de baixo é justamente o segmento de
+ * iniciante — raquetes densamente agrupadas, não um caso excêntrico — e aparar por POSIÇÃO
+ * eliminava exatamente as opções que um iniciante precisa distinguir, empilhando meia dúzia delas
+ * em 0. A persona 1 parou de saber diferenciar uma cabeça de 105 pol² de uma de 100.
+ *
+ * A segunda usava a cerca de Tukey (`q3 + k × IQR`). Ela mede a distância do extremo aos QUARTIS,
+ * o que é uma pergunta sobre a largura do miolo, não sobre o extremo. Num eixo de miolo largo como
+ * `power_score` a cerca caía em 82 — deixando quase intacto um vão de 32 pontos —, enquanto em
+ * eixos de miolo estreito ela cortava caudas perfeitamente legítimas.
+ *
+ * A pergunta certa é sobre o VÃO: o item mais extremo está grudado no resto, ou separado dele? É
+ * literalmente o que distingue os dois casos. Na potência, a Ti.S6 está a 32 pontos da 2ª colocada,
+ * enquanto as 45 restantes ocupam 37 pontos no total — o vão sozinho vale quase toda a distribuição.
+ * Na tolerância, o vão do topo é de 6 pontos contra 25 de corpo: é uma cauda, não um destacamento.
+ *
+ * Por isso a régua recua uma posição só quando o vão até o vizinho supera `GAP_RATIO` do que sobra,
+ * e no máximo duas vezes por ponta. Um eixo denso fica idêntico ao que era; um eixo com produto de
+ * outra categoria perde o vão morto.
+ *
+ * O extremo não desaparece: `position()` satura em 0 e 100, e a Ti.S6 continua sendo a mais
+ * potente do catálogo — agora com a leitura "no topo do que existe" em vez de "sozinha na escala".
+ */
+const GAP_RATIO = 0.35;
+
+/**
+ * Quantas posições cada ponta pode recuar.
+ *
+ * Duas, e não "enquanto houver vão", porque recuar é destrutivo: cada passo é uma raquete real cuja
+ * diferença some da régua. Um catálogo com três produtos destacados na mesma ponta não é um
+ * catálogo com outliers — é um catálogo com dois segmentos, e a resposta certa aí é curadoria, não
+ * estatística.
+ */
+const MAX_RETREAT = 2;
+
+/** Amostra mínima para recuar. Abaixo disso "o vão" é só o formato de uma amostra pequena. */
+const MIN_SAMPLE_FOR_RETREAT = 12;
+
+/**
+ * Faixa robusta: mínimo e máximo reais, recuando apenas por cima de um vão destacado.
+ *
+ * As duas pontas são independentes — um eixo pode ter um produto solto no topo e uma cauda normal
+ * embaixo.
+ */
+function robustBand(sorted: readonly number[]): Band {
+  if (sorted.length < MIN_SAMPLE_FOR_RETREAT) {
+    return [sorted[0]!, sorted[sorted.length - 1]!];
+  }
+
+  let lo = 0;
+  let hi = sorted.length - 1;
+
+  for (let step = 0; step < MAX_RETREAT; step += 1) {
+    // O "corpo" é o que sobraria depois de recuar: é contra ele que o vão é medido.
+    const gap = sorted[hi]! - sorted[hi - 1]!;
+    const body = sorted[hi - 1]! - sorted[lo]!;
+    if (body <= 0 || gap <= body * GAP_RATIO) break;
+    hi -= 1;
+  }
+
+  for (let step = 0; step < MAX_RETREAT; step += 1) {
+    const gap = sorted[lo + 1]! - sorted[lo]!;
+    const body = sorted[hi]! - sorted[lo + 1]!;
+    if (body <= 0 || gap <= body * GAP_RATIO) break;
+    lo += 1;
+  }
+
+  return [sorted[lo]!, sorted[hi]!];
+}
+
 /** Constrói a escala a partir do catálogo. Pura e determinística. */
 export function buildCatalogScale(catalog: readonly ScoredRacket[]): CatalogScale {
   const bands = new Map<ScaleKey, Band>();
@@ -130,7 +224,9 @@ export function buildCatalogScale(catalog: readonly ScoredRacket[]): CatalogScal
       bands.set(key, [0, 100]);
       return;
     }
-    bands.set(key, widen([Math.min(...finite), Math.max(...finite)]));
+
+    const sorted = [...finite].sort((a, b) => a - b);
+    bands.set(key, widen(robustBand(sorted)));
   };
 
   for (const key of ATTRIBUTE_KEYS) {

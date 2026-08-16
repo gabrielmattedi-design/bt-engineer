@@ -409,7 +409,29 @@ export function serializeRecommendation(
         entry,
         profile,
         result.attribute_bands,
-        buildTradeOffs(entry, result.full_ranking, result.candidates_evaluated),
+        buildTradeOffs(
+          entry,
+          result.full_ranking,
+          result.candidates_evaluated,
+          /*
+            O contexto só é passado quando a análise gravou a referência de objetivo.
+
+            Ele habilita a explicação de PEDIDO NÃO ATENDIDO — o eixo que a pessoa pediu com força
+            e que a raquete quase não moveu. Sem a referência, "quase não moveu" não é uma frase
+            que se possa provar: seria preciso recalcular hoje o ponto de partida de uma análise de
+            ontem, e a explicação passaria a descrever uma comparação que nunca foi feita.
+
+            Relatórios antigos, então, seguem sem essa seção — que é o comportamento que eles
+            sempre tiveram — em vez de ganhar uma justificativa fabricada.
+          */
+          result.objective_reference
+            ? {
+                profile,
+                reference: result.objective_reference,
+                bands: result.attribute_bands,
+              }
+            : undefined,
+        ),
       );
     }
     if (canSeeRank(granted, entry.rank)) {

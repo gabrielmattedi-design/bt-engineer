@@ -112,6 +112,7 @@ export function recommend(input: RecommendInput): RecommendationResult {
     confidence,
     top3_offer_available: top3OfferAvailable,
     attribute_bands: scaleBands(ranked.scale, DISPLAYED_ATTRIBUTES),
+    objective_reference: ranked.reference,
   };
 }
 

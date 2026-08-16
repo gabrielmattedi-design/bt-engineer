@@ -30,6 +30,8 @@ export type Question =
   | {
       readonly kind: 'single';
       readonly optional?: boolean;
+      /** Pergunta escondida quando devolve false. Some da etapa e da validação. */
+      readonly showIf?: (a: QuestionnaireAnswers) => boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -38,6 +40,8 @@ export type Question =
   | {
       readonly kind: 'multi';
       readonly optional?: boolean;
+      /** Pergunta escondida quando devolve false. Some da etapa e da validação. */
+      readonly showIf?: (a: QuestionnaireAnswers) => boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -49,6 +53,8 @@ export type Question =
   | {
       readonly kind: 'number';
       readonly optional?: boolean;
+      /** Pergunta escondida quando devolve false. Some da etapa e da validação. */
+      readonly showIf?: (a: QuestionnaireAnswers) => boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -72,6 +78,8 @@ export type Question =
        */
       readonly kind: 'racket';
       readonly optional?: boolean;
+      /** Pergunta escondida quando devolve false. Some da etapa e da validação. */
+      readonly showIf?: (a: QuestionnaireAnswers) => boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -80,6 +88,8 @@ export type Question =
       /** Campo curto de uma linha — nome. O `text` abre um textarea de seis linhas. */
       readonly kind: 'shortText';
       readonly optional?: boolean;
+      /** Pergunta escondida quando devolve false. Some da etapa e da validação. */
+      readonly showIf?: (a: QuestionnaireAnswers) => boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -89,6 +99,8 @@ export type Question =
   | {
       readonly kind: 'text';
       readonly optional?: boolean;
+      /** Pergunta escondida quando devolve false. Some da etapa e da validação. */
+      readonly showIf?: (a: QuestionnaireAnswers) => boolean;
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
@@ -521,12 +533,49 @@ export const STEPS: readonly Step[] = [
         kind: 'multi',
         key: 'discomfort_areas',
         title: 'Você sente ou já sentiu desconforto recorrente em…',
+        help: 'Desconforto ligado ao tênis. Se nunca teve, marque "nenhum" e siga.',
         max: 3,
         choices: [
-          { value: 'cotovelo', label: 'Cotovelo' },
-          { value: 'ombro', label: 'Ombro' },
-          { value: 'punho', label: 'Punho' },
-          { value: 'nenhum', label: 'Nenhum' },
+          { value: 'cotovelo', label: 'Cotovelo', hint: 'A famosa "epicondilite" — dor na parte de fora do cotovelo.' },
+          { value: 'ombro', label: 'Ombro', hint: 'Aparece principalmente no saque e nas bolas altas.' },
+          { value: 'punho', label: 'Punho', hint: 'Costuma vir do impacto descentralizado ou do backhand.' },
+          { value: 'nenhum', label: 'Nenhum', hint: 'Você joga sem dor nas articulações.' },
+        ],
+      },
+      /*
+        ─── POR QUE QUANDO E QUANTO ────────────────────────────────────────────────────────────
+
+        Marcar "ombro" era suficiente para o motor tratar conforto como prioridade máxima. Só que a
+        pergunta anterior aceita "sente OU JÁ SENTIU", e quase todo jogador de clube com alguns anos
+        de quadra já sentiu alguma coisa em algum lugar. Uma dor leve de três anos atrás, que pode
+        nem ter vindo da raquete, passava a governar a recomendação inteira.
+
+        Estas duas perguntas separam o histórico do problema ATUAL. Só existem para quem marcou uma
+        área — quem respondeu "nenhum" não as vê.
+      */
+      {
+        kind: 'single',
+        key: 'discomfort_when',
+        // Só faz sentido para quem tem o quê datar.
+        showIf: (a) => a.discomfort_areas.some((d) => d !== 'nenhum'),
+        title: 'Quando foi a última vez?',
+        help: 'Um desconforto antigo pesa menos que um que você sente hoje.',
+        choices: [
+          { value: 'agora', label: 'Sinto atualmente', hint: 'Aparece nos jogos ou treinos desta temporada.' },
+          { value: 'ultimos_meses', label: 'Nos últimos meses', hint: 'Passou, mas foi recente.' },
+          { value: 'ano_passado', label: 'No último ano', hint: 'Não voltou desde então.' },
+          { value: 'ha_mais_tempo', label: 'Há mais tempo', hint: 'Episódio antigo, já resolvido.' },
+        ],
+      },
+      {
+        kind: 'single',
+        key: 'discomfort_intensity',
+        showIf: (a) => a.discomfort_areas.some((d) => d !== 'nenhum'),
+        title: 'Qual a intensidade?',
+        choices: [
+          { value: 'leve', label: 'Leve', hint: 'Incomoda, mas você joga normalmente.' },
+          { value: 'moderada', label: 'Moderada', hint: 'Atrapalha alguns golpes ou encurta o treino.' },
+          { value: 'forte', label: 'Forte', hint: 'Já te tirou da quadra, ou exigiu tratamento.' },
         ],
       },
     ],
@@ -582,8 +631,19 @@ export const STEPS: readonly Step[] = [
   },
 ];
 
+/**
+ * Etapas visíveis, já com as PERGUNTAS condicionais filtradas.
+ *
+ * A filtragem acontece aqui e não na renderização para que a validação, o contador de progresso e a
+ * tela enxerguem exatamente o mesmo conjunto. Uma pergunta escondida que ainda contasse como
+ * obrigatória travaria a etapa sem nada aparecer na tela — o pior modo de falha possível num
+ * formulário.
+ */
 export function visibleSteps(answers: QuestionnaireAnswers): readonly Step[] {
-  return STEPS.filter((step) => !step.showIf || step.showIf(answers));
+  return STEPS.filter((step) => !step.showIf || step.showIf(answers)).map((step) => ({
+    ...step,
+    questions: step.questions.filter((q) => !q.showIf || q.showIf(answers)),
+  }));
 }
 
 /**
