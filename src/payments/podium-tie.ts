@@ -223,6 +223,86 @@ export function buildDistinction(
   return { headline: `${parts.join('; ')}.`, identical_twin: false };
 }
 
+/**
+ * Quantas raquetes do catálogo inteiro ficaram tecnicamente empatadas com a 1ª.
+ *
+ * ═══ POR QUE ESTE NÚMERO EXISTE ══════════════════════════════════════════════════════════════
+ *
+ * Reclamação de usuário, e ela é justa: "a 1ª, a 2ª e a 3ª deram 88%, e a minha raquete atual deu
+ * 86% em 11º. Dá a impressão de que o aplicativo está dizendo que qualquer uma serve."
+ *
+ * A parte incômoda é que, para aquele perfil, era mais ou menos isso mesmo. Um intermediário de 82
+ * kg com swing moderado consegue jogar bem com quase qualquer frame de 300–310 g e 98–100 pol²: o
+ * encaixe físico satura, o swing satura, e o que sobra separando as opções é pouco. O erro não era
+ * o número — era deixar a pessoa DEDUZIR isso de um silêncio, como se fosse falha da análise.
+ *
+ * Então o produto passa a dizer com todas as letras quantas empataram e o que isso significa. Um
+ * empate largo é uma descoberta sobre o jogador, não uma indecisão do motor: quando o quadro
+ * importa pouco, o que importa é a corda e a tensão — que é a outra metade do que se está
+ * comprando, e a metade mais barata de ajustar.
+ *
+ * A alternativa seria esticar a escala até 88% virar 100% e 86% virar 40%. Isso resolveria a
+ * aparência mentindo: a distância real entre as duas raquetes continuaria sendo de dois pontos.
+ */
+export type PodiumSeparation = {
+  readonly tied_with_first: number;
+  readonly evaluated: number;
+  readonly verdict: 'aberto' | 'disputado' | 'indiferente';
+  readonly message: string;
+};
+
+/** A partir daqui o empate deixa de ser detalhe e vira a conclusão principal da análise. */
+const WIDE_TIE_SHARE = 0.2;
+
+export function buildSeparation(
+  fullRanking: readonly RankedRacket[],
+): PodiumSeparation | null {
+  const first = fullRanking[0];
+  if (!first || fullRanking.length < 4) return null;
+
+  const tied = fullRanking.filter(
+    (r) => first.fit_score - r.fit_score < TECHNICAL_TIE_THRESHOLD,
+  ).length;
+  const evaluated = fullRanking.length;
+  const share = tied / evaluated;
+
+  if (tied <= 2) {
+    return {
+      tied_with_first: tied,
+      evaluated,
+      verdict: 'aberto',
+      message:
+        `A 1ª colocada se destacou: das ${evaluated} raquetes avaliadas, nenhuma outra chegou perto ` +
+        'o bastante para ser considerada equivalente. Aqui a escolha do quadro faz diferença real, ' +
+        'e vale seguir a recomendação.',
+    };
+  }
+
+  if (share < WIDE_TIE_SHARE) {
+    return {
+      tied_with_first: tied,
+      evaluated,
+      verdict: 'disputado',
+      message:
+        `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª. É um ` +
+        'grupo pequeno e bem definido: dentro dele a escolha é de preferência, mas ficar fora dele ' +
+        'custa compatibilidade de verdade.',
+    };
+  }
+
+  return {
+    tied_with_first: tied,
+    evaluated,
+    verdict: 'indiferente',
+    message:
+      `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª — quase ` +
+      'um quarto do catálogo. Isso não é indecisão da análise: é o resultado dela. Seu perfil ' +
+      'físico e seu swing se dão bem com uma faixa larga de quadros, e nessa faixa trocar de ' +
+      'raquete muda pouco. O que ainda muda bastante para você é a CORDA e a TENSÃO — e essas ' +
+      'custam uma fração do preço de um quadro novo.',
+  };
+}
+
 /** Duas raquetes com o mesmo vetor de atributos — o caso das gêmeas de especificação. */
 function sameAttributeVector(a: RankedRacket, b: RankedRacket): boolean {
   const x = a.racket.attributes;

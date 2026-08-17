@@ -141,6 +141,50 @@ export function humanizeMissingFields(fields: readonly string[]): string {
 }
 
 /**
+ * Orçamento dos seis eixos de comportamento: 6 × 50, o ponto neutro de cada escala 0–100.
+ *
+ * É uma constante fixa e não a média do catálogo. Se fosse a média, incluir ou remover uma raquete
+ * deslocaria os índices de TODAS as outras — e um relatório vendido em março passaria a exibir
+ * números diferentes em abril sem que nada tivesse sido descoberto sobre aquela raquete.
+ */
+const ATTRIBUTE_BUDGET = 300;
+
+/** Quantas rodadas de redistribuição. Seis eixos, então seis rodadas bastam no pior caso. */
+const LEVELIZE_PASSES = 6;
+
+/**
+ * Nivela a soma dos eixos no orçamento, preservando o contraste interno.
+ *
+ * O deslocamento é o MESMO em todos os eixos, então as distâncias entre eles não mudam: uma
+ * raquete que estava 12 pontos acima em potência em relação ao próprio controle continua 12 pontos
+ * acima. Só o nível se move.
+ *
+ * O laço existe por causa dos limites 0 e 100. Quando um eixo satura, o que sobra dele é
+ * redistribuído entre os que ainda podem andar — é assim que a Ti.S6, que é extrema, termina com
+ * potência e spin colados no teto e o resto no fundo, em vez de com tudo espremido no meio.
+ */
+export function levelize(values: readonly number[]): number[] {
+  const out = [...values];
+
+  for (let pass = 0; pass < LEVELIZE_PASSES; pass += 1) {
+    const sum = out.reduce((acc, v) => acc + v, 0);
+    const deficit = ATTRIBUTE_BUDGET - sum;
+    if (Math.abs(deficit) < 1e-9) break;
+
+    const movable: number[] = [];
+    for (let i = 0; i < out.length; i += 1) {
+      if (deficit > 0 ? out[i]! < 100 : out[i]! > 0) movable.push(i);
+    }
+    if (movable.length === 0) break;
+
+    const step = deficit / movable.length;
+    for (const i of movable) out[i] = clamp(out[i]! + step, 0, 100);
+  }
+
+  return out;
+}
+
+/**
  * Calcula os 11 atributos derivados + demand_index + os dois índices auxiliares.
  *
  * Como todos os termos vêm de campos publicados, uma variante bem cadastrada tem
@@ -280,13 +324,64 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
     T('weight', n.w, 0.15),
   ]);
 
-  return {
+  /**
+   * Os seis eixos de comportamento passam a ser um ORÇAMENTO, não uma nota.
+   *
+   * ═══ O DEFEITO MEDIDO ════════════════════════════════════════════════════════════════════
+   *
+   * Somando os seis índices exibidos, o catálogo ia de 410 a 485 num total médio de 454 — 18% de
+   * diferença de NÍVEL entre uma raquete e outra. E a diferença não era aleatória:
+   *
+   *     mais baixas   Ti.S6 410 · Ultra 100L 425 · Speed Pro 430 · Blade 98 18x20 430
+   *     mais altas    Radical Pro 485 · Percept 97 480 · EZONE 98 475 · VCORE 98 475
+   *
+   * Frames de controle e frames leves apareciam fracos em tudo; frames de 305 g com viga fina
+   * apareciam fortes em quase tudo. Isso produzia exatamente a leitura que um usuário reclamou:
+   * "a recomendada é melhor em tudo menos potência, isso não é possível" — e ele estava certo,
+   * porque não era possível: era viés do modelo.
+   *
+   * ═══ DE ONDE VINHA ═══════════════════════════════════════════════════════════════════════
+   *
+   * Somando o coeficiente da MASSA nos seis eixos: potência −0.15, conforto +0.30, estabilidade
+   * +0.50, manobrabilidade −0.30. Saldo +0.35. Somando `swing_index`: controle +0.16, spin +0.20,
+   * estabilidade +0.35, manobrabilidade −0.55. Saldo +0.16. Ou seja, massa entrava com meio ponto
+   * POSITIVO de saldo — o frame pesado ganhava conforto e estabilidade sem pagar o preço
+   * equivalente dentro dos seis.
+   *
+   * E o preço existe: é o esforço de carregar a raquete pela partida inteira. Só que ele mora em
+   * `physical_fit` e em `demand_index`, fora destes seis. O saldo positivo aqui não era física —
+   * era um custo contabilizado em outro lugar e um benefício contabilizado duas vezes.
+   *
+   * ═══ A CORREÇÃO ══════════════════════════════════════════════════════════════════════════
+   *
+   * Todo frame recebe o mesmo total e distribui internamente. Potência alta passa a implicar em
+   * algo mais baixo, necessariamente — que é como projeto de raquete de fato funciona: cabeça,
+   * viga, massa e padrão de cordas são um orçamento que o engenheiro reparte, não uma escala de
+   * qualidade em que modelos caros ganham em tudo.
+   *
+   * O deslocamento é ADITIVO e igual em todos os eixos, então o CONTRASTE interno de cada raquete
+   * — quem é forte em quê, e por quanto — sobrevive intacto. O que muda é só o nível.
+   *
+   * Os índices fora dos seis (`forgiveness`, `precision`, `feel`, `launch_angle`,
+   * `arm_friendliness`, `demand_index`) NÃO entram no orçamento: eles são justamente onde os
+   * custos reais são cobrados, e nivelá-los apagaria a cobrança.
+   */
+  const [power, control, spin, comfort, stability, maneuverability] = levelize([
     power_score,
     control_score,
     spin_score,
     comfort_score,
     stability_score,
     maneuverability_score,
+  ]);
+
+  return {
+    power_score: power!,
+    control_score: control!,
+    spin_score: spin!,
+    comfort_score: comfort!,
+    stability_score: stability!,
+    maneuverability_score: maneuverability!,
     forgiveness_score,
     precision_score,
     feel_score,

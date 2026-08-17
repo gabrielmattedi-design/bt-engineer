@@ -491,6 +491,7 @@ export default async function ResultadoPage({
         <Podium
           entries={report.podium}
           tie={report.podium_tie ?? null}
+          separation={report.separation ?? null}
           /*
             Uma oferta POR POSIÇÃO bloqueada, não uma oferta para o conjunto.
 

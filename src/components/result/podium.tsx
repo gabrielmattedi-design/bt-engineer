@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 import type { PodiumEntry } from '@/payments/entitlements';
-import type { PodiumTieGroup } from '@/payments/podium-tie';
+import type { PodiumSeparation, PodiumTieGroup } from '@/payments/podium-tie';
 
 /**
  * Pódio — §28, §29.
@@ -14,10 +14,12 @@ import type { PodiumTieGroup } from '@/payments/podium-tie';
 export function Podium({
   entries,
   tie,
+  separation,
   onUnlock,
 }: {
   entries: readonly PodiumEntry[];
   tie?: PodiumTieGroup | null;
+  separation?: PodiumSeparation | null;
   onUnlock?: React.ReactNode;
 }) {
   const [first, ...rest] = entries;
@@ -43,6 +45,18 @@ export function Podium({
         <p className="mt-4 rounded border-l-2 border-clay bg-line/30 px-4 py-3 text-sm leading-relaxed text-graphite">
           {tie.message}
         </p>
+      )}
+
+      {/*
+        Quantas do catálogo INTEIRO empataram — a resposta para "parece que qualquer uma serve".
+
+        Às vezes qualquer uma serve mesmo, e esconder isso é que seria desonesto. O que o produto
+        não pode fazer é deixar a pessoa deduzir sozinha, de três números iguais, que o motor não
+        decidiu nada. Aqui o empate largo vira o que ele de fato é: uma conclusão sobre o jogador,
+        com o encaminhamento que decorre dela.
+      */}
+      {separation && (
+        <p className="mt-3 text-sm leading-relaxed text-graphite">{separation.message}</p>
       )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-end">

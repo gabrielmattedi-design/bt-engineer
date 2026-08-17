@@ -11,11 +11,18 @@
 
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
-import { clamp01 } from '@/domain/scores';
+import { clamp, clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { buildTradeOffs, type TradeOff } from './trade-offs';
 import { buildRadar, type RadarAxis } from './radar';
-import { buildDistinction, buildTieGroup, type PodiumDistinction, type PodiumTieGroup } from './podium-tie';
+import {
+  buildDistinction,
+  buildSeparation,
+  buildTieGroup,
+  type PodiumDistinction,
+  type PodiumSeparation,
+  type PodiumTieGroup,
+} from './podium-tie';
 import { buildPlayerIdentity, type PlayerIdentity } from './player-identity';
 import {
   explainComfort,
@@ -195,6 +202,14 @@ export type ReportPayload = {
    * que as separa está escrito em cada card.
    */
   readonly podium_tie: PodiumTieGroup | null;
+  /**
+   * Quantas do catálogo inteiro empataram com a 1ª — e o que isso diz sobre o jogador.
+   *
+   * Ver `buildSeparation`. Existe para não deixar o usuário deduzir de um silêncio que "qualquer
+   * uma serve": quando é esse o caso, o relatório diz que é, explica por que, e aponta para onde o
+   * ajuste ainda rende.
+   */
+  readonly separation: PodiumSeparation | null;
   readonly transition: RecommendationResult['transition'];
   readonly confidence: {
     readonly level: string;
@@ -389,25 +404,95 @@ function buildIndices(
 ): Record<string, number> {
   const a = ranked.racket.attributes;
 
-  const display = (key: string, raw: number): number => {
+  const stretch = (key: string, raw: number): number => {
     const band = bands[key];
     // Sem faixa (relatório antigo, gravado antes deste campo existir) o valor cru é o melhor
     // disponível — é preferível a inventar uma escala que não corresponde ao que foi vendido.
-    if (!band || band[1] <= band[0]) return Math.round(raw / 5) * 5;
+    if (!band || band[1] <= band[0]) return clamp(raw, DISPLAY_INDEX_FLOOR, 100);
 
     const position = (raw - band[0]) / (band[1] - band[0]);
-    const scaled = DISPLAY_INDEX_FLOOR + clamp01(position) * (100 - DISPLAY_INDEX_FLOOR);
-    return Math.round(scaled / 5) * 5;
+    return DISPLAY_INDEX_FLOOR + clamp01(position) * (100 - DISPLAY_INDEX_FLOOR);
   };
 
+  /**
+   * O esticamento por eixo precisa ser renivelado — senão ele desfaz o orçamento.
+   *
+   * Os atributos crus já saem somando o mesmo total para toda raquete (ver `levelize` em
+   * `racket-attributes.ts`). Só que aqui cada eixo é reposicionado contra a SUA faixa de catálogo,
+   * e as faixas têm larguras diferentes: dez pontos crus num eixo estreito viram vinte e cinco na
+   * tela, enquanto os mesmos dez pontos num eixo largo viram oito. O resultado media 405 a 465 de
+   * soma exibida — o mesmo viés de nível voltando pela porta dos fundos.
+   *
+   * Renivelar aqui mantém a promessa onde ela é lida: na tabela e nas barras, toda raquete soma o
+   * mesmo, e a diferença entre elas é inteiramente de DISTRIBUIÇÃO.
+   */
+  const leveled = levelizeDisplay([
+    stretch('power_score', a.power_score),
+    stretch('control_score', a.control_score),
+    stretch('spin_score', a.spin_score),
+    stretch('comfort_score', a.comfort_score),
+    stretch('stability_score', a.stability_score),
+    stretch('maneuverability_score', a.maneuverability_score),
+  ]);
+
   return {
-    potencia: display('power_score', a.power_score),
-    controle: display('control_score', a.control_score),
-    spin: display('spin_score', a.spin_score),
-    conforto: display('comfort_score', a.comfort_score),
-    estabilidade: display('stability_score', a.stability_score),
-    manobrabilidade: display('maneuverability_score', a.maneuverability_score),
+    potencia: leveled[0]!,
+    controle: leveled[1]!,
+    spin: leveled[2]!,
+    conforto: leveled[3]!,
+    estabilidade: leveled[4]!,
+    manobrabilidade: leveled[5]!,
   };
+}
+
+/** Total exibido de toda raquete: seis eixos no ponto médio da escala 50–100. */
+const DISPLAY_BUDGET = 6 * 75;
+
+/** O passo de 5 permanece — não sugerir precisão que o modelo não tem (R-04). */
+const DISPLAY_STEP = 5;
+
+/**
+ * Nivela os seis índices exibidos no orçamento e arredonda mantendo a soma exata.
+ *
+ * O arredondamento é por MAIOR RESTO, e não `Math.round` em cada eixo: arredondar um a um faz a
+ * soma oscilar entre 445 e 455, e a promessa "toda raquete soma o mesmo" morre no arredondamento —
+ * justamente onde o usuário pode conferir com a calculadora.
+ */
+function levelizeDisplay(values: readonly number[]): number[] {
+  const out = [...values];
+
+  for (let pass = 0; pass < out.length; pass += 1) {
+    const deficit = DISPLAY_BUDGET - out.reduce((acc, v) => acc + v, 0);
+    if (Math.abs(deficit) < 1e-9) break;
+
+    const movable: number[] = [];
+    for (let i = 0; i < out.length; i += 1) {
+      if (deficit > 0 ? out[i]! < 100 : out[i]! > DISPLAY_INDEX_FLOOR) movable.push(i);
+    }
+    if (movable.length === 0) break;
+
+    const step = deficit / movable.length;
+    for (const i of movable) out[i] = clamp(out[i]! + step, DISPLAY_INDEX_FLOOR, 100);
+  }
+
+  // Maior resto sobre múltiplos de 5, respeitando piso e teto da escala.
+  const units = out.map((v) => v / DISPLAY_STEP);
+  const floors = units.map((u) => Math.floor(u));
+  let remaining = Math.round(DISPLAY_BUDGET / DISPLAY_STEP) - floors.reduce((a, b) => a + b, 0);
+
+  const order = units
+    .map((u, i) => ({ i, frac: u - floors[i]! }))
+    .sort((x, y) => y.frac - x.frac || x.i - y.i);
+
+  const result = [...floors];
+  for (const { i } of order) {
+    if (remaining <= 0) break;
+    if (result[i]! * DISPLAY_STEP >= 100) continue;
+    result[i] = result[i]! + 1;
+    remaining -= 1;
+  }
+
+  return result.map((u) => u * DISPLAY_STEP);
 }
 
 function unlockedEntry(
@@ -607,6 +692,7 @@ export function serializeRecommendation(
     headline: explainHeadline(first, result.podium[1]?.technical_tie_with_previous ?? false),
     podium,
     podium_tie: buildTieGroup(result.podium),
+    separation: buildSeparation(result.full_ranking),
     transition: {
       ...result.transition,
       expectations: explainTransition(result.transition),
