@@ -71,8 +71,30 @@ export function physicalFit(
   const massPosition = scale.position('mass_index', mass);
   const capacity = handlingCapacity(profile);
 
+  /**
+   * A penalidade por EXCEDER a capacidade é progressiva.
+   *
+   * ═══ NOTA DE CALIBRAÇÃO (v2.5.0) ═══════════════════════════════════════════════════════════
+   *
+   * Era linear, 1.35 por ponto acima. Medido no caso relatado — jogadora de 1,60 m e 55 kg,
+   * intermediária, força média: capacidade de manejo 57, e uma raquete de 305 g (percentil 76 de
+   * massa) ainda marcava 74 de `physical_fit`. Com peso 0.196 no score final, isso deixava a
+   * diferença para uma de 285 g dentro da faixa de empate, e o desempate entregava a mais pesada.
+   *
+   * Linear está errado sobre a física. Passar um pouco do que o braço sustenta custa preparação
+   * ligeiramente atrasada; passar muito custa preparação atrasada em TODA bola rápida, ombro
+   * sobrecarregado no saque e o segundo set inteiro pior que o primeiro. O efeito se acumula, e uma
+   * reta não descreve acúmulo.
+   *
+   * A zona morta de 10 pontos preserva o comportamento anterior para quem está perto do limite —
+   * essa margem é estimativa, e não deve virar veredicto. Acima dela a conta fica cara depressa.
+   *
+   * Descer de peso continua barato (0.75): é perda de desempenho, recuperável, e às vezes desejada.
+   */
   const delta = massPosition - capacity;
-  const raw = delta > 0 ? 100 - delta * 1.35 : 100 - Math.abs(delta) * 0.75;
+  const overshoot = Math.max(0, delta - 10);
+  const raw =
+    delta > 0 ? 100 - delta * 1.35 - overshoot * 1.2 : 100 - Math.abs(delta) * 0.75;
 
   return output('physical_fit', raw, [
     {

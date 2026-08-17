@@ -199,7 +199,122 @@ export type ReportPayload = {
   readonly radar: readonly RadarAxis[];
   /** Nome e frase de identidade — alimentam o card compartilhável. */
   readonly identity: PlayerIdentity & { readonly playerName: string | null };
+  /**
+   * Onde a raquete que a pessoa JÁ TEM ficou — e se vale a pena trocar.
+   *
+   * `null` quando não há raquete atual reconhecida.
+   */
+  readonly current_racket_standing: CurrentRacketStanding | null;
 };
+
+export type CurrentRacketStanding = {
+  readonly product_name: string;
+  readonly rank: number;
+  readonly fit_score: number;
+  readonly gap_to_first: number;
+  /** `keep` = trocar não se justifica; `marginal` = ganho pequeno; `upgrade` = ganho real. */
+  readonly verdict: 'keep' | 'marginal' | 'upgrade';
+  readonly message: string;
+};
+
+/**
+ * Abaixo desta diferença de fit, trocar de raquete não se justifica.
+ *
+ * ═══ O PROBLEMA QUE ISTO RESOLVE ═════════════════════════════════════════════════════════════
+ *
+ * Reclamação do usuário, com um gráfico na mão: a linha do que o jogo pede estava praticamente
+ * sobreposta à da raquete que ele já usa, e a recomendada aparecia mais longe. Medido no caso:
+ *
+ *     distância média ao que o jogo pede — ATUAL 6.5  |  RECOMENDADA 11.7
+ *     fit — ATUAL 78.3 (7ª)  |  RECOMENDADA 81.2 (1ª)
+ *
+ * As duas coisas são verdadeiras ao mesmo tempo, e é isso que confunde. O radar mostra seis eixos
+ * de COMPORTAMENTO DE BOLA; a decisão do motor é dominada por `physical_fit`, `skill_fit` e
+ * `swing_fit`, que medem o encaixe com o CORPO e a TÉCNICA e não aparecem no gráfico. No caso
+ * acima, `physical_fit` sozinho responde por +6.4 dos 2.9 pontos de vantagem — a raquete atual é
+ * pesada demais para o jogador, e o radar não tem como mostrar isso.
+ *
+ * Só que nada disso justifica mandar alguém gastar mil reais por 2.9 pontos de um modelo. Um
+ * consultor honesto, diante dessa diferença, diz para ficar com a raquete e mexer no setup — que é
+ * a outra metade do que este produto vende.
+ *
+ * O limiar é o mesmo do empate técnico exibido no pódio: abaixo dele, as opções são alternativas
+ * legítimas e não um upgrade.
+ */
+const KEEP_CURRENT_GAP = 4;
+
+/** Acima disto a troca tem ganho real; entre os dois, é escolha da pessoa. */
+const REAL_UPGRADE_GAP = 9;
+
+function buildCurrentStanding(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+  first: RankedRacket,
+): CurrentRacketStanding | null {
+  const variantId = profile.current_racket?.variant_id;
+  if (!variantId || profile.current_racket?.unrecognized) return null;
+
+  const current = result.full_ranking.find((r) => r.racket.variant.id === variantId);
+  if (!current) return null;
+
+  const gap = Math.round(first.fit_score) - Math.round(current.fit_score);
+  const name = current.racket.variant.product_name;
+
+  if (gap <= 0) {
+    return {
+      product_name: name,
+      rank: current.rank,
+      fit_score: Math.round(current.fit_score),
+      gap_to_first: 0,
+      verdict: 'keep',
+      message:
+        `A raquete que você já tem é a melhor opção para o seu jogo entre as ` +
+        `${result.candidates_evaluated} avaliadas. Não troque de quadro — o que ainda dá para ` +
+        `melhorar está na corda e na tensão.`,
+    };
+  }
+
+  if (gap < KEEP_CURRENT_GAP) {
+    return {
+      product_name: name,
+      rank: current.rank,
+      fit_score: Math.round(current.fit_score),
+      gap_to_first: gap,
+      verdict: 'keep',
+      message:
+        `Sua ${name} ficou em ${current.rank}º entre as ${result.candidates_evaluated} avaliadas, ` +
+        `a ${gap} ${gap === 1 ? 'ponto' : 'pontos'} da primeira. Uma diferença desse tamanho não ` +
+        `paga a troca de um quadro: é do tamanho da margem de erro do próprio modelo. Nossa ` +
+        `recomendação é continuar com ela e investir na corda e na tensão, onde o ganho é imediato ` +
+        `e custa uma fração.`,
+    };
+  }
+
+  if (gap < REAL_UPGRADE_GAP) {
+    return {
+      product_name: name,
+      rank: current.rank,
+      fit_score: Math.round(current.fit_score),
+      gap_to_first: gap,
+      verdict: 'marginal',
+      message:
+        `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Existe ganho na troca, ` +
+        `mas ele é moderado — vale se você já pensava em trocar, e não é urgente se você está bem ` +
+        `com ela. Ajustar corda e tensão captura parte desse ganho sem trocar de quadro.`,
+    };
+  }
+
+  return {
+    product_name: name,
+    rank: current.rank,
+    fit_score: Math.round(current.fit_score),
+    gap_to_first: gap,
+    verdict: 'upgrade',
+    message:
+      `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Aqui a diferença é ` +
+      `material: a troca deve ser sentida em quadra, não só na planilha.`,
+  };
+}
 
 const INDICES_DISCLAIMER =
   'Índices Tennis Engineer (0–100). São métricas internas da nossa análise, não especificações do fabricante.';
@@ -500,6 +615,7 @@ export function serializeRecommendation(
     dataset_version: result.dataset_version,
     indices_disclaimer: INDICES_DISCLAIMER,
     identity: { ...buildPlayerIdentity(profile), playerName: profile.player_name },
+    current_racket_standing: buildCurrentStanding(result, profile, first),
     radar: buildRadar(
       profile,
       first,

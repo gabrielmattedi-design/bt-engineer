@@ -143,6 +143,21 @@ export const STEPS: readonly Step[] = [
       },
       {
         kind: 'single',
+        key: 'sex',
+        optional: true,
+        title: 'Sexo biológico',
+        help:
+          'Opcional. Usamos só para afinar a leitura de altura e peso — a massa magra da parte ' +
+          'superior do corpo difere na média, e é ela que sustenta o peso da raquete. Sua resposta ' +
+          'sobre força pesa mais do que isto.',
+        choices: [
+          { value: 'feminino', label: 'Feminino' },
+          { value: 'masculino', label: 'Masculino' },
+          { value: 'prefiro_nao_dizer', label: 'Prefiro não dizer', hint: 'Seguimos só com altura, peso e força.' },
+        ],
+      },
+      {
+        kind: 'single',
         key: 'perceived_strength',
         title: 'Como você descreveria sua força física?',
         choices: [

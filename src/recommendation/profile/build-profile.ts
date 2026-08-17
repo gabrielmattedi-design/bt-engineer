@@ -182,14 +182,93 @@ export function calibrateLevel(a: QuestionnaireAnswers): {
   };
 }
 
+/**
+ * Porte físico — massa e estatura, na escala em que a raquete é comprada.
+ *
+ * ═══ O BURACO QUE ISTO FECHA ═════════════════════════════════════════════════════════════════
+ *
+ * `computePhysicalCapacity` pesava força percebida, preparo, idade e frequência — e NÃO usava
+ * altura nem peso. O questionário perguntava as duas coisas na primeira tela e as descartava aqui.
+ * Uma pessoa de 1,60 m e 50 kg e outra de 1,90 m e 95 kg, com a mesma autoavaliação de força,
+ * recebiam a mesma capacidade de manejo e, portanto, a mesma faixa de peso de raquete.
+ *
+ * O caso foi relatado: uma iniciante de 1,60 m e 50 kg recebeu uma raquete de 300 g.
+ *
+ * A massa da raquete é ABSOLUTA — 300 g são 300 g —, e o que a sustenta durante duas horas é massa
+ * corporal e alavanca. Quem tem 50 kg move 0,6% do próprio peso a cada golpe; quem tem 90 kg move
+ * 0,33%. Ignorar isso é ignorar a variável mais direta que existe no formulário.
+ *
+ * O peso domina (0.6) porque é o que sustenta a inércia; a altura entra como alavanca e como
+ * proxy de envergadura. As faixas cobrem o adulto praticante, e o `clamp` cuida dos extremos.
+ */
+/**
+ * Ajuste de composição corporal por sexo — pequeno, e limitado a ESTE termo.
+ *
+ * ═══ POR QUE PEQUENO, E POR QUE SÓ AQUI ══════════════════════════════════════════════════════
+ *
+ * A pergunta foi pedida com a justificativa de que "mulheres naturalmente pedem algo mais leve".
+ * Na média isso se confirma, e o motor já responde a isso SEM saber o sexo — porque responde ao
+ * corpo. Medido, com força e preparo declarados idênticos:
+ *
+ *     1,60 m / 55 kg  →  capacidade 62  →  raquete de 285 g
+ *     1,78 m / 78 kg  →  capacidade 71  →  raquete de 305 g
+ *
+ * Vinte gramas de diferença saem só de altura e peso. O que o sexo acrescenta ALÉM disso é a
+ * fração de massa magra do tronco e dos braços, que difere na média para o mesmo peso — e é ela,
+ * não o peso total, que sustenta a raquete durante duas horas.
+ *
+ * Por isso o ajuste incide só sobre o termo de porte, que carrega 0.22 da capacidade. O efeito
+ * final fica em torno de um ponto: suficiente para desempatar um caso de fronteira, insuficiente
+ * para reescrever a recomendação de alguém.
+ *
+ * ─── O LIMITE QUE ISTO NÃO PODE CRUZAR ─────────────────────────────────────────────────────
+ *
+ * Sexo é uma média de população; a pessoa que respondeu é uma pessoa. Existe muita mulher mais
+ * forte que muito homem, e um motor que decidisse pelo sexo estaria errado sobre ela — e sobre a
+ * própria física, porque quem segura a raquete é o braço, não a estatística.
+ *
+ * Daí o desenho: a força declarada pesa 0.30, o preparo 0.24, e o sexo entra como um multiplicador
+ * modesto dentro de 0.22. Uma mulher que responde "bem acima da média" recebe mais capacidade que
+ * um homem que responde "abaixo da média", e é assim que tem de ser. `prefiro_nao_dizer` fica no
+ * meio, sem penalizar quem não quis responder.
+ */
+const SEX_BODY_FACTOR: Record<string, number> = {
+  feminino: 0.9,
+  masculino: 1.0,
+  prefiro_nao_dizer: 0.95,
+};
+
+function bodyScore(a: QuestionnaireAnswers): number {
+  const weight = a.weight_kg === null ? null : norm(a.weight_kg, 45, 95) * 100;
+  const height = a.height_cm === null ? null : norm(a.height_cm, 150, 195) * 100;
+
+  // Sem nenhuma das duas, o termo vira neutro em vez de inventar um corpo.
+  if (weight === null && height === null) return 50;
+
+  const size = weight === null ? height! : height === null ? weight : 0.6 * weight + 0.4 * height;
+  return clamp(size * (SEX_BODY_FACTOR[a.sex ?? ''] ?? 1.0), 0, 100);
+}
+
 function computePhysicalCapacity(a: QuestionnaireAnswers): number {
   const strength = a.perceived_strength === null ? 50 : (STRENGTH_SCORE[a.perceived_strength] ?? 50);
   const fitness = a.fitness_level === null ? 50 : (FITNESS_SCORE[a.fitness_level] ?? 50);
+
+  /**
+   * O porte entra com peso 0.22 — abaixo da força declarada, e de propósito.
+   *
+   * Corpo pequeno não é sinônimo de fraco, e existe muita gente leve e forte. A autoavaliação de
+   * força continua sendo o termo mais pesado justamente para que ela possa contradizer o porte:
+   * quem tem 55 kg e responde "bem acima da média" sobe, e deve subir.
+   *
+   * O que o porte impede é o oposto — que a ausência do dado deixe o motor cego para um corpo que
+   * não sustenta 300 g, quando o próprio formulário já perguntou quanto ele pesa.
+   */
   return clamp(
-    0.35 * strength +
-      0.3 * fitness +
-      0.2 * (ageFactor(a.age) * 100) +
-      0.15 * (norm(a.frequency_per_week ?? 1, 0, 4) * 100),
+    0.3 * strength +
+      0.24 * fitness +
+      0.22 * bodyScore(a) +
+      0.14 * (ageFactor(a.age) * 100) +
+      0.1 * (norm(a.frequency_per_week ?? 1, 0, 4) * 100),
     0,
     100,
   );
@@ -437,9 +516,38 @@ export function buildPlayerProfile(
 
   // Swing desconhecido é INFERIDO, e a inferência é marcada — nunca fingimos que o usuário respondeu.
   const swingSpeedInferred = a.swing_speed === null || a.swing_speed === 'nao_sei';
-  const swingSpeed = swingSpeedInferred
+  const declaredSwingSpeed = swingSpeedInferred
     ? clamp(0.6 * level.final + 0.4 * physicalCapacity, 0, 100)
     : (SWING_SPEED_SCORE[a.swing_speed as string] ?? 45);
+
+  /**
+   * Velocidade de swing declarada é LIMITADA pelo que o nível calibrado sustenta.
+   *
+   * ═══ O SEGUNDO MOTIVO DA RAQUETE DE 300 g ══════════════════════════════════════════════════
+   *
+   * Varrendo as 9600 combinações possíveis para 1,60 m e 50 kg iniciante, 3,6% terminavam com uma
+   * raquete de 295 g ou mais — e TODAS tinham a mesma resposta: swing "muito rápido". Aquele 90
+   * entra em `handlingCapacity` com peso 0.35 e levanta sozinho o teto de massa.
+   *
+   * O problema não é a pessoa mentir. É que a pergunta não tem referência: um iniciante nunca viu
+   * o próprio swing de fora e não tem com o que comparar. O questionário já sabe disso — ele fez
+   * cinco perguntas objetivas (sustenta troca? direciona? gera efeito? varia profundidade? segundo
+   * saque confiável?) e ela respondeu "não" às cinco.
+   *
+   * A regra R-05 já está escrita no produto: quando o percebido contradiz o objetivo, o objetivo
+   * prevalece. Faltava aplicá-la aqui. O teto é generoso — 35 pontos acima do nível calibrado —,
+   * então um jogador que realmente acelera o braço mais do que a técnica acompanha continua sendo
+   * ouvido; o que deixa de acontecer é o salto de 70 pontos que punha uma raquete de tour na mão de
+   * quem está aprendendo a sacar.
+   */
+  const SWING_OVER_LEVEL = 35;
+  const swingCeiling = level.final + SWING_OVER_LEVEL;
+  const swingSpeed = swingSpeedInferred
+    ? declaredSwingSpeed
+    : Math.min(declaredSwingSpeed, swingCeiling);
+
+  // A contradição é REGISTRADA mais abaixo, junto das demais — aqui só se anota que houve.
+  const swingSpeedCapped = !swingSpeedInferred && declaredSwingSpeed > swingCeiling;
 
   const naturalPower = clamp(
     0.45 * swingSpeed +
@@ -501,6 +609,19 @@ export function buildPlayerProfile(
 
   const unknowns = countUnknowns(a);
   const contradictions = [...merge.contradictions];
+  if (swingSpeedCapped) {
+    contradictions.push({
+      code: 'swing_speed_over_level',
+      field: 'swing_speed',
+      objective_value: String(round(swingCeiling)),
+      signal_value: String(round(declaredSwingSpeed)),
+      resolution: 'objective_wins',
+      message:
+        'Você descreveu um swing bem mais rápido do que as respostas técnicas sustentam. ' +
+        'Consideramos um valor entre os dois: velocidade de braço acima da média para o seu ' +
+        'nível, sem tratar você como jogador avançado na hora de escolher o peso do quadro.',
+    });
+  }
   if (level.mismatch) {
     contradictions.push({
       code: 'level_mismatch',

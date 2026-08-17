@@ -429,6 +429,37 @@ export default async function ResultadoPage({
           </section>
         )}
 
+        {/* ── VEREDICTO SOBRE A RAQUETE ATUAL ──────────────────────────────────
+            Vem ANTES do pódio de propósito.
+
+            O pódio é uma lista de coisas para comprar. Quando a raquete que a pessoa já tem está
+            tecnicamente empatada com a primeira colocada, mostrar a lista primeiro e a ressalva
+            depois inverte a ordem da honestidade: ela decide olhando o produto e só então descobre
+            que não precisava. A informação que muda a decisão tem que chegar primeiro.
+        */}
+        {report.current_racket_standing && (
+          <section
+            className={`rounded-2xl border p-6 sm:p-8 ${
+              report.current_racket_standing.verdict === 'keep'
+                ? 'border-court/30 bg-court/5'
+                : 'border-black/10 bg-white'
+            }`}
+          >
+            <p className="text-xs uppercase tracking-[0.2em] text-graphite">
+              {report.current_racket_standing.verdict === 'keep'
+                ? 'Antes de trocar de raquete'
+                : 'Sua raquete atual nesta análise'}
+            </p>
+            <p className="mt-3 text-lg font-semibold text-court">
+              {report.current_racket_standing.product_name} — {report.current_racket_standing.rank}º
+              lugar, {report.current_racket_standing.fit_score}% de compatibilidade
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-graphite">
+              {report.current_racket_standing.message}
+            </p>
+          </section>
+        )}
+
         {/* ── PÓDIO (§28) ──────────────────────────────────────────────────── */}
         <Podium
           entries={report.podium}

@@ -53,6 +53,8 @@ const OPCIONAIS_PERMITIDAS = [
    * no topo da faixa. É estimativa declarada, não silêncio tratado como zero.
    */
   'string_budget',
+  /** Sexo: dado sensível, e o motor funciona sem ele. Obrigar seria cobrar o que não é necessário. */
+  'sex',
 ];
 
 describe('perguntas obrigatórias', () => {

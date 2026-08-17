@@ -13,6 +13,14 @@ export type QuestionnaireAnswers = {
   height_cm: number | null;
   weight_kg: number | null;
   dominant_hand: 'destro' | 'canhoto' | null;
+  /**
+   * Sexo biológico. Opcional, e usado de forma DELIBERADAMENTE limitada — ver `bodyScore`.
+   *
+   * Entra só como ajuste de composição corporal sobre altura e peso; nunca sobrepõe a força
+   * declarada. Uma mulher que se descreve como "bem acima da média" em força recebe mais capacidade
+   * que um homem que se descreve como "abaixo".
+   */
+  sex: 'feminino' | 'masculino' | 'prefiro_nao_dizer' | null;
   perceived_strength: 'abaixo' | 'media' | 'acima' | 'bem_acima' | null;
   fitness_level: 'sedentario' | 'moderado' | 'bom' | 'atletico' | null;
 
@@ -111,6 +119,7 @@ export function emptyAnswers(): QuestionnaireAnswers {
     height_cm: null,
     weight_kg: null,
     dominant_hand: null,
+    sex: null,
     perceived_strength: null,
     fitness_level: null,
     experience_duration: null,
