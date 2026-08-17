@@ -99,7 +99,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
     },
     {
       key: 'profile',
-      label: 'Adequação total (o ideal)',
+      label: 'Melhor possível para você',
       values: axes.map((a) => a.profile),
       stroke: PALETTE.clay,
       fill: 'none',

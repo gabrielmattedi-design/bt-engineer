@@ -57,11 +57,25 @@ function area(axes: readonly { value: number; weight: number }[]): number {
 }
 
 describe('coerência entre o radar e a recomendação', () => {
-  it('todo eixo está em adequação: 0–100, com o ideal na borda', () => {
+  /**
+   * O TETO precisa variar de eixo para eixo.
+   *
+   * Ele já foi uma constante 100, e o usuário matou a ideia com uma frase: "de acordo com a linha
+   * laranja, meu jogo pede o máximo de tudo, não tem inteligência nenhuma por trás". Estava certo —
+   * uma linha constante na borda é um círculo, e um círculo não diz nada. Esta asserção impede que
+   * ela volte a ser plana.
+   */
+  it('todo eixo está em adequação 0–100, e o teto varia entre os eixos', () => {
     for (const { persona, report } of runs) {
       expect(report.radar.length, persona.id).toBeGreaterThanOrEqual(8);
+
+      const tetos = new Set(report.radar.map((a) => a.profile));
+      expect(tetos.size, `${persona.id}: teto constante em ${[...tetos][0]}`).toBeGreaterThan(1);
+
       for (const axis of report.radar) {
-        expect(axis.profile, `${persona.id}/${axis.key}`).toBe(100);
+        expect(axis.profile, `${persona.id}/${axis.key}`).toBeLessThanOrEqual(100);
+        // O teto é, por definição, o melhor entre as viáveis — a recomendada nunca o ultrapassa.
+        expect(axis.recommended, `${persona.id}/${axis.key}`).toBeLessThanOrEqual(axis.profile);
         expect(axis.recommended).toBeGreaterThanOrEqual(0);
         expect(axis.recommended).toBeLessThanOrEqual(100);
         if (axis.current !== null) {

@@ -51,10 +51,19 @@ export type RadarAxis = {
   readonly key: string;
   readonly label: string;
   /**
-   * O que seu jogo pede naquele eixo, em ADEQUAÇÃO — sempre 100.
+   * O TETO: a melhor adequação que alguma raquete viável alcança neste eixo.
    *
-   * Mantido como campo, e não como constante implícita, porque o gráfico desenha a linha do "pedido"
-   * a partir daqui e porque relatórios antigos gravaram valores diferentes.
+   * ═══ POR QUE NÃO É 100 ═════════════════════════════════════════════════════════════════════
+   *
+   * Foi 100 por uma versão, e estava errado. Uma linha constante na borda é um círculo: não carrega
+   * informação nenhuma e, pior, lê-se como "o seu jogo exige o máximo de tudo" — que é justamente
+   * a acusação de burrice que o gráfico precisa não merecer.
+   *
+   * O teto é outra coisa, e é útil: em cada eixo, o melhor que EXISTE para este jogador entre as
+   * raquetes que ainda são opção real para ele. Onde a recomendada encosta no teto, aquele aspecto
+   * está no máximo que o mercado permite; onde ela fica abaixo, houve uma troca — e o tamanho do vão
+   * é o tamanho da troca. A linha passa a responder "o que foi sacrificado, e quanto", que é
+   * exatamente a pergunta que o leitor faz.
    */
   readonly profile: number;
   readonly recommended: number;
@@ -282,6 +291,15 @@ export function buildRadar(
    * isso a fronteira poderia excluir a própria raquete recomendada, e o alvo seria clampado para
    * longe dela.
    */
+  /**
+   * As opções que ainda estão em jogo para este jogador — a fronteira do possível.
+   *
+   * Não é o catálogo inteiro: o catálogo inclui frames já descartados por peso, nível ou conforto,
+   * e um teto calculado sobre eles apontaria para algo que não é alternativa para ninguém.
+   */
+  const viable = ranking.filter((r) => winner.fit_score - r.fit_score <= VIABLE_FIT_GAP);
+  const frontier = viable.length > 0 ? viable : [winner];
+
   return AXES.map((axis): RadarAxis => {
     if (axis.component) {
       const catalogMean =
@@ -293,8 +311,9 @@ export function buildRadar(
         key: axis.key,
         label: axis.label,
         group: axis.group,
-        // O ideal é a borda: um encaixe perfeito naquele aspecto vale 100.
-        profile: 100,
+        profile: Math.round(
+          Math.max(...frontier.map((r) => componentOf(r, axis.component!))),
+        ),
         recommended: Math.round(componentOf(winner, axis.component)),
         current: currentRacket ? Math.round(componentOf(currentRacket, axis.component)) : null,
         catalog: Math.round(catalogMean),
@@ -328,7 +347,13 @@ export function buildRadar(
       key: axis.key,
       label: axis.label,
       group: axis.group,
-      profile: 100,
+      profile: Math.round(
+        Math.max(
+          ...frontier.map((r) =>
+            askAdequacy(desired, reference, position(bands, attribute, valueOf(r))),
+          ),
+        ),
+      ),
       recommended: askAdequacy(desired, reference, position(bands, attribute, valueOf(winner))),
       // A atual entrega zero do pedido por definição — ela É o ponto de partida.
       current: currentPosition === null ? null : askAdequacy(desired, reference, currentPosition),
