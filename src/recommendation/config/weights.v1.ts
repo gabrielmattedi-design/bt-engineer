@@ -11,7 +11,7 @@
 import type { ComponentKey } from '@/domain/recommendation';
 import type { NeedKey } from '@/domain/player-profile';
 
-export const WEIGHTS_VERSION = 'weights.v1';
+export const WEIGHTS_VERSION = 'weights.v2';
 
 export type WeightEntry = {
   readonly weight: number;
@@ -73,6 +73,39 @@ export const BASE_COMPONENT_WEIGHTS: ComponentWeights = {
  * Cada ajuste declara sua condição e sua justificativa.
  */
 export const DYNAMIC_ADJUSTMENTS = {
+  /**
+   * Prioridades DECLARADAS pelo jogador elevam `objective_fit`.
+   *
+   * ═══ O DESEQUILÍBRIO QUE ISTO CORRIGE ══════════════════════════════════════════════════════
+   *
+   * Reclamação do usuário, e ela vale tanto comercial quanto analiticamente: ele ordenou potência,
+   * controle e spin como o que mais busca, e os três apareceram no gráfico com 5% de peso cada —
+   * 15% somados. Tudo o que ele DECLAROU cabia num único componente, enquanto físico, nível e swing
+   * — que o motor INFERE sozinho, a partir de idade, peso e autoavaliação — carregavam 56%.
+   *
+   * Existe um argumento legítimo para isso: objetivo mal calibrado não pode sobrepor limitação
+   * física real, e quem pede uma raquete que não consegue segurar precisa ser protegido disso. Esse
+   * argumento continua valendo, e é por isso que este ajuste é um piso e não uma inversão.
+   *
+   * Mas ele não justifica 11%. Quando a pessoa ORDENA três atributos e ainda declara um objetivo,
+   * ela não está expressando um palpite: está dizendo, com o maior grau de certeza que o
+   * questionário permite, o que quer da raquete. Tratar isso como o menor termo da conta é
+   * sobrepor o inferido ao declarado — o oposto do que um consultor faz.
+   *
+   * O piso é proporcional à FORÇA da declaração: quem marcou uma prioridade fraca sobe pouco, quem
+   * ordenou três e declarou objetivo sobe até o teto. Sem declaração nenhuma, nada muda.
+   */
+  declared_priorities: {
+    component: 'objective_fit' as ComponentKey,
+    /** Peso máximo, atingido por quem declarou prioridades no grau mais forte. */
+    ceiling: 0.3,
+    /** Intensidade de pedido (0–40) a partir da qual o teto é atingido. */
+    full_strength: 28,
+    rationale:
+      'O que o jogador declara explicitamente não pode pesar menos que o que o motor infere sobre ' +
+      'ele. O piso é proporcional à força da declaração e nunca ultrapassa a soma dos fatores ' +
+      'físicos, que continuam podendo vetar um pedido impossível de sustentar.',
+  },
   arm_sensitivity_high: {
     threshold: 60,
     component: 'comfort_fit' as ComponentKey,

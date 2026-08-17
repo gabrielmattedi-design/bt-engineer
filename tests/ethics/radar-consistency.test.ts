@@ -23,6 +23,7 @@ import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
 import { serializeRecommendation } from '@/payments/entitlements';
 import { PERSONAS } from '@/data/personas';
+import { NEED_KEYS } from '@/domain/player-profile';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 const runs = PERSONAS.map((persona) => {
@@ -157,6 +158,112 @@ describe('coerência entre o radar e a recomendação', () => {
  * acontece entre as primeiras colocadas, e medir na cauda de baixo esconde exatamente o desequilíbrio
  * que importa.
  */
+/**
+ * O que o jogador DECLARA não pode pesar menos que o que o motor infere.
+ *
+ * Reclamação do usuário: ele ordenou potência, controle e spin como o que mais busca, e os três
+ * apareceram somando 15% do peso — enquanto físico, nível e swing, que ninguém declarou e o motor
+ * deduz de idade, peso e autoavaliação, somavam 56%.
+ *
+ * Vale comercialmente (é o que o usuário reconhece como seu) e vale analiticamente: quando alguém
+ * ORDENA prioridades, tratar isso como o menor termo da conta é sobrepor o inferido ao declarado.
+ */
+describe('prioridades declaradas têm peso', () => {
+  it('quem ordena prioridades vê os eixos de bola pesarem mais que um quinto da decisão', () => {
+    const declarou = PERSONAS.filter((p) => {
+      const profile = buildPlayerProfile(p.answers);
+      return Math.max(...NEED_KEYS.map((k) => Math.abs(profile.desired_change_vector[k]))) >= 25;
+    });
+    expect(declarou.length, 'nenhuma persona declara prioridade forte').toBeGreaterThan(0);
+
+    for (const persona of declarou) {
+      const profile = buildPlayerProfile(persona.answers);
+      const report = serializeRecommendation(
+        recommend({
+          profile,
+          rackets: testRackets(),
+          strings: testStrings(),
+          datasetVersion: TEST_DATASET_VERSION,
+          mode: TEST_MODE,
+          includeSetup: false,
+        }),
+        profile,
+        ['racket_report_access'],
+      );
+
+      const bola = report.radar
+        .filter((a) => a.group === 'bola')
+        .reduce((s, a) => s + a.weight, 0);
+
+      expect(
+        bola,
+        `${persona.id}: declarou prioridade forte mas os eixos de bola somam ${(bola * 100).toFixed(1)}%`,
+      ).toBeGreaterThanOrEqual(0.2);
+    }
+  });
+
+  /**
+   * O 3º do top-3 é o TERCEIRO MAIS IMPORTANTE, não o menos importante de todos.
+   *
+   * Observação do usuário: "spin ficar em último na minha escolha não significa que pode ser
+   * irrelevante, até porque ele é o último do meu Top3, e não o último geral". Exato — quem
+   * escolheu potência, controle e spin está dizendo que spin importa MAIS que manobrabilidade,
+   * estabilidade e tudo o que não foi escolhido.
+   *
+   * Antes do piso por posição, o contraste de `needs.ts` espalhava os três (35 / 17 / 5) e o
+   * terceiro caía para perto de zero, abaixo de atributos que a pessoa nunca mencionou.
+   */
+  it('o terceiro do top-3 pesa mais que os atributos não escolhidos', () => {
+    const profile = buildPlayerProfile({
+      ...PERSONAS[1]!.answers,
+      missing_attributes: ['power', 'control', 'spin'],
+      objective: ['ganhar_potencia'],
+    } as never);
+
+    const escolhidos: readonly NeedKey[] = ['power', 'control', 'spin'];
+    const naoEscolhidos = NEED_KEYS.filter((k) => !escolhidos.includes(k));
+
+    const terceiro = profile.desired_change_vector.spin;
+    for (const k of naoEscolhidos) {
+      expect(
+        terceiro,
+        `spin (3º do top-3) pesa ${terceiro} e ${k} pesa ${profile.desired_change_vector[k]}`,
+      ).toBeGreaterThan(profile.desired_change_vector[k]);
+    }
+
+    // E a ordem interna do top-3 é estritamente decrescente.
+    expect(profile.desired_change_vector.power).toBeGreaterThan(
+      profile.desired_change_vector.control,
+    );
+    expect(profile.desired_change_vector.control).toBeGreaterThan(terceiro);
+  });
+
+  /** A ordem declarada precisa aparecer: a 1ª prioridade não pode pesar igual à 3ª. */
+  it('a ordem das prioridades se reflete no peso de cada eixo', () => {
+    const profile = buildPlayerProfile({
+      ...PERSONAS[1]!.answers,
+      missing_attributes: ['power', 'control', 'spin'],
+      objective: ['ganhar_potencia'],
+    } as never);
+    const report = serializeRecommendation(
+      recommend({
+        profile,
+        rackets: testRackets(),
+        strings: testStrings(),
+        datasetVersion: TEST_DATASET_VERSION,
+        mode: TEST_MODE,
+        includeSetup: false,
+      }),
+      profile,
+      ['racket_report_access'],
+    );
+
+    const power = report.radar.find((a) => a.key === 'power')!;
+    const spin = report.radar.find((a) => a.key === 'spin')!;
+    expect(power.weight).toBeGreaterThan(spin.weight);
+  });
+});
+
 describe('nenhum critério decide sozinho', () => {
   const AMOSTRA = PERSONAS.slice(0, 12);
 

@@ -300,6 +300,22 @@ export function buildRadar(
   const viable = ranking.filter((r) => winner.fit_score - r.fit_score <= VIABLE_FIT_GAP);
   const frontier = viable.length > 0 ? viable : [winner];
 
+  /**
+   * Os três eixos de bola dividem o peso de `objective_fit` — mas NÃO em partes iguais.
+   *
+   * Eles dividiam. Um jogador que ordenou potência em 1º, controle em 2º e spin em 3º via os três
+   * com o mesmo percentual na tela, o que contradiz a própria pergunta que ele acabou de responder:
+   * a pergunta é ordenada, e a ordem tem que aparecer. A divisão passa a ser proporcional à
+   * intensidade de cada pedido, que é onde a ordem já foi traduzida em número.
+   *
+   * Sem pedido nenhum, volta a ser igual — não há ordem a respeitar.
+   */
+  const askByAxis = AXES.filter((a) => a.need).map((a) =>
+    Math.abs(profile.desired_change_vector[a.need!]),
+  );
+  const askTotal = askByAxis.reduce((s, v) => s + v, 0);
+  const objectiveWeight = weightOf(winner, 'objective_fit');
+
   return AXES.map((axis): RadarAxis => {
     if (axis.component) {
       const catalogMean =
@@ -358,8 +374,10 @@ export function buildRadar(
       // A atual entrega zero do pedido por definição — ela É o ponto de partida.
       current: currentPosition === null ? null : askAdequacy(desired, reference, currentPosition),
       catalog: askAdequacy(desired, reference, catalogPosition),
-      // Os três eixos de bola dividem o peso de `objective_fit`, que é o componente que os resume.
-      weight: weightOf(winner, 'objective_fit') / BALL_AXES,
+      weight:
+        askTotal > 0
+          ? (objectiveWeight * Math.abs(desired)) / askTotal
+          : objectiveWeight / BALL_AXES,
     };
   });
 }

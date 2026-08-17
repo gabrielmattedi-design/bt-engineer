@@ -583,6 +583,40 @@ export function buildPlayerProfile(
     desired[k] = round(clamp(needs[k] - 50, -40, 40) * gain);
   }
 
+  /**
+   * ═══ PISO POR POSIÇÃO NO TOP-3 DECLARADO ═══════════════════════════════════════════════════
+   *
+   * A pergunta "do que você mais sente falta" é ORDENADA, e o jogador escolhe até três. A ordem
+   * precisa aparecer na saída — mas o terceiro colocado é o terceiro DAQUELE TOP-3, não o último da
+   * lista inteira: quem escolheu potência, controle e spin está dizendo que spin importa mais que
+   * manobrabilidade, estabilidade e tudo o que ele NÃO escolheu.
+   *
+   * Sem este piso não era o que acontecia. O bônus de prioridade entra na escala 25/15/8, mas a
+   * normalização de contraste (ver `needs.ts`) recentra e amplifica o vetor, e isso ESPALHA a
+   * distância entre os três: medido, potência 35, controle 17, spin 5. Uma proporção de 7 para 1
+   * onde o bônus previa 3 para 1. O terceiro colocado do top-3 caía para perto de zero e passava a
+   * pesar menos que atributos que a pessoa nunca mencionou.
+   *
+   * A amplificação de contraste continua e é necessária — foi ela que resolveu o "hexágono
+   * perfeito", em que todo mundo parecia precisar de tudo. O que ela não pode fazer é apagar uma
+   * resposta explícita. O piso preserva a ORDEM (cada posição tem um mínimo menor que a anterior) e
+   * garante que o menor deles continue acima do ruído dos não declarados.
+   *
+   * O piso é MÍNIMO, não valor fixo: as demais respostas do questionário continuam podendo elevar
+   * qualquer eixo acima dele. Uma autoavaliação não é o único determinante — ela é um chão.
+   */
+  const PRIORITY_FLOOR = [22, 15, 10];
+  const declaredPriorities = a.missing_attributes.filter((k): k is NeedKey =>
+    (NEED_KEYS as readonly string[]).includes(k),
+  );
+
+  let previousFloor = Number.POSITIVE_INFINITY;
+  for (const [index, key] of declaredPriorities.slice(0, PRIORITY_FLOOR.length).entries()) {
+    const floor = Math.min(PRIORITY_FLOOR[index]!, previousFloor - 1) * gain;
+    previousFloor = PRIORITY_FLOOR[index]!;
+    if (desired[key] < floor) desired[key] = round(floor);
+  }
+
   const currentRacket: CurrentRacketSnapshot | null = a.no_current_racket
     ? null
     : {

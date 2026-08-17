@@ -76,6 +76,22 @@ export function resolveWeights(profile: PlayerProfile): Record<ComponentKey, num
 
   if (profile.objectives.length === 1 && profile.objectives[0] === 'unknown') {
     weights.objective_fit = DYNAMIC_ADJUSTMENTS.objective_unknown.weight;
+  } else {
+    /**
+     * Piso para quem declarou prioridades — ver `declared_priorities` em weights.v1.ts.
+     *
+     * A força vem do próprio vetor de mudança desejada, que é onde as prioridades ordenadas e o
+     * objetivo já foram traduzidos em números. Usar o pedido mais forte, e não a soma, é
+     * deliberado: quem ordenou três atributos com convicção e quem marcou um só com convicção
+     * declararam a mesma coisa sobre a INTENSIDADE do que querem — a diferença entre eles é
+     * quantos eixos, e disso o componente já dá conta internamente.
+     */
+    const { ceiling, full_strength } = DYNAMIC_ADJUSTMENTS.declared_priorities;
+    const strongest = Math.max(
+      ...NEED_KEYS.map((k) => Math.abs(profile.desired_change_vector[k])),
+    );
+    const strength = clamp(strongest / full_strength, 0, 1);
+    weights.objective_fit = Math.max(weights.objective_fit, ceiling * strength);
   }
 
   if (profile.contradictions.some((c) => c.code === 'level_mismatch')) {
