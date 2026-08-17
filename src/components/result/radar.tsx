@@ -188,39 +188,33 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
             const a = angle(i, total);
             const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end';
             /*
-              O peso vai IMPRESSO junto do rótulo.
+              ═══ O PESO SAIU DAQUI, DE PROPÓSITO ═══════════════════════════════════════════
 
-              Um radar trata todos os vértices como iguais, e eles não são: `Nível técnico` vale
-              0.20 do score final e cada eixo de bola vale um terço de 0.16. Sem o número escrito,
-              dois polígonos de área parecida podem corresponder a uma diferença real de seis
-              pontos, e o leitor não teria como saber qual vértice olhar primeiro.
+              Cada vértice trazia impresso quanto pesava na decisão, para que ninguém lesse um
+              radar de nove pontas como se as nove valessem o mesmo. A intenção estava certa; o
+              efeito, não. Lado a lado, "Spin 3%" e "Seu swing 17%" convidam à conclusão de que o
+              motor ignorou o spin — quando os três eixos de bola são FATIAS de um único critério,
+              repartidas na ordem de prioridade declarada, e swing é um critério inteiro. O gráfico
+              misturava duas escalas incompatíveis num mesmo rótulo.
+
+              O peso não sumiu do relatório: ele aparece somado POR BLOCO logo abaixo do gráfico,
+              que é a única comparação que faz sentido — bolo contra bolo. Aqui em cima o radar
+              volta a responder uma pergunta só: quanto cada raquete entrega em cada eixo.
             */
             return (
-              <g key={axis.key}>
-                <text
-                  x={x}
-                  y={y - 4}
-                  textAnchor={anchor}
-                  dominantBaseline="middle"
-                  fontSize="10"
-                  fill={PALETTE.graphite}
-                  className="uppercase"
-                  style={{ letterSpacing: '0.06em' }}
-                >
-                  {axis.label}
-                </text>
-                <text
-                  x={x}
-                  y={y + 7}
-                  textAnchor={anchor}
-                  dominantBaseline="middle"
-                  fontSize="8"
-                  fill={PALETTE.graphite}
-                  opacity="0.7"
-                >
-                  {Math.round(axis.weight * 100)}% do peso
-                </text>
-              </g>
+              <text
+                key={axis.key}
+                x={x}
+                y={y}
+                textAnchor={anchor}
+                dominantBaseline="middle"
+                fontSize="10"
+                fill={PALETTE.graphite}
+                className="uppercase"
+                style={{ letterSpacing: '0.06em' }}
+              >
+                {axis.label}
+              </text>
             );
           })}
         </svg>

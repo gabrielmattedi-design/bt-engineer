@@ -209,18 +209,21 @@ export default async function ResultadoPage({
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo, e traz ao lado quanto ele pesou na escolha. A linha laranja é o TETO: o melhor que existe para você em cada aspecto entre as raquetes que ainda são opção real. Onde o verde encosta nela, aquele ponto está no máximo possível; onde fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca.</p>
+              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo. A linha laranja é o TETO: o melhor que existe para você em cada aspecto entre as raquetes que ainda são opção real. Onde o verde encosta nela, aquele ponto está no máximo possível; onde fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto cada bloco pesou na decisão está logo abaixo do gráfico.</p>
             <div className="mt-6 rounded border border-line bg-white p-6">
               <CompatibilityRadar axes={report.radar} />
             </div>
             {/*
-              A soma dos blocos, porque o gráfico convida a uma comparação errada.
+              O peso vive AQUI, e só aqui.
 
-              Cada vértice mostra seu próprio percentual, e isso faz "Spin 3%" parecer desprezível
-              ao lado de "Seu swing 17%". Só que os três eixos de bola são FATIAS de um único
-              critério — o que você pediu —, divididas na ordem de prioridade que você declarou,
-              enquanto swing é um critério inteiro. Comparar uma fatia com um bolo inteiro leva à
-              conclusão errada sobre o que o motor está fazendo.
+              Ele já esteve impresso em cada vértice do radar, e ali produzia a leitura errada:
+              "Spin 3%" ao lado de "Seu swing 17%" faz parecer que o spin foi ignorado. Os três
+              eixos de bola são FATIAS de um único critério — o que você pediu —, repartidas na
+              ordem de prioridade declarada; swing é um critério inteiro. Fatia contra bolo não é
+              comparação.
+
+              Somado por bloco, os dois números são da mesma natureza e podem ser lidos um contra o
+              outro. É a única forma em que o peso informa em vez de confundir.
             */}
             {(() => {
               const pedido = report.radar
@@ -487,6 +490,7 @@ export default async function ResultadoPage({
         {/* ── PÓDIO (§28) ──────────────────────────────────────────────────── */}
         <Podium
           entries={report.podium}
+          tie={report.podium_tie ?? null}
           /*
             Uma oferta POR POSIÇÃO bloqueada, não uma oferta para o conjunto.
 

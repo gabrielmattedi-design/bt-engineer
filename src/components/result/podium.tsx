@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import type { PodiumEntry } from '@/payments/entitlements';
+import type { PodiumTieGroup } from '@/payments/podium-tie';
 
 /**
  * Pódio — §28, §29.
@@ -12,9 +13,11 @@ import type { PodiumEntry } from '@/payments/entitlements';
  */
 export function Podium({
   entries,
+  tie,
   onUnlock,
 }: {
   entries: readonly PodiumEntry[];
+  tie?: PodiumTieGroup | null;
   onUnlock?: React.ReactNode;
 }) {
   const [first, ...rest] = entries;
@@ -26,6 +29,21 @@ export function Podium({
       <p className="mt-2 text-sm text-graphite">
         As três raquetes com maior compatibilidade com o perfil que você informou.
       </p>
+
+      {/*
+        O empate é ANUNCIADO, não disfarçado.
+
+        Três cards marcando o mesmo número e nada escrito ao lado é o que fazia o relatório parecer
+        indeciso. Acrescentar uma casa decimal resolveria a aparência inventando uma resolução que
+        seis especificações publicadas não têm — e no caso mais comum, o de duas gerações com as
+        mesmas medidas, nem casa decimal separa. Então o empate vem dito, e o que diferencia cada
+        uma vem escrito no próprio card.
+      */}
+      {tie && (
+        <p className="mt-4 rounded border-l-2 border-clay bg-line/30 px-4 py-3 text-sm leading-relaxed text-graphite">
+          {tie.message}
+        </p>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-end">
         {/* 2º — lateral esquerda no desktop, segundo no mobile */}
@@ -119,10 +137,24 @@ function PodiumCard({
             {entry.product_name}
           </h3>
 
-          {entry.technical_tie_with_previous && (
-            <p className="mt-3 rounded bg-line/50 px-3 py-2 text-xs text-graphite">
-              Empate técnico com a anterior — a escolha aqui é de preferência pessoal.
+          {/*
+            O que ESTA opção faz de diferente das outras empatadas.
+
+            Substitui o antigo "empate técnico com a anterior", que dizia que não havia diferença
+            sem dizer o que havia no lugar dela. A frase aqui sai dos componentes reais do score:
+            em que ela se destaca entre as empatadas e em que ela cede — ou, quando o vetor de
+            atributos é o mesmo, que são gêmeas e a escolha é de preço e disponibilidade.
+          */}
+          {entry.distinction ? (
+            <p className="mt-3 rounded bg-line/50 px-3 py-2 text-xs leading-relaxed text-graphite">
+              {entry.distinction.headline}
             </p>
+          ) : (
+            entry.technical_tie_with_previous && (
+              <p className="mt-3 rounded bg-line/50 px-3 py-2 text-xs text-graphite">
+                Empate técnico com a anterior — a escolha aqui é de preferência pessoal.
+              </p>
+            )
           )}
 
           <div className="mt-4 flex flex-wrap gap-1.5">

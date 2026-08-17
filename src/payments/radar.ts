@@ -353,10 +353,23 @@ export function buildRadar(
       : null;
 
     /**
-     * O alvo parte de ONDE A PESSOA ESTÁ, não do meio da escala, e é limitado pela fronteira do
-     * possível — ver `VIABLE_FIT_GAP`.
+     * ═══ A ÂNCORA É O CATÁLOGO, NUNCA A RAQUETE ATUAL ════════════════════════════════════════
+     *
+     * Era a raquete atual, e isso produzia um artefato que invalidava a comparação inteira: se a
+     * referência é a própria raquete do jogador, o avanço dela em relação a si mesma é ZERO, e
+     * `askAdequacy` devolve exatamente 50 — em TODO eixo com pedido, sempre, independentemente de
+     * quão boa ela seja naquele aspecto.
+     *
+     * Medido: potência 50, controle 50, spin 50 para a raquete atual, enquanto a recomendada
+     * marcava 84, 98 e 68. O gráfico não estava dizendo que a recomendada é melhor — estava
+     * dizendo que a atual está presa no meio da escala por definição. Foi isso que o usuário leu
+     * como "melhor em tudo", e ele estava certo em desconfiar.
+     *
+     * Com a âncora no catálogo, as duas raquetes são medidas contra o MESMO ponto fixo e a
+     * comparação volta a significar alguma coisa. A raquete atual pode ganhar num eixo — e, quando
+     * ela já entrega o que foi pedido, ela ganha.
      */
-    const reference = currentPosition ?? catalogPosition;
+    const reference = catalogPosition;
     const desired = profile.desired_change_vector[need];
 
     return {

@@ -69,16 +69,41 @@ export function tieBreakKey(candidateId: string, signature: string): number {
 /**
  * Comparador: pontuação primeiro, desempate por chave estável depois.
  *
- * A pontuação é comparada ARREDONDADA, na mesma precisão que o usuário lê na tela. Sem isso, uma
- * diferença de 0.06 ponto — que a tela mostra como dois números iguais — continuaria decidindo
- * quem aparece e quem não aparece, com um rigor que o modelo não tem (R-04).
+ * ═══ POR QUE A COMPARAÇÃO É EXATA, E NÃO ARREDONDADA ═════════════════════════════════════════
+ *
+ * A versão anterior comparava `Math.round(score)` — "na mesma precisão que o usuário lê na tela",
+ * para que o número exibido nunca contradissesse a ordem. A intenção era boa e o efeito, ruim:
+ * dentro de um mesmo ponto inteiro a ordem passava a ser inteiramente do hash. Medido num perfil
+ * real (voleador intermediário, prioridades potência → controle → spin):
+ *
+ *     1º  84.18  Pure Aero      2º  84.14  EZONE 100
+ *     3º  84.18  Pure Drive     4º  84.23  VCORE 100   ← o MAIOR score, em quarto
+ *
+ * O primeiro colocado não era o de maior pontuação, e a 4ª opção — que ganhava de todas — ficava
+ * de fora do pódio. Num relatório pago isso é indefensável: a pessoa não pode receber como "a
+ * escolha" algo que o próprio motor pontuou abaixo de uma alternativa que ele descartou.
+ *
+ * O arredondamento também produzia uma faixa de empate ARBITRÁRIA: 84.49 e 83.51 quase um ponto
+ * separados eram "empate", enquanto 84.51 e 84.49 — dois centésimos — caíam em pontos inteiros
+ * diferentes e eram tratados como diferença real. A largura do empate dependia de onde a fronteira
+ * caísse, não da confiança do modelo.
+ *
+ * ═══ O QUE PRESERVA A COBERTURA ══════════════════════════════════════════════════════════════
+ *
+ * O hash continua existindo e continua fazendo exatamente o que foi criado para fazer. O problema
+ * original (22 de 46 raquetes nunca indicadas) vinha de gêmeas de ESPECIFICAÇÃO — produtos com o
+ * mesmo vetor de atributos e, portanto, o mesmo score até o último decimal, desempatados pelo
+ * alfabeto. Esse caso é o `=== 0` aqui embaixo, e nele o hash age igual a antes.
+ *
+ * A diferença é que uma vantagem REAL de 0.05 ponto volta a valer. Ela é pequena — e é por isso
+ * que o pódio marca o empate técnico e mostra ao lado o que separa as opções empatadas: a resposta
+ * para "a diferença é minúscula" é DIZER que é minúscula, não desordenar o ranking.
  */
 export function compareByScoreThenTieBreak(
   a: { score: number; id: string },
   b: { score: number; id: string },
   signature: string,
 ): number {
-  const rounded = Math.round(b.score) - Math.round(a.score);
-  if (rounded !== 0) return rounded;
+  if (b.score !== a.score) return b.score - a.score;
   return tieBreakKey(a.id, signature) - tieBreakKey(b.id, signature);
 }

@@ -47,18 +47,32 @@ describe('qualidade do pódio (§30)', () => {
   const runs = runAll();
 
   /**
-   * Decrescente na precisão exibida — ver a nota equivalente em `tests/property/determinism.test.ts`.
-   * Dentro do mesmo inteiro as opções estão tecnicamente empatadas e a ordem entre elas é
-   * deliberadamente dependente do perfil, não do alfabeto.
+   * Decrescente na pontuação REAL, não na exibida.
+   *
+   * A versão anterior deste teste comparava `Math.round`, acompanhando um desempate que também
+   * arredondava: dentro de um mesmo ponto inteiro a ordem vinha do hash do perfil. O efeito medido
+   * num relatório real foi a 1ª colocada marcar 84.18 enquanto a 4ª marcava 84.23 — a opção de
+   * maior pontuação ficava FORA do pódio. Num produto pago isso é indefensável.
+   *
+   * O desempate por perfil continua, e continua fazendo o que foi criado para fazer: ele age
+   * quando as pontuações são exatamente iguais, que é o caso das gêmeas de especificação. O que
+   * não pode voltar a acontecer é uma vantagem real, por menor que seja, ser embaralhada.
    */
   it('o pódio está sempre ordenado por compatibilidade decrescente', () => {
     for (const { persona, result } of runs) {
       for (let i = 1; i < result.podium.length; i += 1) {
-        expect(
-          Math.round(result.podium[i]!.fit_score),
-          `${persona.id}: rank ${i + 1}`,
-        ).toBeLessThanOrEqual(Math.round(result.podium[i - 1]!.fit_score));
+        expect(result.podium[i]!.fit_score, `${persona.id}: rank ${i + 1}`).toBeLessThanOrEqual(
+          result.podium[i - 1]!.fit_score,
+        );
       }
+    }
+  });
+
+  /** A 1ª colocada é a de maior pontuação do ranking inteiro, sem exceção. */
+  it('a 1ª colocada é a maior pontuação avaliada', () => {
+    for (const { persona, result } of runs) {
+      const best = Math.max(...result.full_ranking.map((r) => r.fit_score));
+      expect(result.podium[0]!.fit_score, persona.id).toBe(best);
     }
   });
 

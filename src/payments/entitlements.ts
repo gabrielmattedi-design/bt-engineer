@@ -15,6 +15,7 @@ import { clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { buildTradeOffs, type TradeOff } from './trade-offs';
 import { buildRadar, type RadarAxis } from './radar';
+import { buildDistinction, buildTieGroup, type PodiumDistinction, type PodiumTieGroup } from './podium-tie';
 import { buildPlayerIdentity, type PlayerIdentity } from './player-identity';
 import {
   explainComfort,
@@ -144,6 +145,13 @@ export type UnlockedPodiumEntry = {
   readonly product_name: string;
   readonly image_url: string | null;
   readonly technical_tie_with_previous: boolean;
+  /**
+   * O que separa esta opção das outras EMPATADAS — `null` quando ela não está num empate.
+   *
+   * Ver `podium-tie.ts`: três cards marcando o mesmo número e sem nada escrito é o que fazia o
+   * relatório parecer indeciso. A diferenciação vem do motivo, não de uma casa decimal.
+   */
+  readonly distinction: PodiumDistinction | null;
   readonly specs: Readonly<Record<string, number | string | null>>;
   readonly indices: Readonly<Record<string, number>>;
   readonly tags: readonly string[];
@@ -179,6 +187,14 @@ export type ReportPayload = {
   readonly kind: 'report';
   readonly headline: string;
   readonly podium: readonly PodiumEntry[];
+  /**
+   * Presente só quando o topo do pódio empatou tecnicamente. Ver `podium-tie.ts`.
+   *
+   * Existe para responder à pergunta que três cards de "88%" levantam: se são iguais, por que esta
+   * é a primeira? A resposta honesta é que não são "a melhor" e "as outras" — são equivalentes, e o
+   * que as separa está escrito em cada card.
+   */
+  readonly podium_tie: PodiumTieGroup | null;
   readonly transition: RecommendationResult['transition'];
   readonly confidence: {
     readonly level: string;
@@ -399,6 +415,7 @@ function unlockedEntry(
   profile: PlayerProfile,
   bands: RecommendationResult['attribute_bands'],
   tradeOffs: readonly TradeOff[] = [],
+  podium: readonly RankedRacket[] = [],
 ): UnlockedPodiumEntry {
   const specs = ranked.racket.variant.specs;
   return {
@@ -411,6 +428,7 @@ function unlockedEntry(
     // §54: só exibimos foto confirmada como sendo desta variante e geração.
     image_url: ranked.racket.variant.image_verified ? ranked.racket.variant.image_url : null,
     technical_tie_with_previous: ranked.technical_tie_with_previous,
+    distinction: buildDistinction(ranked, podium),
     specs: {
       cabeca_sq_in: specs.head_size_sq_in,
       peso_g: specs.unstrung_weight_g,
@@ -547,10 +565,11 @@ export function serializeRecommendation(
               }
             : undefined,
         ),
+        result.podium,
       );
     }
     if (canSeeRank(granted, entry.rank)) {
-      return unlockedEntry(entry, profile, result.attribute_bands);
+      return unlockedEntry(entry, profile, result.attribute_bands, [], result.podium);
     }
     return {
       rank: entry.rank,
@@ -587,6 +606,7 @@ export function serializeRecommendation(
     kind: 'report',
     headline: explainHeadline(first, result.podium[1]?.technical_tie_with_previous ?? false),
     podium,
+    podium_tie: buildTieGroup(result.podium),
     transition: {
       ...result.transition,
       expectations: explainTransition(result.transition),
@@ -609,7 +629,9 @@ export function serializeRecommendation(
      * que informa menos do que não existir — e revelaria por diferença o que a coluna oculta traz.
      */
     comparison: result.podium.every((e) => canSeeRank(granted, e.rank))
-      ? result.podium.map((entry) => unlockedEntry(entry, profile, result.attribute_bands))
+      ? result.podium.map((entry) =>
+          unlockedEntry(entry, profile, result.attribute_bands, [], result.podium),
+        )
       : null,
     engine_version: result.engine_version,
     dataset_version: result.dataset_version,
