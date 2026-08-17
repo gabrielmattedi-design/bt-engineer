@@ -75,6 +75,29 @@ export default async function ResultadoPage({
       </header>
 
       <div className="mx-auto max-w-3xl space-y-16 px-6 py-12">
+        {/*
+          ── ANÁLISE DE UMA VERSÃO ANTERIOR DO MOTOR ────────────────────────
+
+          A recomendação é calculada UMA vez, quando o questionário é enviado, e fica gravada.
+          Reabrir o link não recalcula nada, e isso é deliberado: um relatório pago não pode mudar
+          de conclusão sozinho entre duas leituras.
+
+          Mas a página é montada a cada leitura, então depois de uma mudança de motor um relatório
+          antigo fica híbrido — números congelados, apresentação nova. Dizer isso é mais honesto do
+          que deixar o leitor comparar dois relatórios e concluir que o produto é instável.
+        */}
+        {report.analysis_outdated && (
+          <div className="rounded border border-warn/40 bg-warn/5 p-5">
+            <p className="text-sm leading-relaxed">{report.analysis_outdated.message}</p>
+            <Link
+              href="/questionario"
+              className="mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+            >
+              Refazer o questionário
+            </Link>
+          </div>
+        )}
+
         {/* ── MATCH ────────────────────────────────────────────────────────── */}
         {winner && (
           <section>

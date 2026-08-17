@@ -13,6 +13,7 @@ import type { PlayerProfile } from '@/domain/player-profile';
 import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
 import { clamp, clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
+import { RECOMMENDATION_ENGINE_VERSION } from '@/recommendation/config/version';
 import { buildTradeOffs, type TradeOff } from './trade-offs';
 import { buildRadar, type RadarAxis } from './radar';
 import {
@@ -210,6 +211,30 @@ export type ReportPayload = {
    * ajuste ainda rende.
    */
   readonly separation: PodiumSeparation | null;
+  /**
+   * Preenchido quando a análise gravada é de uma versão do motor anterior à que está no ar.
+   *
+   * ═══ POR QUE ISTO PRECISA APARECER ═══════════════════════════════════════════════════════
+   *
+   * Uma recomendação é calculada UMA vez, no momento em que o questionário é enviado, e o
+   * resultado fica gravado. Abrir o link de novo não recalcula nada — o que é a decisão certa: um
+   * relatório pago não pode mudar de conclusão sozinho entre duas leituras, e a versão gravada é o
+   * que torna o resultado auditável depois.
+   *
+   * Só que a página é MONTADA a cada leitura. Ranking, pontuações e atributos vêm congelados do
+   * banco, enquanto índices exibidos, radar e textos de empate são derivados aqui, pelo código que
+   * estiver publicado. Depois de uma mudança de motor, um relatório antigo vira um híbrido: número
+   * velho, apresentação nova. Ele não fica errado por isso, mas deixa de ser inteiramente o que o
+   * rodapé diz que é.
+   *
+   * Então o relatório declara a diferença em vez de deixar o leitor descobrir por conta. Nada é
+   * recalculado à revelia — a pessoa decide se quer refazer.
+   */
+  readonly analysis_outdated: {
+    readonly stored: string;
+    readonly current: string;
+    readonly message: string;
+  } | null;
   readonly transition: RecommendationResult['transition'];
   readonly confidence: {
     readonly level: string;
@@ -693,6 +718,19 @@ export function serializeRecommendation(
     podium,
     podium_tie: buildTieGroup(result.podium),
     separation: buildSeparation(result.full_ranking),
+    analysis_outdated:
+      result.engine_version === RECOMMENDATION_ENGINE_VERSION
+        ? null
+        : {
+            stored: result.engine_version,
+            current: RECOMMENDATION_ENGINE_VERSION,
+            message:
+              `Esta análise foi calculada com a versão ${result.engine_version} do motor, e a que ` +
+              `está no ar hoje é a ${RECOMMENDATION_ENGINE_VERSION}. O resultado abaixo é o que ` +
+              'foi calculado na época, e continua sendo exatamente o que você recebeu — não ' +
+              'mexemos nele. Se quiser a leitura com os critérios atuais, refaça o questionário: ' +
+              'isso gera uma análise nova, e este link continua acessível como está.',
+          },
     transition: {
       ...result.transition,
       expectations: explainTransition(result.transition),
