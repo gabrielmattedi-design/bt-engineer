@@ -72,29 +72,40 @@ export function physicalFit(
   const capacity = handlingCapacity(profile);
 
   /**
-   * A penalidade por EXCEDER a capacidade é progressiva.
+   * ═══ A TOLERÂNCIA É MEDIDA EM GRAMAS, NÃO EM PONTOS DE POSIÇÃO ═════════════════════════════
    *
-   * ═══ NOTA DE CALIBRAÇÃO (v2.5.0) ═══════════════════════════════════════════════════════════
+   * As constantes deste componente sempre foram escritas em pontos de POSIÇÃO no catálogo. Isso
+   * parecia neutro e não é: a faixa que o catálogo ocupa em `mass_index` tem apenas 18 pontos de
+   * largura, e `position()` a estica para 0–100. Cada unidade real vale 5,5 pontos de posição.
    *
-   * Era linear, 1.35 por ponto acima. Medido no caso relatado — jogadora de 1,60 m e 55 kg,
-   * intermediária, força média: capacidade de manejo 57, e uma raquete de 305 g (percentil 76 de
-   * massa) ainda marcava 74 de `physical_fit`. Com peso 0.196 no score final, isso deixava a
-   * diferença para uma de 285 g dentro da faixa de empate, e o desempate entregava a mais pesada.
+   * O efeito, medido em duas raquetes separadas por CINCO GRAMAS:
    *
-   * Linear está errado sobre a física. Passar um pouco do que o braço sustenta custa preparação
-   * ligeiramente atrasada; passar muito custa preparação atrasada em TODA bola rápida, ombro
-   * sobrecarregado no saque e o segundo set inteiro pior que o primeiro. O efeito se acumula, e uma
-   * reta não descreve acúmulo.
+   *     HEAD Boom MP    295 g   posição 59   physical_fit 95
+   *     Babolat Pure Drive 300 g posição 80  physical_fit 70
    *
-   * A zona morta de 10 pontos preserva o comportamento anterior para quem está perto do limite —
-   * essa margem é estimativa, e não deve virar veredicto. Acima dela a conta fica cara depressa.
+   * Vinte e cinco pontos de componente para uma diferença que quase ninguém sente na mão. Com a
+   * zona morta antiga de 10 pontos — equivalente a 2,5 g —, capacidade virava um penhasco: uma
+   * raquete logo abaixo passava livre e a de cinco gramas a mais levava a conta inteira.
    *
-   * Descer de peso continua barato (0.75): é perda de desempenho, recuperável, e às vezes desejada.
+   * Foi isto que o usuário viu no gráfico e descreveu como "peso e manejo parece decidir sozinho".
+   * Decidia mesmo, e não por ter peso demais na fórmula: por ter uma régua 5,5 vezes ampliada.
+   *
+   * A tolerância passa a ser dimensionada pelo que ela representa em gramas. `MASS_TOLERANCE` de 15
+   * pontos de posição é da ordem de 4 g nesta faixa — a menor diferença de massa que um jogador
+   * amador percebe de forma consistente. Abaixo disso o componente cala; acima, a conta sobe, e sobe
+   * mais depressa quanto mais longe, porque sustentar massa demais é problema que se acumula.
+   *
+   * Descer de peso continua mais barato que subir: é perda de desempenho, recuperável, e às vezes
+   * exatamente o que o jogador quer.
    */
+  const MASS_TOLERANCE = 15;
+
   const delta = massPosition - capacity;
-  const overshoot = Math.max(0, delta - 10);
+  const excess = Math.max(0, Math.abs(delta) - MASS_TOLERANCE);
   const raw =
-    delta > 0 ? 100 - delta * 1.35 - overshoot * 1.2 : 100 - Math.abs(delta) * 0.75;
+    delta > 0
+      ? 100 - excess * 1.5 - Math.max(0, excess - 15) * 1.0
+      : 100 - excess * 0.8;
 
   return output('physical_fit', raw, [
     {
@@ -148,7 +159,20 @@ export function skillFit(
     profile.player_level_score,
     handlingCapacity(profile) + CAPACITY_TOLERANCE,
   );
-  const raw = 100 - Math.abs(demand - target) * 1.5;
+  /**
+   * Mesma correção de régua que `physicalFit` recebeu.
+   *
+   * `demand_index` ocupa ~30 pontos no catálogo e `position()` estica para 0–100: cada unidade real
+   * vale 3,3 pontos de posição. Sem zona morta, a inclinação de 1.5 cobrava 5 pontos de componente
+   * por unidade de exigência — precisão que o índice não tem, já que ele é média ponderada de quatro
+   * especificações publicadas.
+   *
+   * A tolerância representa aproximadamente a diferença de exigência entre duas gerações do mesmo
+   * modelo: abaixo dela, dizer que uma serve e a outra não seria inventar resolução.
+   */
+  const DEMAND_TOLERANCE = 12;
+  const gap = Math.max(0, Math.abs(demand - target) - DEMAND_TOLERANCE);
+  const raw = 100 - gap * 1.6;
 
   return output('skill_fit', raw, [
     {
@@ -179,7 +203,17 @@ export function swingFit(
 ): ComponentOutput {
   const framePower = scale.position('power_score', racket.attributes.power_score);
   const requiredFramePower = 100 - profile.natural_power_score;
-  const powerTerm = 100 - Math.abs(framePower - requiredFramePower) * 1.15;
+
+  /**
+   * Zona morta pelo mesmo motivo de `physicalFit` e `skillFit`.
+   *
+   * `power_score` ocupa cerca de 37 pontos no catálogo, esticados para 0–100 — amplificação de
+   * 2,7×. E o alvo aqui é uma ESTIMATIVA (`100 − potência natural`), não uma medida: cobrar
+   * distância a partir do primeiro ponto é fingir uma precisão que a estimativa não sustenta.
+   */
+  const POWER_TOLERANCE = 12;
+  const powerGap = Math.max(0, Math.abs(framePower - requiredFramePower) - POWER_TOLERANCE);
+  const powerTerm = 100 - powerGap * 1.3;
 
   /**
    * Comprimento do swing → faixa aceitável de manobrabilidade, penalizando só o que sai dela.

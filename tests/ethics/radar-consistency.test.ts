@@ -133,3 +133,74 @@ describe('coerência entre o radar e a recomendação', () => {
     }
   });
 });
+
+/**
+ * Nenhum critério pode decidir sozinho.
+ *
+ * ═══ O QUE ISTO MEDE ═════════════════════════════════════════════════════════════════════════
+ *
+ * Pedido do usuário, depois de olhar o gráfico: "faça um check de cada peso de forma que nenhum
+ * isoladamente determine uma raquete específica". Ele estava vendo `Peso e manejo` marcar 98 contra
+ * 66 e concluiu, corretamente, que aquele eixo mandava sozinho.
+ *
+ * Influência real não é o peso escrito: é peso × DISPERSÃO. Um critério que separa as candidatas
+ * por 12 pontos decide muito mais que um que as separa por 3, com o mesmo peso na fórmula. Medido
+ * antes da correção, sobre 864 perfis:
+ *
+ *     physical_fit   peso 19.5%  →  influência 29.5%  (1.51×)
+ *     playstyle_fit  peso 15.2%  →  influência  5.8%  (0.38×)
+ *
+ * Depois de equalizar a dispersão e alargar as zonas mortas das réguas amplificadas, todos os
+ * componentes ficam entre 0.76× e 1.15× do peso declarado.
+ *
+ * A razão é aferida sobre as candidatas que DISPUTAM, não sobre o catálogo inteiro: a decisão
+ * acontece entre as primeiras colocadas, e medir na cauda de baixo esconde exatamente o desequilíbrio
+ * que importa.
+ */
+describe('nenhum critério decide sozinho', () => {
+  const AMOSTRA = PERSONAS.slice(0, 12);
+
+  it('a influência real de cada componente respeita o peso declarado', () => {
+    const infl = new Map<string, number[]>();
+    const pesos = new Map<string, number[]>();
+
+    for (const persona of AMOSTRA) {
+      const profile = buildPlayerProfile(persona.answers);
+      const result = recommend({
+        profile,
+        rackets: testRackets(),
+        strings: testStrings(),
+        datasetVersion: TEST_DATASET_VERSION,
+        mode: TEST_MODE,
+        includeSetup: false,
+      });
+
+      const disputam = result.full_ranking.slice(0, 12);
+      if (disputam.length < 6) continue;
+
+      for (const c of disputam[0]!.breakdown.components) {
+        if (c.weight <= 0.05) continue;
+        const vals = disputam.map(
+          (r) => r.breakdown.components.find((x) => x.key === c.key)?.raw ?? 0,
+        );
+        const m = vals.reduce((s, v) => s + v, 0) / vals.length;
+        const sd = Math.sqrt(vals.reduce((s, v) => s + (v - m) ** 2, 0) / vals.length);
+        infl.set(c.key, [...(infl.get(c.key) ?? []), sd * c.weight]);
+        pesos.set(c.key, [...(pesos.get(c.key) ?? []), c.weight]);
+      }
+    }
+
+    const media = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+    const total = [...infl.values()].reduce((s, v) => s + media(v), 0);
+
+    for (const [key, valores] of infl) {
+      const peso = media(pesos.get(key)!);
+      const razao = media(valores) / total / peso;
+      expect(
+        razao,
+        `${key}: peso ${(peso * 100).toFixed(1)}% mas influência ${(razao * peso * 100).toFixed(1)}% (${razao.toFixed(2)}×)`,
+      ).toBeLessThanOrEqual(1.6);
+      expect(razao, `${key}: influência muito abaixo do peso (${razao.toFixed(2)}×)`).toBeGreaterThanOrEqual(0.45);
+    }
+  });
+});

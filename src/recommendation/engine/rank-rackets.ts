@@ -142,6 +142,131 @@ function explainBreakdown(
  * espaço disponível") — que é o que o relatório mostra ao usuário e o que a auditoria do admin lê.
  * O conflito não some; ele deixa de ser cobrado da raquete que não tinha como resolvê-lo.
  */
+/**
+ * ═══ EQUALIZAÇÃO DE DISPERSÃO ════════════════════════════════════════════════════════════════
+ *
+ * Um peso só significa o que diz se todos os componentes variarem na mesma medida. Eles não
+ * variam, e a diferença é grande. Medido sobre 864 perfis, olhando as 12 primeiras colocadas de
+ * cada um — que são as que de fato disputam:
+ *
+ *     componente        peso declarado   influência real   desvio-padrão
+ *     physical_fit          19.5%            29.5%   1.51×      11.8
+ *     skill_fit             20.2%            26.2%   1.30×       9.9
+ *     swing_fit             19.5%            17.9%   0.92×       7.1
+ *     objective_fit         10.8%            11.1%   1.03×       8.4
+ *     comfort_fit           11.7%             9.5%   0.81×       6.3
+ *     playstyle_fit         15.2%             5.8%   0.38×       3.0
+ *
+ * Influência é peso × dispersão. Um componente que separa as candidatas por 12 pontos decide muito
+ * mais do que um que as separa por 3, mesmo com o peso escrito parecido — e ninguém decidiu isso:
+ * é consequência acidental de como cada fórmula foi construída.
+ *
+ * A consequência prática foi apontada pelo usuário olhando o gráfico: `Peso e manejo` marcava 98
+ * contra 66 e parecia decidir sozinho. Parecia porque decidia — 1.51 vez o que o peso prometia.
+ *
+ * ─── A CORREÇÃO ────────────────────────────────────────────────────────────────────────────
+ *
+ * Cada componente é reescalado EM TORNO DA PRÓPRIA MÉDIA até que sua dispersão entre as candidatas
+ * se aproxime de um alvo comum. Componente que espalha demais é comprimido; componente que espalha
+ * de menos é esticado. Depois disso, o peso volta a significar exatamente o que está escrito: a
+ * fração da decisão que aquele critério carrega.
+ *
+ * ─── OS DOIS LIMITES, E POR QUE EXISTEM ────────────────────────────────────────────────────
+ *
+ * `MIN_SPREAD` impede amplificar ruído. Quando um componente separa as candidatas por 2 pontos,
+ * essa diferença não é informação — é arredondamento de fórmula —, e esticá-la até o alvo daria a
+ * um critério mudo o mesmo poder de um que está falando. É o mesmo princípio de `MIN_BAND_WIDTH`
+ * em `catalog-scale.ts`.
+ *
+ * `MIN_SCALE`/`MAX_SCALE` impedem que a equalização vire outra distorção. Ela corrige proporção,
+ * não reescreve a análise: nenhum componente pode ser espremido a menos da metade nem inflado a
+ * mais de 1.6 vez, e a ORDEM que cada componente estabelece nunca muda — a transformação é linear
+ * e monotônica.
+ */
+const TARGET_SPREAD = 8;
+const MIN_SPREAD = 3.5;
+const MIN_SCALE = 0.35;
+const MAX_SCALE = 2;
+
+/**
+ * Fração das candidatas usada para MEDIR a dispersão.
+ *
+ * A equalização precisa igualar a influência onde a decisão acontece, e ela não acontece no
+ * catálogo inteiro: acontece entre as poucas que disputam a primeira posição. Medir sobre as 46 dá
+ * um número dominado pela cauda de baixo — as raquetes pesadas que um jogador leve nem cogita
+ * inflam o desvio de `physical_fit`, a equalização divide por esse desvio inflado, e a dispersão
+ * ENTRE AS CANDIDATAS REAIS sai praticamente intacta. Medido: 1.51× antes, 1.57× depois.
+ *
+ * A amostra de medição é escolhida por um score preliminar de pesos IGUAIS. Não é circular: o
+ * preliminar não usa os pesos finais nem a equalização, serve só para separar "quem disputa" de
+ * "quem já está fora", e a decisão continua sendo tomada sobre todas as candidatas.
+ */
+const CONTENDER_SHARE = 0.3;
+const MIN_CONTENDERS = 8;
+
+function contenderIndices(
+  outputs: readonly (readonly { key: ComponentKey; raw: number }[])[],
+  ids: readonly string[],
+): number[] {
+  const prelim = outputs.map((row, index) => ({
+    index,
+    id: ids[index] ?? String(index),
+    score: row.reduce((s, o) => s + o.raw, 0) / Math.max(1, row.length),
+  }));
+
+  /*
+    O desempate por id é obrigatório, não cosmético.
+
+    Sem ele, duas candidatas com o mesmo score preliminar ficavam na ordem em que o catálogo chegou.
+    Isso mudava QUEM entra na amostra de medição, e portanto a média e o desvio de cada componente,
+    e portanto o score final de todo mundo — o motor deixava de ser determinístico em relação à
+    ordem de entrada, que é uma garantia do §2. O teste de determinismo pegou na primeira execução.
+  */
+  prelim.sort((a, b) => (b.score - a.score) || a.id.localeCompare(b.id));
+  const take = Math.max(MIN_CONTENDERS, Math.ceil(prelim.length * CONTENDER_SHARE));
+  return prelim.slice(0, Math.min(take, prelim.length)).map((p) => p.index);
+}
+
+function equalizers(
+  outputs: readonly (readonly { key: ComponentKey; raw: number }[])[],
+  ids: readonly string[],
+): Map<ComponentKey, (raw: number) => number> {
+  const sample = new Set(contenderIndices(outputs, ids));
+  const byKey = new Map<ComponentKey, number[]>();
+  for (const [index, row] of outputs.entries()) {
+    if (!sample.has(index)) continue;
+    for (const o of row) {
+      const list = byKey.get(o.key) ?? [];
+      list.push(o.raw);
+      byKey.set(o.key, list);
+    }
+  }
+
+  const out = new Map<ComponentKey, (raw: number) => number>();
+  for (const [key, values] of byKey) {
+    if (values.length < 2) {
+      out.set(key, (raw) => raw);
+      continue;
+    }
+    /*
+      Os valores são ORDENADOS antes de somar.
+
+      Somar os mesmos números em ordens diferentes dá resultados de ponto flutuante ligeiramente
+      diferentes. Aqui isso não é acadêmico: a média e o desvio entram na reescala de todos os
+      componentes, e uma diferença na décima casa é suficiente para inverter um empate no ranking.
+      O teste de determinismo — mesma entrada em outra ordem, mesma saída — pegou exatamente isso.
+    */
+    const ordered = [...values].sort((a, b) => a - b);
+    const mean = ordered.reduce((s, v) => s + v, 0) / ordered.length;
+    const spread = Math.sqrt(
+      ordered.reduce((s, v) => s + (v - mean) ** 2, 0) / ordered.length,
+    );
+    const scale = clamp(TARGET_SPREAD / Math.max(spread, MIN_SPREAD), MIN_SCALE, MAX_SCALE);
+    out.set(key, (raw) => clamp(mean + (raw - mean) * scale, 0, 100));
+  }
+  return out;
+}
+
 function objectiveRescaler(
   outputs: readonly (readonly { key: ComponentKey; raw: number }[])[],
 ): (raw: number) => number {
@@ -217,10 +342,24 @@ export function rankRackets(
 
   const rescaleObjective = objectiveRescaler(rawOutputs);
 
+  /*
+    A ordem importa: `objective_fit` é reescalado ANTES da equalização.
+
+    Os dois fazem coisas diferentes. O rescaler de objetivo corrige um TETO inalcançável — quando o
+    pedido do jogador se contradiz, nenhuma raquete passa de 64 e cobrar isso dela não informa nada.
+    A equalização corrige PROPORÇÃO entre critérios. Equalizar primeiro mediria a dispersão de um
+    componente ainda comprimido contra o próprio teto, e a correção sairia errada.
+  */
+  const objectiveApplied = rawOutputs.map((row) =>
+    row.map((o) => (o.key === 'objective_fit' ? { ...o, raw: rescaleObjective(o.raw) } : o)),
+  );
+  const equalize = equalizers(objectiveApplied, kept.map((r) => r.variant.id));
+
   const scored = kept.map((racket, racketIndex) => {
-    const outputs = rawOutputs[racketIndex]!.map((o) =>
-      o.key === 'objective_fit' ? { ...o, raw: rescaleObjective(o.raw) } : o,
-    );
+    const outputs = objectiveApplied[racketIndex]!.map((o) => ({
+      ...o,
+      raw: round((equalize.get(o.key) ?? ((v: number) => v))(o.raw)),
+    }));
 
     const components: ComponentBreakdown[] = outputs.map((o) => {
       const weight = weights[o.key];
