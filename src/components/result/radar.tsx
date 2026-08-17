@@ -15,9 +15,14 @@ import type { RadarAxis } from '@/payments/radar';
  *
  * ─── COMO LER ────────────────────────────────────────────────────────────────────────────────
  *
- * O polígono do PERFIL é o alvo: ele diz o que o jogo pede. Onde a linha da recomendada encosta
- * nele, aquele eixo está resolvido; onde ela fica aquém, existe uma troca — e a linha do catálogo
- * mostra se o limite é do mercado ou da escolha.
+ * Todo eixo está em ADEQUAÇÃO: 100 é a borda, e significa "perfeito para você neste aspecto".
+ * Quanto MAIOR o polígono, melhor a raquete serve ao jogador — e o maior é, por construção, o que o
+ * motor escolheu, porque é a mesma conta que decidiu o ranking.
+ *
+ * Os nove eixos vêm em dois blocos. Os cinco primeiros são o que a raquete faz com a BOLA; os
+ * quatro últimos são o quanto ela encaixa em VOCÊ — peso, nível, swing e braço. O gráfico antigo
+ * mostrava só o primeiro bloco, e por isso conseguia contradizer a recomendação: ele escondia
+ * justamente os eixos que mais pesam na decisão.
  *
  * As quatro séries se distinguem por COR e por TRAÇO, nunca só por cor: cerca de 8% dos homens
  * têm alguma deficiência na visão de cores, e um gráfico que depende de distinguir verde de
@@ -94,7 +99,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
     },
     {
       key: 'profile',
-      label: 'O que seu jogo pede',
+      label: 'Adequação total (o ideal)',
       values: axes.map((a) => a.profile),
       stroke: PALETTE.clay,
       fill: 'none',
@@ -182,20 +187,40 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
             const [x, y] = point(i, total, 128);
             const a = angle(i, total);
             const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end';
+            /*
+              O peso vai IMPRESSO junto do rótulo.
+
+              Um radar trata todos os vértices como iguais, e eles não são: `Nível técnico` vale
+              0.20 do score final e cada eixo de bola vale um terço de 0.16. Sem o número escrito,
+              dois polígonos de área parecida podem corresponder a uma diferença real de seis
+              pontos, e o leitor não teria como saber qual vértice olhar primeiro.
+            */
             return (
-              <text
-                key={axis.key}
-                x={x}
-                y={y}
-                textAnchor={anchor}
-                dominantBaseline="middle"
-                fontSize="10"
-                fill={PALETTE.graphite}
-                className="uppercase"
-                style={{ letterSpacing: '0.06em' }}
-              >
-                {axis.label}
-              </text>
+              <g key={axis.key}>
+                <text
+                  x={x}
+                  y={y - 4}
+                  textAnchor={anchor}
+                  dominantBaseline="middle"
+                  fontSize="10"
+                  fill={PALETTE.graphite}
+                  className="uppercase"
+                  style={{ letterSpacing: '0.06em' }}
+                >
+                  {axis.label}
+                </text>
+                <text
+                  x={x}
+                  y={y + 7}
+                  textAnchor={anchor}
+                  dominantBaseline="middle"
+                  fontSize="8"
+                  fill={PALETTE.graphite}
+                  opacity="0.7"
+                >
+                  {Math.round(axis.weight * 100)}% do peso
+                </text>
+              </g>
             );
           })}
         </svg>

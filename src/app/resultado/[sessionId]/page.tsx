@@ -209,10 +209,7 @@ export default async function ResultadoPage({
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              A linha laranja é o que o seu jogo pede. Onde o verde encosta nela, aquele aspecto
-              está resolvido; onde fica aquém, houve uma troca — e a linha cinza mostra se o limite
-              é do mercado ou da escolha.
-            </p>
+              Cada eixo vai de 0 a 100 em ADEQUAÇÃO: a borda é o ideal para você. Os cinco primeiros mostram o que a raquete faz com a bola; os quatro últimos, o quanto ela encaixa em você — peso, nível técnico, swing e braço. Quanto maior o polígono verde, mais a raquete serve ao seu jogo, e é essa mesma conta que definiu a escolha.</p>
             <div className="mt-6 rounded border border-line bg-white p-6">
               <CompatibilityRadar axes={report.radar} />
             </div>
