@@ -23,7 +23,7 @@ import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
 import { serializeRecommendation } from '@/payments/entitlements';
 import { PERSONAS } from '@/data/personas';
-import { NEED_KEYS } from '@/domain/player-profile';
+import { NEED_KEYS, type NeedKey } from '@/domain/player-profile';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 const runs = PERSONAS.map((persona) => {

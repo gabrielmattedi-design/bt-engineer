@@ -213,6 +213,33 @@ export default async function ResultadoPage({
             <div className="mt-6 rounded border border-line bg-white p-6">
               <CompatibilityRadar axes={report.radar} />
             </div>
+            {/*
+              A soma dos blocos, porque o gráfico convida a uma comparação errada.
+
+              Cada vértice mostra seu próprio percentual, e isso faz "Spin 3%" parecer desprezível
+              ao lado de "Seu swing 17%". Só que os três eixos de bola são FATIAS de um único
+              critério — o que você pediu —, divididas na ordem de prioridade que você declarou,
+              enquanto swing é um critério inteiro. Comparar uma fatia com um bolo inteiro leva à
+              conclusão errada sobre o que o motor está fazendo.
+            */}
+            {(() => {
+              const pedido = report.radar
+                .filter((a) => a.group === 'bola')
+                .reduce((sum, a) => sum + a.weight, 0);
+              const encaixe = report.radar
+                .filter((a) => a.group === 'voce')
+                .reduce((sum, a) => sum + a.weight, 0);
+              return (
+                <p className="mt-4 text-sm leading-relaxed text-graphite">
+                  Somando por bloco: <strong>o que você pediu</strong> (potência, controle e spin){' '}
+                  vale <strong>{Math.round(pedido * 100)}%</strong> da decisão, e{' '}
+                  <strong>o encaixe com você</strong> (conforto, peso, nível, swing e estilo) vale{' '}
+                  <strong>{Math.round(encaixe * 100)}%</strong>. Os três primeiros são fatias de um
+                  mesmo critério, repartidas na ordem de prioridade que você declarou — por isso cada
+                  um sozinho aparece com um número menor que os critérios inteiros.
+                </p>
+              );
+            })()}
           </section>
         )}
 
