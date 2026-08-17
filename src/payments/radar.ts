@@ -201,15 +201,36 @@ type AxisSpec = {
  * juntas 0.66 do score final, e NENHUMA aparecia no gráfico antigo. Era por isso que ele conseguia
  * contradizer a recomendação: mostrava os 9% de objetivo e escondia os 66% que decidem.
  */
+/**
+ * ─── OS RÓTULOS DIZEM DE QUEM É A MEDIDA ───────────────────────────────────────────────────
+ *
+ * Antes eram `Conforto e braço`, `Peso e manejo`, `Nível técnico`, `Estilo de jogo`. Lidos numa
+ * teia ao lado de `Potência` e `Controle`, os oito viravam oito características DA RAQUETE — e um
+ * usuário concluiu, três vezes seguidas e com razão de sobra, que o gráfico estava afirmando que a
+ * recomendada é um produto superior ao dele em cinco de seis aspectos.
+ *
+ * Nenhum destes cinco eixos descreve a raquete. `Peso para o seu físico` marca 96 para um jogador
+ * de 82 kg e marcaria 40, na MESMA raquete, para um de 50 kg. É uma medida do par raquete-jogador,
+ * e o rótulo tem que dizer isso sozinho, porque é lido sozinho.
+ *
+ * O possessivo faz o trabalho que a legenda não fazia: "seu físico", "seu nível", "seu swing",
+ * "seu jogo", "seu braço" não têm como ser lidos como spec de fabricante.
+ *
+ * E são CURTOS de propósito. A primeira versão dizia `Exigência p/ seu nível` e `Conforto p/ seu
+ * braço`; renderizados, esses rótulos invadiam a teia — o de baixo caía em cima do próprio
+ * polígono. Alargar a moldura para acomodá-los encolheria o gráfico na mesma proporção. Como o
+ * setor sombreado e o título do bloco já explicam de que se trata, o rótulo só precisa dizer de
+ * QUEM é a medida, e "Seu braço" faz isso em duas palavras.
+ */
 const AXES: readonly AxisSpec[] = [
   { key: 'power', label: 'Potência', group: 'bola', need: 'power' },
   { key: 'control', label: 'Controle', group: 'bola', need: 'control' },
   { key: 'spin', label: 'Spin', group: 'bola', need: 'spin' },
-  { key: 'comfort_fit', label: 'Conforto e braço', group: 'voce', component: 'comfort_fit' },
-  { key: 'physical_fit', label: 'Peso e manejo', group: 'voce', component: 'physical_fit' },
-  { key: 'skill_fit', label: 'Nível técnico', group: 'voce', component: 'skill_fit' },
+  { key: 'comfort_fit', label: 'Seu braço', group: 'voce', component: 'comfort_fit' },
+  { key: 'physical_fit', label: 'Seu físico', group: 'voce', component: 'physical_fit' },
+  { key: 'skill_fit', label: 'Seu nível', group: 'voce', component: 'skill_fit' },
   { key: 'swing_fit', label: 'Seu swing', group: 'voce', component: 'swing_fit' },
-  { key: 'playstyle_fit', label: 'Estilo de jogo', group: 'voce', component: 'playstyle_fit' },
+  { key: 'playstyle_fit', label: 'Seu jogo', group: 'voce', component: 'playstyle_fit' },
 ];
 
 /** Mesma reposição usada pelos índices: a faixa real do catálogo vira 0–100. */

@@ -232,7 +232,13 @@ export default async function ResultadoPage({
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo. A linha laranja é o TETO: o melhor que existe para você em cada aspecto entre as raquetes que ainda são opção real. Onde o verde encosta nela, aquele ponto está no máximo possível; onde fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto cada bloco pesou na decisão está logo abaixo do gráfico.</p>
+              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo — não é uma nota da raquete. Os três de cima medem o que ela faz com a bola; os cinco de baixo medem o encaixe entre ela e você, e mudariam de valor na mesma raquete se quem respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na maioria dos eixos: foi exatamente por encaixar melhor que ela foi escolhida. Para comparar as raquetes entre si como PRODUTO, use a tabela de índices — lá toda raquete do catálogo soma o mesmo total.</p>
+            <p className="mt-3 max-w-prose text-sm text-graphite">
+              A linha laranja é o TETO: o melhor que existe para você em cada aspecto entre as
+              raquetes que ainda são opção real. Onde o verde encosta nela, aquele ponto está no
+              máximo possível; onde fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da
+              troca. O quanto cada bloco pesou na decisão está logo abaixo do gráfico.
+            </p>
             <div className="mt-6 rounded border border-line bg-white p-6">
               <CompatibilityRadar axes={report.radar} />
             </div>

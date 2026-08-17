@@ -19,10 +19,14 @@ import type { RadarAxis } from '@/payments/radar';
  * Quanto MAIOR o polígono, melhor a raquete serve ao jogador — e o maior é, por construção, o que o
  * motor escolheu, porque é a mesma conta que decidiu o ranking.
  *
- * Os nove eixos vêm em dois blocos. Os cinco primeiros são o que a raquete faz com a BOLA; os
- * quatro últimos são o quanto ela encaixa em VOCÊ — peso, nível, swing e braço. O gráfico antigo
- * mostrava só o primeiro bloco, e por isso conseguia contradizer a recomendação: ele escondia
- * justamente os eixos que mais pesam na decisão.
+ * Os oito eixos vêm em dois blocos, e os blocos são DESENHADOS — cada um num setor de fundo
+ * próprio, com título. Os três primeiros são o que a raquete faz com a BOLA; os cinco últimos são
+ * o quanto ela encaixa em VOCÊ: braço, físico, nível, swing e estilo.
+ *
+ * O gráfico antigo mostrava só o primeiro bloco, e por isso conseguia contradizer a recomendação:
+ * escondia justamente os eixos que mais pesam na decisão. Trazer os cinco resolveu aquilo e criou
+ * outro problema, que o setor sombreado resolve — sem divisão visível, os oito eram lidos como oito
+ * características do produto, e cinco deles não descrevem o produto.
  *
  * As quatro séries se distinguem por COR e por TRAÇO, nunca só por cor: cerca de 8% dos homens
  * têm alguma deficiência na visão de cores, e um gráfico que depende de distinguir verde de
@@ -44,6 +48,42 @@ const PALETTE = {
   ink: '#0B0F14',
   graphite: '#5A6472',
   line: '#E4E6E3',
+  /**
+   * Fundos dos dois SETORES. Claros de propósito: eles separam sem competir com os polígonos, que
+   * continuam sendo a informação. Um fundo saturado transformaria o gráfico em decoração.
+   */
+  zoneBall: '#EAF0EC',
+  zoneYou: '#F6F0EA',
+} as const;
+
+/**
+ * Os dois blocos, nomeados. A ordem dos eixos em `radar.ts` garante que cada grupo é contíguo.
+ *
+ * ═══ POR QUE O GRÁFICO PRECISA DIZER ISTO ════════════════════════════════════════════════════
+ *
+ * Um usuário leu o radar três vezes seguidas como "a raquete recomendada é melhor que a minha em
+ * cinco de seis características" — e concluiu, com toda lógica, que o catálogo tinha raquetes
+ * globalmente superiores a outras, o que o produto promete não ter.
+ *
+ * A leitura estava errada, e a culpa era do desenho. Cinco dos oito vértices não descrevem a
+ * raquete: descrevem o ENCAIXE entre ela e uma pessoa específica. `Peso p/ seu físico` marca 96
+ * para um jogador de 82 kg e marcaria 40, na mesma raquete, para um de 50 kg. Postos na mesma teia,
+ * com o mesmo peso visual e sem nenhuma divisão, os oito viravam oito specs de fabricante.
+ *
+ * O setor sombreado é a divisão que faltava: dois territórios, dois títulos, duas perguntas
+ * diferentes. O que a raquete FAZ, e o quanto ela SERVE A VOCÊ.
+ */
+const ZONES = {
+  bola: {
+    fill: PALETTE.zoneBall,
+    title: 'O que ela faz com a bola',
+    hint: 'Comportamento do quadro — o mesmo para qualquer pessoa que jogue com ela.',
+  },
+  voce: {
+    fill: PALETTE.zoneYou,
+    title: 'Como ela encaixa em você',
+    hint: 'Medidas do par raquete + você. Mudam de jogador para jogador, na mesma raquete.',
+  },
 } as const;
 
 const SIZE = 320;
@@ -61,7 +101,10 @@ const RADIUS = 108;
  * os dois lados em vez de para fora.
  */
 const PAD_X = 62;
-const PAD_Y = 8;
+const PAD_Y = 18;
+
+/** Raio do setor de fundo: um pouco além da teia, para o sombreado emoldurar em vez de cortar. */
+const ZONE_RADIUS = RADIUS + 9;
 
 /** Ângulo do eixo `i`, começando no topo e girando no sentido horário. */
 function angle(index: number, total: number): number {
@@ -74,10 +117,71 @@ function point(index: number, total: number, value: number): [number, number] {
   return [CENTER + Math.cos(a) * r, CENTER + Math.sin(a) * r];
 }
 
+/**
+ * Posição de um RÓTULO, em pixels de raio — sem passar pela escala de valor.
+ *
+ * ═══ O BUG QUE ISTO CORRIGE ══════════════════════════════════════════════════════════════════
+ *
+ * Os rótulos eram posicionados com `point(i, total, 128)`, como se 128 fosse "um pouco além da
+ * borda". Não era: `point` recebe um VALOR de eixo e o limita a 100 antes de converter em raio.
+ * Qualquer número acima de 100 produzia exatamente o mesmo ponto que 100 — ou seja, os nomes
+ * estavam colados na teia desde sempre, e aumentar o número não afastava nada.
+ *
+ * Era isso que fazia "Seu físico", embaixo, cair em cima do próprio polígono.
+ */
+function labelPoint(index: number, total: number, radius: number): [number, number] {
+  const a = angle(index, total);
+  return [CENTER + Math.cos(a) * radius, CENTER + Math.sin(a) * radius];
+}
+
+/** Distância dos nomes ao centro. Fora do setor sombreado, com folga para o traço mais grosso. */
+const LABEL_RADIUS = ZONE_RADIUS + 16;
+
 function polygon(values: readonly number[]): string {
   return values
     .map((v, i) => point(i, values.length, v).map((n) => n.toFixed(1)).join(','))
     .join(' ');
+}
+
+/**
+ * Fatia de pizza cobrindo os eixos de `first` a `last`, com meia casa de folga de cada lado.
+ *
+ * A folga é o que faz os dois setores se encontrarem exatamente no meio do caminho entre dois
+ * eixos vizinhos — sem ela, sobrariam fatias brancas e o vértice da fronteira pareceria pertencer
+ * aos dois grupos.
+ */
+function sector(first: number, last: number, total: number): string {
+  const half = Math.PI / total;
+  const start = angle(first, total) - half;
+  const end = angle(last, total) + half;
+  const [x1, y1] = [
+    CENTER + Math.cos(start) * ZONE_RADIUS,
+    CENTER + Math.sin(start) * ZONE_RADIUS,
+  ];
+  const [x2, y2] = [CENTER + Math.cos(end) * ZONE_RADIUS, CENTER + Math.sin(end) * ZONE_RADIUS];
+  const large = end - start > Math.PI ? 1 : 0;
+
+  return `M ${CENTER} ${CENTER} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${ZONE_RADIUS} ${ZONE_RADIUS} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z`;
+}
+
+/**
+ * Faixa contígua de cada grupo. Devolve `null` se algum grupo estiver espalhado — nesse caso o
+ * setor mentiria sobre quais eixos ele cobre, e é melhor não desenhar nada do que desenhar errado.
+ */
+function zoneRanges(
+  axes: readonly RadarAxis[],
+): ReadonlyArray<{ group: keyof typeof ZONES; first: number; last: number }> {
+  const ranges: Array<{ group: keyof typeof ZONES; first: number; last: number }> = [];
+
+  for (let i = 0; i < axes.length; i += 1) {
+    const group = axes[i]!.group;
+    const previous = ranges[ranges.length - 1];
+    if (previous && previous.group === group) previous.last = i;
+    else ranges.push({ group, first: i, last: i });
+  }
+
+  const groups = ranges.map((r) => r.group);
+  return new Set(groups).size === groups.length ? ranges : [];
 }
 
 export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
@@ -85,6 +189,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
 
   const total = axes.length;
   const hasCurrent = axes.every((a) => a.current !== null);
+  const zones = zoneRanges(axes);
 
   const series = [
     {
@@ -142,6 +247,16 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           role="img"
           aria-label="Radar comparando o que seu jogo pede com a raquete recomendada, sua raquete atual e a média do catálogo"
         >
+          {/* Setores de fundo: um território por bloco, desenhados ANTES da teia. */}
+          {zones.map((zone) => (
+            <path
+              key={zone.group}
+              d={sector(zone.first, zone.last, total)}
+              fill={ZONES[zone.group].fill}
+              stroke="none"
+            />
+          ))}
+
           {/* Teia: quatro anéis a 25, 50, 75 e 100. */}
           {[25, 50, 75, 100].map((ring) => (
             <polygon
@@ -184,7 +299,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
 
           {/* Rótulos dos eixos, empurrados para fora da teia. */}
           {axes.map((axis, i) => {
-            const [x, y] = point(i, total, 128);
+            const [x, y] = labelPoint(i, total, LABEL_RADIUS);
             const a = angle(i, total);
             const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end';
             /*
@@ -238,6 +353,36 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           ))}
         </ul>
       </div>
+
+      {/*
+        Os títulos ficam FORA do desenho, não curvados sobre os setores.
+
+        Com oito vértices, um título ao longo da borda colidiria com os rótulos dos eixos em pelo
+        menos duas posições — e o do bloco de baixo cairia exatamente sobre "Exigência p/ seu
+        nível". Aqui eles têm largura para respirar, quebram linha no celular e ainda carregam a
+        frase que faz o trabalho: por que os cinco eixos de encaixe não são notas da raquete.
+      */}
+      {zones.length > 0 && (
+        <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+          {zones.map((zone) => (
+            <div key={zone.group} className="flex gap-2.5">
+              <span
+                className="mt-0.5 h-4 w-4 shrink-0 rounded-sm border border-line"
+                style={{ backgroundColor: ZONES[zone.group].fill }}
+                aria-hidden
+              />
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider">
+                  {ZONES[zone.group].title}
+                </dt>
+                <dd className="mt-0.5 text-xs leading-relaxed text-graphite">
+                  {ZONES[zone.group].hint}
+                </dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+      )}
 
       {!hasCurrent && (
         <p className="mt-4 max-w-prose text-xs text-graphite">
