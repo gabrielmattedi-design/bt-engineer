@@ -49,11 +49,21 @@ const PALETTE = {
   graphite: '#5A6472',
   line: '#E4E6E3',
   /**
-   * Fundos dos dois SETORES. Claros de propósito: eles separam sem competir com os polígonos, que
-   * continuam sendo a informação. Um fundo saturado transformaria o gráfico em decoração.
+   * Fundos dos dois SETORES.
+   *
+   * A primeira tentativa foi `#EAF0EC` e `#F6F0EA` — dois quase-brancos, escolhidos para "não
+   * competir com os polígonos". Competiam pouco e comunicavam menos: na tela do celular os dois
+   * setores eram indistinguíveis, e o quadradinho de cor da legenda parecia vazio. Um fundo que não
+   * dá para ver não separa nada.
+   *
+   * Estes têm saturação suficiente para o olho separar os territórios de relance e continuam bem
+   * abaixo do contraste das quatro séries, que seguem sendo a informação. E a cor não trabalha
+   * sozinha: uma linha divisória marca a fronteira, para quem não distingue os dois tons.
    */
-  zoneBall: '#EAF0EC',
-  zoneYou: '#F6F0EA',
+  zoneBall: '#D3E2D9',
+  zoneYou: '#F0E2CD',
+  /** Fronteira entre os setores — a separação que sobrevive sem depender de cor. */
+  zoneEdge: '#B9C4BC',
 } as const;
 
 /**
@@ -257,6 +267,29 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
             />
           ))}
 
+          {/*
+            A fronteira, traçada.
+
+            Mesma regra das quatro séries: a distinção nunca depende só de cor. Quem não separa o
+            verde do bege — e cerca de 8% dos homens têm alguma deficiência na visão de cores — vê
+            mesmo assim onde um território acaba e o outro começa.
+          */}
+          {zones.map((zone) => {
+            // Meia casa antes do primeiro eixo do bloco: exatamente onde os dois setores se tocam.
+            const a = angle(zone.first, total) - Math.PI / total;
+            return (
+              <line
+                key={`edge-${zone.group}`}
+                x1={CENTER}
+                y1={CENTER}
+                x2={CENTER + Math.cos(a) * ZONE_RADIUS}
+                y2={CENTER + Math.sin(a) * ZONE_RADIUS}
+                stroke={PALETTE.zoneEdge}
+                strokeWidth={1.25}
+              />
+            );
+          })}
+
           {/* Teia: quatro anéis a 25, 50, 75 e 100. */}
           {[25, 50, 75, 100].map((ring) => (
             <polygon
@@ -365,20 +398,29 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
       {zones.length > 0 && (
         <dl className="mt-5 grid gap-3 sm:grid-cols-2">
           {zones.map((zone) => (
-            <div key={zone.group} className="flex gap-2.5">
-              <span
-                className="mt-0.5 h-4 w-4 shrink-0 rounded-sm border border-line"
-                style={{ backgroundColor: ZONES[zone.group].fill }}
-                aria-hidden
-              />
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider">
-                  {ZONES[zone.group].title}
-                </dt>
-                <dd className="mt-0.5 text-xs leading-relaxed text-graphite">
-                  {ZONES[zone.group].hint}
-                </dd>
-              </div>
+            /*
+              O CARD INTEIRO recebe a cor do setor, não um quadradinho ao lado.
+
+              A primeira versão trazia um quadrado de 16 px preenchido com o mesmo tom do gráfico.
+              Naquele tom quase branco ele parecia vazio, e a legenda deixava de ligar o texto à
+              região que ele descreve — que é a única coisa que uma legenda precisa fazer. Um bloco
+              de cor do tamanho do parágrafo não tem como passar despercebido, e a borda mais escura
+              repete a mesma linha que separa os setores no desenho.
+            */
+            <div
+              key={zone.group}
+              className="rounded border-l-4 px-3.5 py-3"
+              style={{
+                backgroundColor: ZONES[zone.group].fill,
+                borderLeftColor: PALETTE.zoneEdge,
+              }}
+            >
+              <dt className="text-xs font-bold uppercase tracking-wider text-ink">
+                {ZONES[zone.group].title}
+              </dt>
+              <dd className="mt-1 text-xs leading-relaxed text-ink/75">
+                {ZONES[zone.group].hint}
+              </dd>
             </div>
           ))}
         </dl>
