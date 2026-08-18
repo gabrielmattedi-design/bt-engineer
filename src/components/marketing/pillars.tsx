@@ -105,9 +105,20 @@ export function Pillars() {
 
   return (
     <div>
+      {/*
+        O título da seção é BRANCO, não amarelo.
+
+        Ele mudou de fundo junto com a seção: sobre o verde escuro o amarelo dava 7,8:1, sobre o
+        verde médio caiu para 3,15:1 — abaixo do mínimo legível para texto pequeno, e este é
+        pequeno, em caixa alta e com tracking aberto, que é a combinação que menos perdoa. Em
+        branco vai a 4,7:1.
+
+        O amarelo não se perde: ele continua na régua ao lado e nos subtítulos dos cards, que estão
+        sobre o verde escuro, onde ele tem contraste de sobra.
+      */}
       <div className="flex items-center gap-3">
         <span className="h-px w-8 bg-ball" aria-hidden />
-        <h2 className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-ball">
+        <h2 className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-paper">
           Por que confiar na análise
         </h2>
       </div>
@@ -129,23 +140,24 @@ export function Pillars() {
               A linha tem altura mínima fixa, então os seis cards continuam alinhando entre si com
               destaques de comprimentos muito diferentes.
             */}
+            {/*
+              ═══ UM PADRÃO SÓ PARA OS SEIS CARDS ═════════════════════════════════════════
+
+              grafismo + destaque → BRANCO · subtítulo → AMARELO · corpo → BRANCO.
+
+              Antes o destaque era amarelo em quatro cards e branco nos dois de selo, porque o
+              monograma obrigava o branco ali. O resultado era um padrão que se contradizia no meio
+              da grade: dois cards pareciam de outra família, e a diferença não significava nada
+              para quem lê.
+
+              Com o amarelo movido para o SUBTÍTULO, a hierarquia passa a ser a mesma nos seis, e o
+              amarelo volta a fazer o que a paleta pede dele — realce pontual, não cor de manchete.
+              De quebra some o conflito com a regra da marca: o monograma continua branco porque
+              agora TUDO naquela linha é branco.
+            */}
             <div className="flex min-h-[2.5rem] items-center gap-3">
               {p.seal ? (
                 <>
-                  {/*
-                    ═══ O MONOGRAMA NÃO FICA AMARELO ═════════════════════════════════════
-
-                    O pedido era igualar as cores — o monograma saía branco e o rótulo amarelo, e o
-                    conjunto parecia montado por engano. Está certo, e a correção vai no outro
-                    sentido: o brand book trata a cor da marca como regra inegociável ("sempre em
-                    preto ou branco; cores de destaque nunca são aplicadas à marca"). Pintar o
-                    monograma de amarelo resolveria a aparência quebrando a única regra de
-                    identidade que o projeto declara não negociar.
-
-                    Então o RÓTULO é que vem para o branco. O par volta a ser uma coisa só, e os
-                    dois selos passam a se distinguir dos quatro destaques amarelos por serem
-                    exatamente o que são: selos proprietários, não números de venda.
-                  */}
                   <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
                   <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
                     {p.seal}
@@ -153,20 +165,20 @@ export function Pillars() {
                 </>
               ) : (
                 <>
-                  <p.Icon className="h-8 w-8 shrink-0 text-ball/70" />
-                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-ball">
+                  <p.Icon className="h-8 w-8 shrink-0 text-white" />
+                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
                     {p.headline}
                   </span>
                 </>
               )}
             </div>
 
-            <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-paper">
+            <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-ball">
               {p.title}
             </h3>
 
             {/* Corpo por último, para alinhar a base dos cards. */}
-            <p className="mt-2 text-xs leading-relaxed text-paper/65">
+            <p className="mt-2 text-xs leading-relaxed text-paper/75">
               {p.body}
             </p>
           </article>

@@ -101,14 +101,21 @@ export default function HomePage() {
       */}
       {/* ── SEIS PILARES (selos proprietários + iconografia do brand book) ─────── */}
       {/*
-        Fundo `ink`, não `court`.
+        ═══ SEPARAR SEM SAIR DO VERDE ═════════════════════════════════════════════════════
 
-        O herói é verde-quadra e esta seção era verde-quadra: dois blocos da mesma cor colados, e a
-        única coisa entre eles era uma linha fina que agora saiu. A fronteira simplesmente não
-        existia. `ink` é o outro fundo escuro do brand book, então a troca não inventa cor nenhuma —
-        e os cards, que continuam verdes, ganham a moldura que faltava para lerem como cards.
+        O herói é verde-quadra e esta seção também era: dois blocos da mesma cor colados, sem
+        fronteira nenhuma depois que as linhas saíram.
+
+        A primeira tentativa foi `ink`. Separou, e desafinou: quase-preto entre o verde do herói e o
+        off-white da seção seguinte introduz um terceiro registro no meio de uma página que só tinha
+        dois, e o corte lê como buraco em vez de transição.
+
+        `court-mid` é o verde médio que o brand book reserva para SUPERFÍCIES SECUNDÁRIAS — que é
+        literalmente esta. Ele dá o degrau de valor que faltava sem trocar de família: o campo
+        clareia, os cards seguem no verde escuro do herói, e a grade ganha relevo de bloco apoiado
+        sobre a superfície em vez de recorte no fundo.
       */}
-      <section className="bg-ink">
+      <section className="bg-court-mid">
         <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
           <Pillars />
         </div>
@@ -122,12 +129,27 @@ export default function HomePage() {
 
 
       {/* ── FLUXO CONCEITUAL (§2) ──────────────────────────────────────────────── */}
+      {/*
+        As setas estavam em `line` — a cor das DIVISÓRIAS, sobre um fundo off-white.
+
+        Contraste perto de 1,2:1: elas existiam no código e não na tela, e o que restava eram quatro
+        palavras cinzas soltas, sem nada dizendo que uma leva à outra. Justamente o oposto do que a
+        faixa existe para dizer.
+
+        Agora a seta é `clay`, e a exceção se justifica: aqui ela não é ornamento, é o operador que
+        transforma quatro rótulos numa sequência — o próprio conteúdo da linha. As palavras sobem de
+        tamanho e vão para `ink`; a última fica em `clay` também, porque é onde a sequência chega.
+      */}
       <section className="mx-auto max-w-5xl px-6 py-12">
-        <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-sm text-graphite sm:text-base">
+        <ol className="flex flex-wrap items-center gap-x-4 gap-y-3 font-display text-base text-ink sm:text-xl">
           {['Seu perfil', 'Seu jogo', 'Análise técnica', 'Seu setup'].map((step, i) => (
-            <li key={step} className="flex items-center gap-3">
-              {i > 0 && <span className="text-line" aria-hidden>→</span>}
-              <span className={i === 3 ? 'font-semibold text-ink' : undefined}>{step}</span>
+            <li key={step} className="flex items-center gap-4">
+              {i > 0 && (
+                <span className="text-lg text-clay sm:text-xl" aria-hidden>
+                  →
+                </span>
+              )}
+              <span className={i === 3 ? 'font-bold text-clay' : 'font-medium'}>{step}</span>
             </li>
           ))}
         </ol>
