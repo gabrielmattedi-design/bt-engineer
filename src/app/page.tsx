@@ -3,7 +3,6 @@ import { BrandSignature } from '@/components/marketing/wordmark';
 import { Logo } from '@/components/marketing/logo';
 import { Pillars } from '@/components/marketing/pillars';
 import { BrandWall } from '@/components/marketing/brand-wall';
-import { CourtDivider } from '@/components/marketing/court-divider';
 import { catalogStats } from '@/data/load';
 
 /**
@@ -64,11 +63,18 @@ export default function HomePage() {
             >
               Descobrir meu setup
             </Link>
+            {/*
+              Botão sólido claro, não contorno sobre o verde.
+
+              O contorno se apoiava no fundo para existir, e sobre o verde-quadra quase
+              desaparecia: lido de relance, o herói parecia ter um caminho só. Preenchido em papel
+              com texto court, o secundário fica visível sem competir — quem manda continua sendo o
+              laranja, a cor de AÇÃO da paleta.
+            */}
             <Link
               href="#como-funciona"
-              className="inline-flex min-h-[56px] items-center justify-center rounded border
-                         border-paper/30 px-8 font-medium text-paper transition-colors
-                         hover:border-paper/60"
+              className="inline-flex min-h-[56px] items-center justify-center rounded bg-paper
+                         px-8 font-medium text-court transition-opacity hover:opacity-90"
             >
               Como funciona
             </Link>
@@ -81,35 +87,39 @@ export default function HomePage() {
       </section>
 
       {/*
-        Do herói em diante a página é lida como uma quadra vista de cima. O quadriculado do topo
-        fica intocado — é ele que dá o ar de prancha de engenharia; o que muda é o que vem depois.
-      */}
-      <div className="bg-court px-6">
-        <div className="mx-auto max-w-5xl">
-          <CourtDivider variant="baseline" tone="dark" />
-        </div>
-      </div>
+        ═══ AS LINHAS DE QUADRA SAÍRAM DAQUI ══════════════════════════════════════════════
 
+        A ideia era ler a página como uma quadra vista de cima, separando as seções com linha de
+        fundo, corredor de duplas e linha de saque. Na tela a analogia não se sustentou: fora do
+        contexto de uma quadra inteira, uma linha horizontal fina é só uma linha horizontal fina —
+        e três variações dela ao longo da página viravam ruído que ninguém decodifica.
+
+        O que separa seção de seção é FUNDO e ESPAÇO, e é isso que passa a fazer o trabalho. O
+        motivo de quadra continua onde ele funciona de verdade: como TEXTURA — o quadriculado de
+        prancha no herói e a malha de encordoamento nos blocos bloqueados, que o brand book pede em
+        opacidade baixa e que ninguém precisa decifrar para entender.
+      */}
       {/* ── SEIS PILARES (selos proprietários + iconografia do brand book) ─────── */}
-      <section className="bg-court">
+      {/*
+        Fundo `ink`, não `court`.
+
+        O herói é verde-quadra e esta seção era verde-quadra: dois blocos da mesma cor colados, e a
+        única coisa entre eles era uma linha fina que agora saiu. A fronteira simplesmente não
+        existia. `ink` é o outro fundo escuro do brand book, então a troca não inventa cor nenhuma —
+        e os cards, que continuam verdes, ganham a moldura que faltava para lerem como cards.
+      */}
+      <section className="bg-ink">
         <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
           <Pillars />
         </div>
       </section>
 
-      {/* Corredor de duplas: aqui a página passa do institucional para o comercial. */}
-      <div className="mx-auto max-w-5xl px-6 pt-12">
-        <CourtDivider variant="alley" />
-      </div>
 
       {/* ── ECOSSISTEMA ANALISADO ──────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 py-12">
         <BrandWall />
       </section>
 
-      <div className="mx-auto max-w-5xl px-6">
-        <CourtDivider variant="service" />
-      </div>
 
       {/* ── FLUXO CONCEITUAL (§2) ──────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 py-12">
@@ -123,9 +133,6 @@ export default function HomePage() {
         </ol>
       </section>
 
-      <div className="mx-auto max-w-5xl px-6">
-        <CourtDivider variant="service" />
-      </div>
 
       {/* ── COMO FUNCIONA (§41) ────────────────────────────────────────────────── */}
       <section id="como-funciona" className="mx-auto max-w-5xl px-6 py-16">
@@ -209,9 +216,6 @@ export default function HomePage() {
       </section>
 
       {/* ── O QUE VOCÊ RECEBE (§25, §26) — sem falsa promoção (§58) ────────────── */}
-      <div className="mx-auto max-w-5xl px-6">
-        <CourtDivider variant="baseline" />
-      </div>
 
       <section className="mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">O que você recebe</h2>

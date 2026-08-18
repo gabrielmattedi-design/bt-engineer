@@ -112,47 +112,60 @@ export function Pillars() {
         </h2>
       </div>
 
-      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-paper/20 bg-paper/20 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-paper/15 bg-paper/15 sm:grid-cols-2 lg:grid-cols-3">
         {PILLARS.map((p) => (
           <article key={p.key} className="flex flex-col bg-court p-6">
-            {/* Faixa 1 — ícone, sempre no mesmo lugar e no mesmo tamanho. */}
-            <p.Icon className="h-7 w-7 shrink-0 text-ball/70" />
-
             {/*
-              Faixa 2 — destaque. Altura fixa para que os cards alinhem entre si.
+              ═══ UMA LINHA: GRAFISMO + DESTAQUE ══════════════════════════════════════════
 
-              O RÓTULO do selo tem o mesmo tamanho e a mesma cor dos demais destaques. A regra do
-              brand book ("sempre preto ou branco") vale para a MARCA GRÁFICA — o monograma —, não
-              para a tipografia ao lado dela. Rotular o selo em branco e menor fazia "MATCH ENGINE"
-              e "VERIFIED" parecerem secundários diante de "20+" e "INDEPENDENTE", quando são
-              justamente os dois pilares proprietários.
+              O ícone ficava numa faixa própria, acima do destaque. Empilhados, os dois liam como
+              dois assuntos — e nos cards de selo virava pior ainda: um ícone genérico em cima e o
+              monograma embaixo, dois grafismos disputando a mesma função no mesmo card.
 
-              O monograma permanece BRANCO, que é onde a regra se aplica.
+              Agora cada card tem exatamente UM grafismo, na mesma linha do destaque. Nos cards de
+              selo o grafismo É o monograma, que é o que ele sempre deveria ter sido ali: o selo
+              assina, e um ícone decorativo ao lado dele só rouba atenção.
+
+              A linha tem altura mínima fixa, então os seis cards continuam alinhando entre si com
+              destaques de comprimentos muito diferentes.
             */}
-            <div className="mt-5 flex min-h-[2.25rem] items-center">
+            <div className="flex min-h-[2.5rem] items-center gap-3">
               {p.seal ? (
-                <span className="flex items-center gap-2.5">
-                  <LogoMark
-                    className="h-9 w-9 shrink-0 text-white"
-                    simplified
-                  />
-                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-ball">
+                <>
+                  {/*
+                    ═══ O MONOGRAMA NÃO FICA AMARELO ═════════════════════════════════════
+
+                    O pedido era igualar as cores — o monograma saía branco e o rótulo amarelo, e o
+                    conjunto parecia montado por engano. Está certo, e a correção vai no outro
+                    sentido: o brand book trata a cor da marca como regra inegociável ("sempre em
+                    preto ou branco; cores de destaque nunca são aplicadas à marca"). Pintar o
+                    monograma de amarelo resolveria a aparência quebrando a única regra de
+                    identidade que o projeto declara não negociar.
+
+                    Então o RÓTULO é que vem para o branco. O par volta a ser uma coisa só, e os
+                    dois selos passam a se distinguir dos quatro destaques amarelos por serem
+                    exatamente o que são: selos proprietários, não números de venda.
+                  */}
+                  <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
+                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
                     {p.seal}
                   </span>
-                </span>
+                </>
               ) : (
-                <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-ball">
-                  {p.headline}
-                </span>
+                <>
+                  <p.Icon className="h-8 w-8 shrink-0 text-ball/70" />
+                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-ball">
+                    {p.headline}
+                  </span>
+                </>
               )}
             </div>
 
-            {/* Faixa 3 — título. */}
             <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-paper">
               {p.title}
             </h3>
 
-            {/* Faixa 4 — corpo, empurrado para o fim para alinhar a base dos cards. */}
+            {/* Corpo por último, para alinhar a base dos cards. */}
             <p className="mt-2 text-xs leading-relaxed text-paper/65">
               {p.body}
             </p>
