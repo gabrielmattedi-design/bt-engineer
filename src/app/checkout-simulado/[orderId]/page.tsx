@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { simulatedPaymentsAllowed } from '@/payments/mode';
+import { checkoutOpen } from '@/payments/mode';
 import { SimulateButton } from './simulate-button';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,12 @@ export default async function CheckoutSimuladoPage({
   params: Promise<{ orderId: string }>;
   searchParams: Promise<{ retorno?: string }>;
 }) {
-  if (!(await simulatedPaymentsAllowed())) notFound();
+  /*
+    `checkoutOpen()` e não `simulatedPaymentsAllowed()`: no modo convite esta tela não existe,
+    mesmo com o modo demonstração ligado. Ela é o botão que concede o relatório sem cobrar, e é
+    exatamente o que não pode sobreviver a um link repassado.
+  */
+  if (!(await checkoutOpen())) notFound();
 
   const { orderId } = await params;
   const { retorno } = await searchParams;

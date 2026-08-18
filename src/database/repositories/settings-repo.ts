@@ -59,3 +59,13 @@ export async function writeSetting(key: string, value: string): Promise<void> {
 export const simulatedPaymentsEnabledInDatabase = cache(async (): Promise<boolean> => {
   return (await readSetting(SETTING_KEYS.simulatedPayments)) === 'true';
 });
+
+/**
+ * Acesso só por convite, ligado pelo painel.
+ *
+ * Mesmo `cache()` e mesma razão do interruptor acima: a pergunta aparece no aviso do topo, na
+ * página de planos e na ação de checkout, e é uma só ida ao banco por request.
+ */
+export const inviteOnlyEnabledInDatabase = cache(async (): Promise<boolean> => {
+  return (await readSetting(SETTING_KEYS.inviteOnly)) === 'true';
+});

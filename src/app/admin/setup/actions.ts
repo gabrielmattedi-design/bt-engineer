@@ -5,6 +5,7 @@ import { isAuthenticated } from '../auth';
 import { runMigrations, seedProducts, withAutoBootstrap } from '@/database/setup';
 import { writeSetting } from '@/database/repositories/settings-repo';
 import { SETTING_KEYS } from '@/database/schema';
+import { seedInviteCoupons } from '@/database/repositories/coupon-repo';
 
 export type SetupResult = { ok: string } | { error: string };
 
@@ -67,4 +68,27 @@ export async function setSimulatedPayments(formData: FormData): Promise<void> {
   // A home e o aviso do topo leem esta configuração; sem invalidar, o botão mudaria e o site não.
   revalidatePath('/', 'layout');
   revalidatePath('/admin/setup');
+}
+
+/**
+ * Liga ou desliga o acesso só por convite.
+ *
+ * Ao LIGAR, semeia os códigos de convite se ainda não existirem: sem eles o modo fecharia o
+ * checkout sem abrir nada no lugar, e o dono descobriria isso pelo primeiro convidado avisando que
+ * não consegue entrar. A semente não toca em código já existente — recarga é operação à parte, em
+ * `/admin/codigos`.
+ */
+export async function setInviteOnly(formData: FormData): Promise<void> {
+  if (!(await isAuthenticated())) return;
+
+  const enabled = String(formData.get('enabled') ?? '') === 'true';
+
+  await withAutoBootstrap(async () => {
+    if (enabled) await seedInviteCoupons();
+    await writeSetting(SETTING_KEYS.inviteOnly, enabled ? 'true' : 'false');
+  });
+
+  revalidatePath('/', 'layout');
+  revalidatePath('/admin/setup');
+  revalidatePath('/admin/codigos');
 }

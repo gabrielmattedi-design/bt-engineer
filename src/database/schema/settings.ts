@@ -30,4 +30,14 @@ export const appSettings = pgTable('app_settings', {
 export const SETTING_KEYS = {
   /** 'true' faz o site aceitar o provedor simulado em produção, com aviso permanente ao visitante. */
   simulatedPayments: 'simulated_payments_enabled',
+  /**
+   * 'true' fecha o checkout inteiro: o acesso passa a existir SÓ por código de convite.
+   *
+   * É a trava para a fase de teste com convidados. O checkout simulado libera o relatório sem
+   * cobrar, o que é útil enquanto só o dono percorre o funil e vira um problema no minuto em que o
+   * link sai da mão dele: quem recebe repassa, e o produto pago vira gratuito para quem tiver a
+   * URL. Com o convite ligado não existe caminho de pagamento para repassar — existe um código,
+   * que tem dono, limite e histórico.
+   */
+  inviteOnly: 'invite_only_access',
 } as const;

@@ -6,6 +6,7 @@ import { Wordmark } from '@/components/marketing/wordmark';
 import { toggleCode } from './actions';
 import { ACCESS_PRESETS } from './presets';
 import { CreateCodeForm } from './create-form';
+import { RechargeForm } from './recharge-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,9 @@ export default async function CodigosPage() {
                   </p>
 
                   {c.note && <p className="mt-1 text-sm text-graphite">{c.note}</p>}
+
+                  {/* Só o código limitado recebe recarga — em ilimitado ela não significa nada. */}
+                  {c.maxUses !== null && <RechargeForm code={c.code} />}
 
                   {/* Formulário nativo: nada de onClick que possa não postar. */}
                   <form action={toggleCode} className="mt-3">

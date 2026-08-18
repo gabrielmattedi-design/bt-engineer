@@ -5,6 +5,7 @@ import { seedProducts, withAutoBootstrap } from '@/database/setup';
 import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
 import { CheckoutButton } from './checkout-button';
 import { CouponForm } from './coupon-form';
+import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,8 @@ export default async function PlanosPage({
   // principais. Em nenhum dos casos inventamos uma opção que não existe no catálogo.
   const visible = produto ? all.filter((p) => p.sku === produto) : all.filter((p) => p.sku !== 'top3_unlock');
 
+  const inviteOnly = !(await checkoutOpen());
+
   const brl = (cents: number): string =>
     `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
 
@@ -63,9 +66,26 @@ export default async function PlanosPage({
           Sua análise está pronta
         </h1>
         <p className="mt-3 max-w-prose text-graphite">
-          Avaliamos {stored.result.candidates_evaluated} raquetes contra o seu perfil. Escolha o que
-          você quer ver.
+          Avaliamos {stored.result.candidates_evaluated} raquetes contra o seu perfil.
+          {inviteOnly ? ' Veja abaixo o que cada plano abre.' : ' Escolha o que você quer ver.'}
         </p>
+
+        {/*
+          Fase de convidados: o campo de código vem PRIMEIRO e os planos viram informação.
+
+          Enterrado depois de dois cartões com preço e botão desabilitado, o campo parecia a saída de
+          emergência de um site quebrado. Ele é a porta da frente enquanto durar o teste, e a única
+          coisa que o convidado precisa fazer aqui.
+        */}
+        {inviteOnly && (
+          <div className="mt-8 rounded border-2 border-court bg-white p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-court">
+              Acesso por convite
+            </p>
+            <p className="mt-3 max-w-prose text-sm text-graphite">{INVITE_ONLY_MESSAGE}</p>
+            <CouponForm sessionId={sessionId} />
+          </div>
+        )}
 
         <div className="mt-8 space-y-4">
           {visible.map((product) => (
@@ -75,7 +95,20 @@ export default async function PlanosPage({
                 <p className="mt-2 max-w-prose text-sm text-graphite">{product.description}</p>
               )}
               <p className="display-number mt-4 text-3xl">{brl(product.priceCents)}</p>
-              <CheckoutButton sessionId={sessionId} sku={product.sku} />
+              {inviteOnly ? (
+                /*
+                  O preço continua visível de propósito.
+
+                  Some-lo transformaria a tela num cardápio sem valores, e o convidado é justamente
+                  quem precisa reagir ao preço — é metade do que se está testando. O que sai é o
+                  botão, porque ele é o que concede acesso sem cobrar.
+                */
+                <p className="mt-3 text-sm text-graphite">
+                  Compra indisponível durante a fase de testes.
+                </p>
+              ) : (
+                <CheckoutButton sessionId={sessionId} sku={product.sku} />
+              )}
             </div>
           ))}
         </div>
@@ -87,7 +120,7 @@ export default async function PlanosPage({
           </p>
         )}
 
-        <CouponForm sessionId={sessionId} />
+        {!inviteOnly && <CouponForm sessionId={sessionId} />}
 
         <p className="mt-10 max-w-prose text-xs text-graphite">
           Pagamento único, sem assinatura e sem renovação automática. Os índices Tennis Engineer são

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
-import { setCouponActive, upsertCoupon } from '@/database/repositories/coupon-repo';
+import { addCouponUses, setCouponActive, upsertCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { ACCESS_PRESETS, type AccessPresetKey } from './presets';
 
@@ -55,4 +55,37 @@ export async function toggleCode(formData: FormData): Promise<void> {
 
   await withAutoBootstrap(() => setCouponActive(code, active));
   revalidatePath('/admin/codigos');
+}
+
+/**
+ * Recarrega um código: soma usos ao teto, sem apagar o histórico.
+ *
+ * O valor vem do formulário e não de uma constante porque "recarregar" não tem tamanho natural —
+ * 20 hoje, 5 amanhã. O que é fixo é o comportamento: soma ao teto, reativa o código, e o contador
+ * de usos permanece como está.
+ */
+export async function rechargeCode(_prev: unknown, formData: FormData): Promise<CodeResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const code = String(formData.get('code') ?? '').trim();
+  const amount = Number.parseInt(String(formData.get('amount') ?? ''), 10);
+
+  if (!Number.isFinite(amount) || amount < 1) {
+    return { error: 'Informe quantos usos acrescentar (número maior que zero).' };
+  }
+
+  try {
+    const updated = await withAutoBootstrap(() => addCouponUses(code, amount));
+    if (!updated) return { error: `Não encontramos o código ${code.toUpperCase()}.` };
+
+    revalidatePath('/admin/codigos');
+    const restam = updated.maxUses === null ? '∞' : updated.maxUses - updated.usedCount;
+    return {
+      ok: `${updated.code} recarregado: +${amount} usos. Agora ${updated.usedCount} de ${
+        updated.maxUses ?? '∞'
+      } · restam ${restam}.`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Falha ao recarregar o código.' };
+  }
 }

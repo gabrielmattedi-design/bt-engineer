@@ -200,3 +200,69 @@ async function grantEntitlements(
 
   return valid;
 }
+
+/**
+ * Acrescenta usos a um código já existente — a "recarga".
+ *
+ * ─── POR QUE SOMAR AO TETO, E NÃO ZERAR O CONTADOR ───────────────────────────────────────────
+ *
+ * Zerar `usedCount` apagaria o histórico: `coupon_redemptions` continuaria com os resgates antigos
+ * e o contador diria outra coisa, então as duas fontes passariam a discordar sobre o mesmo fato.
+ * Somar ao teto preserva "foram 20 usos, e agora cabem mais 20" — que é a frase verdadeira.
+ *
+ * O `GREATEST` existe para o caso de um código ilimitado que virou limitado no meio do caminho, ou
+ * de um teto abaixo do já consumido: sem ele, recarregar um código nessa situação devolveria um
+ * limite ainda esgotado, e a recarga pareceria não ter funcionado.
+ */
+export async function addCouponUses(code: string, amount: number): Promise<CouponSummary | null> {
+  if (!Number.isInteger(amount) || amount < 1) return null;
+
+  const rows = await db()
+    .update(accessCoupons)
+    .set({
+      maxUses: sql`GREATEST(COALESCE(${accessCoupons.maxUses}, 0), ${accessCoupons.usedCount}) + ${amount}`,
+      active: true,
+    })
+    .where(eq(accessCoupons.code, normalizeCode(code)))
+    .returning();
+
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    code: r.code,
+    grants: r.grants,
+    maxUses: r.maxUses,
+    usedCount: r.usedCount,
+    active: r.active,
+    note: r.note,
+  };
+}
+
+/**
+ * Códigos da fase de convidados. Idempotente: NÃO mexe em código que já existe.
+ *
+ * `onConflictDoNothing` e não `upsert` — a semente roda a cada bootstrap, e um upsert restauraria
+ * o teto original toda vez, recarregando o DJOKOINSS pelas costas do dono. Uma semente que desfaz
+ * consumo em silêncio é pior que semente nenhuma.
+ */
+export async function seedInviteCoupons(): Promise<void> {
+  await db()
+    .insert(accessCoupons)
+    .values([
+      {
+        code: 'MAITE',
+        grants: [...ALL_ENTITLEMENTS],
+        maxUses: null,
+        note: 'Convite ilimitado.',
+        active: true,
+      },
+      {
+        code: 'DJOKOINSS',
+        grants: [...ALL_ENTITLEMENTS],
+        maxUses: 20,
+        note: 'Convite com 20 usos. Recarregável no painel.',
+        active: true,
+      },
+    ])
+    .onConflictDoNothing();
+}

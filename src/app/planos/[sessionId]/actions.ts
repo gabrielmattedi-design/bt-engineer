@@ -8,6 +8,7 @@ import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
+import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
 
 /**
  * Inicia o checkout — §33.
@@ -49,6 +50,15 @@ export async function startCheckout(
    * caminho de pagamento.
    */
   let destination: string;
+
+  /*
+    A recusa vem ANTES de qualquer escrita.
+
+    A página já esconde os botões no modo convite, mas esconder é decisão de tela e tela é o que
+    menos protege: um POST direto ao Server Action não passa por ela. Aqui nenhum pedido chega a
+    existir, então não há o que pagar nem pedido órfão para limpar depois.
+  */
+  if (!(await checkoutOpen())) return { error: INVITE_ONLY_MESSAGE };
 
   try {
     const jar = await cookies();

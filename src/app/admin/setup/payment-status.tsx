@@ -1,10 +1,15 @@
-import { simulatedPaymentsEnabledInDatabase } from '@/database/repositories/settings-repo';
+import {
+  inviteOnlyEnabledInDatabase,
+  simulatedPaymentsEnabledInDatabase,
+} from '@/database/repositories/settings-repo';
 import {
   inSimulatedPaymentMode,
+  inviteOnlyAccess,
+  inviteOnlyByEnv,
   simulatedPaymentsAllowed,
   simulatedPaymentsAllowedByEnv,
 } from '@/payments/mode';
-import { setSimulatedPayments } from './actions';
+import { setInviteOnly, setSimulatedPayments } from './actions';
 
 /**
  * Diagnóstico e interruptor do modo de pagamento.
@@ -40,6 +45,8 @@ export async function PaymentStatus() {
   const byPanel = await simulatedPaymentsEnabledInDatabase();
   const allowed = await simulatedPaymentsAllowed();
   const demoMode = await inSimulatedPaymentMode();
+  const inviteOnly = await inviteOnlyAccess();
+  const inviteByPanel = await inviteOnlyEnabledInDatabase();
 
   /** Diferencia "não chegou" de "chegou com valor que não liga nada" — erros de causa distinta. */
   const flag: 'ausente' | 'aceita' | 'valor inválido' =
@@ -148,12 +155,55 @@ export async function PaymentStatus() {
         </div>
       )}
 
-      {demoMode && (
+      {demoMode && !inviteOnly && (
         <p className="mt-6 rounded border border-court/30 bg-court/5 p-4 text-sm">
           O site está em <strong>modo demonstração</strong>: o funil funciona de ponta a ponta e
           nada é cobrado. Desligue ao conectar um gateway real.
         </p>
       )}
+
+      {/*
+        O convite fica DEPOIS do modo demonstração e por cima dele — que é a ordem de precedência
+        real. Colocado antes, pareceria mais uma opção entre iguais; aqui ele encerra a seção
+        dizendo que anula o que está acima, inclusive a variável de ambiente.
+      */}
+      <div className="mt-6 border-t border-line pt-6">
+        <h3 className="font-medium">Acesso só por convite</h3>
+        <p className="mt-2 max-w-prose text-sm text-graphite">
+          Fecha o checkout por completo. Nenhum pedido é criado, o checkout simulado deixa de
+          existir e o relatório só é liberado por <strong>código de convite</strong>. É o modo para
+          mandar o link a convidados sem que o repasse transforme o produto em gratuito.
+        </p>
+
+        <form action={setInviteOnly} className="mt-4">
+          <input type="hidden" name="enabled" value={inviteByPanel ? 'false' : 'true'} />
+          <button
+            type="submit"
+            className={
+              inviteByPanel
+                ? 'flex min-h-[56px] items-center justify-center rounded border-2 border-ink px-6 font-semibold transition-colors hover:bg-ink hover:text-paper'
+                : 'flex min-h-[56px] items-center justify-center rounded bg-court px-6 font-semibold text-paper transition-opacity hover:opacity-90'
+            }
+          >
+            {inviteByPanel ? 'Reabrir o checkout' : 'Ligar acesso só por convite'}
+          </button>
+        </form>
+
+        {inviteOnlyByEnv() && (
+          <p className="mt-3 text-xs text-graphite">
+            A variável INVITE_ONLY já mantém o modo ligado por conta própria. Desligar aqui não terá
+            efeito enquanto ela existir.
+          </p>
+        )}
+
+        {inviteOnly && (
+          <p className="mt-4 rounded border border-court/30 bg-court/5 p-4 text-sm">
+            O checkout está <strong>fechado</strong>. Ao ligar, os códigos <code>MAITE</code>{' '}
+            (ilimitado) e <code>DJOKOINSS</code> (20 usos) foram criados se ainda não existiam —
+            veja e recarregue em <code>/admin/codigos</code>.
+          </p>
+        )}
+      </div>
     </section>
   );
 }
