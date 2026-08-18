@@ -193,6 +193,16 @@ export const STRING_FIT_WEIGHTS: Readonly<Record<string, WeightEntry>> = {
       'Importa economicamente para quem quebra cordas com frequência, mas nunca deve sobrepor ' +
       'conforto ou controle. Menor peso do conjunto.',
   },
+  gauge: {
+    weight: 0.1,
+    rationale:
+      'A espessura é o único parâmetro do setup que a frequência de quebra decide sozinha, e ela ' +
+      'não tinha eixo. `durability` não servia: é eixo de REQUISITO, cobra só a falta — e como o ' +
+      'requisito de quem nunca estoura corda é baixo, TODAS as espessuras o satisfaziam e nenhuma ' +
+      'era preferida. Medido antes deste eixo, a espessura média indicada ia de 1,206 mm (nunca) a ' +
+      '1,242 mm (mensalmente): 0,036 mm em toda a escala, e "semanalmente" saía mais fino que ' +
+      '"mensalmente". Peso igual ao da durabilidade, por medir a mesma preocupação de outro ângulo.',
+  },
   cost: {
     weight: 0.12,
     rationale:
@@ -211,12 +221,13 @@ export const STRING_FIT_WEIGHTS: Readonly<Record<string, WeightEntry>> = {
  * pesar só entre as que passam nesse critério.
  */
 export const STRING_FIT_WEIGHTS_ARM_SENSITIVE: Readonly<Record<string, number>> = {
-  comfort: 0.26,
-  arm: 0.2,
-  control: 0.16,
-  spin: 0.13,
-  power: 0.1,
-  durability: 0.09,
+  comfort: 0.24,
+  arm: 0.19,
+  control: 0.15,
+  spin: 0.12,
+  power: 0.09,
+  durability: 0.08,
+  gauge: 0.07,
   cost: 0.06,
 };
 

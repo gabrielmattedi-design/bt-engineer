@@ -17,7 +17,7 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-export const METHODOLOGY_VERSION = '2.5.0';
+export const METHODOLOGY_VERSION = '2.6.0';
 
 export type Range = readonly [lo: number, hi: number];
 

@@ -53,15 +53,31 @@ describe('empate no pódio', () => {
     expect(runs.filter((r) => r.report.podium_tie !== null).length).toBeGreaterThan(0);
   });
 
-  it('só anuncia empate quando ele existe de fato', () => {
+  /**
+   * Empate é igualdade no número EXIBIDO, não proximidade no score cru.
+   *
+   * A regra anterior usava a faixa de 2 pontos e produzia o pior desfecho possível: com 82, 81 e 80
+   * na tela, o relatório dizia "entre as empatadas" ao lado de três números visivelmente
+   * diferentes — contradizendo o dado que ele mesmo exibia.
+   */
+  it('só anuncia empate quando os números exibidos são iguais', () => {
     for (const { persona, result, report } of runs) {
       const first = result.podium[0]!;
       const second = result.podium[1];
       const tied =
-        second !== undefined &&
-        Math.abs(first.fit_score - second.fit_score) < TECHNICAL_TIE_THRESHOLD;
+        second !== undefined && Math.round(first.fit_score) === Math.round(second.fit_score);
 
       expect(report.podium_tie !== null, persona.id).toBe(tied);
+    }
+  });
+
+  it('nenhum anúncio de empate aparece com percentuais diferentes na tela', () => {
+    for (const { persona, report } of runs) {
+      const tie = report.podium_tie;
+      if (!tie) continue;
+
+      const shown = tie.ranks.map((r) => report.podium.find((e) => e.rank === r)!.fit_score);
+      expect(new Set(shown).size, `${persona.id}: ${shown.join('/')}`).toBe(1);
     }
   });
 
@@ -106,14 +122,20 @@ describe('empate no pódio', () => {
     }
   });
 
-  it('posição fora de empate não recebe frase de empate', () => {
+  /**
+   * A frase de comparação existe para todo o pódio — a pergunta "o que esta faz de diferente das
+   * outras duas?" é a de quem está escolhendo, com números iguais ou não. O que ela NÃO pode fazer
+   * é afirmar empate onde os números desmentem.
+   */
+  it('posição fora de empate é comparada, mas nunca chamada de empatada', () => {
     for (const { persona, result } of runs) {
-      const tie = buildTieGroup(result.podium);
-      const ranks = new Set(tie?.ranks ?? []);
+      const ranks = new Set(buildTieGroup(result.podium)?.ranks ?? []);
 
       for (const entry of result.podium) {
         if (ranks.has(entry.rank)) continue;
-        expect(buildDistinction(entry, result.podium), `${persona.id}: rank ${entry.rank}`).toBeNull();
+        const d = buildDistinction(entry, result.podium);
+        if (!d) continue;
+        expect(d.headline, `${persona.id}: rank ${entry.rank}`).not.toMatch(/empatad/i);
       }
     }
   });

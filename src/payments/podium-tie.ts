@@ -114,9 +114,22 @@ export function tieGroup(podium: readonly RankedRacket[]): readonly RankedRacket
   const first = podium[0];
   if (!first) return [];
 
+  /*
+    ═══ EMPATE É O QUE O LEITOR VÊ, NÃO O QUE A FAIXA PERMITE ══════════════════════════════
+
+    Antes o grupo era formado por `TECHNICAL_TIE_THRESHOLD` (2 pontos) sobre o score cru. Com 82,
+    81 e 80 na tela, os três entravam — e o relatório dizia "entre as empatadas" ao lado de três
+    números visivelmente diferentes. O texto contradizia o dado que ele mesmo exibia, que é a pior
+    forma de errar: quem lê não conclui "a diferença é pequena", conclui que o texto é genérico.
+
+    Empate agora é igualdade no número EXIBIDO. Duas colocadas em 88% estão empatadas; 82 e 81 não
+    estão, por menor que seja a distância real — para essas existe a frase de comparação, que diz
+    o que muda sem afirmar igualdade.
+  */
+  const shown = Math.round(first.fit_score);
   const group = podium
     .slice(0, MAX_TIE_GROUP)
-    .filter((e) => Math.abs(first.fit_score - e.fit_score) < TECHNICAL_TIE_THRESHOLD);
+    .filter((e) => Math.round(e.fit_score) === shown);
 
   return group.length > 1 ? group : [];
 }
@@ -151,12 +164,23 @@ export function buildDistinction(
   entry: RankedRacket,
   podium: readonly RankedRacket[],
 ): PodiumDistinction | null {
-  const group = tieGroup(podium);
-  if (group.length === 0) return null;
-  if (!group.some((e) => e.rank === entry.rank)) return null;
+  /*
+    A comparação vale para TODO colocado do pódio, empatado ou não.
 
-  const others = group.filter((e) => e.rank !== entry.rank);
+    Ela nasceu para explicar empates, mas o que ela responde — "o que esta faz de diferente das
+    outras duas?" — é a pergunta de quem está escolhendo, com números iguais ou não. Restringi-la
+    ao empate deixava os outros cards mudos justamente quando a decisão é real.
+
+    O que muda conforme o caso é o VERBO: entre empatadas, "entre as empatadas"; fora do empate,
+    "comparada às outras do pódio". A frase nunca afirma igualdade que os números desmintam.
+  */
+  const group = tieGroup(podium);
+  const tied = group.some((e) => e.rank === entry.rank);
+  const scope = tied ? group : podium.slice(0, MAX_TIE_GROUP);
+
+  const others = scope.filter((e) => e.rank !== entry.rank);
   if (others.length === 0) return null;
+  const prefix = tied ? 'Entre as empatadas' : 'Comparada às outras do pódio';
 
   const deltas: Array<{ key: ComponentKey; delta: number; weight: number }> = [];
   for (const component of entry.breakdown.components) {
@@ -204,19 +228,19 @@ export function buildDistinction(
         ? `Tecnicamente idêntica à ${twin.rank}ª (${twin.racket.variant.product_name}): mesmas ` +
           'especificações publicadas, mesmo resultado na análise. Escolha por preço, ' +
           'disponibilidade ou preferência de marca.'
-        : 'Sem vantagem nem desvantagem relevante sobre as outras empatadas — as diferenças ficam ' +
+        : 'Sem vantagem nem desvantagem relevante sobre as outras do pódio — as diferenças ficam ' +
           'abaixo do que as especificações publicadas conseguem distinguir.',
       identical_twin: twin !== undefined,
     };
   }
 
   const parts: string[] = [];
-  if (hasStrong) parts.push(`Entre as empatadas, ${COMPONENT_PT[strongest.key].strong}`);
+  if (hasStrong) parts.push(`${prefix}, ${COMPONENT_PT[strongest.key].strong}`);
   if (hasWeak) {
     parts.push(
       hasStrong
         ? `em compensação, ${COMPONENT_PT[weakest.key].weak}`
-        : `Entre as empatadas, ${COMPONENT_PT[weakest.key].weak}`,
+        : `${prefix}, ${COMPONENT_PT[weakest.key].weak}`,
     );
   }
 

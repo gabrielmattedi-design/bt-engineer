@@ -47,6 +47,31 @@ export type StringTarget = {
   readonly durability: number;
   readonly arm: number;
   /**
+   * Posição de ESPESSURA desejada, 0–100 — 0 é a mais fina do mercado, 100 a mais grossa.
+   *
+   * ═══ POR QUE ESTE EIXO PRECISOU EXISTIR ════════════════════════════════════════════════════
+   *
+   * Reclamação de usuário: "sempre ponho que nunca estouro corda, e sempre me recomendam 1.30 mm".
+   * A frequência de quebra ERA lida — ela alimenta `durability` —, mas `durability` é eixo de
+   * REQUISITO: cobra só a falta, nunca a sobra, porque ninguém é prejudicado por uma corda durar
+   * mais do que precisava.
+   *
+   * O efeito colateral é exatamente o caso dele. Com alvo de durabilidade em 28, TODAS as
+   * espessuras entregam de sobra (63 na mais fina, 75 na mais grossa) e todas custam zero. A
+   * durabilidade para de discriminar, sobram potência (puxa para fino) e spin (puxa para grosso),
+   * que quase se anulam — a espessura inteira se decidia por 1 ponto de diferença. Medido no
+   * catálogo, a espessura média ia de 1,206 mm em "nunca" a 1,242 mm em "mensalmente", com
+   * "semanalmente" saindo mais FINO que "mensalmente".
+   *
+   * Dizer "nunca estouro corda" conseguia não empurrar para o grosso, e não conseguia puxar para o
+   * fino. Este eixo é a força que faltava: quem não paga o preço da corda fina — durar menos —
+   * deve receber o benefício dela, que é spin, conforto e sensação de bola.
+   *
+   * É eixo de CARÁTER, não de requisito: fino demais para quem arrebenta corda toda semana é tão
+   * errado quanto grosso demais para quem nunca arrebenta.
+   */
+  readonly gauge: number;
+  /**
    * Quanto o BOLSO precisa ser respeitado, 0–100.
    *
    * ═══ POR QUE ESTE EIXO PRECISOU EXISTIR ════════════════════════════════════════════════════
@@ -112,6 +137,9 @@ const TARGET_GAIN: Readonly<Record<keyof StringTarget, number>> = {
   comfort: 3.2,
   arm: 3.6,
   durability: 1.0,
+  // Espessura é medida física em 0–100 fixo, não posição de catálogo. Não passa por `contrast()`,
+  // e o ganho fica em 1.0 só para satisfazer a forma do registro.
+  gauge: 1.0,
   // O custo já nasce em 0–100 a partir de uma pergunta direta; amplificar seria distorcer.
   cost: 1.0,
 };
@@ -222,6 +250,20 @@ export function computeStringTarget(
     durability: contrast(
       0.6 * breakage + 0.25 * profile.swing_speed_score + 0.15 * profile.player_level_score,
       TARGET_GAIN.durability,
+    ),
+    /*
+      Mesma composição de desgaste da durabilidade, de propósito: as duas medem a mesma
+      preocupação, e alvos derivados de fórmulas diferentes acabariam apontando para lados
+      opostos no mesmo relatório.
+
+      Sem `contrast()` — os outros eixos são posições relativas dentro do catálogo e precisam do
+      esticamento; espessura é medida física, e 26 aqui significa "fina", não "abaixo da média
+      das cordas avaliadas".
+    */
+    gauge: clamp(
+      0.6 * breakage + 0.25 * profile.swing_speed_score + 0.15 * profile.player_level_score,
+      0,
+      100,
     ),
     arm: contrast(
       0.6 * profile.arm_sensitivity_score +
@@ -384,18 +426,37 @@ const SCORED_AXES: readonly (keyof StringTarget)[] = [
   'comfort',
   'arm',
   'durability',
+  'gauge',
   'cost',
 ];
+
+/**
+ * Espessura em milímetros → posição 0–100.
+ *
+ * Os limites são FIXOS e físicos (1.10 mm é 18 gauge, 1.35 mm é 16 gauge), não a faixa do catálogo.
+ * Derivar do catálogo faria a corda mais fina disponível marcar 0 mesmo que ela fosse média no
+ * mercado — e um catálogo que perdesse sua variante mais fina reescreveria a espessura "ideal" de
+ * todo mundo sem nenhuma descoberta por trás.
+ */
+const GAUGE_THIN_MM = 1.1;
+const GAUGE_THICK_MM = 1.35;
+
+export function gaugePosition(gaugeMm: number): number {
+  return clamp(((gaugeMm - GAUGE_THIN_MM) / (GAUGE_THICK_MM - GAUGE_THIN_MM)) * 100, 0, 100);
+}
 
 /** Extrai do conjunto de atributos o valor do eixo — o par que o `scoreVariant` compara. */
 function axisValue(
   a: StringBaseAttributes,
   axis: keyof StringTarget,
   accessibility = 50,
+  gaugeMm = 1.25,
 ): number {
   switch (axis) {
     case 'cost':
       return accessibility;
+    case 'gauge':
+      return gaugePosition(gaugeMm);
     case 'control':
       return a.control_score;
     case 'power':
@@ -478,6 +539,7 @@ function scoreVariant(
   weights: Record<string, number>,
   scale: StringScale,
   accessibility: number,
+  gaugeMm: number,
 ): number {
   let penalty = 0;
   let weightSum = 0;
@@ -492,8 +554,16 @@ function scoreVariant(
       não em relação ao catálogo. Reposicionar transformaria a corda mais barata da lista em
       "acessível 100" mesmo que a lista inteira fosse cara.
     */
-    const raw = axisValue(attributes, axis, accessibility);
-    const value = axis === 'cost' ? accessibility : positionOf(scale, axis, raw);
+    const raw = axisValue(attributes, axis, accessibility, gaugeMm);
+    /*
+      Custo e espessura NÃO passam pela régua do catálogo.
+
+      Os outros cinco eixos são posição relativa: "controle 80" significa "entre os 20% mais
+      controladores do que existe". Preço não funciona assim — R$ 300 é caro em termos absolutos.
+      Espessura também não: 1.20 mm é fina no mercado inteiro, e reposicionar contra o catálogo
+      faria a mais fina disponível virar "fina 100" mesmo num catálogo só de cordas grossas.
+    */
+    const value = axis === 'cost' || axis === 'gauge' ? raw : positionOf(scale, axis, raw);
     const targetValue = target[axis];
     const distance = REQUIREMENT_AXES.has(axis)
       ? Math.max(0, targetValue - value)
@@ -566,7 +636,7 @@ export function selectStringVariant(
 
     const attributes = adjustForGauge(model.base_attributes, variant.gauge_mm);
     const accessibility = PRICE_ACCESSIBILITY[model.price_tier];
-    let score = scoreVariant(attributes, target, weights, scale, accessibility);
+    let score = scoreVariant(attributes, target, weights, scale, accessibility, variant.gauge_mm);
 
     /**
      * ─── DOIS DEGRAUS QUE VIRARAM RAMPAS ─────────────────────────────────────────────────────
