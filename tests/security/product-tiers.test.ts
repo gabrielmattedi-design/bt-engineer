@@ -43,7 +43,16 @@ const ESPERADO: Readonly<Record<string, { cents: number; grants: readonly Entitl
   },
 };
 
-const bySku = new Map(PRODUCT_SEED.map((p) => [p.sku, p]));
+/*
+  Chave como `string`, e não como a união literal das SKUs do seed.
+
+  Com a união, `bySku.get('racket_report')` só compila enquanto essa SKU existir — e o teste que
+  deveria DENUNCIAR a remoção de um produto passaria a falhar na compilação, sem dizer o que
+  aconteceu. Aqui a ausência vira asserção legível em vez de erro de tipo.
+*/
+const bySku = new Map<string, (typeof PRODUCT_SEED)[number]>(
+  PRODUCT_SEED.map((p) => [p.sku, p]),
+);
 
 describe('escada de produtos', () => {
   it('o catálogo tem exatamente os produtos previstos', () => {

@@ -145,7 +145,7 @@ export default async function AnalisePage({
         </div>
 
         {/* Planos (§25, §26). */}
-        <h2 className="mt-12 font-display text-xl font-semibold">Escolha seu relatório</h2>
+        <h2 className="mt-12 font-display text-xl font-semibold">Escolha sua análise</h2>
 
         {/*
           ═══ LADO A LADO, NÃO EMPILHADOS ═══════════════════════════════════════════════════
@@ -160,7 +160,20 @@ export default async function AnalisePage({
         */}
         <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 sm:items-start">
           <article className="flex flex-col rounded border border-line bg-white p-4 sm:p-6">
-            <h3 className="font-display text-base font-semibold sm:text-lg">
+            {/*
+              O selo existe nos DOIS cards, e em cinza no mais simples.
+
+              Sem ele, a coluna da direita tinha uma linha a mais e as duas nasciam desalinhadas:
+              o título de um começava na altura do selo do outro, e a comparação — que é a função
+              desta tela — passava a exigir do olho um ajuste que não deveria existir.
+
+              A cor é o que mantém a hierarquia: `court` marca a opção destacada, `graphite` apenas
+              nomeia. Igualar também a cor faria os dois parecerem o mesmo produto.
+            */}
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-graphite sm:text-xs">
+              Análise de raquete
+            </div>
+            <h3 className="mt-2 font-display text-base font-semibold sm:text-lg">
               Descubra sua raquete ideal
             </h3>
             <p className="display-number mt-1 text-2xl sm:text-3xl">R$ 19,99</p>
@@ -175,14 +188,23 @@ export default async function AnalisePage({
               Não inclui corda, espessura nem tensão.
             </p>
 
-            <Link
-              href={`/planos/${sessionId}?produto=racket_report`}
-              className="mt-auto flex min-h-[56px] items-center justify-center rounded border-2
-                         border-ink px-2 pt-4 text-center text-sm font-semibold transition-colors
-                         hover:bg-ink hover:text-paper sm:mt-5 sm:pt-0 sm:text-base"
-            >
-              Ver minha raquete
-            </Link>
+            {/*
+              O respiro fica FORA do botão.
+
+              Ele estava como `pt-4` dentro do próprio botão, e padding só em cima desloca o texto
+              para baixo do centro — o rótulo ficava visivelmente descolado da caixa. Num wrapper,
+              o espaço continua existindo e o botão volta a centralizar nos dois eixos.
+            */}
+            <div className="mt-auto pt-4 sm:pt-5">
+              <Link
+                href={`/planos/${sessionId}?produto=racket_report`}
+                className="flex min-h-[56px] items-center justify-center rounded border-2
+                           border-ink px-2 text-center text-sm font-semibold transition-colors
+                           hover:bg-ink hover:text-paper sm:text-base"
+              >
+                Ver minha raquete
+              </Link>
+            </div>
           </article>
 
           <article className="flex flex-col rounded border-2 border-court bg-white p-4 sm:p-6">
@@ -200,14 +222,16 @@ export default async function AnalisePage({
               ))}
             </ul>
 
-            <Link
-              href={`/planos/${sessionId}?produto=full_setup`}
-              className="mt-auto flex min-h-[56px] items-center justify-center rounded bg-clay
-                         px-2 pt-4 text-center text-sm font-semibold text-white transition-opacity
-                         hover:opacity-90 sm:mt-5 sm:pt-0 sm:text-base"
-            >
-              Ver meu setup completo
-            </Link>
+            <div className="mt-auto pt-4 sm:pt-5">
+              <Link
+                href={`/planos/${sessionId}?produto=full_setup`}
+                className="flex min-h-[56px] items-center justify-center rounded bg-clay px-2
+                           text-center text-sm font-semibold text-white transition-opacity
+                           hover:opacity-90 sm:text-base"
+              >
+                Ver meu setup completo
+              </Link>
+            </div>
           </article>
         </div>
 
