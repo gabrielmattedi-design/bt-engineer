@@ -111,11 +111,21 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
         ))}
       </g>
 
-      {/* Linha de fundo de quadra, com a marca central — divisor da marca. */}
-      <g>
-        <line x1="80" y1="238" x2={W - 80} y2="238" stroke={PALETTE.faint} strokeWidth="2" />
-        <line x1={W / 2} y1="238" x2={W / 2} y2="258" stroke={PALETTE.faint} strokeWidth="2" />
-      </g>
+      {/*
+        ═══ AS LINHAS DE FUNDO DE QUADRA SAÍRAM DAQUI ═════════════════════════════════════
+
+        Eram uma linha horizontal com uma marca central curta — a citação da linha de fundo. A
+        mesma ideia já tinha sido removida da home pelo mesmo motivo: fora do contexto de uma
+        quadra inteira, ela não é lida como quadra, é lida como um filete com um defeito no meio.
+
+        No card o custo era maior que na home. Ele é a peça que sai do site e circula sozinha, num
+        feed, em tamanho pequeno — e ali cada traço que não informa disputa atenção com os três que
+        informam: o nome, a raquete e o match.
+
+        A separação passa a vir de ESPAÇO. O card já é uma pilha de blocos com pesos tipográficos
+        muito diferentes (nome grande, frase média, rótulos pequenos em caixa alta); com respiro
+        suficiente entre eles, a divisão se lê sozinha e sem nenhum elemento novo.
+      */}
 
       {/* ── Cabeçalho: quem é ───────────────────────────────────────────── */}
       <text x="80" y="120" fill={PALETTE.ball} fontSize="26" letterSpacing="6" fontWeight="600">
@@ -214,8 +224,6 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
       </g>
 
       {/* ── Resultado ───────────────────────────────────────────────────── */}
-      <line x1="80" y1="1025" x2={W - 80} y2="1025" stroke={PALETTE.faint} strokeWidth="2" />
-      <line x1={W / 2} y1="1025" x2={W / 2} y2="1045" stroke={PALETTE.faint} strokeWidth="2" />
 
       <text x="80" y="1090" fill={PALETTE.faint} fontSize="22" letterSpacing="3">
         SUA RAQUETE

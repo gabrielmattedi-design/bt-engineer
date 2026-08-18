@@ -59,13 +59,26 @@ export function Podium({
         <p className="mt-3 text-sm leading-relaxed text-graphite">{separation.message}</p>
       )}
 
+      {/*
+        ═══ DEGRAU DESCENDENTE, EM ORDEM 1-2-3 ════════════════════════════════════════════
+
+        O arranjo olímpico — 2º à esquerda, 1º ao centro, 3º à direita — só funciona quando as
+        alturas são desenhadas. Aqui elas vinham do CONTEÚDO, e o conteúdo não colabora: um nome de
+        produto comprido ou a frase de empate faziam a 3ª colocada crescer acima da 1ª. O resultado
+        era um pódio em que o degrau mais alto ficava na ponta, e a leitura saía ao contrário do
+        ranking.
+
+        Agora as três vêm na ordem do ranking, alinhadas pela BASE, com altura mínima decrescente.
+        O degrau passa a ser desenho, não coincidência de texto — e quem lê da esquerda para a
+        direita lê 1, 2, 3, que é a mesma ordem em que os números aparecem.
+
+        Abaixo de `sm` as alturas mínimas somem: empilhadas, elas produziriam três caixas com
+        sobras diferentes de espaço vazio, sem nenhum degrau para justificar.
+      */}
       <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-end">
-        {/* 2º — lateral esquerda no desktop, segundo no mobile */}
-        {rest[0] && <PodiumCard entry={rest[0]} height="sm" order="sm:order-1" />}
-        {/* 1º — central, maior, mais alto */}
-        <PodiumCard entry={first} height="lg" order="sm:order-2" />
-        {/* 3º */}
-        {rest[1] && <PodiumCard entry={rest[1]} height="sm" order="sm:order-3" />}
+        <PodiumCard entry={first} step="tall" />
+        {rest[0] && <PodiumCard entry={rest[0]} step="mid" />}
+        {rest[1] && <PodiumCard entry={rest[1]} step="short" />}
       </div>
 
       {onUnlock}
@@ -73,24 +86,22 @@ export function Podium({
   );
 }
 
-function PodiumCard({
-  entry,
-  height,
-  order,
-}: {
-  entry: PodiumEntry;
-  height: 'sm' | 'lg';
-  order: string;
-}) {
+/** Altura mínima de cada degrau. Só a partir de `sm`, onde os três ficam lado a lado. */
+const STEPS = {
+  tall: 'sm:min-h-[23rem]',
+  mid: 'sm:min-h-[20rem]',
+  short: 'sm:min-h-[17rem]',
+} as const;
+
+function PodiumCard({ entry, step }: { entry: PodiumEntry; step: keyof typeof STEPS }) {
   const isFirst = entry.rank === 1;
 
   return (
     <article
       className={cn(
-        'rounded border bg-white p-5',
-        order,
+        'flex flex-col rounded border bg-white p-5',
+        STEPS[step],
         isFirst ? 'border-2 border-ink sm:p-7' : 'border-line',
-        height === 'lg' && 'sm:pb-10',
       )}
     >
       <div className="flex items-baseline justify-between">
