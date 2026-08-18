@@ -252,21 +252,33 @@ export default async function AnalisePage({
           alinhados verticalmente — desalinhados, eles pareceriam ruído em vez de tabela.
         */}
         <div className="mt-6 sm:hidden">
-          <div className="flex items-baseline justify-end gap-4 text-[10px] font-semibold uppercase tracking-wider text-graphite">
-            <span className="w-8 text-center">19,99</span>
-            <span className="w-8 text-center">49,99</span>
+          {/*
+            As colunas são nomeadas pelo PLANO, não pelo preço.
+
+            "19,99" e "49,99" já estão nos cards logo acima, e repeti-los aqui obrigava a subir os
+            olhos para lembrar qual preço era qual produto. O nome resolve sozinho — e sobrevive a
+            uma mudança de preço, que o rótulo numérico não sobreviveria.
+          */}
+          <div className="flex items-baseline justify-end gap-3 text-[10px] font-semibold uppercase tracking-wider text-graphite">
+            <span className="w-16 text-center">Raquete</span>
+            <span className="w-16 text-center">Completa</span>
           </div>
           <ul className="mt-2 divide-y divide-line border-y border-line">
             {COMPARISON.map(({ item, racket }) => (
-              <li key={item} className="flex items-start gap-4 py-2.5">
+              <li key={item} className="flex items-start gap-3 py-2.5">
                 <span className="flex-1 text-sm leading-snug text-graphite">{item}</span>
                 <span
-                  className={`w-8 shrink-0 text-center text-sm ${racket ? 'text-court' : 'text-line'}`}
-                  aria-label={racket ? 'incluído no plano de R$ 19,99' : 'não incluído no plano de R$ 19,99'}
+                  className={`w-16 shrink-0 text-center text-sm ${racket ? 'text-court' : 'text-line'}`}
+                  aria-label={
+                    racket ? 'incluído na análise de raquete' : 'não incluído na análise de raquete'
+                  }
                 >
                   {racket ? '✓' : '—'}
                 </span>
-                <span className="w-8 shrink-0 text-center text-sm text-court" aria-label="incluído no plano de R$ 49,99">
+                <span
+                  className="w-16 shrink-0 text-center text-sm text-court"
+                  aria-label="incluído na análise completa"
+                >
                   ✓
                 </span>
               </li>
