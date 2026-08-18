@@ -11,6 +11,38 @@ import { getTeaser } from '@/app/questionario/actions';
  *
  * Sem cronômetro, sem escassez, sem preço "de/por" (§58).
  */
+/**
+ * O conteúdo dos planos vive em dados, não em JSX repetido.
+ *
+ * A mesma lista aparece de duas formas — cartão no desktop, comparativo no celular — e duplicá-la
+ * em duas marcações garantia que uma das duas ficasse para trás na primeira alteração de escopo.
+ * Aqui só existe uma fonte, e ela é o que o produto promete entregar.
+ */
+const RACKET_PLAN = [
+  'Sua raquete recomendada, com marca, modelo e geração',
+  'Fit Score e índices de potência, controle, spin e conforto',
+  'Por que ela combina com você, e os pontos de atenção',
+  'Comparação com sua raquete atual',
+] as const;
+
+const SETUP_PLAN = [
+  'Tudo do plano anterior',
+  'Corda e espessura recomendadas, com disponibilidade no Brasil',
+  'Tensão inicial em libras e quilos, com faixa sugerida',
+  'Por que essa raquete, essa corda e essa tensão funcionam juntas',
+  'Como ajustar no próximo encordoamento',
+  'Análise de conforto',
+] as const;
+
+/** Uma linha por entrega. `racket` diz se o plano de R$ 19,99 a inclui — o de R$ 49,99 inclui tudo. */
+const COMPARISON: readonly { item: string; racket: boolean }[] = [
+  ...RACKET_PLAN.map((item) => ({ item, racket: true })),
+  ...SETUP_PLAN.filter((item) => item !== 'Tudo do plano anterior').map((item) => ({
+    item,
+    racket: false,
+  })),
+];
+
 export default async function AnalisePage({
   params,
 }: {
@@ -126,50 +158,96 @@ export default async function AnalisePage({
           mesmo olhar. `items-start` mantém os cards com alturas próprias — esticar o mais curto
           para acompanhar o mais longo criaria um vazio que sugere item faltando.
         */}
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 sm:items-start">
-          <article className="rounded border border-line bg-white p-6">
-            <h3 className="font-display text-lg font-semibold">Descubra sua raquete ideal</h3>
-            <p className="display-number mt-1 text-3xl">R$ 19,99</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-graphite">
-              <li>Sua raquete recomendada, com marca, modelo e geração</li>
-              <li>Fit Score e índices de potência, controle, spin e conforto</li>
-              <li>Por que ela combina com você, e os pontos de atenção</li>
-              <li>Comparação com sua raquete atual</li>
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 sm:items-start">
+          <article className="flex flex-col rounded border border-line bg-white p-4 sm:p-6">
+            <h3 className="font-display text-base font-semibold sm:text-lg">
+              Descubra sua raquete ideal
+            </h3>
+            <p className="display-number mt-1 text-2xl sm:text-3xl">R$ 19,99</p>
+
+            {/* A lista completa vive no comparativo abaixo no celular; aqui ela é só do desktop. */}
+            <ul className="mt-4 hidden space-y-1.5 text-sm text-graphite sm:block">
+              {RACKET_PLAN.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
-            <p className="mt-4 text-xs text-graphite">Não inclui corda, espessura nem tensão.</p>
+            <p className="mt-4 hidden text-xs text-graphite sm:block">
+              Não inclui corda, espessura nem tensão.
+            </p>
+
             <Link
               href={`/planos/${sessionId}?produto=racket_report`}
-              className="mt-5 flex min-h-[56px] items-center justify-center rounded border-2
-                         border-ink font-semibold transition-colors hover:bg-ink hover:text-paper"
+              className="mt-auto flex min-h-[56px] items-center justify-center rounded border-2
+                         border-ink px-2 pt-4 text-center text-sm font-semibold transition-colors
+                         hover:bg-ink hover:text-paper sm:mt-5 sm:pt-0 sm:text-base"
             >
               Ver minha raquete
             </Link>
           </article>
 
-          <article className="rounded border-2 border-court bg-white p-6">
-            <div className="text-xs font-semibold uppercase tracking-wider text-court">
+          <article className="flex flex-col rounded border-2 border-court bg-white p-4 sm:p-6">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-court sm:text-xs">
               Análise completa
             </div>
-            <h3 className="mt-2 font-display text-lg font-semibold">
+            <h3 className="mt-2 font-display text-base font-semibold sm:text-lg">
               Descubra seu setup completo
             </h3>
-            <p className="display-number mt-1 text-3xl">R$ 49,99</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-graphite">
-              <li>Tudo do plano anterior</li>
-              <li>Corda e espessura recomendadas, com disponibilidade no Brasil</li>
-              <li>Tensão inicial em libras e quilos, com faixa sugerida</li>
-              <li>Por que essa raquete, essa corda e essa tensão funcionam juntas</li>
-              <li>Como ajustar no próximo encordoamento</li>
-              <li>Análise de conforto</li>
+            <p className="display-number mt-1 text-2xl sm:text-3xl">R$ 49,99</p>
+
+            <ul className="mt-4 hidden space-y-1.5 text-sm text-graphite sm:block">
+              {SETUP_PLAN.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
+
             <Link
               href={`/planos/${sessionId}?produto=full_setup`}
-              className="mt-5 flex min-h-[56px] items-center justify-center rounded bg-clay
-                         font-semibold text-white transition-opacity hover:opacity-90"
+              className="mt-auto flex min-h-[56px] items-center justify-center rounded bg-clay
+                         px-2 pt-4 text-center text-sm font-semibold text-white transition-opacity
+                         hover:opacity-90 sm:mt-5 sm:pt-0 sm:text-base"
             >
               Ver meu setup completo
             </Link>
           </article>
+        </div>
+
+        {/*
+          ═══ NO CELULAR, O DETALHE VIRA COMPARATIVO ════════════════════════════════════════
+
+          Lado a lado em 390 px cabem os dois PREÇOS, não as duas listas: cada coluna fica com uns
+          165 px, e uma frase como "Corda e espessura recomendadas, com disponibilidade no Brasil"
+          quebra em cinco linhas. Empilhar de novo resolveria a leitura e devolveria o problema que
+          o lado a lado veio consertar — o mais barato sozinho na primeira tela.
+
+          A saída é separar as duas perguntas. Em cima, lado a lado, fica a que precisa ser vista
+          de uma vez: quanto custa cada um. Aqui embaixo fica o que cada um entrega, em linha única
+          por item, com uma marca por plano. Nada é escondido: o mesmo conteúdo das listas do
+          desktop, numa forma que 390 px comportam.
+
+          A coluna de marcas é `tabular-nums` e de largura fixa para os traços e os vistos ficarem
+          alinhados verticalmente — desalinhados, eles pareceriam ruído em vez de tabela.
+        */}
+        <div className="mt-6 sm:hidden">
+          <div className="flex items-baseline justify-end gap-4 text-[10px] font-semibold uppercase tracking-wider text-graphite">
+            <span className="w-8 text-center">19,99</span>
+            <span className="w-8 text-center">49,99</span>
+          </div>
+          <ul className="mt-2 divide-y divide-line border-y border-line">
+            {COMPARISON.map(({ item, racket }) => (
+              <li key={item} className="flex items-start gap-4 py-2.5">
+                <span className="flex-1 text-sm leading-snug text-graphite">{item}</span>
+                <span
+                  className={`w-8 shrink-0 text-center text-sm ${racket ? 'text-court' : 'text-line'}`}
+                  aria-label={racket ? 'incluído no plano de R$ 19,99' : 'não incluído no plano de R$ 19,99'}
+                >
+                  {racket ? '✓' : '—'}
+                </span>
+                <span className="w-8 shrink-0 text-center text-sm text-court" aria-label="incluído no plano de R$ 49,99">
+                  ✓
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <p className="mt-8 text-xs text-graphite">
