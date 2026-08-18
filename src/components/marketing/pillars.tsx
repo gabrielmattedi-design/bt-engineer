@@ -123,7 +123,18 @@ export function Pillars() {
         </h2>
       </div>
 
-      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-paper/15 bg-paper/15 sm:grid-cols-2 lg:grid-cols-3">
+      {/*
+        As divisórias são o FUNDO aparecendo pelas frestas da grade.
+
+        O `gap` vale nas duas direções, então a linha horizontal entre as fileiras sempre existiu —
+        só que a 1px e com 15% de opacidade ela desaparecia na tela, enquanto as verticais, que
+        atravessam o bloco inteiro de ponta a ponta, ainda se sustentavam. O resultado era uma grade
+        que parecia ter três colunas e nenhuma fileira.
+
+        Dois pixels e 30% de opacidade deixam as duas direções com o mesmo peso, que é o que separa
+        os seis blocos de fato.
+      */}
+      <div className="mt-6 grid gap-[2px] overflow-hidden rounded-lg border-2 border-paper/30 bg-paper/30 sm:grid-cols-2 lg:grid-cols-3">
         {PILLARS.map((p) => (
           <article key={p.key} className="flex flex-col bg-court p-6">
             {/*

@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import { RACKET_BRANDS } from '@/domain/racket';
 import { STRING_BRANDS } from '@/domain/string';
-import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
+import { BrandSignature } from '@/components/marketing/wordmark';
+import { SiteHeader } from '@/components/marketing/site-header';
 import { Seal } from '@/components/marketing/seal';
 
 export const metadata = {
@@ -82,13 +83,7 @@ export default function CatalogoPage() {
 
   return (
     <main className="min-h-screen bg-paper">
-      <header className="border-b border-line bg-court px-6 py-6 text-paper">
-        <div className="mx-auto max-w-5xl">
-          <Link href="/">
-            <Wordmark size="sm" tone="dark" withTagline={false} />
-          </Link>
-        </div>
-      </header>
+      <SiteHeader tone="court" withTagline={false} />
 
       <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
         <h1 className="font-display text-3xl font-bold sm:text-4xl">O que entra na análise</h1>

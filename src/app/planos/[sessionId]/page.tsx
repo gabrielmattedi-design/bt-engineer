@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { activeProducts } from '@/database/repositories/commerce-repo';
 import { loadRecommendation } from '@/database/repositories/session-repo';
 import { seedProducts, withAutoBootstrap } from '@/database/setup';
-import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
+import { BrandSignature } from '@/components/marketing/wordmark';
+import { SiteHeader } from '@/components/marketing/site-header';
 import { CheckoutButton } from './checkout-button';
 import { CouponForm } from './coupon-form';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
@@ -55,11 +56,7 @@ export default async function PlanosPage({
 
   return (
     <main className="min-h-screen bg-paper">
-      <header className="border-b border-line bg-court px-6 py-6 text-paper">
-        <div className="mx-auto max-w-3xl">
-          <Wordmark size="sm" tone="dark" withTagline={false} />
-        </div>
-      </header>
+      <SiteHeader tone="court" withTagline={false} />
 
       <div className="mx-auto max-w-3xl px-6 py-12">
         <h1 className="font-display text-2xl font-semibold sm:text-3xl">

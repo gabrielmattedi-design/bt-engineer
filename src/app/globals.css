@@ -153,3 +153,33 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+  Entrada de cada etapa da tela de processamento.
+
+  A linha nasce um pouco abaixo e transparente, e sobe para o lugar. O deslocamento é curto de
+  propósito — 6px: o suficiente para o olho registrar que ALGO CHEGOU, sem virar animação. Aqui a
+  animação não é enfeite, é o que diferencia "a lista já estava pronta" de "o motor acabou de
+  concluir mais uma etapa".
+*/
+@keyframes te-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.te-step {
+  animation: te-step-in 320ms ease-out both;
+}
+
+/* Quem pede menos movimento recebe só o aparecimento, sem deslocamento. */
+@media (prefers-reduced-motion: reduce) {
+  .te-step {
+    animation: none;
+  }
+}

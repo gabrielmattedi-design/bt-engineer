@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Wordmark } from '@/components/marketing/wordmark';
+import { SiteHeader } from '@/components/marketing/site-header';
 import { getTeaser } from '@/app/questionario/actions';
 
 /**
@@ -38,9 +38,7 @@ export default async function AnalisePage({
   if (teaser.matches_found === 0) {
     return (
       <main className="min-h-screen">
-        <header className="border-b border-line px-6 py-5">
-          <Wordmark size="sm" />
-        </header>
+        <SiteHeader />
         <section className="mx-auto max-w-2xl px-6 py-16">
           <h1 className="font-display text-3xl font-bold">
             Ainda não podemos recomendar com segurança
@@ -72,9 +70,7 @@ export default async function AnalisePage({
 
   return (
     <main className="min-h-screen">
-      <header className="border-b border-line px-6 py-5">
-        <Wordmark size="sm" />
-      </header>
+      <SiteHeader />
 
       <section className="mx-auto max-w-2xl px-6 py-12">
         <h1 className="font-display text-3xl font-bold sm:text-4xl">Análise concluída</h1>
@@ -119,7 +115,18 @@ export default async function AnalisePage({
         {/* Planos (§25, §26). */}
         <h2 className="mt-12 font-display text-xl font-semibold">Escolha seu relatório</h2>
 
-        <div className="mt-5 space-y-4">
+        {/*
+          ═══ LADO A LADO, NÃO EMPILHADOS ═══════════════════════════════════════════════════
+
+          Empilhados, o mais barato ficava inteiro na primeira tela e o completo começava abaixo da
+          dobra. Quem não rolasse escolhia entre um plano e nada — e "não rolou" não é uma escolha
+          informada entre dois produtos, é a ausência de um deles.
+
+          A comparação é o ponto desta tela: os dois preços e as duas listas precisam ser vistos no
+          mesmo olhar. `items-start` mantém os cards com alturas próprias — esticar o mais curto
+          para acompanhar o mais longo criaria um vazio que sugere item faltando.
+        */}
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 sm:items-start">
           <article className="rounded border border-line bg-white p-6">
             <h3 className="font-display text-lg font-semibold">Descubra sua raquete ideal</h3>
             <p className="display-number mt-1 text-3xl">R$ 19,99</p>
@@ -157,7 +164,7 @@ export default async function AnalisePage({
             </ul>
             <Link
               href={`/planos/${sessionId}?produto=full_setup`}
-              className="mt-5 flex min-h-[56px] items-center justify-center rounded bg-court
+              className="mt-5 flex min-h-[56px] items-center justify-center rounded bg-clay
                          font-semibold text-white transition-opacity hover:opacity-90"
             >
               Ver meu setup completo

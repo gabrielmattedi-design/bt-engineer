@@ -182,11 +182,21 @@ export const STEPS: readonly Step[] = [
           Agora a referência é o efeito no JOGO, não a fadiga em si: todo mundo cansa; o que muda é
           se a qualidade da bola cai junto.
         */
+        /*
+          ─── AS QUATRO OPÇÕES MEDEM A MESMA COISA ─────────────────────────────────────────
+          A régua anterior misturava dois eixos: as pontas falavam de ATIVIDADE ("só jogo tênis",
+          "treino além do tênis") e o meio falava de RESISTÊNCIA ("cansa no segundo set"). Quem vai
+          à academia três vezes por semana e mesmo assim apaga no segundo set não tinha onde se
+          encaixar — e marcava a opção mais atlética, recebendo raquete mais pesada do que aguenta.
+
+          Agora as quatro medem uma coisa só: até quando a SUA BOLA se sustenta. Treino fora da
+          quadra aparece apenas como evidência no topo da escala, nunca como o critério.
+        */
         choices: [
-          { value: 'sedentario', label: 'Só jogo tênis', hint: 'Nenhuma outra atividade na semana. Uma partida longa cobra caro no dia seguinte.' },
-          { value: 'moderado', label: 'Jogo e me movimento', hint: 'Cansa no fim do segundo set e a bola perde qualidade, mas você termina bem.' },
-          { value: 'bom', label: 'Aguento partida longa', hint: 'Cansa no terceiro set, como quase todo mundo, e ainda consegue bater igual.' },
-          { value: 'atletico', label: 'Treino além do tênis', hint: 'Corrida, academia ou funcional na rotina. Três sets não mudam seu jogo.' },
+          { value: 'sedentario', label: 'Canso cedo', hint: 'Antes da metade da partida a bola já começa a cair. O cansaço muda seu jogo cedo.' },
+          { value: 'moderado', label: 'Chego ao fim, mas caindo', hint: 'Termina a partida — só que os últimos games são visivelmente piores que os primeiros.' },
+          { value: 'bom', label: 'Aguento a partida inteira', hint: 'Cansa no terceiro set, como quase todo mundo, e ainda consegue bater igual.' },
+          { value: 'atletico', label: 'Aguento duas seguidas', hint: 'Uma segunda partida no mesmo dia não muda sua bola. Costuma vir de treino fora da quadra.' },
         ],
       },
     ],
@@ -213,6 +223,12 @@ export const STEPS: readonly Step[] = [
         key: 'frequency_per_week',
         title: 'Quantas vezes por semana você joga?',
         choices: [
+          /*
+            "Nenhuma" é resposta legítima e frequente: quem está comprando a primeira raquete ainda
+            não joga com regularidade. Sem esta opção essa pessoa marcava "1×", inflando a
+            frequência que alimenta a capacidade física e a previsão de troca de corda.
+          */
+          { value: '0', label: 'Nenhuma', hint: 'Ainda não jogo com regularidade.' },
           { value: '1', label: '1×' },
           { value: '2', label: '2×' },
           { value: '3', label: '3×' },
@@ -352,10 +368,18 @@ export const STEPS: readonly Step[] = [
         kind: 'single',
         key: 'swing_length',
         title: 'Como é o comprimento do seu swing?',
+        /*
+          "Swing" é jargão, e esta pergunta é feita a quem pode estar comprando a primeira raquete.
+          Sem definir a palavra, a resposta vira chute — e ela pesa na escolha do frame.
+          A ajuda descreve o gesto, não o termo.
+        */
+        help:
+          'Swing é o movimento do braço desde a preparação até o fim do golpe. Repare no forehand: ' +
+          'quando a bola vem, o quanto você leva a raquete para trás antes de bater?',
         choices: [
-          { value: 'curto', label: 'Curto', hint: 'Preparação compacta, pouco loop.' },
-          { value: 'medio', label: 'Médio', hint: 'Preparação equilibrada.' },
-          { value: 'longo', label: 'Longo', hint: 'Preparação ampla, loop grande.' },
+          { value: 'curto', label: 'Curto', hint: 'A raquete sai de perto do corpo. Movimento compacto, quase um bloqueio.' },
+          { value: 'medio', label: 'Médio', hint: 'A raquete vai até a lateral do corpo e volta. É o mais comum.' },
+          { value: 'longo', label: 'Longo', hint: 'A raquete passa das costas, com uma volta ampla antes de vir para a bola.' },
           { value: 'nao_sei', label: 'Não sei' },
         ],
       },

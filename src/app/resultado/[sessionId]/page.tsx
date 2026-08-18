@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { BrandSignature, Wordmark } from '@/components/marketing/wordmark';
+import { BrandSignature } from '@/components/marketing/wordmark';
+import { SiteHeader } from '@/components/marketing/site-header';
 import { Podium } from '@/components/result/podium';
 import { AttributeReadout } from '@/components/result/attribute-readout';
 import { CompatibilityRadar } from '@/components/result/radar';
@@ -67,12 +68,8 @@ export default async function ResultadoPage({
 
   return (
     <main className="min-h-screen pb-20">
-      {/* Cabeçalho com a marca em destaque (§64). */}
-      <header className="border-b border-line bg-ink px-6 py-8 text-paper">
-        <div className="mx-auto max-w-3xl">
-          <Wordmark size="md" />
-        </div>
-      </header>
+      {/* Cabeçalho com a marca em destaque (§64) — fixo e clicável de volta ao início. */}
+      <SiteHeader tone="dark" />
 
       <div className="mx-auto max-w-3xl space-y-16 px-6 py-12">
         {/*

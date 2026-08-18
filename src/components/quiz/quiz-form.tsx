@@ -363,6 +363,31 @@ function QuestionField({
   );
 }
 
+/**
+ * Campo numérico — barra e caixa de digitação sobre o MESMO valor.
+ *
+ * ═══ POR QUE OS DOIS, E NÃO SÓ A BARRA ═══════════════════════════════════════════════════════
+ *
+ * Arrastar é bom para descobrir a faixa e péssimo para acertar um número que a pessoa já sabe. Ela
+ * sabe a idade, sabe a altura e sabe o peso — e obrigá-la a caçar "82" com o dedo, num controle
+ * cuja resolução depende da largura da tela, transforma três respostas triviais em três tentativas.
+ * No celular é pior: o alvo tem alguns pixels e o polegar cobre o número enquanto arrasta.
+ *
+ * Os dois controles não são alternativas empilhadas: são a mesma resposta. O número grande no topo
+ * deixa de ser rótulo e passa a ser o campo, então digitar move a barra e arrastar reescreve o
+ * número, sem etapa de confirmação entre um e outro.
+ *
+ * ═══ POR QUE O TEXTO DIGITADO TEM ESTADO PRÓPRIO ═════════════════════════════════════════════
+ *
+ * Porque limitar à faixa a cada tecla torna o campo impossível de usar. Com mínimo de 10, quem
+ * digita "18" tecla primeiro "1" — que vira 10 na hora, e o "8" seguinte produz "108". O rascunho
+ * guarda exatamente o que foi digitado enquanto o foco está no campo; o valor do perfil só é
+ * atualizado quando o que está escrito já é um número válido dentro da faixa.
+ *
+ * Ao sair do campo o rascunho é resolvido: número fora da faixa é trazido para a borda mais
+ * próxima, e campo vazio devolve a pergunta ao estado de NÃO RESPONDIDA — que é diferente de
+ * responder zero, e é a distinção que a confiança do relatório mede.
+ */
 function NumberField({
   question,
   value,
@@ -372,10 +397,69 @@ function NumberField({
   value: number | null;
   onSet: (v: number | null) => void;
 }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (value === null ? '' : String(value));
+
+  const commit = (raw: string) => {
+    setDraft(raw);
+    if (raw.trim() === '') return;
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    // Só entra no perfil o que já está dentro da faixa — o resto espera o blur.
+    if (parsed >= question.min && parsed <= question.max) onSet(parsed);
+  };
+
+  const settle = () => {
+    const raw = (draft ?? '').trim();
+    setDraft(null);
+
+    if (draft === null) return;
+    if (raw === '') {
+      onSet(null);
+      return;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    onSet(Math.min(question.max, Math.max(question.min, Math.round(parsed))));
+  };
+
   return (
     <div className="rounded border-2 border-line bg-white p-5">
       <div className="flex items-baseline gap-2">
-        <span className="display-number text-4xl">{value ?? '—'}</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={question.min}
+          max={question.max}
+          step={question.step ?? 1}
+          value={shown}
+          placeholder="—"
+          aria-label={`${question.title} (${question.unit})`}
+          onChange={(e) => commit(e.target.value)}
+          onBlur={settle}
+          /*
+            As setinhas do navegador saem: elas ocupam metade da largura útil num campo em corpo
+            grande, mudam de desenho a cada navegador e oferecem o passo de 1 que a barra ao lado
+            já dá melhor.
+          */
+          /*
+            Largura fixa e número alinhado à DIREITA.
+
+            Um `<input>` não encolhe para o conteúdo como o `<span>` que ele substituiu, então
+            alinhar à esquerda deixava um vão entre o número e a unidade que crescia conforme o
+            valor encurtava — "34    anos". À direita, o número sempre termina colado em "anos",
+            e a folga fica antes dele, onde ninguém repara. Três caracteres e meio cobrem o maior
+            valor do questionário (210 cm) com espaço para o cursor.
+          */
+          className="display-number w-[3.5ch] border-b-2 border-transparent bg-transparent
+                     text-right text-4xl leading-none outline-none transition-colors
+                     focus:border-court
+                     [appearance:textfield]
+                     [&::-webkit-inner-spin-button]:appearance-none
+                     [&::-webkit-outer-spin-button]:appearance-none"
+        />
         <span className="text-sm text-graphite">{question.unit}</span>
       </div>
       <input
@@ -384,7 +468,10 @@ function NumberField({
         max={question.max}
         step={question.step ?? 1}
         value={value ?? Math.round((question.min + question.max) / 2)}
-        onChange={(e) => onSet(Number(e.target.value))}
+        onChange={(e) => {
+          setDraft(null);
+          onSet(Number(e.target.value));
+        }}
         aria-label={question.title}
         className="mt-4 h-2 w-full cursor-pointer appearance-none rounded bg-line accent-court"
       />
@@ -394,7 +481,8 @@ function NumberField({
       </div>
       {value === null && (
         <p className="mt-3 text-xs text-graphite">
-          Arraste para responder. O ponto no meio é só a posição inicial, não uma resposta.
+          Arraste a barra ou digite o número. O ponto no meio é só a posição inicial, não uma
+          resposta.
         </p>
       )}
     </div>
