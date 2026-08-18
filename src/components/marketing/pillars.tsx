@@ -46,8 +46,25 @@ type Pillar = {
   readonly title: string;
   readonly body: string;
   readonly Icon: (props: { className?: string }) => React.ReactElement;
+  /**
+   * Posição na quadra, em três colunas de grade. Só vale a partir de `lg` — abaixo disso os seis
+   * empilham e a quadra não é desenhada.
+   */
+  readonly area: string;
 };
 
+/**
+ * ─── A ORDEM É A DA QUADRA, NÃO A DE IMPORTÂNCIA DECRESCENTE ─────────────────────────────────
+ *
+ * As duas caixas de fundo — as que ocupam a altura inteira nas pontas — recebem os dois argumentos
+ * que sustentam a seção inteira: o motor é PROPRIETÁRIO e DETERMINÍSTICO, e a análise é
+ * INDEPENDENTE. São as duas perguntas que alguém faz antes de pagar por uma recomendação: "quem
+ * calculou isso?" e "quem está pagando por essa resposta?".
+ *
+ * Elas também são as que ganham texto mais longo, e por um motivo de desenho: uma caixa que vale
+ * por duas com o mesmo tanto de texto das outras fica com metade do espaço vazio, e vazio numa
+ * quadra parece erro de diagramação, não respiro.
+ */
 function buildPillars(): readonly Pillar[] {
   const combinations = countSetupCombinations(
     loadRacketCatalog(),
@@ -56,11 +73,23 @@ function buildPillars(): readonly Pillar[] {
 
   return [
     {
+      key: "engine",
+      seal: "Match Engine",
+      title: "Motor de recomendação proprietário",
+      body:
+        "O mesmo conjunto de respostas produz sempre o mesmo resultado — e o relatório registra " +
+        "quais dados entraram, quanto cada critério pesou e o que foi trocado por quê. Nada aqui " +
+        "depende de um vendedor ter tido um bom dia.",
+      Icon: IconEngine,
+      area: "lg:col-start-1 lg:row-start-1 lg:row-span-2",
+    },
+    {
       key: "variaveis",
       headline: "20+",
       title: "Variáveis analisadas",
       body: "Físico, técnica, swing, estilo, objetivos, conforto e equipamento atual.",
       Icon: IconData,
+      area: "lg:col-start-2 lg:row-start-1",
     },
     {
       key: "combinacoes",
@@ -68,13 +97,7 @@ function buildPillars(): readonly Pillar[] {
       title: "Combinações possíveis",
       body: "Raquete, corda, espessura e tensão avaliadas como um conjunto, não isoladamente.",
       Icon: IconChart,
-    },
-    {
-      key: "engine",
-      seal: "Match Engine",
-      title: "Motor de recomendação proprietário",
-      body: "O mesmo conjunto de respostas produz sempre o mesmo resultado.",
-      Icon: IconEngine,
+      area: "lg:col-start-2 lg:row-start-2",
     },
     {
       key: "ia",
@@ -82,6 +105,7 @@ function buildPillars(): readonly Pillar[] {
       title: "Cada uma no seu lugar",
       body: "IA para interpretar o que você escreve. Engenharia para recomendar — a IA nunca escolhe o equipamento.",
       Icon: IconPrecision,
+      area: "lg:col-start-3 lg:row-start-1",
     },
     {
       key: "verified",
@@ -89,13 +113,18 @@ function buildPillars(): readonly Pillar[] {
       title: "Dados técnicos verificados",
       body: "Cada especificação tem fonte registrada e conferência humana antes de sustentar uma recomendação paga.",
       Icon: IconGauge,
+      area: "lg:col-start-3 lg:row-start-2",
     },
     {
       key: "independente",
       headline: "Independente",
       title: "Sem preferência de marca",
-      body: "Não vendemos equipamento e não recebemos por indicação. Nenhuma marca tem vantagem no cálculo.",
+      body:
+        "Não vendemos equipamento, não recebemos comissão e não temos patrocínio. Nenhuma marca " +
+        "entra no cálculo com vantagem: a que aparecer no seu resultado apareceu porque as " +
+        "especificações dela combinam com as suas respostas.",
       Icon: IconShield,
+      area: "lg:col-start-4 lg:row-start-1 lg:row-span-2",
     },
   ];
 }
@@ -145,28 +174,57 @@ export function Pillars() {
         uma, o meio da altura não cai no meio do bloco, e uma rede fora do lugar seria pior que
         nenhuma.
       */}
+      {/*
+        ═══ A GRADE É UMA QUADRA VISTA DE CIMA ══════════════════════════════════════════════
+
+        Quatro colunas por duas linhas, que é o desenho real de uma quadra deitada: nas pontas os
+        dois fundos, ocupando a altura inteira; no meio os quatro quadrados de saque; e a rede
+        cortando na vertical entre o segundo e o terceiro. A tentativa anterior era 3×2 com uma
+        linha horizontal no meio — geometria que não existe em quadra nenhuma, e por isso não era
+        lida como quadra.
+
+        O caminho continua sendo TIRAR, não acrescentar: o bloco é UMA superfície no verde do
+        herói, e o que separa as caixas são linhas brancas — piso de uma cor, linhas pintadas por
+        cima, como quadra de verdade. Nenhum card tem moldura ou fundo próprio.
+
+        A rede é a única coisa desenhada além das linhas, e ela ULTRAPASSA a quadra em cima e
+        embaixo, porque é assim que uma rede real aparece vista de cima: os postes ficam fora da
+        linha lateral. É esse detalhe que fecha a leitura — sem ele, quatro colunas são quatro
+        colunas.
+
+        Tudo isso só vale a partir de `lg`. Em telas menores as seis caixas empilham e a quadra não
+        é desenhada: uma quadra de uma coluna só não é uma quadra, e insistir nela no celular
+        entregaria um retângulo alto e sem sentido.
+      */}
       <div className="relative mt-6 border-2 border-paper/70 bg-paper/70">
-        <div className="grid gap-[2px] sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+        <div className="grid gap-[2px] sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-2">
           {PILLARS.map((p) => (
-            <article key={p.key} className="flex flex-col bg-court p-6">
+            <article key={p.key} className={`flex flex-col bg-court p-6 ${p.area}`}>
               {/*
                 Padrão único nos seis: grafismo + destaque em BRANCO, subtítulo em AMARELO, corpo
                 em branco. Antes o destaque era amarelo em quatro cards e branco nos dois de selo,
                 porque o monograma obriga o branco — o padrão se contradizia no meio da grade e a
                 diferença não significava nada para quem lê.
               */}
+              {/*
+                O destaque encolhe em `lg`, que é onde a quadra aperta.
+
+                As colunas passam a valer um quarto da largura, e "INDEPENDENTE" a 24px não cabia:
+                a palavra vazava a linha lateral. Diminuir só no ponto em que o layout muda mantém
+                o tamanho cheio onde há espaço — no empilhado do celular e no par de colunas.
+              */}
               <div className="flex min-h-[2.5rem] items-center gap-3">
                 {p.seal ? (
                   <>
                     <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
-                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
+                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white lg:text-xl">
                       {p.seal}
                     </span>
                   </>
                 ) : (
                   <>
                     <p.Icon className="h-8 w-8 shrink-0 text-white" />
-                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
+                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white lg:text-xl">
                       {p.headline}
                     </span>
                   </>
@@ -182,10 +240,10 @@ export function Pillars() {
           ))}
         </div>
 
-        {/* A rede. */}
+        {/* A rede, com os postes passando da linha lateral. */}
         <div
-          className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[5px]
-                     -translate-y-1/2 bg-paper/70 lg:block"
+          className="pointer-events-none absolute -bottom-3 -top-3 left-1/2 hidden w-[5px]
+                     -translate-x-1/2 bg-paper/70 lg:block"
           aria-hidden
         />
       </div>
