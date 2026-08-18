@@ -1,4 +1,5 @@
 import type { RadarAxis } from '@/payments/radar';
+import { axisAngle, labelAnchor, labelPoint, topBlockRotation } from './radar-geometry';
 
 /**
  * Card compartilhável — SVG autocontido, pensado para virar imagem.
@@ -44,17 +45,20 @@ const RADAR_CX = 540;
 const RADAR_CY = 700;
 const RADAR_R = 190;
 
-function point(index: number, total: number, value: number): [number, number] {
-  const a = (Math.PI * 2 * index) / total - Math.PI / 2;
+function point(index: number, total: number, value: number, rotation: number): [number, number] {
+  const a = axisAngle(index, total, rotation);
   const r = (Math.max(0, Math.min(100, value)) / 100) * RADAR_R;
   return [RADAR_CX + Math.cos(a) * r, RADAR_CY + Math.sin(a) * r];
 }
 
-function polygon(values: readonly number[]): string {
+function polygon(values: readonly number[], rotation: number): string {
   return values
-    .map((v, i) => point(i, values.length, v).map((n) => n.toFixed(1)).join(','))
+    .map((v, i) => point(i, values.length, v, rotation).map((n) => n.toFixed(1)).join(','))
     .join(' ');
 }
+
+/** Distância dos nomes ao centro, em PIXELS — ver a nota em `radar-geometry.ts`. */
+const CARD_LABEL_RADIUS = RADAR_R + 34;
 
 export type ShareCardData = {
   readonly playerName: string | null;
@@ -75,6 +79,7 @@ export type ShareCardData = {
 export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
   const axes = data.radar;
   const total = axes.length;
+  const rotation = topBlockRotation(axes);
 
   return (
     <svg
@@ -141,7 +146,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
         {[25, 50, 75, 100].map((ring) => (
           <polygon
             key={ring}
-            points={polygon(axes.map(() => ring))}
+            points={polygon(axes.map(() => ring), rotation)}
             fill="none"
             stroke={PALETTE.line}
             strokeWidth={ring === 100 ? 2 : 1}
@@ -149,7 +154,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
         ))}
 
         <polygon
-          points={polygon(axes.map((a) => a.recommended))}
+          points={polygon(axes.map((a) => a.recommended), rotation)}
           fill={PALETTE.ball}
           fillOpacity="0.2"
           stroke={PALETTE.ball}
@@ -157,7 +162,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
           strokeLinejoin="round"
         />
         <polygon
-          points={polygon(axes.map((a) => a.profile))}
+          points={polygon(axes.map((a) => a.profile), rotation)}
           fill="none"
           stroke={PALETTE.clay}
           strokeWidth="3"
@@ -166,10 +171,11 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
         />
 
         {axes.map((axis, i) => {
-          const [x, y] = point(i, total, 122);
-          const a = (Math.PI * 2 * i) / total - Math.PI / 2;
-          const anchor =
-            Math.abs(Math.cos(a)) < 0.3 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end';
+          const [x, y] = labelPoint(i, total, CARD_LABEL_RADIUS, rotation, {
+            x: RADAR_CX,
+            y: RADAR_CY,
+          });
+          const anchor = labelAnchor(i, total, rotation);
           return (
             <text
               key={axis.key}
