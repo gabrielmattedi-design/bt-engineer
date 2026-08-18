@@ -123,66 +123,71 @@ export function Pillars() {
         </h2>
       </div>
 
-      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-paper/15 bg-paper/15 sm:grid-cols-2 lg:grid-cols-3">
-        {PILLARS.map((p) => (
-          <article key={p.key} className="flex flex-col bg-court p-6">
-            {/*
-              ═══ UMA LINHA: GRAFISMO + DESTAQUE ══════════════════════════════════════════
+      {/*
+        ═══ A GRADE É UMA QUADRA VISTA DE CIMA ══════════════════════════════════════════════
 
-              O ícone ficava numa faixa própria, acima do destaque. Empilhados, os dois liam como
-              dois assuntos — e nos cards de selo virava pior ainda: um ícone genérico em cima e o
-              monograma embaixo, dois grafismos disputando a mesma função no mesmo card.
+        A analogia de quadra já tinha falhado uma vez nesta página, como filete entre seções — e
+        falhou porque uma linha solta não é uma quadra. Aqui ela tem o que faltava lá: um retângulo
+        dividido em caixas, que é literalmente o desenho de uma quadra.
 
-              Agora cada card tem exatamente UM grafismo, na mesma linha do destaque. Nos cards de
-              selo o grafismo É o monograma, que é o que ele sempre deveria ter sido ali: o selo
-              assina, e um ícone decorativo ao lado dele só rouba atenção.
+        O caminho foi TIRAR, não acrescentar. Antes os cards eram verde-escuro sobre campo
+        verde-médio, cada um com sua moldura — seis objetos empilhados. Agora o bloco inteiro é uma
+        superfície só, no verde do herói, e o que separa as caixas são LINHAS BRANCAS. É como
+        quadra de verdade funciona: piso de uma cor, linhas pintadas por cima. Saiu contraste de
+        fundo, saiu borda por card, e o desenho ficou mais legível do que estava.
 
-              A linha tem altura mínima fixa, então os seis cards continuam alinhando entre si com
-              destaques de comprimentos muito diferentes.
-            */}
-            {/*
-              ═══ UM PADRÃO SÓ PARA OS SEIS CARDS ═════════════════════════════════════════
+        O verde-médio da seção continua ao redor, e passa a ser o que ele parece: a área externa
+        que cerca a quadra, que em quadra real também é de outro tom.
 
-              grafismo + destaque → BRANCO · subtítulo → AMARELO · corpo → BRANCO.
+        A REDE é a única coisa acrescentada — a linha do meio, mais grossa que as outras. Sem ela o
+        retângulo é uma grade qualquer; com ela vira quadra, porque é a rede que diz de que jogo se
+        trata. Ela só aparece em três colunas, que é onde a geometria fecha: em duas colunas ou em
+        uma, o meio da altura não cai no meio do bloco, e uma rede fora do lugar seria pior que
+        nenhuma.
+      */}
+      <div className="relative mt-6 border-2 border-paper/70 bg-paper/70">
+        <div className="grid gap-[2px] sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+          {PILLARS.map((p) => (
+            <article key={p.key} className="flex flex-col bg-court p-6">
+              {/*
+                Padrão único nos seis: grafismo + destaque em BRANCO, subtítulo em AMARELO, corpo
+                em branco. Antes o destaque era amarelo em quatro cards e branco nos dois de selo,
+                porque o monograma obriga o branco — o padrão se contradizia no meio da grade e a
+                diferença não significava nada para quem lê.
+              */}
+              <div className="flex min-h-[2.5rem] items-center gap-3">
+                {p.seal ? (
+                  <>
+                    <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
+                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
+                      {p.seal}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <p.Icon className="h-8 w-8 shrink-0 text-white" />
+                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
+                      {p.headline}
+                    </span>
+                  </>
+                )}
+              </div>
 
-              Antes o destaque era amarelo em quatro cards e branco nos dois de selo, porque o
-              monograma obrigava o branco ali. O resultado era um padrão que se contradizia no meio
-              da grade: dois cards pareciam de outra família, e a diferença não significava nada
-              para quem lê.
+              <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-ball">
+                {p.title}
+              </h3>
 
-              Com o amarelo movido para o SUBTÍTULO, a hierarquia passa a ser a mesma nos seis, e o
-              amarelo volta a fazer o que a paleta pede dele — realce pontual, não cor de manchete.
-              De quebra some o conflito com a regra da marca: o monograma continua branco porque
-              agora TUDO naquela linha é branco.
-            */}
-            <div className="flex min-h-[2.5rem] items-center gap-3">
-              {p.seal ? (
-                <>
-                  <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
-                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
-                    {p.seal}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <p.Icon className="h-8 w-8 shrink-0 text-white" />
-                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
-                    {p.headline}
-                  </span>
-                </>
-              )}
-            </div>
+              <p className="mt-2 text-xs leading-relaxed text-paper/75">{p.body}</p>
+            </article>
+          ))}
+        </div>
 
-            <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-ball">
-              {p.title}
-            </h3>
-
-            {/* Corpo por último, para alinhar a base dos cards. */}
-            <p className="mt-2 text-xs leading-relaxed text-paper/75">
-              {p.body}
-            </p>
-          </article>
-        ))}
+        {/* A rede. */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[5px]
+                     -translate-y-1/2 bg-paper/70 lg:block"
+          aria-hidden
+        />
       </div>
     </div>
   );

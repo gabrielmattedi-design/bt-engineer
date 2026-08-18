@@ -123,7 +123,7 @@ export default function HomePage() {
 
 
       {/* ── ECOSSISTEMA ANALISADO ──────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-5xl px-6 py-12">
+      <section className="mx-auto max-w-5xl px-6 py-16">
         <BrandWall />
       </section>
 
@@ -140,7 +140,23 @@ export default function HomePage() {
         transforma quatro rótulos numa sequência — o próprio conteúdo da linha. As palavras sobem de
         tamanho e vão para `ink`; a última fica em `clay` também, porque é onde a sequência chega.
       */}
-      <section className="mx-auto max-w-5xl px-6 py-12">
+      {/*
+        ═══ POR QUE A FAIXA VIRA UM BLOCO, E NÃO GANHA UM RISCO ANTES E DEPOIS ═════════════
+
+        Três seções brancas empilhadas — logos, esta linha e "Como funciona" — corriam juntas como
+        uma coisa só. Separá-las com filete voltaria a pôr traço decorativo na página, que é o que
+        acabou de sair dela, e ainda cobraria dois riscos para separar três blocos.
+
+        Este é o bloco do meio e o mais fraco dos três: uma única linha de texto entre dois blocos
+        densos. Dar a ele um fundo próprio resolve as duas coisas de uma vez — ele deixa de ser
+        órfão, e as fronteiras de cima e de baixo nascem do contraste, sem nenhum elemento novo.
+
+        A lavagem é `court/5`: verde institucional a 5%, claro o bastante para a seção continuar
+        sendo a parte branca da página, que é o que o brand book pede aqui (§39), e escuro o
+        bastante para o olho registrar onde um bloco termina.
+      */}
+      <section className="border-y border-line bg-court/5">
+        <div className="mx-auto max-w-5xl px-6 py-14">
         <ol className="flex flex-wrap items-center gap-x-4 gap-y-3 font-display text-base text-ink sm:text-xl">
           {['Seu perfil', 'Seu jogo', 'Análise técnica', 'Seu setup'].map((step, i) => (
             <li key={step} className="flex items-center gap-4">
@@ -153,11 +169,12 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
+        </div>
       </section>
 
 
       {/* ── COMO FUNCIONA (§41) ────────────────────────────────────────────────── */}
-      <section id="como-funciona" className="mx-auto max-w-5xl px-6 py-16">
+      <section id="como-funciona" className="mx-auto max-w-5xl px-6 py-20">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">Como funciona</h2>
         <div className="mt-10 grid gap-10 sm:grid-cols-3">
           {[
@@ -189,8 +206,24 @@ export default function HomePage() {
       </section>
 
       {/* ── CREDIBILIDADE (§42) ────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-court text-paper">
-        <div className="blueprint-grid absolute inset-0 text-white" aria-hidden />
+      {/*
+        ═══ ESTA É A SEÇÃO DE PRANCHA TÉCNICA, E ELA É AZUL ═══════════════════════════════
+
+        O quadriculado aqui é o que dá o ar de engenharia, e ele funciona. O que não funcionava era
+        a companhia: os números vêm em AO Blue porque o brand book reserva o azul para "dados e
+        tecnologia", e azul sobre verde-quadra é um encontro que nenhuma das duas cores pede.
+
+        Sobre `ink` o azul volta a ser o que é numa planta: traço claro sobre fundo escuro neutro. O
+        quadriculado passa a ser azul também, e a seção inteira lê como o documento técnico que ela
+        está afirmando existir.
+
+        Não é contradição com a decisão de tirar o `ink` da seção dos pilares. Lá ele entrava entre
+        o verde do herói e o off-white seguinte, criando um terceiro registro no meio de uma
+        transição — aqui ele está cercado de branco dos dois lados, e o registro novo é o ponto:
+        esta é a única seção da home que fala de MEDIDA, e ela se destaca por dizer isso.
+      */}
+      <section className="relative overflow-hidden bg-ink text-paper">
+        <div className="blueprint-grid absolute inset-0 text-signal" aria-hidden />
         <div className="relative mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">
           Não recomendamos por nível, idade ou marca favorita.
@@ -212,9 +245,16 @@ export default function HomePage() {
             'Conforto',
             'Equipamento',
           ].map((item) => (
+            /*
+              Etiqueta sólida em papel, não vidro sobre o fundo.
+
+              `bg-white/5` dependia do fundo para existir e mal se distinguia dele: eram oito
+              retângulos fantasmas onde deviam estar as oito variáveis que sustentam a frase acima.
+              Sólidas, elas viram o que a seção afirma ter — entradas de um cálculo, não decoração.
+            */
             <li
               key={item}
-              className="rounded border border-paper/20 bg-white/5 px-3 py-3 text-sm font-medium"
+              className="rounded bg-paper px-3 py-3 text-sm font-medium text-ink"
             >
               {item}
             </li>
@@ -241,9 +281,18 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">O que você recebe</h2>
-        <p className="mt-3 text-sm text-graphite">
-          O questionário e a análise são gratuitos. Você decide se quer o relatório depois de ver o
-          resultado da análise.
+        {/*
+          A frase anterior dizia que a ANÁLISE era gratuita e que você decidia "depois de ver o
+          resultado" — e não é isso que acontece. Sem pagar você vê o pódio com as três
+          compatibilidades, a confiança e quantas raquetes foram avaliadas; o que fica coberto são
+          os modelos e o raciocínio. Prometer o resultado e entregar o placar é a promessa falsa que
+          o §58 proíbe, ainda que por descuido de redação.
+        */}
+        <p className="mt-3 max-w-prose text-sm text-graphite">
+          O questionário é gratuito e a análise roda inteira antes de qualquer pagamento: você vê
+          quantas raquetes foram avaliadas, a confiança do resultado e o quanto cada uma das três
+          finalistas combina com você. O relatório é o que revela os modelos e o porquê de cada
+          escolha.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
