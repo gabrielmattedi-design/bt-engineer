@@ -46,25 +46,8 @@ type Pillar = {
   readonly title: string;
   readonly body: string;
   readonly Icon: (props: { className?: string }) => React.ReactElement;
-  /**
-   * Posição na quadra, em três colunas de grade. Só vale a partir de `lg` — abaixo disso os seis
-   * empilham e a quadra não é desenhada.
-   */
-  readonly area: string;
 };
 
-/**
- * ─── A ORDEM É A DA QUADRA, NÃO A DE IMPORTÂNCIA DECRESCENTE ─────────────────────────────────
- *
- * As duas caixas de fundo — as que ocupam a altura inteira nas pontas — recebem os dois argumentos
- * que sustentam a seção inteira: o motor é PROPRIETÁRIO e DETERMINÍSTICO, e a análise é
- * INDEPENDENTE. São as duas perguntas que alguém faz antes de pagar por uma recomendação: "quem
- * calculou isso?" e "quem está pagando por essa resposta?".
- *
- * Elas também são as que ganham texto mais longo, e por um motivo de desenho: uma caixa que vale
- * por duas com o mesmo tanto de texto das outras fica com metade do espaço vazio, e vazio numa
- * quadra parece erro de diagramação, não respiro.
- */
 function buildPillars(): readonly Pillar[] {
   const combinations = countSetupCombinations(
     loadRacketCatalog(),
@@ -73,23 +56,11 @@ function buildPillars(): readonly Pillar[] {
 
   return [
     {
-      key: "engine",
-      seal: "Match Engine",
-      title: "Motor de recomendação proprietário",
-      body:
-        "O mesmo conjunto de respostas produz sempre o mesmo resultado — e o relatório registra " +
-        "quais dados entraram, quanto cada critério pesou e o que foi trocado por quê. Nada aqui " +
-        "depende de um vendedor ter tido um bom dia.",
-      Icon: IconEngine,
-      area: "lg:col-start-1 lg:row-start-1 lg:row-span-2",
-    },
-    {
       key: "variaveis",
       headline: "20+",
       title: "Variáveis analisadas",
       body: "Físico, técnica, swing, estilo, objetivos, conforto e equipamento atual.",
       Icon: IconData,
-      area: "lg:col-start-2 lg:row-start-1",
     },
     {
       key: "combinacoes",
@@ -97,7 +68,13 @@ function buildPillars(): readonly Pillar[] {
       title: "Combinações possíveis",
       body: "Raquete, corda, espessura e tensão avaliadas como um conjunto, não isoladamente.",
       Icon: IconChart,
-      area: "lg:col-start-2 lg:row-start-2",
+    },
+    {
+      key: "engine",
+      seal: "Match Engine",
+      title: "Motor de recomendação proprietário",
+      body: "O mesmo conjunto de respostas produz sempre o mesmo resultado.",
+      Icon: IconEngine,
     },
     {
       key: "ia",
@@ -105,7 +82,6 @@ function buildPillars(): readonly Pillar[] {
       title: "Cada uma no seu lugar",
       body: "IA para interpretar o que você escreve. Engenharia para recomendar — a IA nunca escolhe o equipamento.",
       Icon: IconPrecision,
-      area: "lg:col-start-3 lg:row-start-1",
     },
     {
       key: "verified",
@@ -113,18 +89,13 @@ function buildPillars(): readonly Pillar[] {
       title: "Dados técnicos verificados",
       body: "Cada especificação tem fonte registrada e conferência humana antes de sustentar uma recomendação paga.",
       Icon: IconGauge,
-      area: "lg:col-start-3 lg:row-start-2",
     },
     {
       key: "independente",
       headline: "Independente",
       title: "Sem preferência de marca",
-      body:
-        "Não vendemos equipamento, não recebemos comissão e não temos patrocínio. Nenhuma marca " +
-        "entra no cálculo com vantagem: a que aparecer no seu resultado apareceu porque as " +
-        "especificações dela combinam com as suas respostas.",
+      body: "Não vendemos equipamento e não recebemos por indicação. Nenhuma marca tem vantagem no cálculo.",
       Icon: IconShield,
-      area: "lg:col-start-4 lg:row-start-1 lg:row-span-2",
     },
   ];
 }
@@ -152,100 +123,66 @@ export function Pillars() {
         </h2>
       </div>
 
-      {/*
-        ═══ A GRADE É UMA QUADRA VISTA DE CIMA ══════════════════════════════════════════════
+      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-paper/15 bg-paper/15 sm:grid-cols-2 lg:grid-cols-3">
+        {PILLARS.map((p) => (
+          <article key={p.key} className="flex flex-col bg-court p-6">
+            {/*
+              ═══ UMA LINHA: GRAFISMO + DESTAQUE ══════════════════════════════════════════
 
-        A analogia de quadra já tinha falhado uma vez nesta página, como filete entre seções — e
-        falhou porque uma linha solta não é uma quadra. Aqui ela tem o que faltava lá: um retângulo
-        dividido em caixas, que é literalmente o desenho de uma quadra.
+              O ícone ficava numa faixa própria, acima do destaque. Empilhados, os dois liam como
+              dois assuntos — e nos cards de selo virava pior ainda: um ícone genérico em cima e o
+              monograma embaixo, dois grafismos disputando a mesma função no mesmo card.
 
-        O caminho foi TIRAR, não acrescentar. Antes os cards eram verde-escuro sobre campo
-        verde-médio, cada um com sua moldura — seis objetos empilhados. Agora o bloco inteiro é uma
-        superfície só, no verde do herói, e o que separa as caixas são LINHAS BRANCAS. É como
-        quadra de verdade funciona: piso de uma cor, linhas pintadas por cima. Saiu contraste de
-        fundo, saiu borda por card, e o desenho ficou mais legível do que estava.
+              Agora cada card tem exatamente UM grafismo, na mesma linha do destaque. Nos cards de
+              selo o grafismo É o monograma, que é o que ele sempre deveria ter sido ali: o selo
+              assina, e um ícone decorativo ao lado dele só rouba atenção.
 
-        O verde-médio da seção continua ao redor, e passa a ser o que ele parece: a área externa
-        que cerca a quadra, que em quadra real também é de outro tom.
+              A linha tem altura mínima fixa, então os seis cards continuam alinhando entre si com
+              destaques de comprimentos muito diferentes.
+            */}
+            {/*
+              ═══ UM PADRÃO SÓ PARA OS SEIS CARDS ═════════════════════════════════════════
 
-        A REDE é a única coisa acrescentada — a linha do meio, mais grossa que as outras. Sem ela o
-        retângulo é uma grade qualquer; com ela vira quadra, porque é a rede que diz de que jogo se
-        trata. Ela só aparece em três colunas, que é onde a geometria fecha: em duas colunas ou em
-        uma, o meio da altura não cai no meio do bloco, e uma rede fora do lugar seria pior que
-        nenhuma.
-      */}
-      {/*
-        ═══ A GRADE É UMA QUADRA VISTA DE CIMA ══════════════════════════════════════════════
+              grafismo + destaque → BRANCO · subtítulo → AMARELO · corpo → BRANCO.
 
-        Quatro colunas por duas linhas, que é o desenho real de uma quadra deitada: nas pontas os
-        dois fundos, ocupando a altura inteira; no meio os quatro quadrados de saque; e a rede
-        cortando na vertical entre o segundo e o terceiro. A tentativa anterior era 3×2 com uma
-        linha horizontal no meio — geometria que não existe em quadra nenhuma, e por isso não era
-        lida como quadra.
+              Antes o destaque era amarelo em quatro cards e branco nos dois de selo, porque o
+              monograma obrigava o branco ali. O resultado era um padrão que se contradizia no meio
+              da grade: dois cards pareciam de outra família, e a diferença não significava nada
+              para quem lê.
 
-        O caminho continua sendo TIRAR, não acrescentar: o bloco é UMA superfície no verde do
-        herói, e o que separa as caixas são linhas brancas — piso de uma cor, linhas pintadas por
-        cima, como quadra de verdade. Nenhum card tem moldura ou fundo próprio.
+              Com o amarelo movido para o SUBTÍTULO, a hierarquia passa a ser a mesma nos seis, e o
+              amarelo volta a fazer o que a paleta pede dele — realce pontual, não cor de manchete.
+              De quebra some o conflito com a regra da marca: o monograma continua branco porque
+              agora TUDO naquela linha é branco.
+            */}
+            <div className="flex min-h-[2.5rem] items-center gap-3">
+              {p.seal ? (
+                <>
+                  <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
+                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
+                    {p.seal}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p.Icon className="h-8 w-8 shrink-0 text-white" />
+                  <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white">
+                    {p.headline}
+                  </span>
+                </>
+              )}
+            </div>
 
-        A rede é a única coisa desenhada além das linhas, e ela ULTRAPASSA a quadra em cima e
-        embaixo, porque é assim que uma rede real aparece vista de cima: os postes ficam fora da
-        linha lateral. É esse detalhe que fecha a leitura — sem ele, quatro colunas são quatro
-        colunas.
+            <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-ball">
+              {p.title}
+            </h3>
 
-        Tudo isso só vale a partir de `lg`. Em telas menores as seis caixas empilham e a quadra não
-        é desenhada: uma quadra de uma coluna só não é uma quadra, e insistir nela no celular
-        entregaria um retângulo alto e sem sentido.
-      */}
-      <div className="relative mt-6 border-2 border-paper/70 bg-paper/70">
-        <div className="grid gap-[2px] sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-2">
-          {PILLARS.map((p) => (
-            <article key={p.key} className={`flex flex-col bg-court p-6 ${p.area}`}>
-              {/*
-                Padrão único nos seis: grafismo + destaque em BRANCO, subtítulo em AMARELO, corpo
-                em branco. Antes o destaque era amarelo em quatro cards e branco nos dois de selo,
-                porque o monograma obriga o branco — o padrão se contradizia no meio da grade e a
-                diferença não significava nada para quem lê.
-              */}
-              {/*
-                O destaque encolhe em `lg`, que é onde a quadra aperta.
-
-                As colunas passam a valer um quarto da largura, e "INDEPENDENTE" a 24px não cabia:
-                a palavra vazava a linha lateral. Diminuir só no ponto em que o layout muda mantém
-                o tamanho cheio onde há espaço — no empilhado do celular e no par de colunas.
-              */}
-              <div className="flex min-h-[2.5rem] items-center gap-3">
-                {p.seal ? (
-                  <>
-                    <LogoMark className="h-8 w-8 shrink-0 text-white" simplified />
-                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white lg:text-xl">
-                      {p.seal}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <p.Icon className="h-8 w-8 shrink-0 text-white" />
-                    <span className="font-display text-2xl font-bold uppercase leading-none tracking-tight text-white lg:text-xl">
-                      {p.headline}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              <h3 className="mt-4 font-display text-sm font-semibold leading-snug text-ball">
-                {p.title}
-              </h3>
-
-              <p className="mt-2 text-xs leading-relaxed text-paper/75">{p.body}</p>
-            </article>
-          ))}
-        </div>
-
-        {/* A rede, com os postes passando da linha lateral. */}
-        <div
-          className="pointer-events-none absolute -bottom-3 -top-3 left-1/2 hidden w-[5px]
-                     -translate-x-1/2 bg-paper/70 lg:block"
-          aria-hidden
-        />
+            {/* Corpo por último, para alinhar a base dos cards. */}
+            <p className="mt-2 text-xs leading-relaxed text-paper/75">
+              {p.body}
+            </p>
+          </article>
+        ))}
       </div>
     </div>
   );

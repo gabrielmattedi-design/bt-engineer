@@ -230,12 +230,15 @@ export default function HomePage() {
           papel é "quase preto azulado", na tela é preto. A seção ficava neutra justamente onde ela
           precisa parecer um documento técnico, e o quadriculado azul não tinha de onde nascer.
 
-          O tom vem COMPOSTO de dois tokens que já existem, em vez de um hexadecimal novo: 12% de
-          `signal` sobre `ink` resulta em algo perto de #0C1F2D. Assim a cor continua rastreável ao
+          O tom vem COMPOSTO de dois tokens que já existem, em vez de um hexadecimal novo: 18% de
+          `signal` sobre `ink` resulta em algo perto de #0D263A. Assim a cor continua rastreável ao
           brand book — é literalmente "o azul de dados sobre o fundo escuro" — e se um dos dois
           mudar, esta seção acompanha sozinha.
+
+          A proporção já subiu uma vez: a 12% o resultado ainda lia como preto na tela, e o ponto
+          desta seção é justamente não ser neutra.
         */}
-        <div className="absolute inset-0 bg-signal/[0.12]" aria-hidden />
+        <div className="absolute inset-0 bg-signal/[0.18]" aria-hidden />
         <div className="blueprint-grid absolute inset-0 text-signal" aria-hidden />
         <div className="relative mx-auto max-w-5xl px-6 py-16">
         <h2 className="font-display text-2xl font-bold sm:text-3xl">
