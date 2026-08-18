@@ -157,11 +157,22 @@ export default function HomePage() {
       */}
       <section className="border-y border-line bg-court/5">
         <div className="mx-auto max-w-5xl px-6 py-14">
-        <ol className="flex flex-wrap items-center gap-x-4 gap-y-3 font-display text-base text-ink sm:text-xl">
+        {/*
+          UMA LINHA SÓ, inclusive no celular.
+
+          Quebrada em duas, a sequência deixa de ser sequência: "Análise técnica" reaparecia na
+          linha de baixo precedida de uma seta órfã, como se o fluxo recomeçasse ali. É o oposto do
+          que a faixa existe para dizer.
+
+          Cabe porque o tipo encolhe onde o espaço encolhe. Em 390 px, os quatro rótulos e as três
+          setas somam ~48 caracteres — a 12 px com folga curta entre eles, sobra margem; a partir de
+          `sm` tudo volta ao tamanho de leitura confortável.
+        */}
+        <ol className="flex flex-nowrap items-center gap-x-1.5 font-display text-xs text-ink sm:gap-x-4 sm:text-xl">
           {['Seu perfil', 'Seu jogo', 'Análise técnica', 'Seu setup'].map((step, i) => (
-            <li key={step} className="flex items-center gap-4">
+            <li key={step} className="flex items-center gap-1.5 whitespace-nowrap sm:gap-4">
               {i > 0 && (
-                <span className="text-lg text-clay sm:text-xl" aria-hidden>
+                <span className="text-clay" aria-hidden>
                   →
                 </span>
               )}

@@ -75,17 +75,40 @@ function BrandItem({ brand }: { brand: string }) {
   );
 }
 
+/**
+ * Uma faixa por categoria.
+ *
+ * ═══ POR QUE O RÓTULO SOBE NO CELULAR ════════════════════════════════════════════════════════
+ *
+ * No desktop o rótulo fica à esquerda e as marcas correm ao lado dele — a coluna do rótulo já
+ * separa as duas faixas. No celular não cabe: os logos quebram em duas linhas e passam POR BAIXO
+ * do rótulo, então "Wilson" e "Yonex" de raquete acabavam alinhados com "Cordas" logo abaixo. As
+ * duas listas viravam uma massa só de nove logos, e a pergunta que a seção responde — quais marcas
+ * de raquete, quais de corda — deixava de ter resposta visível.
+ *
+ * Abaixo de `sm` o rótulo passa a ser um cabeçalho sobre a própria faixa, e cada faixa ganha um
+ * filete e um fundo levíssimo que a fecham como bloco. Não é ornamento: é a fronteira que a
+ * quebra de linha apagou.
+ */
 function Row({ label, brands }: { label: string; brands: readonly string[] }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-      <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-[0.16em] text-graphite">
+    <div
+      className="rounded border border-line bg-white/60 p-4
+                 sm:flex sm:items-center sm:gap-x-8 sm:border-0 sm:bg-transparent sm:p-0"
+    >
+      <span
+        className="block text-xs font-semibold uppercase tracking-[0.16em] text-graphite
+                   sm:w-20 sm:shrink-0"
+      >
         {label}
       </span>
-      {[...brands]
-        .sort((a, b) => a.localeCompare(b))
-        .map((brand) => (
-          <BrandItem key={brand} brand={brand} />
-        ))}
+      <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-4 sm:mt-0">
+        {[...brands]
+          .sort((a, b) => a.localeCompare(b))
+          .map((brand) => (
+            <BrandItem key={brand} brand={brand} />
+          ))}
+      </div>
     </div>
   );
 }
@@ -100,7 +123,7 @@ export function BrandWall() {
         </h2>
       </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-3 sm:space-y-6">
         <Row label="Raquetes" brands={RACKET_BRANDS} />
         <Row label="Cordas" brands={STRING_BRANDS} />
       </div>

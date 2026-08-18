@@ -127,7 +127,14 @@ describe('a espessura da corda acompanha a frequência de quebra', () => {
         mode: TEST_MODE,
         includeSetup: true,
       });
-      return { breakage, gauge: result.string_recommendation!.target.gauge };
+      /*
+        `target` chega ao domínio como `Record<string, number>` — a camada de domínio não importa o
+        tipo do motor de propósito. Com `noUncheckedIndexedAccess`, o acesso é `number | undefined`,
+        e a ausência aqui significaria que o eixo não foi calculado: é falha de teste, não valor.
+      */
+      const gauge = result.string_recommendation!.target.gauge;
+      expect(gauge, `${breakage}: alvo de espessura ausente`).toBeTypeOf('number');
+      return { breakage, gauge: gauge! };
     });
 
     for (let i = 1; i < targets.length; i += 1) {
