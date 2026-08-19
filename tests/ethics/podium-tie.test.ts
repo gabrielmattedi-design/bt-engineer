@@ -188,3 +188,124 @@ describe('empate no pódio', () => {
     }
   });
 });
+
+/**
+ * ═══ AS TRÊS FRASES PRECISAM DIZER TRÊS COISAS ═══════════════════════════════════════════════
+ *
+ * Reclamação do teste de usuário, olhando um pódio de 89/89/89:
+ *
+ *     "o texto tá muito parecido, início igual e até justificativas parecidas"
+ *
+ * Medido nas 22 personas ANTES da correção, ele estava sendo generoso:
+ *
+ *     45% dos pódios tinham dois cards abrindo pelo mesmo eixo
+ *     77% tinham os três começando com as mesmas 18 letras
+ *     e em p02 dois cards saíam com a frase LITERALMENTE IDÊNTICA
+ *
+ * A causa era aritmética. Cada card escolhia seu maior delta sozinho, e o delta é medido contra a
+ * média das OUTRAS: se duas raquetes são confortáveis e a terceira não é, as duas confortáveis têm
+ * conforto como maior delta e escrevem a mesma frase. Verdadeiro nas duas, e inútil — a pergunta do
+ * card é "o que ESTA faz de diferente das outras duas".
+ *
+ * A correção resolve os três cards JUNTOS, com um eixo distinto para cada um. Estes testes trancam
+ * o resultado, não a implementação: o que não pode voltar é o pódio explicar duas raquetes com a
+ * mesma frase.
+ */
+describe('as frases do pódio se distinguem entre si', () => {
+  const podiums = runs.map(({ persona, result }) => ({
+    persona,
+    headlines: result.podium
+      .map((entry) => buildDistinction(entry, result.podium)?.headline)
+      .filter((h): h is string => h !== undefined),
+  }));
+
+  it('duas posições do mesmo pódio nunca recebem a mesma frase', () => {
+    for (const { persona, headlines } of podiums) {
+      /*
+        A frase de gêmeas é a exceção legítima: quando duas raquetes têm o mesmo vetor de atributos,
+        cada uma aponta a OUTRA pelo nome, então os textos citam produtos diferentes e não colidem.
+        Se um dia colidirem, é porque uma delas apontou para si mesma — e o teste precisa falhar.
+      */
+      expect(
+        new Set(headlines).size,
+        `${persona.id}: frases repetidas\n  ${headlines.join('\n  ')}`,
+      ).toBe(headlines.length);
+    }
+  });
+
+  /**
+   * A abertura é o que o olho compara primeiro, com os três cards lado a lado. Duas aberturas iguais
+   * fazem os cards parecerem o mesmo texto mesmo quando o fim difere.
+   */
+  it('duas posições do mesmo pódio nunca abrem com as mesmas palavras', () => {
+    for (const { persona, headlines } of podiums) {
+      const aberturas = headlines.map((h) => h.split('.')[0]!.trim());
+      expect(
+        new Set(aberturas).size,
+        `${persona.id}: aberturas repetidas\n  ${aberturas.join('\n  ')}`,
+      ).toBe(aberturas.length);
+    }
+  });
+
+  /**
+   * O prefixo antigo — "Entre as empatadas," / "Comparada às outras do pódio," — custava até 29
+   * caracteres idênticos nos três cards antes de qualquer conteúdo, num espaço de ~200px. Saiu
+   * porque a faixa de empate acima já diz isso, e porque os cards estão lado a lado.
+   */
+  it('nenhuma frase gasta a abertura com preâmbulo repetido', () => {
+    for (const { persona, headlines } of podiums) {
+      for (const h of headlines) {
+        expect(h, `${persona.id}`).not.toMatch(/^(Entre as empatadas|Comparada às outras)/);
+      }
+    }
+  });
+
+  /**
+   * Superlativo é uma afirmação mais forte que comparativo, e só cabe quando a opção é de fato o
+   * extremo do grupo. Três cards não podem ser cada um "o mais confortável" — se a frase diz "é a
+   * mais X", nenhuma outra do escopo pode ter X maior.
+   */
+  it('quando um card se declara o extremo, ele é mesmo o extremo', () => {
+    const CARDINAL: Readonly<Record<number, string>> = { 2: 'duas', 3: 'três' };
+
+    for (const { persona, result } of runs) {
+      // O escopo da comparação é o pódio à vista — o mesmo conjunto que o leitor compara.
+      const scope = result.podium.slice(0, 3);
+
+      for (const entry of scope) {
+        const headline = buildDistinction(entry, result.podium)?.headline;
+        if (!headline?.startsWith('Das ')) continue;
+
+        const declarado = /^Das (duas|três)/.exec(headline)?.[1];
+        expect(declarado, `${persona.id}: rank ${entry.rank} — "${headline}"`).toBe(
+          CARDINAL[scope.length],
+        );
+
+        /*
+          E o superlativo precisa ser verdade: nenhuma outra do escopo pode ter valor maior no eixo
+          citado. Como a frase não nomeia o eixo em código, a checagem é indireta — o extremo
+          declarado tem de existir em ALGUM componente. Sem isso, "é a mais confortável" poderia
+          sair em dois cards ao mesmo tempo.
+        */
+        const others = scope.filter((e) => e.rank !== entry.rank);
+        const éExtremoEmAlgo = entry.breakdown.components.some((c) =>
+          others.every(
+            (o) => c.raw > (o.breakdown.components.find((x) => x.key === c.key)?.raw ?? Infinity),
+          ),
+        );
+        expect(éExtremoEmAlgo, `${persona.id}: rank ${entry.rank} — "${headline}"`).toBe(true);
+      }
+    }
+  });
+
+  /** A frase precisa caber num card de ~200px sem virar parágrafo. */
+  it('nenhuma frase de diferenciação passa de 130 caracteres', () => {
+    for (const { persona, headlines } of podiums) {
+      for (const h of headlines) {
+        // A frase de gêmeas cita o nome do produto e é naturalmente mais longa.
+        if (h.startsWith('Tecnicamente idêntica')) continue;
+        expect(h.length, `${persona.id}: ${h.length} caracteres — "${h}"`).toBeLessThanOrEqual(130);
+      }
+    }
+  });
+});

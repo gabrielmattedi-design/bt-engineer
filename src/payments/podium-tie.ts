@@ -59,36 +59,70 @@ const SECONDARY_COMPONENT_GAP = 0.75;
 /** Só entram no grupo posições realmente exibidas — o pódio tem três. */
 const MAX_TIE_GROUP = 3;
 
-const COMPONENT_PT: Record<ComponentKey, { readonly strong: string; readonly weak: string }> = {
+/**
+ * Quatro formas por eixo, porque a mesma vantagem se diz diferente conforme ela seja A MAIOR do
+ * grupo ou apenas maior que a média.
+ *
+ * `best` e `worst` são predicados que seguem "é" e valem quando a opção é o extremo do grupo:
+ * "Das três, é a mais amigável ao braço". `more` e `less` são orações completas para o caso
+ * comparativo: "Acompanha melhor o seu estilo de jogo".
+ *
+ * A distinção não é enfeite. Um superlativo afirma mais do que um comparativo, e usar o primeiro
+ * onde só o segundo é verdade seria exagerar — três cards não podem ser cada um "o mais confortável".
+ */
+const COMPONENT_PT: Record<
+  ComponentKey,
+  { readonly best: string; readonly worst: string; readonly more: string; readonly less: string }
+> = {
   physical_fit: {
-    strong: 'encaixa melhor no seu peso e condicionamento',
-    weak: 'exige um pouco mais do braço ao longo do jogo',
+    best: 'a que melhor encaixa no seu físico',
+    worst: 'a que mais exige do seu físico',
+    more: 'encaixa melhor no seu peso e condicionamento',
+    less: 'exige um pouco mais do braço ao longo do jogo',
   },
   skill_fit: {
-    strong: 'exige de você exatamente o nível que você tem',
-    weak: 'cobra um pouco mais de técnica',
+    best: 'a mais adequada ao nível que você tem hoje',
+    worst: 'a que mais cobra técnica',
+    more: 'pede de você exatamente o nível que você tem',
+    less: 'cobra um pouco mais de técnica',
   },
   swing_fit: {
-    strong: 'complementa melhor a velocidade do seu swing',
-    weak: 'combina um pouco menos com a velocidade do seu swing',
+    best: 'a que melhor combina com a velocidade do seu swing',
+    worst: 'a que menos combina com o seu swing',
+    more: 'complementa melhor a velocidade do seu swing',
+    less: 'combina um pouco menos com o seu swing',
   },
   playstyle_fit: {
-    strong: 'acompanha melhor o seu estilo de jogo',
-    weak: 'acompanha um pouco menos o seu estilo de jogo',
+    best: 'a que melhor acompanha o seu estilo de jogo',
+    worst: 'a que menos acompanha o seu estilo de jogo',
+    more: 'acompanha melhor o seu estilo de jogo',
+    less: 'acompanha um pouco menos o seu estilo de jogo',
   },
   objective_fit: {
-    strong: 'entrega mais do que você pediu na ordem que você pediu',
-    weak: 'entrega um pouco menos do que você pediu',
+    best: 'a que mais entrega o que você pediu',
+    worst: 'a que menos entrega o que você pediu',
+    more: 'entrega mais do que você pediu, na ordem que você pediu',
+    less: 'entrega um pouco menos do que você pediu',
   },
   comfort_fit: {
-    strong: 'é mais amigável ao braço',
-    weak: 'é menos amigável ao braço',
+    best: 'a mais amigável ao braço',
+    worst: 'a menos amigável ao braço',
+    more: 'é mais amigável ao braço',
+    less: 'é menos amigável ao braço',
   },
   transition_fit: {
-    strong: 'é uma troca mais suave a partir da sua raquete atual',
-    weak: 'muda mais em relação à sua raquete atual',
+    best: 'a troca mais suave a partir da sua raquete atual',
+    worst: 'a que mais muda em relação à sua raquete atual',
+    more: 'é uma troca mais suave a partir da sua raquete atual',
+    less: 'muda mais em relação à sua raquete atual',
   },
 };
+
+const CARDINAL: Readonly<Record<number, string>> = { 2: 'duas', 3: 'três' };
+
+function upperFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 export type PodiumTieGroup = {
   /** Posições empatadas, em ordem. Sempre começa em 1 — só existe empate no topo. */
@@ -160,6 +194,116 @@ export function buildTieGroup(podium: readonly RankedRacket[]): PodiumTieGroup |
  * A comparação é contra a MÉDIA das demais do grupo, e não contra a 1ª colocada: para a própria 1ª
  * não existiria referência, e comparar a 3ª com a 1ª ignoraria a 2ª, que está no meio.
  */
+type Delta = { readonly key: ComponentKey; readonly delta: number };
+
+/** Distância de cada componente de `entry` até a média das outras do escopo. */
+function deltasFor(entry: RankedRacket, others: readonly RankedRacket[]): Delta[] {
+  const out: Delta[] = [];
+  for (const component of entry.breakdown.components) {
+    if (component.weight <= 0) continue;
+    const values = others.map(
+      (o) => o.breakdown.components.find((c) => c.key === component.key)?.raw ?? component.raw,
+    );
+    const mean = values.reduce((s, v) => s + v, 0) / values.length;
+    out.push({ key: component.key, delta: component.raw - mean });
+  }
+  return out;
+}
+
+/**
+ * ═══ EIXOS DISTINTOS ENTRE OS CARDS ══════════════════════════════════════════════════════════
+ *
+ * O defeito que isto corrige, medido nas 22 personas de validação ANTES da mudança:
+ *
+ *     45% dos pódios tinham dois cards abrindo pelo MESMO eixo
+ *     77% tinham os três começando com as mesmas 18 letras
+ *     e em pelo menos um caso (p02) dois cards saíam com a frase LITERALMENTE IDÊNTICA
+ *
+ * A causa é aritmética, não de redação. Cada card escolhia seu maior delta isoladamente, e o delta
+ * é medido contra a média das OUTRAS: se duas raquetes são confortáveis e a terceira não é, as duas
+ * confortáveis têm conforto como maior delta, e as duas escrevem a mesma frase. Verdade nos dois
+ * casos, e inútil — a pergunta do card é "o que ESTA faz de diferente das outras duas", e responder
+ * a mesma coisa duas vezes não responde nada.
+ *
+ * Aqui os três cards são resolvidos JUNTOS: cada um recebe um eixo que nenhum outro usa. Com no
+ * máximo 3 posições e 7 componentes, a busca exaustiva por permutações custa nada e evita os
+ * artefatos de um algoritmo guloso — que daria ao primeiro card o melhor eixo e deixaria o terceiro
+ * com sobras.
+ *
+ * O critério maximizado é a soma dos deltas escolhidos: a atribuição que diz o MAIS possível no
+ * conjunto, e não a que favorece um card.
+ *
+ * ─── O QUE ISTO NÃO FAZ ──────────────────────────────────────────────────────────────────────
+ *
+ * Não força distinção onde ela não existe. Um eixo só é atribuído se o delta passar do piso; abaixo
+ * dele o card volta a usar seu próprio melhor eixo, mesmo repetido. Repetir uma frase é feio;
+ * afirmar uma vantagem que os dados não sustentam é mentira, e feio perde para mentira.
+ */
+function assignDistinctAxes(
+  scope: readonly RankedRacket[],
+  direction: 1 | -1,
+  floor: number,
+): Map<number, Delta> {
+  const perEntry = scope.map((entry) => ({
+    rank: entry.rank,
+    deltas: deltasFor(
+      entry,
+      scope.filter((o) => o.rank !== entry.rank),
+    )
+      .filter((d) => d.delta * direction >= floor)
+      .sort((a, b) => (b.delta - a.delta) * direction),
+  }));
+
+  type Assignment = { readonly total: number; readonly picks: Map<number, Delta> };
+
+  /**
+   * Melhor atribuição para os cards de `index` em diante, dados os eixos já usados.
+   *
+   * Recursiva e PURA — devolve a atribuição em vez de escrever numa variável de fora. Além de mais
+   * fácil de ler, evita que o TypeScript perca o rastro do tipo: mutação dentro de closure não entra
+   * na análise de fluxo, e a leitura depois do laço estreitaria para `never`.
+   */
+  const bestFrom = (index: number, used: ReadonlySet<ComponentKey>): Assignment => {
+    if (index === perEntry.length) return { total: 0, picks: new Map() };
+
+    const current = perEntry[index]!;
+    // Deixar este card sem eixo é sempre uma opção — é o que acontece quando nada passa do piso.
+    let best: Assignment = bestFrom(index + 1, used);
+
+    for (const d of current.deltas) {
+      if (used.has(d.key)) continue;
+
+      const rest = bestFrom(index + 1, new Set([...used, d.key]));
+      const candidate: Assignment = {
+        total: rest.total + d.delta * direction,
+        picks: new Map(rest.picks).set(current.rank, d),
+      };
+
+      // Atender mais cards vence sempre; entre atribuições do mesmo tamanho, vence a soma maior.
+      const melhor =
+        candidate.picks.size > best.picks.size ||
+        (candidate.picks.size === best.picks.size && candidate.total > best.total);
+      if (melhor) best = candidate;
+    }
+
+    return best;
+  };
+
+  return bestFrom(0, new Set()).picks;
+}
+
+/** O melhor eixo do card sem considerar os outros — a saída quando a atribuição distinta falha. */
+function ownExtreme(
+  entry: RankedRacket,
+  others: readonly RankedRacket[],
+  direction: 1 | -1,
+  floor: number,
+): Delta | null {
+  const sorted = deltasFor(entry, others).sort((a, b) => (b.delta - a.delta) * direction);
+  const top = sorted[0];
+  return top && top.delta * direction >= floor ? top : null;
+}
+
 export function buildDistinction(
   entry: RankedRacket,
   podium: readonly RankedRacket[],
@@ -170,81 +314,141 @@ export function buildDistinction(
     Ela nasceu para explicar empates, mas o que ela responde — "o que esta faz de diferente das
     outras duas?" — é a pergunta de quem está escolhendo, com números iguais ou não. Restringi-la
     ao empate deixava os outros cards mudos justamente quando a decisão é real.
-
-    O que muda conforme o caso é o VERBO: entre empatadas, "entre as empatadas"; fora do empate,
-    "comparada às outras do pódio". A frase nunca afirma igualdade que os números desmintam.
   */
-  const group = tieGroup(podium);
-  const tied = group.some((e) => e.rank === entry.rank);
-  const scope = tied ? group : podium.slice(0, MAX_TIE_GROUP);
+  /*
+    ═══ O ESCOPO É SEMPRE O PÓDIO INTEIRO ════════════════════════════════════════════════════
 
+    Antes o escopo mudava conforme a posição estivesse ou não no grupo de empate: as empatadas se
+    comparavam entre si, as demais se comparavam com as três. Parecia mais preciso e produzia uma
+    colisão que a distribuição de eixos não conseguia enxergar — foi o que apareceu em p20:
+
+        1. Das três, é a mais adequada ao nível que você tem hoje     (escopo: empatadas 1-2)
+        2. É mais amigável ao braço                                   (escopo: empatadas 1-2)
+        3. É mais amigável ao braço                                   (escopo: pódio 1-2-3)
+
+    Os cards 2 e 3 foram resolvidos em distribuições DIFERENTES, então nenhuma das duas soube que o
+    conforto já estava tomado. Distribuir eixos distintos só funciona se todos os cards entrarem na
+    mesma conta.
+
+    O pódio inteiro também é o escopo certo pelo lado do leitor: ele tem três cards à vista e compara
+    os três. O grupo de empate continua existindo — é o que a faixa acima anuncia e o que decide se a
+    frase pode falar em igualdade —, mas não é mais a régua da comparação.
+  */
+  const scope = podium.slice(0, MAX_TIE_GROUP);
   const others = scope.filter((e) => e.rank !== entry.rank);
-  if (others.length === 0) return null;
-  const prefix = tied ? 'Entre as empatadas' : 'Comparada às outras do pódio';
-
-  const deltas: Array<{ key: ComponentKey; delta: number; weight: number }> = [];
-  for (const component of entry.breakdown.components) {
-    if (component.weight <= 0) continue;
-    const values = others.map(
-      (o) => o.breakdown.components.find((c) => c.key === component.key)?.raw ?? component.raw,
-    );
-    const mean = values.reduce((s, v) => s + v, 0) / values.length;
-    deltas.push({ key: component.key, delta: component.raw - mean, weight: component.weight });
-  }
-
-  const strongest = deltas.reduce((best, d) => (d.delta > best.delta ? d : best), {
-    key: 'objective_fit' as ComponentKey,
-    delta: -Infinity,
-    weight: 0,
-  });
-  const weakest = deltas.reduce((worst, d) => (d.delta < worst.delta ? d : worst), {
-    key: 'objective_fit' as ComponentKey,
-    delta: Infinity,
-    weight: 0,
-  });
+  if (others.length === 0 || !scope.some((e) => e.rank === entry.rank)) return null;
 
   /**
-   * Basta UM lado acima do piso para haver o que dizer; o outro entra com o piso secundário.
+   * ═══ GÊMEA PRIMEIRO, ANTES DE QUALQUER COMPARAÇÃO ══════════════════════════════════════════
    *
-   * A frase precisa dos dois lados sempre que os dois existirem, porque o assunto dela é a TROCA
-   * entre opções equivalentes. Só um lado deixaria o card ou vendendo ou depreciando.
-   */
-  const relevant =
-    strongest.delta >= MEANINGFUL_COMPONENT_GAP || weakest.delta <= -MEANINGFUL_COMPONENT_GAP;
-  const hasStrong = relevant && strongest.delta >= SECONDARY_COMPONENT_GAP;
-  const hasWeak = relevant && weakest.delta <= -SECONDARY_COMPONENT_GAP;
-
-  /**
-   * Nenhuma diferença acima do ruído: são gêmeas.
+   * Este teste vinha DEPOIS, como último recurso: só falava em gêmeas quando não houvesse nenhuma
+   * vantagem a apontar. E aí ele quase nunca disparava, porque duas gêmeas continuam tendo vantagem
+   * sobre a TERCEIRA raquete do pódio.
    *
-   * Isto não é falha da análise — é o resultado dela. Raquetes com as mesmas seis especificações
-   * publicadas recebem o mesmo vetor porque é tudo o que os dados permitem afirmar. Dizer isso é
-   * mais útil, e mais honesto, do que inventar um desempate.
+   * Foi o que apareceu em p20 — Babolat Pure Aero 98 (2026) e Pure Drive 98 (2025), vetores de
+   * atributo iguais até a última casa, ambas mais confortáveis que a Percept 100D:
+   *
+   *     2. É mais amigável ao braço.
+   *     3. É mais amigável ao braço.
+   *
+   * Duas frases idênticas para duas raquetes diferentes, e o motivo verdadeiro — que elas são o
+   * mesmo quadro para efeito desta análise — não aparecia em lugar nenhum. Nenhum rearranjo de eixos
+   * resolveria: os deltas das duas são iguais entre si em TODOS os componentes, então não existe
+   * eixo em que uma se destaque da outra.
+   *
+   * Ser gêmea da vizinha é o fato mais decisivo do card, e vem antes de qualquer comparação com a
+   * terceira. Cada uma aponta a outra pelo nome, então as duas frases também deixam de colidir.
    */
-  if (!hasStrong && !hasWeak) {
-    const twin = others.find((o) => sameAttributeVector(entry, o));
+  const twin = others.find((o) => sameAttributeVector(entry, o));
+  if (twin) {
     return {
-      headline: twin
-        ? `Tecnicamente idêntica à ${twin.rank}ª (${twin.racket.variant.product_name}): mesmas ` +
-          'especificações publicadas, mesmo resultado na análise. Escolha por preço, ' +
-          'disponibilidade ou preferência de marca.'
-        : 'Sem vantagem nem desvantagem relevante sobre as outras do pódio — as diferenças ficam ' +
-          'abaixo do que as especificações publicadas conseguem distinguir.',
-      identical_twin: twin !== undefined,
+      headline:
+        `Tecnicamente idêntica à ${twin.rank}ª (${twin.racket.variant.product_name}): mesmas ` +
+        'especificações publicadas, mesmo resultado na análise. Escolha por preço, ' +
+        'disponibilidade ou preferência de marca.',
+      identical_twin: true,
     };
   }
 
-  const parts: string[] = [];
-  if (hasStrong) parts.push(`${prefix}, ${COMPONENT_PT[strongest.key].strong}`);
-  if (hasWeak) {
-    parts.push(
-      hasStrong
-        ? `em compensação, ${COMPONENT_PT[weakest.key].weak}`
-        : `${prefix}, ${COMPONENT_PT[weakest.key].weak}`,
-    );
+  /*
+    ═══ O PREFIXO SAIU ═══════════════════════════════════════════════════════════════════════
+
+    Era "Entre as empatadas, …" ou "Comparada às outras do pódio, …" — até 29 caracteres de
+    garganta limpa antes de qualquer conteúdo, idênticos nos três cards, num espaço de ~200px onde
+    cada linha conta. E redundantes: a faixa de empate logo acima já diz que as três empataram, e os
+    três cards estão lado a lado, então "das três" já é o entendimento natural de quem lê.
+
+    O escopo continua explícito onde ele pode ser mal lido — no superlativo, que sem "das três"
+    soaria como "a melhor do catálogo".
+  */
+  const strongPick = assignDistinctAxes(scope, 1, SECONDARY_COMPONENT_GAP).get(entry.rank)
+    ?? ownExtreme(entry, others, 1, SECONDARY_COMPONENT_GAP);
+  const weakPick = assignDistinctAxes(scope, -1, SECONDARY_COMPONENT_GAP).get(entry.rank)
+    ?? ownExtreme(entry, others, -1, SECONDARY_COMPONENT_GAP);
+
+  /**
+   * Basta UM lado acima do piso alto para haver o que dizer; o outro entra com o piso secundário.
+   *
+   * A frase precisa dos dois lados sempre que os dois existirem, porque o assunto dela é a TROCA
+   * entre opções equivalentes. Só um lado deixaria o card ou vendendo ou depreciando.
+   *
+   * O piso ALTO é aferido sobre o próprio extremo do card, não sobre o eixo atribuído: a pergunta
+   * "há algo relevante a dizer sobre esta raquete?" é sobre a raquete, e não pode depender de qual
+   * eixo sobrou na distribuição.
+   */
+  const ownStrong = ownExtreme(entry, others, 1, -Infinity);
+  const ownWeak = ownExtreme(entry, others, -1, -Infinity);
+  const relevant =
+    (ownStrong?.delta ?? -Infinity) >= MEANINGFUL_COMPONENT_GAP ||
+    (ownWeak?.delta ?? Infinity) <= -MEANINGFUL_COMPONENT_GAP;
+
+  const strong = relevant ? strongPick : null;
+  const weak = relevant && weakPick?.key !== strong?.key ? weakPick : null;
+
+  /**
+   * Nenhuma diferença acima do ruído, e nenhuma gêmea.
+   *
+   * Especificações diferentes que mesmo assim não produzem distância mensurável no que importa para
+   * este jogador. Não é falha da análise — é o resultado dela, e dizê-lo é mais útil do que inventar
+   * um desempate a partir de decimais que nenhuma medição sustenta.
+   */
+  if (!strong && !weak) {
+    return {
+      headline:
+        'Equivalente às outras do pódio: a diferença fica abaixo do que as especificações ' +
+        'publicadas conseguem distinguir.',
+      identical_twin: false,
+    };
   }
 
-  return { headline: `${parts.join('; ')}.`, identical_twin: false };
+  /*
+    O superlativo precisa dizer DE QUE CONJUNTO ele é o máximo — sem isso, "é a mais confortável"
+    se lê como "do catálogo inteiro". Com o escopo fixado no pódio, o conjunto é sempre o que está
+    à vista, e "Das três" descreve exatamente o que o olho compara.
+  */
+  const setLabel = `Das ${CARDINAL[scope.length] ?? String(scope.length)}`;
+  const isExtreme = (pick: Delta, direction: 1 | -1) =>
+    others.every((o) => {
+      const mine = entry.breakdown.components.find((c) => c.key === pick.key)?.raw ?? 0;
+      const theirs = o.breakdown.components.find((c) => c.key === pick.key)?.raw ?? 0;
+      return (mine - theirs) * direction > 0;
+    });
+
+  const head = strong
+    ? isExtreme(strong, 1)
+      ? `${setLabel}, é ${COMPONENT_PT[strong.key].best}`
+      : upperFirst(COMPONENT_PT[strong.key].more)
+    : null;
+
+  const tail = weak
+    ? isExtreme(weak, -1)
+      ? `é ${COMPONENT_PT[weak.key].worst}`
+      : COMPONENT_PT[weak.key].less
+    : null;
+
+  if (head && tail) return { headline: `${head}. Em troca, ${tail}.`, identical_twin: false };
+  if (head) return { headline: `${head}.`, identical_twin: false };
+  return { headline: `${upperFirst(tail!)}.`, identical_twin: false };
 }
 
 /**
