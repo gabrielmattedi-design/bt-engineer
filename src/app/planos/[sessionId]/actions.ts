@@ -9,6 +9,49 @@ import { withAutoBootstrap } from '@/database/setup';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
+import { claimAnalysis, ensureUser } from '@/database/repositories/auth-repo';
+import { sendEmail } from '@/email/send';
+import { reportReadyEmail } from '@/email/templates';
+import { SITE_URL } from '@/lib/site';
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Guarda o e-mail e amarra a análise à pessoa.
+ *
+ * ─── POR QUE ISTO NÃO PODE DERRUBAR O FLUXO ──────────────────────────────────────────────────
+ *
+ * A identificação é um serviço ao cliente, não uma condição da compra. Se o banco engasgar ao
+ * gravar o usuário, a alternativa "recusar o pagamento" seria trocar um problema pequeno — a
+ * pessoa fica sem o e-mail de recuperação — por um grande: ela não recebe o que veio comprar.
+ *
+ * Então a falha é registrada e engolida, e devolve `null`. Quem chama segue adiante.
+ */
+async function identify(email: string, publicId: string): Promise<string | null> {
+  try {
+    const userId = await ensureUser(email);
+    await claimAnalysis(publicId, userId);
+    return userId;
+  } catch (error) {
+    console.error('[identificacao] falha ao vincular e-mail à análise:', error);
+    return null;
+  }
+}
+
+/** Manda o link do relatório para quem acabou de ganhar acesso. Silencioso quando não configurado. */
+async function sendReportEmail(input: {
+  email: string;
+  publicId: string;
+  productName: string;
+  amountCents: number;
+}): Promise<void> {
+  const mail = reportReadyEmail({
+    url: `${SITE_URL}/resultado/${input.publicId}`,
+    productName: input.productName,
+    amountCents: input.amountCents,
+  });
+  await sendEmail({ to: input.email, ...mail });
+}
 
 /**
  * Inicia o checkout — §33.
@@ -38,6 +81,18 @@ export async function startCheckout(
 ): Promise<{ error: string } | void> {
   const publicId = String(formData.get('session_id') ?? '');
   const sku = String(formData.get('sku') ?? '');
+  const email = String(formData.get('email') ?? '').trim();
+
+  /*
+    O e-mail é exigido ANTES de qualquer escrita, e a recusa é sobre o formato, não sobre existir.
+
+    Ele não é burocracia de cadastro: é o único caminho de volta ao relatório depois que a pessoa
+    fecha o navegador. Sem ele, a análise fica presa a um cookie — e a primeira limpeza de cache
+    apaga o que ela pagou.
+  */
+  if (!EMAIL.test(email)) {
+    return { error: 'Confira seu e-mail: é para lá que enviamos o link da sua análise.' };
+  }
 
   /**
    * O destino é calculado dentro do `try`, mas o `redirect()` acontece FORA dele.
@@ -71,7 +126,8 @@ export async function startCheckout(
     // sistema — mesma proteção que a gravação da análise já tinha.
     const order = await withAutoBootstrap(async () => {
       const sessionId = await ensureAnonymousSession(token);
-      return createOrder({ sessionId, publicId, sku });
+      const userId = await identify(email, publicId);
+      return createOrder({ sessionId, publicId, sku, userId });
     });
 
     if (!order) {
@@ -134,8 +190,24 @@ export async function redeemAccessCode(
 ): Promise<{ error: string } | void> {
   const publicId = String(formData.get('session_id') ?? '');
   const code = String(formData.get('code') ?? '');
+  const email = String(formData.get('email') ?? '').trim();
 
   if (code.trim().length === 0) return { error: 'Digite o código para continuar.' };
+
+  /*
+    Aqui o e-mail é OPCIONAL, ao contrário do checkout.
+
+    Quem entra por convite normalmente é alguém testando a pedido do dono, muitas vezes de um
+    aparelho emprestado, e exigir cadastro para um teste é atrito sem contrapartida. Quem informar
+    ganha o link por e-mail e a lista em /minhas-analises; quem não informar continua com o
+    relatório na tela, como sempre.
+
+    Formato inválido recusa, porque um endereço digitado errado é pior que endereço nenhum: cria a
+    expectativa de um e-mail que nunca chega.
+  */
+  if (email.length > 0 && !EMAIL.test(email)) {
+    return { error: 'Confira o e-mail — ou deixe em branco para seguir sem ele.' };
+  }
 
   try {
     const jar = await cookies();
@@ -157,6 +229,24 @@ export async function redeemAccessCode(
      */
     switch (outcome.kind) {
       case 'granted':
+        /*
+          A identificação vem DEPOIS da concessão, e nunca antes.
+
+          Se viesse antes, uma falha ao gravar o usuário impediria o acesso que o código já
+          autorizava — trocar o produto por um cadastro. Aqui o relatório já está liberado; o
+          e-mail é o extra que permite voltar a ele depois.
+        */
+        if (email.length > 0) {
+          const userId = await identify(email, publicId);
+          if (userId) {
+            await sendReportEmail({
+              email,
+              publicId,
+              productName: 'Acesso por convite',
+              amountCents: 0,
+            });
+          }
+        }
         break;
       case 'exhausted':
         return { error: 'Este código já atingiu o limite de usos.' };

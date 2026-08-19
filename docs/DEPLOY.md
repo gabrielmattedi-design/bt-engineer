@@ -63,6 +63,29 @@ cliente do libpq, não existe no servidor — e `src/database/client.ts` a remov
 As duas também existem como interruptor em `/admin/setup`, para não depender de redeploy. O convite
 **vence** de tudo: ligado, nenhuma outra chave reabre o checkout.
 
+### Acesso por e-mail (magic link)
+
+| Variável | Para quê |
+|---|---|
+| `AUTH_SECRET` | Assina o cookie de sessão. **Mínimo 32 caracteres, sem valor padrão** |
+| `RESEND_API_KEY` | Envio de e-mail. Sem ela nada é enviado — e a tela DIZ que não enviou |
+| `EMAIL_FROM` | Remetente. Padrão: `Tennis Engineer <nao-responda@tennisengineer.com.br>` |
+
+Não existe segredo padrão para `AUTH_SECRET`, e isso é deliberado: um padrão estaria no
+repositório, ou seja, seria público, e qualquer pessoa forjaria um cookie válido para qualquer
+conta. Sem a variável, o login por e-mail simplesmente não funciona — e a tela avisa em vez de
+fingir que enviou.
+
+Para gerar um valor, no console do navegador (F12 → Console):
+
+```js
+crypto.randomUUID() + crypto.randomUUID()
+```
+
+O remetente precisa estar num domínio **verificado no Resend** (registros DKIM e SPF no DNS).
+Sem isso o e-mail sai, mas cai em spam — e um link de acesso no spam é um cliente perdido, porque
+ninguém procura lá.
+
 ### Opcionais
 
 | Variável | Padrão | Observação |

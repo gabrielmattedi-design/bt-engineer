@@ -58,6 +58,33 @@ export function CouponForm({ sessionId }: { sessionId: string }) {
         </button>
       </div>
 
+      {/*
+        Opcional aqui, ao contrário do checkout — e o rótulo diz isso.
+
+        Quem entra por convite costuma estar testando a pedido de alguém, às vezes num aparelho
+        emprestado. Exigir cadastro para um teste é atrito sem contrapartida. Marcar "opcional" no
+        rótulo evita o outro extremo: o campo sem marca é lido como obrigatório e produz a mesma
+        desistência que a obrigatoriedade produziria.
+      */}
+      <div className="mt-4 border-t border-line pt-4">
+        <label htmlFor="coupon-email" className="text-sm font-medium">
+          Seu e-mail <span className="font-normal text-graphite">(opcional)</span>
+        </label>
+        <input
+          id="coupon-email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          placeholder="voce@exemplo.com"
+          className="mt-1 min-h-[52px] w-full rounded border border-line px-3
+                     focus-visible:border-court"
+        />
+        <p className="mt-1.5 text-[13px] leading-snug text-graphite">
+          Informe se quiser receber o link da análise e poder voltar a ela depois.
+        </p>
+      </div>
+
       {state?.error && <p className="mt-3 text-sm text-warn">{state.error}</p>}
     </form>
   );

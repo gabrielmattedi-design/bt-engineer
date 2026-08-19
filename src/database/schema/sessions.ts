@@ -93,6 +93,19 @@ export const recommendationSessions = pgTable(
      * específica: nasce com ela e morre com ela.
      */
     setupVariantId: text('setup_variant_id'),
+    /**
+     * A quem esta análise pertence, quando alguém se identifica.
+     *
+     * ─── POR QUE AQUI, E NÃO SÓ EM `orders` ────────────────────────────────────────────────────
+     *
+     * O pedido registra a COMPRA; esta coluna registra a POSSE, e as duas não coincidem. Um
+     * relatório liberado por código de convite não tem pedido nenhum, e mesmo assim é de alguém —
+     * sem esta coluna, quem entrou por convite faria login e veria uma lista vazia.
+     *
+     * Continua nulo enquanto a pessoa não informa e-mail: a análise nasce da sessão anônima e a
+     * identificação é um passo posterior e opcional.
+     */
+    userId: uuid('user_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('recommendation_sessions_session_idx').on(t.sessionId)],

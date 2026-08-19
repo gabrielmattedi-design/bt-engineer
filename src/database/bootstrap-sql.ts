@@ -233,4 +233,20 @@ END $$`,
     ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
   END IF;
 END $$`,
+  `CREATE TABLE IF NOT EXISTS "login_tokens" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"token_hash" text NOT NULL,
+	"user_id" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"consumed_at" timestamp with time zone,
+	CONSTRAINT "login_tokens_token_hash_unique" UNIQUE("token_hash")
+)`,
+  `DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'login_tokens_user_id_users_id_fk') THEN
+    ALTER TABLE "login_tokens" ADD CONSTRAINT "login_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$`,
+  `CREATE INDEX IF NOT EXISTS "login_tokens_user_idx" ON "login_tokens" USING btree ("user_id","created_at")`,
+  `ALTER TABLE "recommendation_sessions" ADD COLUMN IF NOT EXISTS "user_id" uuid`,
 ];

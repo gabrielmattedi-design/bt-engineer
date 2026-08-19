@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { paymentProvider } from '@/payments/adapters';
 import { simulatedPaymentsAllowed } from '@/payments/mode';
 import { processPaymentEvent } from '@/database/repositories/commerce-repo';
+import { sendEmail } from '@/email/send';
+import { reportReadyEmail } from '@/email/templates';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +52,26 @@ export async function POST(request: Request): Promise<NextResponse> {
         ignored: `transição ilegal ${outcome.from} → ${outcome.to}`,
       });
     case 'processed':
+      /*
+        ═══ O RECIBO SAI DEPOIS DA CONCESSÃO, E SUA FALHA NÃO DERRUBA O WEBHOOK ═══════════════
+
+        O acesso já está gravado quando chegamos aqui. Se o envio falhar — provedor fora, chave
+        expirada, e-mail recusado — o certo é responder 200 mesmo assim: um erro faria o gateway
+        reenviar o evento, e reenvio é justamente o que a idempotência absorve sem reconceder
+        nada. O resultado seria o gateway tentando para sempre um e-mail que não vai passar, e
+        marcando nosso webhook como problemático.
+      */
+      if (outcome.receipt) {
+        const mail = reportReadyEmail({
+          url: `${SITE_URL}/resultado/${outcome.receipt.publicId}`,
+          productName: outcome.receipt.productName,
+          amountCents: outcome.receipt.amountCents,
+        });
+        const sent = await sendEmail({ to: outcome.receipt.email, ...mail });
+        if (!sent.ok && sent.reason === 'rejected') {
+          console.error(`[webhook] recibo não enviado para o pedido ${event.orderId}: ${sent.detail}`);
+        }
+      }
       return NextResponse.json({ ok: true, granted: outcome.granted });
   }
 }

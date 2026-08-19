@@ -7,7 +7,9 @@ import {
   payments,
   products,
   recommendationSessions,
+  users,
 } from '@/database/schema';
+import { PRODUCT_SEED } from '@/database/setup';
 import { canTransition, type PaymentEvent, type PaymentStatus } from '@/payments/provider';
 import { PRODUCT_ENTITLEMENTS } from '@/payments/entitlements';
 
@@ -68,6 +70,8 @@ export async function createOrder(input: {
   sessionId: string;
   publicId: string;
   sku: string;
+  /** Quem comprou, quando o e-mail foi informado. Nulo não impede a compra — ver `identify()`. */
+  userId?: string | null;
 }): Promise<{ orderId: string; product: Product } | null> {
   const product = await productBySku(input.sku);
   if (!product) return null;
@@ -86,6 +90,7 @@ export async function createOrder(input: {
     .values({
       sessionId: input.sessionId,
       recommendationSessionId: rec[0].id,
+      userId: input.userId ?? null,
       productSku: product.sku,
       amountCents: product.priceCents,
       currency: product.currency,
@@ -114,11 +119,24 @@ export async function attachPayment(input: {
     .onConflictDoNothing();
 }
 
+/**
+ * Dados para o recibo, quando há pagamento confirmado e alguém identificado para recebê-lo.
+ *
+ * Sai daqui, e não de uma segunda consulta na rota, porque o webhook já leu essas linhas para
+ * conceder o acesso. Buscar de novo custaria três consultas para reconstruir o que estava em mãos.
+ */
+export type Receipt = {
+  readonly email: string;
+  readonly publicId: string;
+  readonly productName: string;
+  readonly amountCents: number;
+};
+
 export type WebhookOutcome =
   | { kind: 'duplicate' }
   | { kind: 'unknown_order' }
   | { kind: 'illegal_transition'; from: PaymentStatus; to: PaymentStatus }
-  | { kind: 'processed'; granted: readonly string[] };
+  | { kind: 'processed'; granted: readonly string[]; receipt?: Receipt };
 
 /**
  * Processa um evento de pagamento — docs/MONETIZATION.md §5.
@@ -162,8 +180,17 @@ export async function processPaymentEvent(
       sessionId: orders.sessionId,
       recommendationSessionId: orders.recommendationSessionId,
       sku: orders.productSku,
+      amountCents: orders.amountCents,
+      // `left join`: pedido sem e-mail é normal e não pode sumir da consulta que concede o acesso.
+      email: users.email,
+      publicId: recommendationSessions.publicId,
     })
     .from(orders)
+    .leftJoin(users, eq(users.id, orders.userId))
+    .leftJoin(
+      recommendationSessions,
+      eq(recommendationSessions.id, orders.recommendationSessionId),
+    )
     .where(eq(orders.id, event.orderId))
     .limit(1);
 
@@ -217,7 +244,22 @@ export async function processPaymentEvent(
     .set({ processedAt: new Date() })
     .where(eq(paymentEvents.id, claimed[0].id));
 
-  return { kind: 'processed', granted: grants };
+  /*
+    O recibo só existe quando há e-mail E análise. Falta de e-mail é o caso normal de quem comprou
+    antes de o cadastro existir, e não pode virar erro nem impedir a concessão — o acesso já foi
+    dado acima, e é ele que a pessoa comprou.
+  */
+  const receipt: Receipt | undefined =
+    order.email && order.publicId
+      ? {
+          email: order.email,
+          publicId: order.publicId,
+          productName: PRODUCT_SEED.find((p) => p.sku === order.sku)?.name ?? order.sku,
+          amountCents: order.amountCents,
+        }
+      : undefined;
+
+  return { kind: 'processed', granted: grants, receipt };
 }
 
 /** Revoga os entitlements de um pedido reembolsado (§7 do MONETIZATION). */
