@@ -172,7 +172,22 @@ describe('monotonicidade', () => {
     const armFriendly = (r: typeof a.full_ranking): number =>
       r.slice(0, 5).reduce((s, x) => s + x.racket.attributes.arm_friendliness_score, 0) / 5;
 
-    expect(armFriendly(b.full_ranking)).toBeGreaterThanOrEqual(armFriendly(a.full_ranking));
+    /*
+      ─── COMPARAÇÃO COM TOLERÂNCIA, E NÃO `>=` EXATO ────────────────────────────────────────
+
+      A curadoria de ago/2026 fez os dois lados empatarem no MESMO conjunto de cinco frames, e o
+      teste reprovou por 1 ULP:
+
+          expected 62.46600790513834 to be greater than or equal to 62.46600790513835
+
+      Os dois valores são o mesmo número; o que difere é a ORDEM em que as cinco parcelas foram
+      somadas, e soma de ponto flutuante não é associativa. Um `>=` exato sobre média de floats
+      testa a ordem de iteração junto com a propriedade, e a ordem não é o que está sendo afirmado.
+
+      A tolerância é minúscula de propósito: qualquer regressão de verdade nesta propriedade move a
+      média em pontos inteiros, não em 1e-14.
+    */
+    expect(armFriendly(b.full_ranking)).toBeGreaterThanOrEqual(armFriendly(a.full_ranking) - 1e-9);
   });
 
   /**

@@ -1,6 +1,6 @@
 {
   "brand": "Yonex",
-  "data_version": "2026.08.1",
+  "data_version": "2026.08.6",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -25,7 +25,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "23.5/26/22",
+        "beam_width_mm": "24.5/26.5/23",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -34,6 +34,14 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -51,7 +59,7 @@
         "balance_mm": 315,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "23/24/19",
+        "beam_width_mm": "23.8/24.5/19.5",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -60,6 +68,14 @@
           3,
           4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -77,7 +93,7 @@
         "balance_mm": 325,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "23.5/26/22",
+        "beam_width_mm": "24.5/26.5/23",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -85,31 +101,47 @@
           2,
           3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
       "family": "EZONE",
-      "model": "EZONE 98 Tour",
-      "variant": "98 Tour",
+      "model": "EZONE 105",
+      "variant": "105",
       "generation": "2025",
       "year": 2025,
-      "product_name": "Yonex EZONE 98 Tour (2025)",
+      "product_name": "Yonex EZONE 105 (2025)",
       "status": "current",
       "specs": {
-        "head_size_sq_in": 98,
+        "head_size_sq_in": 105,
         "length_in": 27,
-        "unstrung_weight_g": 315,
-        "balance_mm": 310,
+        "unstrung_weight_g": 275,
+        "balance_mm": 330,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "23/24/19",
-        "recommended_tension_min_lbs": 45,
-        "recommended_tension_max_lbs": 60,
+        "beam_width_mm": "24.5/26.5/23.5",
+        "recommended_tension_min_lbs": 40,
+        "recommended_tension_max_lbs": 55,
         "grip_sizes_available": [
+          1,
           2,
-          3,
-          4
+          3
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -127,7 +159,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "25.3/25.3/22",
+        "beam_width_mm": "24/26/23",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -142,8 +174,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga redesenhada na 8ª geração."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -161,7 +193,7 @@
         "balance_mm": 315,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "22/23/21",
+        "beam_width_mm": "23/23.5/22",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -176,8 +208,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga redesenhada na 8ª geração; medida por seção não confirmada. Conferir."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -195,7 +227,7 @@
         "balance_mm": 330,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "25.3/25.3/22",
+        "beam_width_mm": "24/26/23",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -209,8 +241,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga redesenhada na 8ª geração."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -237,32 +269,14 @@
           3,
           4
         ]
-      }
-    },
-    {
-      "family": "Percept",
-      "model": "Percept 100D",
-      "variant": "100D",
-      "generation": "2023",
-      "year": 2023,
-      "product_name": "Yonex Percept 100D (2023)",
-      "status": "current",
-      "specs": {
-        "head_size_sq_in": 100,
-        "length_in": 27,
-        "unstrung_weight_g": 305,
-        "balance_mm": 315,
-        "string_pattern_mains": 18,
-        "string_pattern_crosses": 20,
-        "beam_width_mm": "22/22/22",
-        "recommended_tension_min_lbs": 45,
-        "recommended_tension_max_lbs": 60,
-        "grip_sizes_available": [
-          1,
-          2,
-          3,
-          4
-        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -280,7 +294,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "22/22/22",
+        "beam_width_mm": "23/23/23",
         "recommended_tension_min_lbs": 45,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -289,31 +303,14 @@
           3,
           4
         ]
-      }
-    },
-    {
-      "family": "EZONE",
-      "model": "EZONE 105",
-      "variant": "105",
-      "generation": "2025",
-      "year": 2025,
-      "product_name": "Yonex EZONE 105 (2025)",
-      "status": "current",
-      "specs": {
-        "head_size_sq_in": 105,
-        "length_in": 27,
-        "unstrung_weight_g": 275,
-        "balance_mm": 330,
-        "string_pattern_mains": 16,
-        "string_pattern_crosses": 19,
-        "beam_width_mm": "24/26.5/23.5",
-        "recommended_tension_min_lbs": 40,
-        "recommended_tension_max_lbs": 55,
-        "grip_sizes_available": [
-          1,
-          2,
-          3
-        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     }
   ]

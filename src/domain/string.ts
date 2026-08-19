@@ -44,7 +44,14 @@ export type StringType =
 /** Tipos que exigem swing desenvolvido para serem ativados com segurança. */
 export const STIFF_STRING_TYPES: readonly StringType[] = ['polyester', 'co_polyester'];
 
-export type StringShape = 'round' | 'pentagonal' | 'hexagonal' | 'textured' | 'square';
+export type StringShape =
+  | 'round'
+  | 'pentagonal'
+  | 'hexagonal'
+  /** Oito faces — perfil mais próximo do redondo que o hexagonal. Ver `SHAPE_MODIFIER`. */
+  | 'octagonal'
+  | 'textured'
+  | 'square';
 
 /** Faixa de preço praticada no varejo brasileiro, por set. */
 export type PriceTier = 'budget' | 'mid' | 'premium' | 'ultra';

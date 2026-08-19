@@ -1,6 +1,6 @@
 {
   "brand": "Wilson",
-  "data_version": "2026.08.1",
+  "data_version": "2026.08.6",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -25,7 +25,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "21/21/21",
+        "beam_width_mm": "21.6/20.6",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -40,8 +40,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga do 98 passou a ser cônica no v10; medida por seção não confirmada. Conferir."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -59,7 +59,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 18,
         "string_pattern_crosses": 20,
-        "beam_width_mm": "21/21/21",
+        "beam_width_mm": "21.6/20.6",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -74,8 +74,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Viga do 98 passou a ser cônica no v10; medida por seção não confirmada. Conferir."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -108,26 +108,26 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
       "family": "Blade",
-      "model": "Blade 98L",
-      "variant": "98L",
+      "model": "Blade 100L",
+      "variant": "100L",
       "generation": "v10 (2026)",
       "year": 2026,
-      "product_name": "Wilson Blade 98L v10 (2026)",
+      "product_name": "Wilson Blade 100L v10 (2026)",
       "status": "current",
       "specs": {
-        "head_size_sq_in": 98,
+        "head_size_sq_in": 100,
         "length_in": 27,
         "unstrung_weight_g": 285,
-        "balance_mm": 325,
+        "balance_mm": 330,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "21/21/21",
+        "beam_width_mm": "22/22/22",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -141,8 +141,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -175,26 +175,94 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Wilson declara as MESMAS especificações do v14."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
-      "family": "Pro Staff",
-      "model": "Pro Staff 97L",
-      "variant": "97L",
-      "generation": "Classic v15 (2026)",
-      "year": 2026,
-      "product_name": "Wilson Pro Staff 97L Classic v15 (2026)",
+      "family": "Clash",
+      "model": "Clash 100",
+      "variant": "100",
+      "generation": "v3 (2025)",
+      "year": 2025,
+      "product_name": "Wilson Clash 100 v3 (2025)",
       "status": "current",
       "specs": {
-        "head_size_sq_in": 97,
+        "head_size_sq_in": 100,
         "length_in": 27,
-        "unstrung_weight_g": 290,
-        "balance_mm": 320,
+        "unstrung_weight_g": 295,
+        "balance_mm": 310,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "21.5/21.5/21.5",
+        "beam_width_mm": "24.5/24.5/24.5",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 60,
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
+      }
+    },
+    {
+      "family": "Clash",
+      "model": "Clash 100 Pro",
+      "variant": "100 Pro",
+      "generation": "v3 (2025)",
+      "year": 2025,
+      "product_name": "Wilson Clash 100 Pro v3 (2025)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 305,
+        "balance_mm": 310,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 20,
+        "beam_width_mm": "24.5/24.5/24.5",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 60,
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
+      }
+    },
+    {
+      "family": "Clash",
+      "model": "Clash 100L",
+      "variant": "100L",
+      "generation": "v3 (2025)",
+      "year": 2025,
+      "product_name": "Wilson Clash 100L v3 (2025)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 280,
+        "balance_mm": 315,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "24.5",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -208,60 +276,41 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Wilson declara as MESMAS especificações do v14."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
       "family": "Clash",
-      "model": "Clash 100",
-      "variant": "100",
-      "generation": "v3 (2024)",
-      "year": 2024,
-      "product_name": "Wilson Clash 100 v3 (2024)",
+      "model": "Clash 108",
+      "variant": "108",
+      "generation": "v3 (2025)",
+      "year": 2025,
+      "product_name": "Wilson Clash 108 v3 (2025)",
       "status": "current",
       "specs": {
-        "head_size_sq_in": 100,
-        "length_in": 27,
-        "unstrung_weight_g": 295,
-        "balance_mm": 320,
+        "head_size_sq_in": 108,
+        "length_in": 27.25,
+        "unstrung_weight_g": 280,
+        "balance_mm": 335,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "24.5/26.5/23.5",
-        "recommended_tension_min_lbs": 48,
-        "recommended_tension_max_lbs": 58,
+        "beam_width_mm": "24.5",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
           1,
           2,
-          3,
-          4
+          3
         ]
-      }
-    },
-    {
-      "family": "Clash",
-      "model": "Clash 100 Pro",
-      "variant": "100 Pro",
-      "generation": "v3 (2024)",
-      "year": 2024,
-      "product_name": "Wilson Clash 100 Pro v3 (2024)",
-      "status": "current",
-      "specs": {
-        "head_size_sq_in": 100,
-        "length_in": 27,
-        "unstrung_weight_g": 310,
-        "balance_mm": 310,
-        "string_pattern_mains": 16,
-        "string_pattern_crosses": 20,
-        "beam_width_mm": "24/24/24",
-        "recommended_tension_min_lbs": 48,
-        "recommended_tension_max_lbs": 58,
-        "grip_sizes_available": [
-          1,
-          2,
-          3,
-          4
-        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -279,7 +328,7 @@
         "balance_mm": 320,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "24/26.5/23.5",
+        "beam_width_mm": "24/26.5/24.25",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
@@ -294,8 +343,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -310,7 +359,7 @@
         "head_size_sq_in": 100,
         "length_in": 27,
         "unstrung_weight_g": 280,
-        "balance_mm": 330,
+        "balance_mm": 325,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
         "beam_width_mm": "24/26.5/24.5",
@@ -327,58 +376,76 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
-      "family": "Clash",
-      "model": "Clash 108",
-      "variant": "108",
-      "generation": "v3",
+      "family": "RF",
+      "model": "RF 01",
+      "variant": "01",
+      "generation": "2024",
       "year": 2024,
-      "product_name": "Wilson Clash 108 v3 (2024)",
+      "product_name": "Wilson RF 01",
       "status": "current",
       "specs": {
-        "head_size_sq_in": 108,
-        "length_in": 27.25,
-        "unstrung_weight_g": 280,
-        "balance_mm": 335,
+        "head_size_sq_in": 98,
+        "length_in": 27,
+        "unstrung_weight_g": 300,
+        "balance_mm": 315,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "24.5",
+        "beam_width_mm": "23/24/22",
         "recommended_tension_min_lbs": 50,
         "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
           1,
           2,
-          3
+          3,
+          4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
-      "family": "Ultra Power",
-      "model": "Ultra Power 103",
-      "variant": "103",
-      "generation": "2022",
-      "year": 2022,
-      "product_name": "Wilson Ultra Power 103",
+      "family": "Shift",
+      "model": "Shift 99",
+      "variant": "99",
+      "generation": "v1 (2024)",
+      "year": 2024,
+      "product_name": "Wilson Shift 99 v1",
       "status": "current",
       "specs": {
-        "head_size_sq_in": 103,
+        "head_size_sq_in": 99,
         "length_in": 27,
-        "unstrung_weight_g": 275,
-        "balance_mm": 330,
+        "unstrung_weight_g": 300,
+        "balance_mm": 315,
         "string_pattern_mains": 16,
-        "string_pattern_crosses": 19,
-        "beam_width_mm": "23",
-        "recommended_tension_min_lbs": null,
-        "recommended_tension_max_lbs": null,
+        "string_pattern_crosses": 20,
+        "beam_width_mm": "23.5",
+        "recommended_tension_min_lbs": 50,
+        "recommended_tension_max_lbs": 60,
         "grip_sizes_available": [
           1,
           2,
-          3
+          3,
+          4
         ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "data_version": "2026.08.5",
+  "data_version": "2026.08.6",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -19,6 +19,10 @@
       "firmness": "firm",
       "durability": "high",
       "tension_maintenance": "medium",
+      "feel": "crisp",
+      "launch": "low",
+      "bite": "medium",
+      "price_tier": "premium",
       "recommended_player_type": [
         "competitivo",
         "controle",
@@ -35,11 +39,7 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ],
-      "feel": "crisp",
-      "launch": "low",
-      "bite": "medium",
-      "price_tier": "premium"
+      ]
     },
     {
       "brand": "Luxilon",
@@ -50,6 +50,10 @@
       "firmness": "soft",
       "durability": "medium",
       "tension_maintenance": "medium",
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "low",
+      "price_tier": "mid",
       "recommended_player_type": [
         "conforto",
         "sensibilidade_braco",
@@ -66,11 +70,64 @@
           "gauge_us": "16",
           "brazil_availability_status": "limited"
         }
-      ],
-      "feel": "plush",
-      "launch": "medium",
+      ]
+    },
+    {
+      "brand": "Luxilon",
+      "model": "4G",
+      "string_type": "co_polyester",
+      "material": "co-poliéster",
+      "shape": "round",
+      "firmness": "very_firm",
+      "durability": "high",
+      "tension_maintenance": "high",
+      "feel": "muted",
+      "launch": "low",
       "bite": "low",
-      "price_tier": "mid"
+      "price_tier": "premium",
+      "recommended_player_type": [
+        "competitivo",
+        "controle",
+        "manutencao_tensao"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Luxilon",
+      "model": "ALU Power Rough",
+      "string_type": "co_polyester",
+      "material": "co-poliéster de alumínio",
+      "shape": "textured",
+      "firmness": "firm",
+      "durability": "high",
+      "tension_maintenance": "medium",
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "premium",
+      "recommended_player_type": [
+        "competitivo",
+        "spin",
+        "controle"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
+      ]
     },
     {
       "brand": "Solinco",
@@ -81,6 +138,10 @@
       "firmness": "medium",
       "durability": "high",
       "tension_maintenance": "medium",
+      "feel": "muted",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid",
       "recommended_player_type": [
         "spin",
         "controle",
@@ -102,11 +163,33 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ],
+      ]
+    },
+    {
+      "brand": "Solinco",
+      "model": "Hyper-G Soft",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento com fórmula amaciada",
+      "shape": "square",
+      "firmness": "soft",
+      "durability": "high",
+      "tension_maintenance": "high",
       "feel": "muted",
-      "launch": "medium",
+      "launch": "high",
       "bite": "high",
-      "price_tier": "mid"
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "spin",
+        "controle",
+        "conforto"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        }
+      ]
     },
     {
       "brand": "Solinco",
@@ -117,6 +200,10 @@
       "firmness": "firm",
       "durability": "high",
       "tension_maintenance": "medium",
+      "feel": "crisp",
+      "launch": "low",
+      "bite": "high",
+      "price_tier": "mid",
       "recommended_player_type": [
         "competitivo",
         "spin",
@@ -133,11 +220,38 @@
           "gauge_us": "16L",
           "brazil_availability_status": "widely_available"
         }
-      ],
+      ]
+    },
+    {
+      "brand": "Solinco",
+      "model": "Tour Bite Soft",
+      "string_type": "co_polyester",
+      "material": "co-poliéster",
+      "shape": "square",
+      "firmness": "soft",
+      "durability": "high",
+      "tension_maintenance": "medium",
       "feel": "crisp",
-      "launch": "low",
+      "launch": "medium",
       "bite": "high",
-      "price_tier": "mid"
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "spin",
+        "controle",
+        "conforto"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "available"
+        }
+      ]
     },
     {
       "brand": "Solinco",
@@ -148,6 +262,10 @@
       "firmness": "soft",
       "durability": "medium",
       "tension_maintenance": "high",
+      "feel": "muted",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid",
       "recommended_player_type": [
         "conforto",
         "spin",
@@ -159,381 +277,7 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ],
-      "feel": "muted",
-      "launch": "medium",
-      "bite": "high",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Babolat",
-      "model": "RPM Blast",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento",
-      "shape": "hexagonal",
-      "firmness": "medium",
-      "durability": "high",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "spin",
-        "controle"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.2,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "widely_available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "widely_available"
-        }
-      ],
-      "feel": "muted",
-      "launch": "medium",
-      "bite": "high",
-      "price_tier": "premium"
-    },
-    {
-      "brand": "Babolat",
-      "model": "Xcel",
-      "string_type": "multifilament",
-      "material": "multifilamento de poliamida",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "conforto",
-        "potencia"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "widely_available"
-        }
-      ],
-      "feel": "lively",
-      "launch": "high",
-      "bite": "medium",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Babolat",
-      "model": "Addiction",
-      "string_type": "multifilament",
-      "material": "multifilamento",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "conforto",
-        "potencia",
-        "spin"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "plush",
-      "launch": "high",
-      "bite": "high",
-      "price_tier": "budget"
-    },
-    {
-      "brand": "HEAD",
-      "model": "Lynx Tour",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento",
-      "shape": "pentagonal",
-      "firmness": "medium",
-      "durability": "high",
-      "tension_maintenance": "high",
-      "recommended_player_type": [
-        "controle",
-        "spin",
-        "manutencao_tensao"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.2,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "widely_available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "crisp",
-      "launch": "medium",
-      "bite": "medium",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "HEAD",
-      "model": "Velocity MLT",
-      "string_type": "multifilament",
-      "material": "multifilamento",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "conforto",
-        "controle",
-        "manutencao_tensao"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "muted",
-      "launch": "low",
-      "bite": "low",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Yonex",
-      "model": "Poly Tour Pro",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento com camada de silicone",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "medium",
-      "tension_maintenance": "high",
-      "recommended_player_type": [
-        "controle",
-        "spin",
-        "conforto",
-        "competitivo"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.2,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "widely_available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "crisp",
-      "launch": "medium",
-      "bite": "medium",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Yonex",
-      "model": "Poly Tour Strike",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento",
-      "shape": "round",
-      "firmness": "firm",
-      "durability": "high",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "competitivo",
-        "controle",
-        "resposta_abafada"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "muted",
-      "launch": "low",
-      "bite": "medium",
-      "price_tier": "premium"
-    },
-    {
-      "brand": "Yonex",
-      "model": "Rexis Comfort",
-      "string_type": "multifilament",
-      "material": "multifilamento com núcleo de poliuretano",
-      "shape": "round",
-      "firmness": "very_soft",
-      "durability": "low",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "conforto_maximo",
-        "sensibilidade_braco"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "plush",
-      "launch": "medium",
-      "bite": "medium",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Wilson",
-      "model": "NXT",
-      "string_type": "multifilament",
-      "material": "multifilamento com núcleo trançado",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "low",
-      "tension_maintenance": "high",
-      "recommended_player_type": [
-        "conforto_maximo",
-        "sensibilidade_braco"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "widely_available"
-        }
-      ],
-      "feel": "plush",
-      "launch": "medium",
-      "bite": "low",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Wilson",
-      "model": "Revolve",
-      "string_type": "co_polyester",
-      "material": "co-poliéster monofilamento",
-      "shape": "hexagonal",
-      "firmness": "medium",
-      "durability": "medium",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "spin",
-        "potencia",
-        "custo_beneficio"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "lively",
-      "launch": "medium",
-      "bite": "medium",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Wilson",
-      "model": "Synthetic Gut Power",
-      "string_type": "synthetic_gut",
-      "material": "nylon monofilamento",
-      "shape": "round",
-      "firmness": "medium",
-      "durability": "medium",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "custo_beneficio",
-        "potencia",
-        "iniciante"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "widely_available"
-        }
-      ],
-      "feel": "lively",
-      "launch": "high",
-      "bite": "low",
-      "price_tier": "budget"
-    },
-    {
-      "brand": "Babolat",
-      "model": "VS Touch",
-      "string_type": "natural_gut",
-      "material": "tripa natural bovina",
-      "shape": "round",
-      "firmness": "very_soft",
-      "durability": "medium",
-      "tension_maintenance": "high",
-      "recommended_player_type": [
-        "conforto_maximo",
-        "sensibilidade_braco",
-        "competitivo"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "limited",
-          "commercial_availability_note": "Importação frequente; disponibilidade e preço variam bastante no Brasil."
-        }
-      ],
-      "feel": "plush",
-      "launch": "medium",
-      "bite": "medium",
-      "price_tier": "ultra"
+      ]
     },
     {
       "brand": "Solinco",
@@ -544,6 +288,10 @@
       "firmness": "very_soft",
       "durability": "medium",
       "tension_maintenance": "high",
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "premium",
       "recommended_player_type": [
         "conforto",
         "spin",
@@ -571,25 +319,364 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "RPM Blast",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento",
+      "shape": "octagonal",
+      "firmness": "medium",
+      "durability": "high",
+      "tension_maintenance": "medium",
+      "feel": "muted",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "premium",
+      "recommended_player_type": [
+        "spin",
+        "controle"
       ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "18",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "RPM Rough",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento de alta densidade com textura rough",
+      "shape": "octagonal",
+      "firmness": "firm",
+      "durability": "high",
+      "tension_maintenance": "medium",
+      "feel": "muted",
+      "launch": "low",
+      "bite": "high",
+      "price_tier": "premium",
+      "recommended_player_type": [
+        "spin",
+        "controle",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "RPM Soft",
+      "string_type": "synthetic_gut",
+      "material": "poliamida monofilamento",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "feel": "lively",
+      "launch": "high",
+      "bite": "high",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "spin",
+        "conforto",
+        "sensibilidade_braco"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "Xcel",
+      "string_type": "multifilament",
+      "material": "multifilamento de poliamida",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "low",
+      "tension_maintenance": "medium",
+      "feel": "lively",
+      "launch": "high",
+      "bite": "medium",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "conforto",
+        "potencia"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "AddiXion+",
+      "string_type": "multifilament",
+      "material": "multifilamento de poliamida",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "feel": "plush",
+      "launch": "high",
+      "bite": "high",
+      "price_tier": "budget",
+      "recommended_player_type": [
+        "conforto",
+        "potencia",
+        "spin"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Babolat",
+      "model": "Touch VS",
+      "string_type": "natural_gut",
+      "material": "tripa natural bovina",
+      "shape": "round",
+      "firmness": "very_soft",
+      "durability": "medium",
+      "tension_maintenance": "high",
       "feel": "plush",
       "launch": "medium",
       "bite": "medium",
-      "price_tier": "premium"
+      "price_tier": "ultra",
+      "recommended_player_type": [
+        "conforto_maximo",
+        "sensibilidade_braco",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "limited"
+        }
+      ]
     },
     {
-      "brand": "Luxilon",
-      "model": "4G",
+      "brand": "HEAD",
+      "model": "Lynx Tour",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento",
+      "shape": "hexagonal",
+      "firmness": "medium",
+      "durability": "high",
+      "tension_maintenance": "high",
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "controle",
+        "spin",
+        "manutencao_tensao"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "18",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "HEAD",
+      "model": "Lynx",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento",
+      "shape": "round",
+      "firmness": "medium",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "low",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "controle",
+        "spin"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "HEAD",
+      "model": "Velocity MLT",
+      "string_type": "multifilament",
+      "material": "multifilamento",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "low",
+      "tension_maintenance": "medium",
+      "feel": "muted",
+      "launch": "low",
+      "bite": "low",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "conforto",
+        "controle",
+        "manutencao_tensao"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "HEAD",
+      "model": "Hawk Touch",
       "string_type": "co_polyester",
       "material": "co-poliéster",
       "shape": "round",
-      "firmness": "very_firm",
-      "durability": "high",
+      "firmness": "soft",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "feel": "muted",
+      "launch": "low",
+      "bite": "low",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "controle",
+        "precisao",
+        "conforto"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "18",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Yonex",
+      "model": "Poly Tour Pro",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento com camada de silicone",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "medium",
       "tension_maintenance": "high",
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "controle",
+        "spin",
+        "conforto",
+        "competitivo"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.2,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "16L",
+          "brazil_availability_status": "widely_available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Yonex",
+      "model": "Poly Tour Strike",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento",
+      "shape": "round",
+      "firmness": "firm",
+      "durability": "high",
+      "tension_maintenance": "medium",
+      "feel": "muted",
+      "launch": "low",
+      "bite": "medium",
+      "price_tier": "premium",
       "recommended_player_type": [
         "competitivo",
         "controle",
-        "manutencao_tensao"
+        "resposta_abafada"
       ],
       "variants": [
         {
@@ -602,47 +689,21 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ],
-      "feel": "muted",
-      "launch": "low",
-      "bite": "low",
-      "price_tier": "premium"
-    },
-    {
-      "brand": "Luxilon",
-      "model": "ALU Power Rough",
-      "string_type": "co_polyester",
-      "material": "co-poliéster de alumínio",
-      "shape": "textured",
-      "firmness": "firm",
-      "durability": "high",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "competitivo",
-        "spin",
-        "controle"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "crisp",
-      "launch": "medium",
-      "bite": "high",
-      "price_tier": "premium"
+      ]
     },
     {
       "brand": "Yonex",
       "model": "Poly Tour Rev",
       "string_type": "co_polyester",
       "material": "poliéster",
-      "shape": "pentagonal",
+      "shape": "octagonal",
       "firmness": "medium",
       "durability": "medium",
       "tension_maintenance": "medium",
+      "feel": "crisp",
+      "launch": "medium",
+      "bite": "high",
+      "price_tier": "mid",
       "recommended_player_type": [
         "spin",
         "competitivo"
@@ -663,11 +724,7 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ],
-      "feel": "crisp",
-      "launch": "medium",
-      "bite": "high",
-      "price_tier": "mid"
+      ]
     },
     {
       "brand": "Yonex",
@@ -678,6 +735,10 @@
       "firmness": "medium",
       "durability": "medium",
       "tension_maintenance": "medium",
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "mid",
       "recommended_player_type": [
         "potencia",
         "competitivo"
@@ -693,86 +754,23 @@
           "gauge_us": "16L",
           "brazil_availability_status": "available"
         }
-      ],
-      "feel": "lively",
-      "launch": "high",
-      "bite": "low",
-      "price_tier": "mid"
+      ]
     },
     {
-      "brand": "HEAD",
-      "model": "Hawk Touch",
-      "string_type": "co_polyester",
-      "material": "co-poliéster",
+      "brand": "Yonex",
+      "model": "Rexis Comfort",
+      "string_type": "multifilament",
+      "material": "nylon multifilamento com FORTIMO",
       "shape": "round",
-      "firmness": "soft",
-      "durability": "medium",
+      "firmness": "very_soft",
+      "durability": "low",
       "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "controle",
-        "precisao",
-        "conforto"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.2,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "muted",
-      "launch": "low",
-      "bite": "low",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Solinco",
-      "model": "Tour Bite Soft",
-      "string_type": "co_polyester",
-      "material": "co-poliéster",
-      "shape": "square",
-      "firmness": "soft",
-      "durability": "high",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "spin",
-        "controle",
-        "conforto"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.2,
-          "gauge_us": "17",
-          "brazil_availability_status": "available"
-        },
-        {
-          "gauge_mm": 1.25,
-          "gauge_us": "16L",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "crisp",
+      "feel": "plush",
       "launch": "medium",
-      "bite": "high",
-      "price_tier": "mid"
-    },
-    {
-      "brand": "Babolat",
-      "model": "RPM Soft",
-      "string_type": "co_polyester",
-      "material": "co-poliéster",
-      "shape": "round",
-      "firmness": "soft",
-      "durability": "medium",
-      "tension_maintenance": "medium",
+      "bite": "medium",
+      "price_tier": "mid",
       "recommended_player_type": [
-        "spin",
-        "conforto",
+        "conforto_maximo",
         "sensibilidade_braco"
       ],
       "variants": [
@@ -780,17 +778,95 @@
           "gauge_mm": 1.25,
           "gauge_us": "16L",
           "brazil_availability_status": "available"
+        }
+      ]
+    },
+    {
+      "brand": "Wilson",
+      "model": "NXT",
+      "string_type": "multifilament",
+      "material": "microfibras Xycro impregnadas com PU (núcleo X-bonded)",
+      "shape": "round",
+      "firmness": "soft",
+      "durability": "low",
+      "tension_maintenance": "high",
+      "feel": "plush",
+      "launch": "medium",
+      "bite": "low",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "conforto_maximo",
+        "sensibilidade_braco"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
+        },
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
+      ]
+    },
+    {
+      "brand": "Wilson",
+      "model": "Revolve",
+      "string_type": "co_polyester",
+      "material": "co-poliéster monofilamento",
+      "shape": "hexagonal",
+      "firmness": "medium",
+      "durability": "medium",
+      "tension_maintenance": "medium",
+      "feel": "lively",
+      "launch": "medium",
+      "bite": "medium",
+      "price_tier": "mid",
+      "recommended_player_type": [
+        "spin",
+        "potencia",
+        "custo_beneficio"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.25,
+          "gauge_us": "17",
+          "brazil_availability_status": "available"
         },
         {
           "gauge_mm": 1.3,
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ],
+      ]
+    },
+    {
+      "brand": "Wilson",
+      "model": "Synthetic Gut Power",
+      "string_type": "synthetic_gut",
+      "material": "núcleo sólido de nylon com wraps de alta energia",
+      "shape": "round",
+      "firmness": "medium",
+      "durability": "medium",
+      "tension_maintenance": "medium",
       "feel": "lively",
       "launch": "high",
-      "bite": "high",
-      "price_tier": "mid"
+      "bite": "low",
+      "price_tier": "budget",
+      "recommended_player_type": [
+        "custo_beneficio",
+        "potencia",
+        "iniciante"
+      ],
+      "variants": [
+        {
+          "gauge_mm": 1.3,
+          "gauge_us": "16",
+          "brazil_availability_status": "widely_available"
+        }
+      ]
     },
     {
       "brand": "Wilson",
@@ -801,6 +877,10 @@
       "firmness": "very_soft",
       "durability": "low",
       "tension_maintenance": "low",
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "budget",
       "recommended_player_type": [
         "conforto",
         "potencia",
@@ -817,37 +897,7 @@
           "gauge_us": "16",
           "brazil_availability_status": "available"
         }
-      ],
-      "feel": "lively",
-      "launch": "high",
-      "bite": "low",
-      "price_tier": "budget"
-    },
-    {
-      "brand": "HEAD",
-      "model": "Synthetic Gut PPS",
-      "string_type": "synthetic_gut",
-      "material": "nylon com núcleo PPS",
-      "shape": "round",
-      "firmness": "medium",
-      "durability": "medium",
-      "tension_maintenance": "medium",
-      "recommended_player_type": [
-        "custo_beneficio",
-        "iniciante",
-        "durabilidade"
-      ],
-      "variants": [
-        {
-          "gauge_mm": 1.3,
-          "gauge_us": "16",
-          "brazil_availability_status": "available"
-        }
-      ],
-      "feel": "crisp",
-      "launch": "medium",
-      "bite": "medium",
-      "price_tier": "budget"
+      ]
     },
     {
       "brand": "Wilson",
@@ -858,6 +908,10 @@
       "firmness": "very_soft",
       "durability": "medium",
       "tension_maintenance": "high",
+      "feel": "lively",
+      "launch": "high",
+      "bite": "low",
+      "price_tier": "ultra",
       "recommended_player_type": [
         "conforto_maximo",
         "potencia",
@@ -867,14 +921,9 @@
         {
           "gauge_mm": 1.3,
           "gauge_us": "16",
-          "brazil_availability_status": "limited",
-          "commercial_availability_note": "Importação frequente; disponibilidade e preço variam bastante no Brasil."
+          "brazil_availability_status": "limited"
         }
-      ],
-      "feel": "lively",
-      "launch": "high",
-      "bite": "low",
-      "price_tier": "ultra"
+      ]
     }
   ]
 }

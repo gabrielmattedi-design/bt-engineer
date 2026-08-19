@@ -21,7 +21,7 @@ import babolatJson from './rackets/babolat.json';
 import yonexJson from './rackets/yonex.json';
 import stringsJson from './strings/catalog.json';
 
-export const DATASET_VERSION = '2026.08.5';
+export const DATASET_VERSION = '2026.08.6';
 
 const provenanceSchema = z.object({
   source: z.enum([
@@ -132,7 +132,7 @@ const stringEntrySchema = z.object({
     'hybrid',
   ]),
   material: z.string().nullable(),
-  shape: z.enum(['round', 'pentagonal', 'hexagonal', 'textured', 'square']).nullable(),
+  shape: z.enum(['round', 'pentagonal', 'hexagonal', 'octagonal', 'textured', 'square']).nullable(),
   firmness: z.enum(['very_soft', 'soft', 'medium', 'firm', 'very_firm']),
   durability: z.enum(['low', 'medium', 'high']),
   tension_maintenance: z.enum(['low', 'medium', 'high']),

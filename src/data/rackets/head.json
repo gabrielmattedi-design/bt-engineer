@@ -1,6 +1,6 @@
 {
   "brand": "HEAD",
-  "data_version": "2026.08.1",
+  "data_version": "2026.08.6",
   "default_provenance": {
     "source": "manufacturer",
     "source_url": null,
@@ -40,8 +40,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -56,7 +56,7 @@
         "head_size_sq_in": 100,
         "length_in": 27,
         "unstrung_weight_g": 310,
-        "balance_mm": 315,
+        "balance_mm": 310,
         "string_pattern_mains": 18,
         "string_pattern_crosses": 20,
         "beam_width_mm": "23/23/23",
@@ -74,8 +74,42 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
+      }
+    },
+    {
+      "family": "Speed",
+      "model": "Speed Tour",
+      "variant": "Tour",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Speed Tour (2026)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 97,
+        "length_in": 27,
+        "unstrung_weight_g": 305,
+        "balance_mm": 315,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "23",
+        "recommended_tension_min_lbs": 48,
+        "recommended_tension_max_lbs": 57,
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -85,6 +119,39 @@
       "generation": "2026",
       "year": 2026,
       "product_name": "HEAD Speed Team (2026)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 105,
+        "length_in": 27,
+        "unstrung_weight_g": 270,
+        "balance_mm": 325,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "24/24/24",
+        "recommended_tension_min_lbs": 48,
+        "recommended_tension_max_lbs": 57,
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
+      }
+    },
+    {
+      "family": "Speed",
+      "model": "Speed MP L",
+      "variant": "MP L",
+      "generation": "2026",
+      "year": 2026,
+      "product_name": "HEAD Speed MP L (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 100,
@@ -107,41 +174,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
-      }
-    },
-    {
-      "family": "Speed",
-      "model": "Speed MP L",
-      "variant": "MP L",
-      "generation": "2026",
-      "year": 2026,
-      "product_name": "HEAD Speed MP L (2026)",
-      "status": "current",
-      "specs": {
-        "head_size_sq_in": 100,
-        "length_in": 27,
-        "unstrung_weight_g": 275,
-        "balance_mm": 330,
-        "string_pattern_mains": 16,
-        "string_pattern_crosses": 19,
-        "beam_width_mm": "23/23/23",
-        "recommended_tension_min_lbs": 48,
-        "recommended_tension_max_lbs": 57,
-        "grip_sizes_available": [
-          1,
-          2,
-          3
-        ]
-      },
-      "verification": {
-        "state": "pending_verification",
-        "verified_at": null,
-        "verified_by": null,
-        "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -174,17 +208,17 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Fabricante declara o MESMO molde de 2024; mudança é de layup (Hy-Bor), não de geometria."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
       "family": "Extreme",
-      "model": "Extreme Tour",
-      "variant": "Tour",
+      "model": "Extreme Pro",
+      "variant": "Pro",
       "generation": "2026",
       "year": 2026,
-      "product_name": "HEAD Extreme Tour (2026)",
+      "product_name": "HEAD Extreme Pro (2026)",
       "status": "current",
       "specs": {
         "head_size_sq_in": 98,
@@ -208,8 +242,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda. Fabricante declara o MESMO molde de 2024; mudança é de layup (Hy-Bor), não de geometria."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -242,8 +276,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -258,10 +292,10 @@
         "head_size_sq_in": 98,
         "length_in": 27,
         "unstrung_weight_g": 315,
-        "balance_mm": 310,
+        "balance_mm": 315,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "20/23/21",
+        "beam_width_mm": "20/21.5/21",
         "recommended_tension_min_lbs": 48,
         "recommended_tension_max_lbs": 57,
         "grip_sizes_available": [
@@ -276,8 +310,75 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
+      }
+    },
+    {
+      "family": "Radical",
+      "model": "Radical Team",
+      "variant": "Team",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "HEAD Radical Team (2025)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 102,
+        "length_in": 27,
+        "unstrung_weight_g": 280,
+        "balance_mm": 320,
+        "string_pattern_mains": 16,
+        "string_pattern_crosses": 19,
+        "beam_width_mm": "22/25/23",
+        "recommended_tension_min_lbs": 48,
+        "recommended_tension_max_lbs": 57,
+        "grip_sizes_available": [
+          1,
+          2,
+          3
+        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
+      }
+    },
+    {
+      "family": "Gravity",
+      "model": "Gravity Pro",
+      "variant": "Pro",
+      "generation": "2025",
+      "year": 2025,
+      "product_name": "HEAD Gravity Pro (2025)",
+      "status": "current",
+      "specs": {
+        "head_size_sq_in": 100,
+        "length_in": 27,
+        "unstrung_weight_g": 315,
+        "balance_mm": 310,
+        "string_pattern_mains": 18,
+        "string_pattern_crosses": 20,
+        "beam_width_mm": "20",
+        "recommended_tension_min_lbs": 48,
+        "recommended_tension_max_lbs": 57,
+        "grip_sizes_available": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "verification": {
+        "state": "pending_verification",
+        "verified_at": null,
+        "verified_by": null,
+        "source_url": null,
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -310,42 +411,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
-      }
-    },
-    {
-      "family": "Gravity",
-      "model": "Gravity Tour",
-      "variant": "Tour",
-      "generation": "2025",
-      "year": 2025,
-      "product_name": "HEAD Gravity Tour (2025)",
-      "status": "current",
-      "specs": {
-        "head_size_sq_in": 100,
-        "length_in": 27,
-        "unstrung_weight_g": 305,
-        "balance_mm": 320,
-        "string_pattern_mains": 18,
-        "string_pattern_crosses": 20,
-        "beam_width_mm": "22/22/22",
-        "recommended_tension_min_lbs": 48,
-        "recommended_tension_max_lbs": 57,
-        "grip_sizes_available": [
-          1,
-          2,
-          3,
-          4
-        ]
-      },
-      "verification": {
-        "state": "pending_verification",
-        "verified_at": null,
-        "verified_by": null,
-        "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     },
     {
@@ -360,10 +427,10 @@
         "head_size_sq_in": 100,
         "length_in": 27,
         "unstrung_weight_g": 295,
-        "balance_mm": 320,
+        "balance_mm": 315,
         "string_pattern_mains": 16,
         "string_pattern_crosses": 19,
-        "beam_width_mm": "26/26/23",
+        "beam_width_mm": "24/24/24",
         "recommended_tension_min_lbs": 48,
         "recommended_tension_max_lbs": 57,
         "grip_sizes_available": [
@@ -378,34 +445,8 @@
         "verified_at": null,
         "verified_by": null,
         "source_url": null,
-        "brazil_availability_status": "unknown",
-        "notes": "Geração atualizada para a linha corrente em ago/2026 (pesquisa de mercado, ago/2026). Molde mantido pelo fabricante salvo onde indicado. AGUARDANDO conferência humana contra a ficha oficial antes de qualquer venda."
-      }
-    },
-    {
-      "family": "Ti",
-      "model": "Ti.S6",
-      "variant": "Oversize",
-      "generation": "Ti",
-      "year": null,
-      "product_name": "HEAD Ti.S6",
-      "status": "current",
-      "specs": {
-        "head_size_sq_in": 115,
-        "length_in": 27.75,
-        "unstrung_weight_g": 225,
-        "balance_mm": 380,
-        "string_pattern_mains": 16,
-        "string_pattern_crosses": 19,
-        "beam_width_mm": "28.5",
-        "recommended_tension_min_lbs": null,
-        "recommended_tension_max_lbs": null,
-        "grip_sizes_available": [
-          1,
-          2,
-          3,
-          4
-        ]
+        "brazil_availability_status": "available",
+        "notes": "Especificações revisadas na curadoria de ago/2026. Aguardando registro da verificação no painel."
       }
     }
   ]

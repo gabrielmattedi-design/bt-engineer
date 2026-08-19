@@ -166,13 +166,31 @@ const TYPE_ARCHETYPE: Record<StringType, StringBaseAttributes> = {
   },
 };
 
-/** Formato não redondo aumenta a mordida na bola, ao custo de durabilidade da própria corda. */
+/**
+ * Formato não redondo aumenta a mordida na bola, ao custo de durabilidade da própria corda.
+ *
+ * ─── A ORDEM NÃO É GEOMÉTRICA ────────────────────────────────────────────────────────────────
+ *
+ * Poderia parecer que menos lados = aresta mais viva = mais mordida, e a escala desmente:
+ * pentagonal (5) morde MENOS que hexagonal (6). O que decide é a PROFUNDIDADE da aresta, não a
+ * contagem — e ela varia com o molde de cada fabricante. A escala aqui reflete posicionamento
+ * declarado e resenha técnica, na mesma linha do resto dos descritores de caráter.
+ *
+ * `octagonal` entrou com a curadoria de ago/2026 (Yonex Poly Tour Rev). Oito faces deixam o perfil
+ * mais perto do redondo e as arestas mais rasas que as de um hexagonal, então ela fica entre
+ * `textured` e `pentagonal` — que é onde a Yonex a posiciona: giro acima de uma redonda, sem a
+ * agressividade de uma quadrada.
+ *
+ * Antes dela existir na tabela, o acesso caía no `?? {}` da linha de aplicação e a corda ficava
+ * SEM bônus nenhum de giro — silenciosamente tratada como redonda, que é o oposto do que ela é.
+ */
 const SHAPE_MODIFIER: Record<string, Partial<StringBaseAttributes>> = {
   round: {},
+  textured: { spin_score: 8, control_score: 2, durability_score: -4, comfort_score: -2 },
+  octagonal: { spin_score: 9, control_score: 3, durability_score: -5, comfort_score: -3 },
   pentagonal: { spin_score: 10, control_score: 3, durability_score: -5, comfort_score: -3 },
   hexagonal: { spin_score: 11, control_score: 3, durability_score: -6, comfort_score: -3 },
   square: { spin_score: 12, control_score: 2, durability_score: -7, comfort_score: -4 },
-  textured: { spin_score: 8, control_score: 2, durability_score: -4, comfort_score: -2 },
 };
 
 /**
