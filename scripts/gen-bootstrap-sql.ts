@@ -31,10 +31,24 @@ function idempotent(statement: string): string {
     ].join('\n');
   }
 
-  return s
-    .replace(/^CREATE TABLE "/, 'CREATE TABLE IF NOT EXISTS "')
-    .replace(/^CREATE UNIQUE INDEX "/, 'CREATE UNIQUE INDEX IF NOT EXISTS "')
-    .replace(/^CREATE INDEX "/, 'CREATE INDEX IF NOT EXISTS "');
+  return (
+    s
+      .replace(/^CREATE TABLE "/, 'CREATE TABLE IF NOT EXISTS "')
+      .replace(/^CREATE UNIQUE INDEX "/, 'CREATE UNIQUE INDEX IF NOT EXISTS "')
+      .replace(/^CREATE INDEX "/, 'CREATE INDEX IF NOT EXISTS "')
+      /*
+        `ADD COLUMN` também precisa de `IF NOT EXISTS`, e não tinha.
+
+        Sem isso, rodar o bootstrap sobre um banco que já tem a coluna devolve
+        "column already exists" e o botão "Criar tabelas" quebra — exatamente o cenário que a
+        idempotência existe para cobrir, e exatamente com quem não tem como diagnosticar o erro.
+
+        O sintoma estava mascarado porque a única `ADD COLUMN` do projeto tinha sido corrigida à mão
+        no arquivo GERADO. A correção manual sobrevive até a próxima regeneração; esta regra
+        sobrevive sempre.
+      */
+      .replace(/^(ALTER TABLE "\w+" ADD COLUMN )"/, '$1IF NOT EXISTS "')
+  );
 }
 
 function main(): void {

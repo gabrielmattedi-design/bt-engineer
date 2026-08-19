@@ -42,13 +42,16 @@ export default async function VerificacaoPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <nav className="mb-6 flex gap-4 text-sm">
+        <nav className="mb-6 flex flex-wrap gap-4 text-sm">
           <span className="font-semibold">Curadoria</span>
           <a href="/admin/setup" className="text-graphite underline">
             Preparar o sistema
           </a>
           <a href="/admin/codigos" className="text-graphite underline">
             Códigos de acesso
+          </a>
+          <a href="/admin/analises" className="text-graphite underline">
+            Atendimento
           </a>
         </nav>
 

@@ -8,6 +8,13 @@
       "when": 1786750576911,
       "tag": "0000_mighty_celestials",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787142390913,
+      "tag": "0001_glossy_titania",
+      "breakpoints": true
     }
   ]
 }

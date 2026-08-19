@@ -10,6 +10,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { anonymousSessions, recommendationSessions } from './sessions';
+import { users } from './users';
 
 /**
  * Comércio — docs/DATA_MODEL.md §6.
@@ -40,6 +41,16 @@ export const orders = pgTable('orders', {
   recommendationSessionId: uuid('recommendation_session_id').references(
     () => recommendationSessions.id,
   ),
+  /**
+   * Quem comprou, quando se sabe — DATA_MODEL §6.
+   *
+   * NULO em toda compra feita hoje: o checkout ainda não pede e-mail. Continua opcional depois
+   * disso, porque a compra não pode DEPENDER da identificação — quem paga e fecha o navegador antes
+   * de qualquer confirmação precisa ter um pedido válido, não um pedido órfão.
+   *
+   * É a ponte que faz `/admin/analises` funcionar: e-mail → `users` → aqui → a análise.
+   */
+  userId: uuid('user_id').references(() => users.id),
   productSku: text('product_sku').notNull(),
   /**
    * SNAPSHOT do preço no momento da compra. Deliberadamente redundante com `products.price_cents`:

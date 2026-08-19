@@ -31,7 +31,7 @@ export default async function CodigosPage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-6 py-10">
-        <nav className="mb-6 flex gap-4 text-sm">
+        <nav className="mb-6 flex flex-wrap gap-4 text-sm">
           <a href="/admin/verificacao" className="text-graphite underline">
             Curadoria
           </a>
@@ -39,6 +39,9 @@ export default async function CodigosPage() {
             Preparar o sistema
           </a>
           <span className="font-semibold">Códigos de acesso</span>
+          <a href="/admin/analises" className="text-graphite underline">
+            Atendimento
+          </a>
         </nav>
 
         <h1 className="font-display text-2xl font-semibold">Códigos de acesso</h1>

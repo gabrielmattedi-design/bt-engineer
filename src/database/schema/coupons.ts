@@ -1,4 +1,13 @@
-import { boolean, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  foreignKey,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { anonymousSessions, recommendationSessions } from './sessions';
 
 /**
@@ -40,14 +49,55 @@ export const accessCoupons = pgTable('access_coupons', {
  * Existe para responder "quem usou o DJOKOINSS?" meses depois, e para que desativar um código não
  * apague o rastro de quem já entrou por ele. Sem isso, `used_count` seria um número sem história.
  */
-export const couponRedemptions = pgTable('coupon_redemptions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  code: text('code').notNull(),
-  sessionId: uuid('session_id')
-    .notNull()
-    .references(() => anonymousSessions.id),
-  recommendationSessionId: uuid('recommendation_session_id')
-    .notNull()
-    .references(() => recommendationSessions.id),
-  redeemedAt: timestamp('redeemed_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const couponRedemptions = pgTable(
+  'coupon_redemptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    code: text('code').notNull(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => anonymousSessions.id),
+    recommendationSessionId: uuid('recommendation_session_id').notNull(),
+    redeemedAt: timestamp('redeemed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * O índice de que o `onConflictDoNothing()` do resgate DEPENDE.
+     *
+     * ─── ELE ESTAVA FALTANDO ───────────────────────────────────────────────────────────────────
+     *
+     * `redeemCoupon()` grava o resgate com `onConflictDoNothing()` e trata "não voltou linha" como
+     * "já resgatado nesta análise" — é assim que resgatar duas vezes o mesmo código na mesma
+     * análise não consome dois usos. Isso só funciona se existir uma restrição única para o insert
+     * violar.
+     *
+     * A restrição vivia apenas como uma linha escrita À MÃO em `bootstrap-sql.ts`, sem contrapartida
+     * aqui. Consequência: um banco criado pelo botão "Criar tabelas" tinha o índice; um banco criado
+     * por `drizzle-kit migrate` NÃO tinha — e nele nenhum insert jamais conflitava, todo resgate
+     * repetido passava, e cada F5 na tela de código queimava mais um uso do cupom. A próxima
+     * regeneração do bootstrap apagaria a linha manual e levaria o furo também para o primeiro caso.
+     *
+     * Declarado aqui, ele passa a existir nos dois caminhos e o ORM finalmente sabe que ele existe.
+     */
+    uniqueIndex('coupon_redemptions_unique_idx').on(t.code, t.recommendationSessionId),
+
+    /**
+     * FK nomeada à mão — e aqui o nome automático não era só feio, era QUEBRADO.
+     *
+     * O Drizzle geraria `coupon_redemptions_recommendation_session_id_recommendation_sessions_id_fk`,
+     * com 74 caracteres. O Postgres corta identificadores em 63 e grava o nome truncado. O bootstrap
+     * idempotente pergunta `SELECT 1 FROM pg_constraint WHERE conname = '<nome de 74>'` — que nunca
+     * encontra nada, porque o que está gravado tem 63. A guarda passa sempre, o `ADD CONSTRAINT` roda
+     * de novo e a segunda execução morre com "constraint already exists".
+     *
+     * Ou seja: o botão "Criar tabelas" funcionava uma vez e quebrava na segunda, com um erro que não
+     * explica nada para quem o aperta. É exatamente a armadilha já documentada em `racketRankings` e
+     * `entitlements` — esta tabela simplesmente nasceu depois e não recebeu o mesmo cuidado.
+     */
+    foreignKey({
+      columns: [t.recommendationSessionId],
+      foreignColumns: [recommendationSessions.id],
+      name: 'coupon_redemptions_rec_session_fk',
+    }),
+  ],
+);

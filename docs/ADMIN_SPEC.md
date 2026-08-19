@@ -124,6 +124,23 @@ Lista de `recommendation_sessions` com: data, confiança, Top 3, engine/dataset 
 Busca por `public_id`. Detalhe abre o breakdown completo — é a ferramenta de suporte quando um cliente
 questiona um resultado.
 
+> **Implementado como `/admin/analises`, e com uma divergência deliberada: sem a lista.**
+>
+> A parte de SUPORTE existe — busca exata por e-mail, ID da análise, ID do pedido ou ID do pagamento,
+> mostrando pedidos, entitlements e um link para o relatório servido pelas mesmas regras de acesso do
+> cliente. É o caminho de volta para quem pagou e perdeu o link.
+>
+> A LISTAGEM não foi construída, e não deve ser sem uma decisão explícita. Uma tela que enumera
+> `recommendation_sessions` é uma janela para folhear os dados de todos os clientes — perfil físico,
+> estilo de jogo, histórico de compra — e a distância entre ela e uma ferramenta de atendimento é uma
+> linha de código. A busca exata obriga quem consulta a JÁ SABER de quem está falando, o que é a
+> proteção real da tela; a senha do admin não é.
+>
+> Os ALERTAS automáticos desta seção (concentração, confiança baixa, fit médio) são análise agregada,
+> não consulta a indivíduo, e podem ser construídos sem esse risco — sobre contagens, não sobre linhas.
+>
+> Toda consulta grava `support_lookups` (tipo da busca e resultado, nunca o termo). Ver DATA_MODEL §8.
+
 Alertas automáticos:
 - **Concentração:** um modelo em > 25% dos Top 1 → auditar o algoritmo (pode indicar peso mal calibrado
   ou lacuna de catálogo).

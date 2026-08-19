@@ -453,3 +453,37 @@ CREATE TABLE feedback (
 - `deleteSubject(sessionId)`: apaga `users`, anonimiza `orders.user_id`, mantém `feedback` e agregados
   sem qualquer vínculo identificável.
 - Retenção: sessões anônimas sem compra são purgadas em 180 dias.
+
+```sql
+CREATE TABLE users (                 -- criada no checkout; a única com dado pessoal
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,        -- sempre normalizado: trim + lowercase
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE support_lookups (       -- auditoria de /admin/analises
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  query_kind text NOT NULL,          -- analise|pedido|pagamento|email — NUNCA o termo buscado
+  matched_count int NOT NULL,
+  recommendation_session_id uuid REFERENCES recommendation_sessions(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+`support_lookups` guarda o TIPO da busca, não o termo: registrar o e-mail consultado criaria uma
+segunda tabela com dado pessoal, contra a regra acima, justamente no log feito para protegê-lo. O
+`ON DELETE SET NULL` faz o registro da consulta sobreviver ao exercício do direito de exclusão — um
+log apagado junto com o dado auditado não audita nada.
+
+### Estado da implementação
+
+| Item | Situação |
+|---|---|
+| `users`, `orders.user_id` | tabela e coluna **existem**; nada grava nelas ainda — o checkout não pede e-mail |
+| `support_lookups` | em uso por `/admin/analises` |
+| `deleteSubject(sessionId)` | **não implementado** |
+| Purga de 180 dias | **não implementada** — não há rotina de expurgo no código |
+
+As duas últimas linhas são promessas deste documento que o código ainda não cumpre. Estão anotadas
+aqui, e não silenciadas, porque uma retenção prometida e não executada só vira problema no dia em
+que alguém perguntar.
