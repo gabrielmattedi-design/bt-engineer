@@ -1,4 +1,5 @@
 import type { RadarAxis } from '@/payments/radar';
+import { SITE_DOMAIN } from '@/lib/site';
 import { axisAngle, labelAnchor, labelPoint, topBlockRotation } from './radar-geometry';
 
 /**
@@ -254,7 +255,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
         fontSize="24"
         letterSpacing="2"
       >
-        tennis-engineer.vercel.app
+        {SITE_DOMAIN}
       </text>
       <text x={W - 80} y={H - 60} textAnchor="end" fill={PALETTE.faint} fontSize="24">
         Seu jogo. Seu setup. Sob medida.
