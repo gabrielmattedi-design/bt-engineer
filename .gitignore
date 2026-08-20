@@ -10,3 +10,8 @@ coverage/
 .DS_Store
 *.png
 e2e-*.mjs
+
+# Criativos de anúncio — gerados por `npx tsx scripts/gerar-criativos.ts`.
+# Ficam fora do repositório: são PNGs pesados, regeneráveis a qualquer momento, e mudam a cada
+# ajuste de texto. O que precisa ser versionado é o SCRIPT, que é a fonte deles.
+/criativos/
