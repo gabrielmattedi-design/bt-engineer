@@ -23,9 +23,20 @@ import type { PlayerProfile } from '@/domain/player-profile';
 import type { TensionAdjustment, TensionRecommendation } from '@/domain/recommendation';
 import { computeOpenness } from '@/recommendation/normalize/racket-attributes';
 
+/**
+ * Quanto a tensão base se desloca conforme o material.
+ *
+ * A lógica é a rigidez dinâmica: um poliéster fica sensivelmente mais duro que um multifilamento
+ * NA MESMA TENSÃO, então se compensa encordoando mais baixo. Materiais elásticos aceitam mais.
+ *
+ * `polyamide_monofilament` entra em -1.0: a poliamida é bem mais macia que um co-poliéster (que
+ * leva -3.0), mas continua sendo fio único, sem a elasticidade de uma trançada (que leva +0.5).
+ * O meio-termo é o que a construção sustenta.
+ */
 const STRING_TYPE_ADJUSTMENT: Record<StringType, number> = {
   polyester: -3.0,
   co_polyester: -3.0,
+  polyamide_monofilament: -1.0,
   multifilament: 0.5,
   synthetic_gut: 0.5,
   natural_gut: 1.0,

@@ -175,7 +175,7 @@
       "durability": "high",
       "tension_maintenance": "high",
       "feel": "muted",
-      "launch": "high",
+      "launch": "medium",
       "bite": "high",
       "price_tier": "mid",
       "recommended_player_type": [
@@ -365,8 +365,8 @@
       "firmness": "firm",
       "durability": "high",
       "tension_maintenance": "medium",
-      "feel": "muted",
-      "launch": "low",
+      "feel": "crisp",
+      "launch": "medium",
       "bite": "high",
       "price_tier": "premium",
       "recommended_player_type": [
@@ -385,7 +385,7 @@
     {
       "brand": "Babolat",
       "model": "RPM Soft",
-      "string_type": "synthetic_gut",
+      "string_type": "polyamide_monofilament",
       "material": "poliamida monofilamento",
       "shape": "round",
       "firmness": "soft",
@@ -545,9 +545,9 @@
       "firmness": "medium",
       "durability": "medium",
       "tension_maintenance": "medium",
-      "feel": "crisp",
+      "feel": "lively",
       "launch": "medium",
-      "bite": "low",
+      "bite": "medium",
       "price_tier": "mid",
       "recommended_player_type": [
         "controle",

@@ -117,19 +117,23 @@ const CLASSIFICACAO: Readonly<Record<string, Classe>> = {
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Normalização de taxonomia — nomes diferentes para a mesma categoria.
+ * Normalização de taxonomia — quando a planilha usa outro nome para uma categoria existente.
  *
- * `polyamide_monofilament` é poliamida, isto é, NÁILON, e náilon é exatamente o que a taxonomia
- * chama de `synthetic_gut`. Não é categoria nova: é o mesmo material com outro nome, e o detalhe
- * ("poliamida monofilamento") sobrevive intacto no campo `material`.
+ * ─── ESTAVA AQUI E SAIU: `polyamide_monofilament` ────────────────────────────────────────────
  *
- * ⚠️ Mas atenção ao efeito: a Babolat RPM Soft estava como `co_polyester` e a curadoria a trouxe
- * como poliamida. Sair de co-poliéster para náilon muda MUITO os scores — potência, conforto e
- * rigidez são categorias distintas. A troca é honrada porque foi uma decisão de curadoria, e é
- * anunciada no fim da importação porque merece uma segunda olhada.
+ * Na primeira importação eu mapeei poliamida para `synthetic_gut`, com o argumento de que
+ * poliamida é náilon e náilon é synthetic gut. O argumento é verdadeiro na química e errado no
+ * produto: "synthetic gut" descreve uma CONSTRUÇÃO — núcleo de náilon com camadas enroladas —
+ * macia, barata e pouco durável. Um fio único de poliamida é outra coisa.
+ *
+ * A ficha da Babolat diz `Composition: Polyamide` para a RPM Soft e explica que ela é mais
+ * flexível que os poliésteres. Colapsá-la em synthetic gut trocaria uma informação correta do
+ * fabricante por uma classificação genérica — e mandaria a corda errada para quem pede conforto.
+ *
+ * Virou categoria própria em `StringType`, com arquétipo interpolado entre os vizinhos reais.
  */
 const TAXONOMIA_TIPO: Readonly<Record<string, string>> = {
-  polyamide_monofilament: 'synthetic_gut',
+  // vazio: `polyamide_monofilament` passou a ser categoria própria — ver a nota acima.
 };
 
 /**
@@ -143,39 +147,46 @@ const RENOMEADAS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Os três genuinamente inéditos.
+ * Os três genuinamente inéditos — agora com a leitura da CURADORIA, não com a minha dedução.
  *
- * `feel`, `launch` e `bite` não são medidos em laboratório e o catálogo já registra isso: vêm de
- * resenhas técnicas e do posicionamento do fabricante. Aqui saem do MESMO processo, ancorados no
- * irmão de linha que já está no catálogo — e o raciocínio está escrito para poder ser contestado.
+ * ─── DE ONDE VIERAM ESTES VALORES ────────────────────────────────────────────────────────────
  *
- * ⚠️ Estes três merecem conferência humana antes da venda.
+ * A primeira importação preencheu os três por analogia com o irmão de linha, e eu marquei os três
+ * como pendentes de conferência. A conferência veio, com fonte, numa escala 0–10:
+ *
+ *                        feel  launch  bite
+ *   Solinco Hyper-G Soft  7,5   6,0    9,0   "intense spin and bite" (Solinco)
+ *   Babolat RPM Rough     6,0   6,5    9,0   octogonal + textura rough (Babolat)
+ *   HEAD Lynx             7,0   6,5    5,5   monofilamento de controle, "lively touch" (HEAD)
+ *
+ * Cinco dos nove valores derrubaram a minha dedução — em especial o lançamento da Hyper-G Soft
+ * (eu tinha `high`, é médio) e o da RPM Rough (eu tinha `low`, é médio).
+ *
+ * ─── A ESCALA NÃO É A MESMA COISA ────────────────────────────────────────────────────────────
+ *
+ * `launch` e `bite` são graus e traduzem direto: 6,0–6,5 de 10 é `medium`, 9,0 é `high`, 5,5 é
+ * `medium`.
+ *
+ * `feel` NÃO é grau — no catálogo ele é CARÁTER (`muted`/`crisp`/`plush`/`lively`), não qualidade.
+ * "Feel 7,5" quer dizer "bom toque", que não diz se a resposta é abafada ou viva. O caráter aqui
+ * veio da leitura em prosa que acompanhou as notas: "firme" para a RPM Rough → `crisp`;
+ * "resposta viva/confortável" para a Lynx → `lively`, que é literalmente o "lively touch" da HEAD.
+ * A Hyper-G Soft ficou `muted`, herdado da Hyper-G, porque nada na leitura contradiz.
  */
 const INEDITAS: Readonly<Record<string, Record<string, unknown>>> = {
-  /*
-    Irmã macia da Hyper-G. O par Tour Bite → Tour Bite Soft, que já está no catálogo, mostra como a
-    Solinco desloca uma linha ao amaciá-la: mantém o perfil quadrado e a mordida, e sobe o
-    lançamento um degrau. Aplicado à Hyper-G (square, muted, launch medium, bite high).
-  */
+  // Solinco: "playability/control", fórmula mais macia, "intense spin and bite".
   'solinco-hyper-g-soft': {
-    shape: 'square', feel: 'muted', launch: 'high', bite: 'high',
+    shape: 'square', feel: 'muted', launch: 'medium', bite: 'high',
     price_tier: 'mid', recommended_player_type: ['spin', 'controle', 'conforto'],
   },
-  /*
-    Versão texturizada da RPM Blast — mesmo molde hexagonal, superfície áspera. O CSV a traz mais
-    rígida que a Blast (firm vs medium), e mais rígida significa lançamento mais baixo.
-  */
+  // Babolat: estrutura octogonal + textura rough, spin excepcional e maior aderência na bola.
   'babolat-rpm-rough': {
-    shape: 'hexagonal', feel: 'muted', launch: 'low', bite: 'high',
+    shape: 'octagonal', feel: 'crisp', launch: 'medium', bite: 'high',
     price_tier: 'premium', recommended_player_type: ['spin', 'controle', 'competitivo'],
   },
-  /*
-    A Lynx "pura" é a versão REDONDA da linha; a Lynx Tour é a pentagonal. Perfil redondo morde
-    menos, e é a única diferença que o formato sustenta afirmar. Sem a alegação de manutenção de
-    tensão que a Tour carrega.
-  */
+  // HEAD: monofilamento focado em controle, com "lively touch". Sem geometria agressiva.
   'head-lynx': {
-    shape: 'round', feel: 'crisp', launch: 'medium', bite: 'low',
+    shape: 'round', feel: 'lively', launch: 'medium', bite: 'medium',
     price_tier: 'mid', recommended_player_type: ['controle', 'spin'],
   },
 };
@@ -315,7 +326,14 @@ function importStrings(csvPath: string): { modelos: number; variantes: number; i
         erros.push(`${modeloId}: corda nova sem descritores — acrescente em INEDITAS`);
         continue;
       }
-      if (!herdado) inferidas.push(`${l.marca} ${l.modelo}`);
+      /*
+        O aviso segue a ORIGEM do descritor, não a ausência de herança.
+
+        Antes ele disparava só quando o modelo era novo — e sumia na segunda importação, depois de
+        o catálogo já ter sido gravado com esses valores. Ou seja: parava de avisar exatamente
+        quando o valor já estava em produção e o aviso passava a ser a única pista de onde ele veio.
+      */
+      if (inedita) inferidas.push(`${l.marca} ${l.modelo}`);
 
       const tipo = TAXONOMIA_TIPO[l.tipo!] ?? l.tipo!;
       if (tipo !== l.tipo) retipadas.push(`${l.marca} ${l.modelo}: ${l.tipo} → ${tipo}`);
@@ -386,8 +404,8 @@ function main(): void {
   console.log(`   cordas:   ${c.modelos} modelos · ${c.variantes} variantes`);
 
   if (c.inferidas.length > 0) {
-    console.log(`\n⚠️  ${c.inferidas.length} corda(s) com descritores de caráter INFERIDOS do irmão de linha.`);
-    console.log('   Não são medições; merecem conferência humana antes da venda:');
+    console.log(`\n📌 ${c.inferidas.length} corda(s) com feel/launch/bite vindos da tabela INEDITAS,`);
+    console.log('   e não da planilha — a planilha de conferência não traz esses campos:');
     c.inferidas.forEach((n) => console.log(`     · ${n}`));
   }
 

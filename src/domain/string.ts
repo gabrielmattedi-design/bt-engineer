@@ -36,6 +36,12 @@ export const STRING_BRANDS: readonly StringBrand[] = [
 export type StringType =
   | 'polyester'
   | 'co_polyester'
+  /**
+   * Fio único de poliamida — mais macio que qualquer poliéster, mais firme e durável que uma
+   * synthetic gut trançada. Categoria própria porque nenhuma das duas vizinhas a descreve:
+   * ver a nota de calibração em `string-attributes.ts`.
+   */
+  | 'polyamide_monofilament'
   | 'multifilament'
   | 'synthetic_gut'
   | 'natural_gut'

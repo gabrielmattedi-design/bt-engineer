@@ -134,6 +134,43 @@ const TYPE_ARCHETYPE: Record<StringType, StringBaseAttributes> = {
     tension_maintenance_score: 64,
     arm_friendliness_score: 74,
   },
+  /**
+   * NOTA DE CALIBRAÇÃO (v2.5.0): categoria criada na curadoria de ago/2026.
+   *
+   * ─── POR QUE ELA NÃO PODE SER `synthetic_gut` ───────────────────────────────────────────────
+   *
+   * A Babolat RPM Soft trouxe o problema. A ficha oficial diz `Composition: Polyamide`, e ela é
+   * comercializada dentro da família RPM — o que faz muita gente (e a conferência anterior deste
+   * catálogo) classificá-la como co-poliéster. Não é. Mas jogá-la em `synthetic_gut` também erra,
+   * por outro motivo: "synthetic gut" descreve uma CONSTRUÇÃO — núcleo de náilon com camadas
+   * enroladas — que é macia, barata e pouco durável. Uma poliamida MONOFILAMENTO é outra coisa:
+   * fio único, mais firme e mais durável que uma synthetic gut, e bem mais macia que um poliéster.
+   *
+   * Colapsar as duas na mesma categoria transformaria uma informação correta do fabricante numa
+   * classificação genérica — e o motor entregaria a corda errada para quem pede conforto.
+   *
+   * ─── DE ONDE VÊM OS NÚMEROS ─────────────────────────────────────────────────────────────────
+   *
+   * Interpolados entre os dois vizinhos reais, com a construção decidindo cada eixo:
+   *
+   *   potência/conforto/braço → acima de co_polyester, abaixo de multifilamento. A poliamida é
+   *     nitidamente mais elástica que qualquer poliéster, e é isso que a Babolat vende.
+   *   controle/rigidez       → abaixo de co_polyester, acima de synthetic_gut. Mais macia que
+   *     poliéster significa menos controle bruto; monofilamento significa mais que uma trançada.
+   *   durabilidade           → monofilamento dura mais que synthetic gut e menos que poliéster.
+   *   spin                   → o fio único agarra mais que uma synthetic gut e menos que a
+   *     superfície de um co-poliéster.
+   */
+  polyamide_monofilament: {
+    power_score: 58,
+    control_score: 64,
+    spin_score: 58,
+    comfort_score: 58,
+    stiffness_score: 52,
+    durability_score: 62,
+    tension_maintenance_score: 56,
+    arm_friendliness_score: 58,
+  },
   synthetic_gut: {
     power_score: 64,
     control_score: 56,

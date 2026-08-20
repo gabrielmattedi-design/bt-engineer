@@ -9,5 +9,12 @@
  */
 
 export const RECOMMENDATION_ENGINE_VERSION = '2.3.0';
-export const STRING_ENGINE_VERSION = '2.2.0';
+/*
+  2.3.0 — categoria `polyamide_monofilament` (ago/2026).
+
+  Não é ajuste de peso: é um arquétipo NOVO na tabela de tipos, com faixa de tensão e deslocamento
+  próprios. Toda corda de poliamida passa a ser pontuada por ele, então relatórios anteriores não
+  são reproduzíveis com esta versão — que é exatamente o que o número serve para registrar.
+*/
+export const STRING_ENGINE_VERSION = '2.3.0';
 export const QUESTIONNAIRE_VERSION = '1.3.0';

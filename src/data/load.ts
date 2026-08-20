@@ -126,6 +126,7 @@ const stringEntrySchema = z.object({
   string_type: z.enum([
     'polyester',
     'co_polyester',
+    'polyamide_monofilament',
     'multifilament',
     'synthetic_gut',
     'natural_gut',

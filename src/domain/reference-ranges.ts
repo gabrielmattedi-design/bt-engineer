@@ -17,7 +17,7 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-export const METHODOLOGY_VERSION = '2.6.0';
+export const METHODOLOGY_VERSION = '2.7.0';
 
 export type Range = readonly [lo: number, hi: number];
 
@@ -60,6 +60,14 @@ export const SWING_AXIS_MM = 100;
 export const TENSION_BOUNDS_LBS = {
   polyester: [40, 58] as Range,
   co_polyester: [40, 58] as Range,
+  /**
+   * Entre o poliéster e a synthetic gut, como o material.
+   *
+   * O piso sobe em relação ao poliéster porque a poliamida é mais elástica: encordoada muito baixa
+   * ela vira trampolim, problema que um poliéster não tem. O teto fica abaixo do da synthetic gut
+   * porque o fio único não perdoa tensão alta como uma trançada perdoa.
+   */
+  polyamide_monofilament: [43, 60] as Range,
   multifilament: [45, 64] as Range,
   synthetic_gut: [45, 62] as Range,
   natural_gut: [48, 66] as Range,
