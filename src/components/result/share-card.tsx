@@ -46,6 +46,63 @@ const RADAR_CX = 540;
 const RADAR_CY = 700;
 const RADAR_R = 190;
 
+/** Altura de linha da frase de perfil, em unidades do viewBox. */
+const PHRASE_LINE_HEIGHT = 46;
+
+/**
+ * Quantos caracteres cabem numa linha da frase.
+ *
+ * Estimado, não medido: SVG renderizado no servidor não tem como consultar a métrica da fonte. A
+ * largura útil é 920 (1080 menos as margens de 80), e uma sans em 38px/600 gasta cerca de 20px por
+ * caractere na média do português. 44 deixa folga para as palavras largas — "compatibilidade",
+ * "desconforto" — sem desperdiçar linha.
+ */
+const PHRASE_MAX_CHARS = 44;
+
+/** Duas linhas no máximo: a terceira invadiria os rótulos do radar, que começam em y≈476. */
+const PHRASE_MAX_LINES = 2;
+
+/**
+ * Quebra a frase em linhas, cortando entre palavras.
+ *
+ * Uma palavra maior que a linha inteira não existe nas frases de perfil, e mesmo assim ela sai
+ * numa linha só — melhor estourar um caso improvável do que partir palavra no meio, que é o que a
+ * versão sem quebra já fazia e é justamente o defeito sendo corrigido.
+ */
+export function wrapPhrase(
+  phrase: string,
+  maxChars = PHRASE_MAX_CHARS,
+  maxLines = PHRASE_MAX_LINES,
+): string[] {
+  const palavras = phrase.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let atual = '';
+
+  for (let i = 0; i < palavras.length; i += 1) {
+    const palavra = palavras[i]!;
+    const candidata = atual ? `${atual} ${palavra}` : palavra;
+
+    if (candidata.length <= maxChars) {
+      atual = candidata;
+      continue;
+    }
+
+    // Já na última linha disponível: cabe o que couber e as reticências dizem que há mais.
+    if (lines.length === maxLines - 1) {
+      const resto = atual ? `${atual} ${palavras.slice(i).join(' ')}` : palavras.slice(i).join(' ');
+      atual = `${resto.slice(0, maxChars - 1).trimEnd()}…`;
+      break;
+    }
+
+    // `atual || palavra` cobre a palavra sozinha maior que a linha: sai inteira, sem partir.
+    lines.push(atual || palavra);
+    atual = atual ? palavra : '';
+  }
+
+  if (atual) lines.push(atual);
+  return lines;
+}
+
 function point(index: number, total: number, value: number, rotation: number): [number, number] {
   const a = axisAngle(index, total, rotation);
   const r = (Math.max(0, Math.min(100, value)) / 100) * RADAR_R;
@@ -81,6 +138,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
   const axes = data.radar;
   const total = axes.length;
   const rotation = topBlockRotation(axes);
+  const phraseLines = wrapPhrase(data.phrase);
 
   return (
     <svg
@@ -139,16 +197,38 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
         </text>
       )}
 
+      {/*
+        ═══ A FRASE QUEBRA EM DUAS LINHAS ════════════════════════════════════════════════
+
+        `<text>` de SVG NÃO quebra linha. Não há `width`, não há `overflow`, não há reticências:
+        o que passa da borda do viewBox some, cortado no meio da palavra.
+
+        Isso estava acontecendo em produção, no artefato mais público que existe. "Agressor de
+        linha de base que quer firmeza no controle" tem 53 caracteres e cabem ~44 na largura útil —
+        quem compartilhasse o card publicava uma frase truncada sobre si mesmo, e o corte acontece
+        DEPOIS de tudo estar certo no servidor, então nada no sistema acusava.
+
+        As frases de perfil são geradas e podem crescer; a quebra tinha de ser calculada, não
+        ajustada à mão para a frase mais longa de hoje.
+      */}
+      {phraseLines.map((line, i) => (
+        <text
+          key={line}
+          x="80"
+          y={(data.playerName ? 320 : 280) + i * PHRASE_LINE_HEIGHT}
+          fill={PALETTE.paper}
+          fontSize="38"
+          fontWeight="600"
+        >
+          {line}
+        </text>
+      ))}
       <text
         x="80"
-        y={data.playerName ? 320 : 280}
-        fill={PALETTE.paper}
-        fontSize="38"
-        fontWeight="600"
+        y={(data.playerName ? 366 : 326) + (phraseLines.length - 1) * PHRASE_LINE_HEIGHT}
+        fill={PALETTE.faint}
+        fontSize="27"
       >
-        {data.phrase}
-      </text>
-      <text x="80" y={data.playerName ? 366 : 326} fill={PALETTE.faint} fontSize="27">
         Nível {data.level.toLowerCase()}
       </text>
 
