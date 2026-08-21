@@ -18,6 +18,10 @@
  */
 
 /**
+ * 2.10.0 — um eixo de bola sem pedido deixou de ser desenhado em 70 e passa a aparecer atendido
+ * (100), como o motor já o tratava: `objectiveFit` exclui esses eixos da média em vez de pontuá-los.
+ * O número do match não muda — ele nunca contou esses eixos. O que muda é o gráfico parar de cobrar.
+ *
  * 2.9.0 — a linha do radar passou a ser o IDEAL: a borda da escala de adequação, 100 em todo eixo,
  * que nenhuma raquete ultrapassa. A 2.8.0 a tinha posto como nível de pedido (55 a 94), o que
  * plotava duas grandezas diferentes no mesmo eixo — adequação contra intensidade de pedido.
@@ -30,7 +34,7 @@
  * metodologia não pode carregar dois significados diferentes para a mesma linha do mesmo gráfico —
  * quem abrir um relatório antigo precisa conseguir saber qual das duas leituras estava valendo.
  */
-export const METHODOLOGY_VERSION = '2.9.0';
+export const METHODOLOGY_VERSION = '2.10.0';
 
 export type Range = readonly [lo: number, hi: number];
 
