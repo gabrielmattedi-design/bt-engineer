@@ -59,29 +59,79 @@ function area(axes: readonly { value: number; weight: number }[]): number {
 
 describe('coerência entre o radar e a recomendação', () => {
   /**
-   * O TETO precisa variar de eixo para eixo.
+   * A LINHA DE EXIGÊNCIA não pode saturar — nem em 100, nem numa constante qualquer.
    *
-   * Ele já foi uma constante 100, e o usuário matou a ideia com uma frase: "de acordo com a linha
-   * laranja, meu jogo pede o máximo de tudo, não tem inteligência nenhuma por trás". Estava certo —
-   * uma linha constante na borda é um círculo, e um círculo não diz nada. Esta asserção impede que
-   * ela volte a ser plana.
+   * ═══ AS DUAS FORMAS DE SATURAR QUE JÁ ACONTECERAM ══════════════════════════════════════════
+   *
+   * Primeiro ela foi a constante 100, e o usuário matou a ideia com uma frase: "de acordo com a
+   * linha laranja, meu jogo pede o máximo de tudo, não tem inteligência nenhuma por trás".
+   *
+   * Depois virou o TETO — o melhor que alguma raquete viável alcança no eixo — e o mesmo defeito
+   * voltou disfarçado, porque um máximo sobre ~19 raquetes satura por construção. O teste antigo
+   * não pegou: ele só exigia que os valores não fossem TODOS iguais, e 100/100/100/100/99/100/100/93
+   * passa nesse critério enquanto é, visualmente, o mesmo círculo.
+   *
+   * Medido na época, nas 22 personas: 56% dos eixos em 99+, "Seu físico" em 100 em todas elas.
+   *
+   * Por isso a asserção agora é sobre a AMPLITUDE, não sobre a mera existência de dois valores
+   * distintos. É a amplitude que o olho lê como hierarquia.
    */
-  it('todo eixo está em adequação 0–100, e o teto varia entre os eixos', () => {
+  it('a linha de exigência tem hierarquia visível e não encosta na borda', () => {
     for (const { persona, report } of runs) {
       expect(report.radar.length, persona.id).toBeGreaterThanOrEqual(8);
 
-      const tetos = new Set(report.radar.map((a) => a.profile));
-      expect(tetos.size, `${persona.id}: teto constante em ${[...tetos][0]}`).toBeGreaterThan(1);
+      const exigencias = report.radar.map((a) => a.profile);
+      const amplitude = Math.max(...exigencias) - Math.min(...exigencias);
+
+      // Sem isto, "quase constante" passaria — foi exatamente assim que a versão do teto escapou.
+      expect(amplitude, `${persona.id}: exigência quase plana (${exigencias.join('/')})`)
+        .toBeGreaterThanOrEqual(10);
 
       for (const axis of report.radar) {
-        expect(axis.profile, `${persona.id}/${axis.key}`).toBeLessThanOrEqual(100);
-        // O teto é, por definição, o melhor entre as viáveis — a recomendada nunca o ultrapassa.
-        expect(axis.recommended, `${persona.id}/${axis.key}`).toBeLessThanOrEqual(axis.profile);
+        /**
+         * A borda tem um significado que uma exigência não tem: 100 é adequação perfeita, um limite
+         * do que existe. Um pedido é prioridade, não exigência de perfeição — e a folga reservada é
+         * o que impede a linha de voltar a ser lida como "quero o máximo de tudo".
+         */
+        expect(axis.profile, `${persona.id}/${axis.key}: exigência encostou na borda`)
+          .toBeLessThanOrEqual(95);
+        expect(axis.profile, `${persona.id}/${axis.key}`).toBeGreaterThanOrEqual(50);
+
+        /**
+         * A recomendada PODE ultrapassar a exigência, e isso é um bom resultado — significa que ela
+         * entrega mais do que foi pedido naquele aspecto. O teste antigo proibia justamente isso,
+         * porque a linha era um teto de oferta; como agora ela é um pedido, a proibição virou erro.
+         */
         expect(axis.recommended).toBeGreaterThanOrEqual(0);
         expect(axis.recommended).toBeLessThanOrEqual(100);
         if (axis.current !== null) {
           expect(axis.current).toBeGreaterThanOrEqual(0);
           expect(axis.current).toBeLessThanOrEqual(100);
+        }
+      }
+    }
+  });
+
+  /**
+   * A hierarquia tem que corresponder ao que foi RESPONDIDO, não a uma ordem qualquer.
+   *
+   * Amplitude sozinha não basta: um gerador de números aleatórios passaria na asserção acima. O que
+   * torna a linha honesta é o eixo mais exigido ser o mais pedido no questionário.
+   */
+  it('o eixo de bola mais exigido é o que o jogador mais pediu', () => {
+    for (const { persona, report } of runs) {
+      const profile = buildPlayerProfile(persona.answers);
+      const bola = report.radar.filter((a) => a.group === 'bola');
+
+      const pedidos = bola.map((a) => Math.abs(profile.desired_change_vector[a.key as NeedKey]));
+      const maiorPedido = Math.max(...pedidos);
+      // Sem pedido algum não há ordem a verificar — os três ficam no piso, e isso é o correto.
+      if (maiorPedido === 0) continue;
+
+      const maiorExigencia = Math.max(...bola.map((a) => a.profile));
+      for (let i = 0; i < bola.length; i += 1) {
+        if (pedidos[i] === maiorPedido) {
+          expect(bola[i]!.profile, `${persona.id}/${bola[i]!.key}`).toBe(maiorExigencia);
         }
       }
     }

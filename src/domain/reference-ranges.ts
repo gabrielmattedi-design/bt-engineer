@@ -17,7 +17,16 @@
  * └──────────────────────────────────────────────────────────────────────────────────────────┘
  */
 
-export const METHODOLOGY_VERSION = '2.7.0';
+/**
+ * 2.8.0 — a linha "o que seu jogo pede" do radar deixou de ser o teto da oferta e passou a ser o
+ * pedido do questionário, com hierarquia entre os eixos (ver `payments/radar.ts`).
+ *
+ * O RANKING não mudou: nenhum score, peso ou penalidade foi tocado, e as mesmas respostas produzem
+ * a mesma raquete. Ainda assim a versão sobe, porque o relatório é o produto e um mesmo número de
+ * metodologia não pode carregar dois significados diferentes para a mesma linha do mesmo gráfico —
+ * quem abrir um relatório antigo precisa conseguir saber qual das duas leituras estava valendo.
+ */
+export const METHODOLOGY_VERSION = '2.8.0';
 
 export type Range = readonly [lo: number, hi: number];
 

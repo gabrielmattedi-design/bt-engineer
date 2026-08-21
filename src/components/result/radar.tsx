@@ -194,7 +194,13 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
     },
     {
       key: 'profile',
-      label: 'Melhor possível para você',
+      /**
+       * Era `Melhor possível para você`, e esse rótulo morreu junto com a versão em que a linha era
+       * o teto da oferta. Ela agora é o PEDIDO do questionário, com hierarquia entre os eixos — o
+       * rótulo precisa dizer de quem é a exigência, senão o leitor volta a ler o gráfico como um
+       * ranking de produto em vez de um retrato do que ele mesmo respondeu.
+       */
+      label: 'O que seu jogo pede',
       values: axes.map((a) => a.profile),
       stroke: PALETTE.clay,
       fill: 'none',
