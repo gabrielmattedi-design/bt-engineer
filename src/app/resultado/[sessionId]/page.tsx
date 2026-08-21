@@ -263,16 +263,23 @@ export default async function ResultadoPage({
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo — não é uma nota da raquete. Os três de cima medem quanto do que VOCÊ PEDIU cada raquete entrega — onde você não pediu mudança, as três linhas caem no mesmo ponto, o que não é empate e sim ausência de critério. Os cinco de baixo medem o encaixe entre ela e você. Nenhum dos oito é uma característica fixa do produto: todos mudariam de valor, na mesma raquete, se quem respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na maioria dos eixos: foi exatamente por encaixar melhor que ela foi escolhida. Para comparar as raquetes entre si como PRODUTO, use a tabela de índices — lá toda raquete do catálogo soma o mesmo total.</p>
+              Os três eixos de cima mostram <strong>onde cada raquete cai na faixa do catálogo</strong>{' '}
+              naquele aspecto — da que menos entrega à que mais entrega, entre todas as avaliadas.
+              Os cinco de baixo mostram <strong>o encaixe entre a raquete e você</strong>, e não são
+              característica fixa do produto: mudariam de valor, na mesma raquete, se quem
+              respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na
+              maioria deles — foi exatamente por encaixar melhor que ela foi escolhida. Para
+              comparar raquetes entre si como PRODUTO, use a tabela de índices.</p>
             <p className="mt-3 max-w-prose text-sm text-graphite">
-              A linha laranja é o <strong>ideal para você</strong> — a borda do gráfico, nos oito
-              eixos. Nenhuma raquete a ultrapassa, porque não existe mais adequado que perfeito.
-              Nos três eixos de cima esse ideal é o que você pediu,{' '}
-              <strong>limitado ao que existe para o seu perfil</strong>: quando você pede mais do
-              que qualquer raquete adequada a você alcança, o alvo para no que dá para alcançar, e
-              entregar mais do que você pediu chega na borda em vez de furá-la. Onde o verde fica
-              abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto cada
-              bloco pesou na decisão está logo abaixo do gráfico.
+              A linha laranja é o <strong>seu alvo</strong>, e ela muda de natureza entre os dois
+              blocos — o que está escrito em cada quadro abaixo do gráfico. Nos cinco eixos de
+              baixo ela é a borda: 100 é o encaixe perfeito, e nenhuma raquete passa disso. Nos
+              três de cima ela é <strong>o que você pediu, normalizado ao que existe para o seu
+              perfil</strong>: se você pediu mais potência do que qualquer quadro adequado ao seu
+              nível oferece, o alvo desce para o que dá para alcançar, em vez de marcar um ponto
+              que ninguém atinge. Onde o verde fica abaixo do alvo, houve uma troca — e o tamanho
+              do vão é o tamanho da troca. O quanto cada bloco pesou na decisão está logo abaixo
+              do gráfico.
             </p>
 
             <div className="mt-6 rounded border border-line bg-white p-6">

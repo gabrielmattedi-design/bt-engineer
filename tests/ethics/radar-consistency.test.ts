@@ -101,141 +101,110 @@ describe('coerência entre o radar e a recomendação', () => {
   });
 
   /**
-   * A INVARIANTE PRINCIPAL: nenhuma série ultrapassa a linha tracejada, em nenhum dos oito eixos.
+   * A INVARIANTE PRINCIPAL: o eixo que a pessoa PRIORIZOU nunca é o pior vértice do gráfico.
    *
    * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
    *
-   * Relato do usuário, com o gráfico na tela: "em spin, a raquete recomendada — que está dentro do
-   * meu perfil por consequência — está ACIMA do limite laranja".
+   * Relato do usuário: "pedi potência, e o sistema me mostra que está me dando tudo menos
+   * potência. Isso não pode, de jeito nenhum".
    *
-   * A causa não era calibração, era escala. Num eixo de bola SEM pedido as raquetes valiam NEUTRAL
-   * (70) enquanto a tracejada saía do piso de exigência (55): setenta contra cinquenta e cinco, o
-   * amarelo passava por CONSTRUÇÃO, em todo eixo não pedido, para todo mundo. E nos eixos COM
-   * pedido a linha marcava o tamanho do pedido, então entregar mais do que se pediu também a
-   * furava — 460 dos 2640 eixos medidos, com excesso mediano de 14 a 18 pontos.
+   * A causa era estrutural, não de calibração. Enquanto a tracejada dos eixos de bola foi a borda
+   * — "100 = alcançou o melhor que existe para você" — a recomendada ficava aquém em TODOS eles,
+   * porque o melhor quadro em potência é um, o melhor em spin é outro, e ela é a melhor no
+   * CONJUNTO. Somando que nos cinco eixos de encaixe ela marca 90 a 100 (foi escolhida por
+   * encaixar), o eixo priorizado aparecia como o pior do desenho, sempre.
    *
-   * Hoje o alvo do pedido é o DENOMINADOR dos eixos de bola, então 100 significa "chegou no ideal
-   * possível para você" nos oito, e passar do pedido satura na borda em vez de furá-la.
+   * Com a tracejada de bola sendo o PEDIDO normalizado à realidade do jogador, e as raquetes em
+   * posição de catálogo, isso deixou de acontecer: 0 de 626 perfis medidos.
    *
-   * Este é o teste que não deixa a linha voltar a significar coisas diferentes em vértices
-   * diferentes: se alguém mudar a escala de um bloco sem mudar a do outro, alguma série passa da
-   * borda e isto falha.
+   * Este teste é o que impede a volta de qualquer escala em que o vértice priorizado seja o menor.
    */
-  it('nenhuma série ultrapassa a linha tracejada, nos oito eixos', () => {
+  it('o eixo priorizado nunca é o pior vértice', () => {
+    let comPrioridade = 0;
+
     for (const { persona, report } of runs) {
-      for (const axis of report.radar) {
+      const profile = buildPlayerProfile(persona.answers);
+      const fortes = NEED_KEYS.filter((k) => profile.desired_change_vector[k] >= 20);
+      if (fortes.length === 0) continue;
+
+      const principal = fortes.reduce((a, b) =>
+        profile.desired_change_vector[a] >= profile.desired_change_vector[b] ? a : b,
+      );
+      const eixo = report.radar.find((a) => a.key === principal);
+      if (!eixo) continue;
+      comPrioridade += 1;
+
+      const menor = Math.min(...report.radar.map((a) => a.recommended));
+      expect(
+        eixo.recommended,
+        `${persona.id}: priorizou ${principal} e ele é o pior vértice (${eixo.recommended})`,
+      ).toBeGreaterThan(menor);
+    }
+
+    expect(comPrioridade, 'nenhuma persona com prioridade — o teste não verificou nada')
+      .toBeGreaterThan(0);
+  });
+
+  /**
+   * Nos eixos de ENCAIXE a tracejada é a borda e ninguém passa: ali não existe "mais adequado que
+   * perfeito". Nos de BOLA ela é o pedido, e passar dela é entregar mais do que se pediu — por
+   * isso a checagem é só de um lado.
+   */
+  it('nos eixos de encaixe nenhuma série passa da borda', () => {
+    for (const { persona, report } of runs) {
+      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
+        expect(axis.profile, `${persona.id}/${axis.key}: a borda deixou de ser 100`).toBe(100);
+
         for (const [nome, valor] of [
           ['recomendada', axis.recommended],
           ['catálogo', axis.catalog],
           ['atual', axis.current],
         ] as const) {
           if (valor === null) continue;
-          expect(
-            valor,
-            `${persona.id}/${axis.key}: ${nome} em ${valor} passou do tracejado em ${axis.profile}`,
-          ).toBeLessThanOrEqual(axis.profile);
+          expect(valor, `${persona.id}/${axis.key}: ${nome} passou da borda`).toBeLessThanOrEqual(
+            100,
+          );
         }
       }
     }
   });
 
   /**
-   * Nos eixos de bola COM pedido a tracejada é a borda, igual aos de encaixe.
+   * Um eixo de bola SEM pedido precisa continuar tendo dado de verdade em cada série.
    *
-   * A hierarquia entre os eixos pedidos não vive mais nesta linha — ela vive no PESO, que aparece
-   * escrito abaixo do gráfico. Foi uma troca deliberada: a linha carregando hierarquia obrigava
-   * duas escalas no mesmo desenho, e nada no gráfico dizia ao leitor qual delas valia onde.
+   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   *
+   * Relato do usuário: "controle e spin devem ter algo errado, pois a linha laranja, a da
+   * recomendada, a da atual e a da média estão todas no mesmo lugar".
+   *
+   * Estavam mesmo. Sem pedido no eixo, as séries recebiam um NEUTRAL fixo (70) que não dependia de
+   * raquete nenhuma — as quatro caíam no mesmo ponto e o vértice virava um empate falso. Já tinha
+   * sido tentado levar esse neutro a 100, e o empate só mudou de lugar.
+   *
+   * Em posição de catálogo o problema não existe: cada raquete tem a sua, pedida ou não.
    */
-  it('eixo de bola com pedido tem o tracejado na borda', () => {
-    let verificados = 0;
-
-    for (const { persona, report } of runs) {
-      const profile = buildPlayerProfile(persona.answers);
-      const bola = report.radar.filter((a) => a.group === 'bola');
-      expect(bola.length, persona.id).toBe(3);
-
-      for (const axis of bola) {
-        const pedido = Math.abs(profile.desired_change_vector[axis.key as NeedKey]);
-        if (pedido <= 5) continue;
-        verificados += 1;
-        expect(axis.profile, `${persona.id}/${axis.key}: pedido não chegou à borda`).toBe(100);
-      }
-    }
-
-    expect(verificados, 'nenhum eixo de bola com pedido — o teste não verificou nada')
-      .toBeGreaterThan(0);
-  });
-
-  /**
-   * Um eixo de bola SEM PEDIDO faz as três séries caírem no mesmo ponto — e isso é conhecido.
-   *
-   * O valor não depende da raquete, então recomendada, atual e catálogo coincidem. Visualmente
-   * parece um empate triplo e não é: é ausência de critério.
-   *
-   * Já foi tentado resolver levando o neutro a 100 (`objectiveFit` de fato exclui esses eixos da
-   * média, então "atendido" tem lógica). O empate continuou — só que na borda, onde chama mais
-   * atenção — e ainda passou a afirmar que a raquete MÉDIA do catálogo atende 100% de uma exigência
-   * que não existe. Um usuário pegou isso na primeira olhada.
-   *
-   * O gráfico não tem vocabulário para desenhar "não perguntado" num vértice. O tratamento é de
-   * texto, no explicador do bloco — e este teste existe para que o neutro não volte a ser mexido
-   * sem que alguém leia por que ele é 70.
-   */
-  it('eixo de bola sem pedido cai no neutro, igual para as três séries', () => {
+  it('eixo de bola sem pedido continua distinguindo as raquetes', () => {
     let verificados = 0;
 
     for (const { persona, report } of runs) {
       const profile = buildPlayerProfile(persona.answers);
 
-      for (const axis of report.radar) {
-        if (axis.group !== 'bola') continue;
-        // O mesmo limiar que `objectiveFit` usa para pular o termo.
+      for (const axis of report.radar.filter((a) => a.group === 'bola')) {
         if (Math.abs(profile.desired_change_vector[axis.key as NeedKey]) > 5) continue;
-
         verificados += 1;
-        expect(axis.recommended, `${persona.id}/${axis.key}`).toBe(70);
-        expect(axis.catalog, `${persona.id}/${axis.key}`).toBe(70);
-        if (axis.current !== null) expect(axis.current, `${persona.id}/${axis.key}`).toBe(70);
+
+        const series = [axis.profile, axis.recommended, axis.catalog];
+        expect(
+          new Set(series).size,
+          `${persona.id}/${axis.key}: as séries coincidem em ${axis.profile} — empate falso`,
+        ).toBeGreaterThan(1);
       }
     }
 
-    expect(verificados, 'nenhum eixo sem pedido nas personas — o teste não verificou nada')
+    expect(verificados, 'nenhum eixo de bola sem pedido — o teste não verificou nada')
       .toBeGreaterThan(0);
   });
 
-  /**
-   * A hierarquia saiu da geometria — e precisa continuar existindo em `weight`.
-   *
-   * Com a borda constante, o polígono sozinho não distingue o eixo que decide a compra do eixo que
-   * não importa. O peso é o que carrega essa informação, somado POR BLOCO abaixo do gráfico (por
-   * eixo ele já foi tentado e removido: "Spin 3%" ao lado de "Seu swing 17%" sugere que o motor
-   * ignorou o spin, quando os três eixos de bola são fatias de um critério só).
-   *
-   * Se `weight` virar constante ou zerar, a borda constante passa a ser a objeção original — "não
-   * tem inteligência nenhuma por trás" — sem nada para respondê-la.
-   */
-  it('o peso continua carregando a hierarquia que a borda não mostra', () => {
-    for (const { persona, report } of runs) {
-      const pesos = report.radar.map((a) => a.weight);
-
-      /**
-       * A soma NÃO é 1, e não deve ser: `transition_fit` — o tamanho da mudança em relação à
-       * raquete atual — pesa até 0.11 e não é eixo do radar, porque não mede adequação a você,
-       * mede distância do que você já tem. Medido nas 22 personas: a soma fica entre 0.887 e 1.000.
-       *
-       * O piso existe para pegar o caso em que um eixo perde o peso por engano e o gráfico passa a
-       * dizer que aquele aspecto não pesou na decisão.
-       */
-      const soma = pesos.reduce((s, p) => s + p, 0);
-      expect(soma, `${persona.id}: pesos somam ${soma}`).toBeGreaterThan(0.85);
-      expect(soma, `${persona.id}: pesos somam ${soma}`).toBeLessThanOrEqual(1.001);
-
-      expect(
-        new Set(pesos.map((p) => p.toFixed(4))).size,
-        `${persona.id}: todo eixo com o mesmo peso — a hierarquia sumiu`,
-      ).toBeGreaterThan(1);
-    }
-  });
 
   /**
    * Os eixos de ENCAIXE precisam estar lá — são eles que carregam a decisão.

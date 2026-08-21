@@ -18,6 +18,25 @@
  */
 
 /**
+ * 2.15.0 — os três eixos de bola passam a ser POSIÇÃO NO CATÁLOGO nas quatro séries, e a linha
+ * tracejada deles passa a ser o PEDIDO normalizado à realidade do jogador — nunca além do que a
+ * melhor raquete plausível para ele alcança. Os cinco de encaixe seguem em adequação, com a
+ * tracejada na borda.
+ *
+ * O QUE ISSO CONSERTA. Enquanto a tracejada de bola foi a borda ("100 = alcançou o melhor que
+ * existe para você"), a recomendada ficava aquém em TODOS os eixos de bola por construção: o
+ * melhor quadro em potência é um, o melhor em spin é outro, e ela é a melhor no CONJUNTO. Como nos
+ * cinco de encaixe ela marca 90 a 100 — foi escolhida por encaixar —, o eixo que a pessoa
+ * PRIORIZOU aparecia como o pior vértice do gráfico. Relato: "pedi potência e o sistema me mostra
+ * que está me dando tudo menos potência". Medido depois da mudança: 0 de 626 perfis com prioridade
+ * declarada têm o eixo priorizado como pior vértice.
+ *
+ * E some o empate falso: num eixo sem pedido as quatro séries recebiam o mesmo NEUTRAL fixo, que
+ * não dependia de raquete nenhuma. Em posição de catálogo cada raquete tem a sua — 485 eixos sem
+ * pedido medidos, zero coincidências.
+ *
+ * O RANKING não muda: nenhum score, peso ou filtro foi tocado nesta versão.
+ *
  * 2.14.0 — duas mudanças que vieram do mesmo relato.
  *
  * GRÁFICO: o radar volta a ter os OITO eixos num desenho só (os trilhos de mercado foram
@@ -69,7 +88,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.14.0';
+export const METHODOLOGY_VERSION = '2.15.0';
 
 export type Range = readonly [lo: number, hi: number];
 

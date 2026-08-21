@@ -92,32 +92,34 @@ const PALETTE = {
  * O setor sombreado é a divisão que faltava: dois territórios, dois títulos, duas perguntas
  * diferentes. O que a raquete FAZ, e o quanto ela SERVE A VOCÊ.
  */
+/**
+ * ═══ OS DOIS QUADROS PRECISAM TER O MESMO PESO ═══════════════════════════════════════════════
+ *
+ * Reclamação do usuário: "tá muito discrepante o nível e a quantidade de informação explicadas no
+ * quadrado verde e no laranja, iguale, não complique muito nem seja raso".
+ *
+ * Ele estava certo e o desequilíbrio era grande: o de bola tinha quatro frases com ressalvas, o de
+ * encaixe tinha uma linha. Dois blocos lado a lado com pesos assim ensinam o leitor a ler só um.
+ *
+ * A regra passa a ser: cada quadro responde as MESMAS três perguntas, na mesma ordem e no mesmo
+ * tamanho — o que o eixo mede, o que a linha tracejada é, e o que significa a raquete passar dela.
+ */
 const ZONES = {
-  /**
-   * ═══ ESTE TÍTULO JÁ AFIRMOU O OPOSTO DO QUE O EIXO MEDE ═══════════════════════════════════
-   *
-   * Dizia "O que ela faz com a bola — Comportamento do quadro, o mesmo para qualquer pessoa que
-   * jogue com ela". Era falso, e mensurável: com o MESMO perfil, uma Pure Aero e uma HEAD Speed
-   * Team marcavam idêntico (70/70/70), e uma Pure Strike 18x20 — dos quadros mais controlados do
-   * catálogo — marcava 0 em controle. Nenhum desses números descreve o produto.
-   *
-   * O que o eixo mede é QUANTO DO PEDIDO a raquete entregou. Ele varia com quem pergunta, e some
-   * quando ninguém pediu nada. O título antigo convidava a ler os três vértices como spec de
-   * fabricante, e foi assim que um usuário concluiu que a recomendação não o atendia.
-   */
   bola: {
     fill: PALETTE.zoneBall,
-    title: 'O que você pediu na bola',
+    title: 'O que ela faz com a bola',
     hint:
-      'A linha tracejada é o TAMANHO do seu pedido, não a borda: quanto mais alto, mais você ' +
-      'priorizou aquilo. As raquetes podem passar dela — entregar mais do que você pediu é bom. ' +
-      'Onde você não pediu mudança, as três linhas caem no mesmo ponto: não é empate, é ausência ' +
-      'de critério.',
+      'Onde cada raquete cai na faixa do catálogo, da que menos entrega à que mais entrega. A ' +
+      'linha tracejada é o que VOCÊ pediu, limitado ao que existe para o seu perfil. Passar dela ' +
+      'é bom: significa entregar mais do que você pediu.',
   },
   voce: {
     fill: PALETTE.zoneYou,
     title: 'Como ela encaixa em você',
-    hint: 'Medidas do par raquete + você. Mudam de jogador para jogador, na mesma raquete.',
+    hint:
+      'O quanto o par raquete + você funciona — muda de jogador para jogador, na mesma raquete. A ' +
+      'linha tracejada é a borda: 100 é o encaixe perfeito. Nenhuma raquete passa dela, porque ' +
+      'não existe mais adequado que perfeito.',
   },
 } as const;
 

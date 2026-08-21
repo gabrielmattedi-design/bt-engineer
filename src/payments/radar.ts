@@ -32,21 +32,23 @@ import {
  * ele não tinha cometido. Pior: escondia os casos em que o erro era real, porque toda a diferença
  * parecia ruído de escala.
  *
- * ═══ A LINHA TRACEJADA É A BORDA, NOS OITO EIXOS ════════════════════════════════════════════
+ * ═══ OS DOIS BLOCOS MEDEM COISAS DIFERENTES, E A ESCALA DIZ ISSO ════════════════════════════
  *
- * Uma leitura só: 100 é o ideal PARA ESTE JOGADOR, e nenhuma raquete o ultrapassa. O que muda
- * entre os blocos é como cada eixo chega a esse 100 — não o que a linha significa.
+ *   bola (3)    — POSIÇÃO NO CATÁLOGO, de 0 (a que menos entrega) a 100 (a que mais entrega). A
+ *                 mesma régua que o motor lê para decidir. A tracejada é o seu PEDIDO, normalizado
+ *                 ao que existe para você (ver `ballTargetPosition`).
+ *   encaixe (5) — ADEQUAÇÃO do par raquete+jogador, de 0 a 100. A tracejada é a borda: 100 é
+ *                 encaixe perfeito e ninguém passa dele.
  *
- *   encaixe (5) — adequação do par raquete+jogador. 100 é encaixe perfeito.
- *   bola (3)    — quanto do ALVO foi entregue, onde o alvo é o menor entre o que a pessoa pediu e
- *                 o que existe para ela (ver `ballTargetPosition`). 100 é o alvo alcançado, e
- *                 entregar mais que o pedido satura em 100 em vez de furar a linha.
+ * Unificar as duas escalas foi tentado quatro vezes e falhou quatro vezes, sempre pelo mesmo
+ * motivo de fundo: o melhor quadro em potência é um, o melhor em spin é outro, e a recomendada é a
+ * melhor no CONJUNTO — logo, não é a melhor em nenhum eixo isolado. Qualquer escala que ponha o
+ * ideal de bola na borda faz a recomendada ficar aquém em TODOS os eixos de bola, enquanto nos de
+ * encaixe ela marca 90 a 100 porque foi escolhida por encaixar. O eixo que a pessoa priorizou
+ * aparece como o pior do gráfico, por construção.
  *
- * Antes disso a linha teve significado diferente por bloco, e chegou a virar dois gráficos
- * separados. Nenhuma das duas coisas sobreviveu ao uso: com significados diferentes o leitor não
- * tem como saber qual vale em qual vértice, e separados o relatório perdeu a leitura de conjunto
- * que é o motivo de existir um radar. Pôr o alvo no DENOMINADOR resolve os dois de uma vez, porque
- * a diferença entre os blocos passa a estar na conta, não na legenda.
+ * Medido, com a tracejada de bola na borda: o eixo priorizado era o pior vértice. Com a tracejada
+ * sendo o pedido normalizado: 0 de 626 perfis.
  *
  * ═══ POR QUE POSIÇÃO DE CATÁLOGO, E NÃO O VALOR CRU ══════════════════════════════════════════
  *
@@ -59,29 +61,32 @@ export type RadarAxis = {
   readonly key: string;
   readonly label: string;
   /**
-   * A linha tracejada: o IDEAL para este jogador, 100 em todo eixo. Ninguém ultrapassa.
+   * A linha tracejada. Nos eixos de ENCAIXE é a borda (100). Nos de BOLA é o seu PEDIDO,
+   * normalizado ao que existe para o seu perfil — e por isso quase nunca encosta na borda.
    *
    * ═══ AS CINCO VERSÕES QUE ESTA LINHA JÁ TEVE ═══════════════════════════════════════════════
    *
    * 1. 100 fixo, com as raquetes em POSIÇÃO DE CATÁLOGO. A borda dizia "quero o máximo de tudo"
    *    porque, naquela unidade, dizia mesmo.
    *
-   * 2. TETO DA OFERTA — o melhor que alguma raquete viável alcançava. Saturava por construção
-   *    (máximo sobre ~19 raquetes) e cada vértice vinha de uma raquete diferente: 0 de 22 personas
-   *    tinham alguma raquete real capaz de alcançar a linha inteira.
+   * 2. TETO DA OFERTA — o melhor que alguma raquete viável alcançava. Cada vértice vinha de uma
+   *    raquete diferente: 0 de 22 personas tinham alguma raquete real capaz de alcançar a linha
+   *    inteira.
    *
    * 3. NÍVEL DE PEDIDO nos oito eixos. Corrigiu a saturação e criou um erro nos eixos de encaixe:
    *    ali o verde é adequação, e passar do tracejado virou "entrega mais do que você precisa".
    *
-   * 4. DUAS LEITURAS, uma por bloco — borda no encaixe, tamanho do pedido na bola. Mediu certo e
-   *    comunicou errado: nada no desenho dizia qual leitura valia em qual vértice. E deixava o
-   *    amarelo furar a linha em 460 dos 2640 eixos medidos, inclusive num caso que não dependia de
-   *    dado nenhum — sem pedido no eixo, as raquetes valiam NEUTRAL (70) contra uma linha em
-   *    DEMAND_FLOOR (55), então o amarelo passava por construção, para todo mundo.
+   * 4. DUAS LEITURAS, uma por bloco. Mediu certo e comunicou errado: nada no desenho dizia qual
+   *    leitura valia em qual vértice.
    *
-   * 5. A BORDA NOS OITO, com o alvo do pedido virando o DENOMINADOR dos eixos de bola. É a atual.
-   *    Zero furos em 2640 eixos, uma frase só de legenda, e o alvo continua sendo o que a pessoa
-   *    pediu — limitado ao que existe para ela, que era a informação faltando nas quatro anteriores.
+   * 5. BORDA NOS OITO, com o alvo virando denominador nos eixos de bola. Resolveu a comunicação e
+   *    reintroduziu o defeito da versão 2 — a recomendada não é a melhor em nenhum eixo isolado,
+   *    então ficava aquém em todos os de bola e o eixo priorizado virava o pior do gráfico.
+   *
+   * A atual não é uma sexta tentativa de unificar: é o reconhecimento de que os dois blocos medem
+   * grandezas diferentes e de que a tracejada deve ser o PEDIDO, nunca o teto do mercado. Nos
+   * eixos de bola ela vem em posição de catálogo, como as raquetes; nos de encaixe segue sendo a
+   * borda, porque ali não existe "mais adequado que perfeito".
    */
   readonly profile: number;
   readonly recommended: number;
@@ -276,88 +281,56 @@ const NEUTRAL = 70;
 
 
 /**
- * O ALVO de um eixo de bola, em posição de catálogo: o menor entre o que o jogador pediu e o que
- * existe para ele. `null` quando não houve pedido.
+ * O ALVO de um eixo de bola, em POSIÇÃO DE CATÁLOGO: o pedido do jogador, normalizado à realidade
+ * dele — nunca além do que a melhor raquete plausível para o seu perfil alcança.
  *
- * ═══ O DEFEITO QUE ISTO CONSERTA ═════════════════════════════════════════════════════════════
+ * ═══ POR QUE O ALVO NÃO É A BORDA ════════════════════════════════════════════════════════════
  *
- * Relato do usuário, com o gráfico na tela: "em spin, a raquete recomendada — que está dentro do
- * meu perfil por consequência — está ACIMA do limite laranja".
+ * Já foi. E era o defeito que mais estragava o relatório de quem declarava prioridade, porque o
+ * mecanismo é estrutural e não de calibração:
  *
- * Ele estava certo, e a causa era estrutural. Num eixo SEM pedido, as raquetes valiam `NEUTRAL`
- * (70) enquanto a tracejada saía de `demandToAxis(0)`, que é `DEMAND_FLOOR` (55). Setenta contra
- * cinquenta e cinco: o amarelo passava do laranja por CONSTRUÇÃO, em todo eixo não pedido, para
- * todo mundo. Nenhum dado — só duas escalas diferentes no mesmo vértice.
+ *   o melhor quadro em POTÊNCIA é um; o melhor em SPIN é outro; o melhor em CONTROLE é um
+ *   terceiro. A recomendada é a melhor no CONJUNTO — logo, não é a melhor em nenhum eixo
+ *   isolado. Com o alvo na borda de cada eixo, ela fica aquém em TODOS os eixos de bola, sempre.
  *
- * ═══ O TETO, E POR QUE ELE TEM DIREÇÃO ═══════════════════════════════════════════════════════
+ * Somando a isso que nos cinco eixos de encaixe ela marca 90 a 100 — foi escolhida por encaixar —,
+ * o resultado é que o eixo PRIORIZADO aparece como o pior do gráfico, por construção. Relato do
+ * usuário: "pedi potência e o sistema me mostra que está me dando tudo menos potência".
  *
- * O teto é o extremo NA DIREÇÃO DO PEDIDO entre as raquetes plausíveis para o jogador: o máximo em
- * "quero mais", o mínimo em "quero menos". Usar sempre o máximo foi o primeiro erro desta função —
- * num pedido negativo o máximo fica do lado oposto, o limite nunca mordia, e a linha continuava
- * marcando um alvo mais extremo do que qualquer raquete adequada alcança.
+ * A mesma armadilha já tinha derrubado a segunda versão desta linha, com o registro no arquivo:
+ * "cada vértice vinha de uma raquete diferente; 0 de 22 personas tinham alguma raquete real capaz
+ * de alcançar a linha inteira". O alvo precisa ser o PEDIDO, e não o teto do mercado.
  *
- * Sem teto, medido em 566 perfis, o alvo apontava para fora do alcançável em 70% deles, com
- * excesso médio de 20 pontos de posição — e o gráfico cobrava da recomendada um vão que nenhuma
- * escolha podia fechar.
+ * ═══ NORMALIZAR DENTRO DA REALIDADE ══════════════════════════════════════════════════════════
+ *
+ * Nas palavras do usuário: "se é porque eu pedi muito, normalize o meu pedido dentro da minha
+ * realidade, e diminua meu pedido dentro do possível".
+ *
+ * O alvo é onde ele está hoje mais o que pediu, limitado ao extremo NA DIREÇÃO DO PEDIDO entre as
+ * raquetes plausíveis para ele. Pedir 40 pontos de potência quando o melhor quadro adequado ao seu
+ * nível está 17 acima não move o alvo 40 — move 17, que é o que existe.
+ *
+ * Sem pedido no eixo, o alvo é a média do catálogo: nada foi pedido, e o que se espera de um
+ * aspecto que não foi pedido é que ele não seja ruim.
  */
 function ballTargetPosition(
   desired: number,
-  reference: number,
-  askedPosition: number,
+  catalogPosition: number,
+  currentPosition: number | null,
   plausiblePositions: readonly number[],
-): number | null {
-  if (Math.abs(desired) <= MIN_ASK) return null;
+): number {
+  if (Math.abs(desired) <= MIN_ASK) return catalogPosition;
 
-  const sign = Math.sign(desired);
+  const asked = (currentPosition ?? catalogPosition) + desired;
+  if (plausiblePositions.length === 0) return clampPosition(asked);
+
   const reach =
-    plausiblePositions.length === 0
-      ? askedPosition
-      : sign > 0
-        ? Math.max(...plausiblePositions)
-        : Math.min(...plausiblePositions);
-
-  const alvo = sign > 0 ? Math.min(askedPosition, reach) : Math.max(askedPosition, reach);
-
-  /**
-   * O alvo precisa ficar do LADO PEDIDO da referência, com um vão mínimo.
-   *
-   * Sem esta trava, um pedido de "mais" cujo alvo cai abaixo da média do catálogo — acontece com
-   * quem já joga com um frame muito abaixo dela e pede pouco — inverteria o sinal da conta de
-   * progresso, e a raquete que chegasse exatamente no alvo apareceria com ZERO em vez de cheia.
-   */
-  return sign > 0
-    ? Math.max(alvo, reference + MIN_HEADROOM)
-    : Math.min(alvo, reference - MIN_HEADROOM);
+    desired > 0 ? Math.max(...plausiblePositions) : Math.min(...plausiblePositions);
+  return clampPosition(desired > 0 ? Math.min(asked, reach) : Math.max(asked, reach));
 }
 
-/**
- * Quanto do ALVO aquela raquete entregou, 0–100, onde 100 é o alvo alcançado.
- *
- * ═══ POR QUE ISTO SUBSTITUIU A ADEQUAÇÃO CONTRA A BORDA DO CATÁLOGO ══════════════════════════
- *
- * `askAdequacy` media o avanço contra TODO o espaço restante até o extremo do catálogo, e a linha
- * tracejada era desenhada à parte, num valor próprio. Duas consequências ruins:
- *
- *   • a raquete podia passar da linha, e passar de "o que seu jogo pede" lê-se como excesso mesmo
- *     quando é entrega a mais — 460 dos 2640 eixos medidos, com excesso mediano de 14 a 18 pontos;
- *   • a linha tinha um significado nos eixos de bola e outro nos de encaixe, no mesmo desenho.
- *
- * Com o alvo virando o DENOMINADOR, os dois somem de uma vez: 100 passa a significar "chegou no
- * ideal possível para você" nos oito eixos, a tracejada é a borda em todos eles, e entregar mais
- * que o pedido satura em 100 em vez de furar a linha. Entregar MENOS continua aparecendo, que é a
- * informação que o gráfico existe para dar.
- *
- * Abaixo de 50 a raquete andou na direção CONTRÁRIA à pedida — o vértice encolhe, e deve encolher.
- */
-function askDelivery(
-  desired: number,
-  reference: number,
-  target: number,
-  actual: number,
-): number {
-  const headroom = Math.max(Math.abs(target - reference), MIN_HEADROOM);
-  const delivered = Math.max(-1, Math.min(1, ((actual - reference) * Math.sign(desired)) / headroom));
-  return Math.round(Math.max(0, Math.min(100, 50 + delivered * 50)));
+function clampPosition(value: number): number {
+  return Math.round(Math.max(0, Math.min(100, value)));
 }
 
 export function buildRadar(
@@ -445,27 +418,32 @@ export function buildRadar(
       label: axis.label,
       group: axis.group,
       /**
-       * O alvo é ancorado em quem o jogador é hoje; sem raquete conhecida, na média do catálogo.
-       * Sem pedido no eixo, `target` é null e as quatro séries caem no mesmo NEUTRAL — não há
-       * critério ali, e portanto não há nada a cobrar nem a ultrapassar.
+       * As quatro séries em POSIÇÃO DE CATÁLOGO — a mesma régua que o motor usa para decidir.
+       *
+       * Antes eram uma medida de "quanto do pedido foi entregue", ancorada na média do catálogo.
+       * Duas consequências ruins, as duas relatadas pelo usuário:
+       *
+       *   • num eixo SEM pedido a medida não dependia de raquete nenhuma, e as quatro séries
+       *     caíam no mesmo ponto — "controle e spin devem ter algo errado, a laranja, a
+       *     recomendada, a atual e a média estão todas no mesmo lugar". Estavam mesmo, e não
+       *     havia dado nenhum ali;
+       *   • a âncora era uma média, então o vértice ficava hipersensível perto dela: uma raquete
+       *     poucos pontos abaixo da média desabava para perto de zero.
+       *
+       * Posição de catálogo não tem nenhum dos dois problemas. É um número real por raquete em
+       * todo eixo, some a distinção entre "pedido" e "não pedido" nas séries (ela vive na linha
+       * tracejada, que é onde deve viver), e o que o gráfico mostra passa a ser exatamente o que
+       * o motor leu para escolher.
        */
-      ...(() => {
-        const target = ballTargetPosition(
-          desired,
-          reference,
-          (currentPosition ?? catalogPosition) + desired,
-          plausible.map((r) => position(bands, attribute, valueOf(r))),
-        );
-        const valor = (pos: number): number =>
-          target === null ? NEUTRAL : askDelivery(desired, reference, target, pos);
-
-        return {
-          profile: target === null ? NEUTRAL : IDEAL,
-          recommended: valor(position(bands, attribute, valueOf(winner))),
-          current: currentPosition === null ? null : valor(currentPosition),
-          catalog: valor(catalogPosition),
-        };
-      })(),
+      profile: ballTargetPosition(
+        desired,
+        catalogPosition,
+        currentPosition,
+        plausible.map((r) => position(bands, attribute, valueOf(r))),
+      ),
+      recommended: clampPosition(position(bands, attribute, valueOf(winner))),
+      current: currentPosition === null ? null : clampPosition(currentPosition),
+      catalog: clampPosition(catalogPosition),
       weight:
         askTotal > 0
           ? (objectiveWeight * Math.abs(desired)) / askTotal
