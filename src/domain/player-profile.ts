@@ -33,6 +33,18 @@ export const NEED_KEYS: readonly NeedKey[] = [
   'precision',
 ];
 
+/** Rótulos em português dos eixos de necessidade, para as frases voltadas ao usuário. */
+export const NEED_LABEL_PT: Record<NeedKey, string> = {
+  power: 'potência',
+  control: 'controle',
+  spin: 'spin',
+  comfort: 'conforto',
+  stability: 'estabilidade',
+  maneuverability: 'manobrabilidade',
+  forgiveness: 'tolerância a impactos descentralizados',
+  precision: 'precisão',
+};
+
 /** Mapeia uma necessidade do jogador ao atributo correspondente da raquete. */
 export const NEED_TO_RACKET_ATTRIBUTE = {
   power: 'power_score',

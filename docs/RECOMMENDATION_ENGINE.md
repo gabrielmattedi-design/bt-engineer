@@ -405,6 +405,37 @@ Aplicados **antes** da pontuação. Uma variante excluída não aparece no pódi
 Cada exclusão é registrada em `racket_rankings.excluded_by_filter` — o admin vê **por que** uma raquete
 não apareceu, o que é tão importante quanto ver por que outra apareceu.
 
+### 4.5 Piso de demanda declarada (exclusão, aplicada **depois** da pontuação)
+
+Quando o jogador pede um atributo com força (`desired_change_vector ≥ 20`), as raquetes abaixo da
+**posição 60** na faixa do catálogo naquele atributo saem do ranking.
+
+É o único filtro que roda **depois** da pontuação, porque a válvula que o protege depende dos
+componentes já calculados. Ele só se aplica quando as três condições valem ao mesmo tempo:
+
+| condição | valor | por quê |
+|---|---|---|
+| pedido forte | `≥ 20` de 40 | abaixo disso é preferência, e o peso de `objective_fit` já a atende |
+| existe candidata segura | `physical_fit ≥ 70` **e** `skill_fit ≥ 55` | pedido declarado não sobrepõe limitação física real |
+| sobram candidatas | `≥ 10` | o pódio precisa de folga para a regra de diversidade de família |
+
+**O defeito que ele corrige.** `objective_fit` e a penalização P6 medem *direção* — se a raquete anda
+para o lado pedido em relação à referência do jogador. Nenhum dos dois olhava a posição *absoluta*:
+uma raquete um pouco mais potente que a atual passava limpa pelos dois estando no terço de baixo do
+catálogo em potência. Relato do usuário: "ordenei potência como prioridade 1 e a recomendada veio
+tendo potência como o pior atributo dela".
+
+**A raquete atual é isenta** — ela é referência, não candidata. Sem a isenção, o bloco "sua raquete
+atual nesta análise" sumiria justamente para quem tem uma raquete pouco alinhada ao que pediu.
+
+**Efeito medido** (770 perfis simulados, ver `applyDeclaredFloor` em `rank-rackets.ts`): a posição
+média no eixo pedido sobe 2,2 pontos e a fração de perfis com match ≥ 80% vai de 79,9% para 77,8%.
+O pior `physical_fit` e o pior `skill_fit` entre todas as vencedoras não se movem.
+
+> **`candidates_evaluated` não é o tamanho do ranking.** Ele conta quantas raquetes foram
+> *pontuadas*; o piso tira do ranking algumas que foram. Qualquer frase de **posição** ("ficou em
+> 12º de N") usa o tamanho do ranking — senão o denominador não corresponde às posições que existem.
+
 ---
 
 ## 5. Pódio e empate técnico

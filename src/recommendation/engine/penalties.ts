@@ -9,7 +9,7 @@
 import { clamp, round } from '@/domain/scores';
 import type { ScoredRacket } from '@/domain/racket';
 import type { NeedKey, PlayerProfile } from '@/domain/player-profile';
-import { NEED_KEYS, NEED_TO_RACKET_ATTRIBUTE } from '@/domain/player-profile';
+import { NEED_KEYS, NEED_LABEL_PT, NEED_TO_RACKET_ATTRIBUTE } from '@/domain/player-profile';
 import type { Penalty } from '@/domain/recommendation';
 import type { CatalogScale, ScaleKey } from './catalog-scale';
 import {
@@ -19,18 +19,6 @@ import {
   resolveStrungWeight,
 } from '@/recommendation/normalize/racket-attributes';
 import { STIFF_BEAM_THRESHOLD_MM } from '@/domain/reference-ranges';
-
-/** Rótulos em português dos eixos de necessidade, para as frases de penalização. */
-const NEED_LABEL_PT: Record<NeedKey, string> = {
-  power: 'potência',
-  control: 'controle',
-  spin: 'spin',
-  comfort: 'conforto',
-  stability: 'estabilidade',
-  maneuverability: 'manobrabilidade',
-  forgiveness: 'tolerância a impactos descentralizados',
-  precision: 'precisão',
-};
 
 /** Abaixo desta intensidade o pedido é uma preferência, não um requisito — P6 não se aplica. */
 const STRONG_ASK = 20;

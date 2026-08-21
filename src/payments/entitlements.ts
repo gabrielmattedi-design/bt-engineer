@@ -332,7 +332,7 @@ function buildCurrentStanding(
       verdict: 'keep',
       message:
         `A raquete que você já tem é a melhor opção para o seu jogo entre as ` +
-        `${result.candidates_evaluated} avaliadas. Não troque de quadro — o que ainda dá para ` +
+        `${result.full_ranking.length} deste ranking. Não troque de quadro — o que ainda dá para ` +
         `melhorar está na corda e na tensão.`,
     };
   }
@@ -345,7 +345,7 @@ function buildCurrentStanding(
       gap_to_first: gap,
       verdict: 'keep',
       message:
-        `Sua ${name} ficou em ${current.rank}º entre as ${result.candidates_evaluated} avaliadas, ` +
+        `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ranking, ` +
         `a ${gap} ${gap === 1 ? 'ponto' : 'pontos'} da primeira. Uma diferença desse tamanho não ` +
         `paga a troca de um quadro: é do tamanho da margem de erro do próprio modelo. Nossa ` +
         `recomendação é continuar com ela e investir na corda e na tensão, onde o ganho é imediato ` +

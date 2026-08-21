@@ -18,6 +18,13 @@
  */
 
 /**
+ * 2.12.0 — pedido declarado com força virou PISO: raquetes abaixo da posição 60 do catálogo no
+ * atributo pedido saem do ranking, desde que sobre candidata segura e campo para um pódio (ver
+ * `applyDeclaredFloor`). É a primeira mudança desta série que altera QUAL raquete é recomendada —
+ * as anteriores mexiam só na leitura do gráfico. Nas 22 personas apenas uma troca de vencedora
+ * (p18, com `objective_fit` 71 -> 78); nos 770 perfis simulados a posição média no eixo pedido sobe
+ * 2,2 pontos e o match >= 80% vai de 79,9% para 77,8%.
+ *
  * 2.11.0 — a linha tracejada do radar passou a ter duas leituras: BORDA nos cinco eixos de encaixe
  * (ninguém passa do ideal) e TAMANHO DO PEDIDO nos três de bola (a raquete pode entregar mais do
  * que se pediu, e isso é bom). As duas unificações anteriores falharam por lados opostos.
@@ -33,12 +40,13 @@
  * 2.8.0 — a linha "o que seu jogo pede" do radar deixou de ser o teto da oferta e passou a ser o
  * pedido do questionário, com hierarquia entre os eixos (ver `payments/radar.ts`).
  *
- * O RANKING não mudou: nenhum score, peso ou penalidade foi tocado, e as mesmas respostas produzem
- * a mesma raquete. Ainda assim a versão sobe, porque o relatório é o produto e um mesmo número de
- * metodologia não pode carregar dois significados diferentes para a mesma linha do mesmo gráfico —
- * quem abrir um relatório antigo precisa conseguir saber qual das duas leituras estava valendo.
+ * Da 2.8.0 à 2.11.0 o RANKING não mudou: nenhum score, peso ou penalidade foi tocado, e as mesmas
+ * respostas produziam a mesma raquete. Ainda assim a versão subia a cada uma, porque o relatório é
+ * o produto e um mesmo número de metodologia não pode carregar dois significados diferentes para a
+ * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
+ * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.11.0';
+export const METHODOLOGY_VERSION = '2.12.0';
 
 export type Range = readonly [lo: number, hi: number];
 

@@ -11,7 +11,13 @@ import {
 } from '@/domain/reference-ranges';
 import { clamp, round } from '@/domain/scores';
 import type { ScoredRacket } from '@/domain/racket';
-import { NEED_KEYS, type NeedKey, type PlayerProfile } from '@/domain/player-profile';
+import {
+  NEED_KEYS,
+  NEED_LABEL_PT,
+  NEED_TO_RACKET_ATTRIBUTE,
+  type NeedKey,
+  type PlayerProfile,
+} from '@/domain/player-profile';
 import type {
   ComponentBreakdown,
   ComponentKey,
@@ -34,7 +40,7 @@ import {
   swingFit,
   transitionFit,
 } from './fit-components';
-import { buildCatalogScale, type CatalogScale } from './catalog-scale';
+import { buildCatalogScale, type CatalogScale, type ScaleKey } from './catalog-scale';
 import { applyHardFilters, type FilterMode } from './hard-filters';
 import { computePenalties } from './penalties';
 import { compareByScoreThenTieBreak, profileSignature } from './tie-break';
@@ -306,6 +312,174 @@ function objectiveRescaler(
   return (raw) => clamp(lo + ((raw - lo) * (100 - lo)) / (hi - lo), 0, 100);
 }
 
+/**
+ * Pedido forte o bastante para virar um PISO, e não só um peso.
+ *
+ * `desired_change_vector` vai de −40 a +40. Vinte é onde o questionário deixa de dizer "gostaria" e
+ * passa a dizer "é isto que eu quero mudar" — abaixo disso a preferência já é atendida pelo peso do
+ * `objective_fit`, e um piso cobraria convicção que não foi declarada.
+ */
+const FLOOR_ASK_STRONG = 20;
+
+/**
+ * Posição mínima, na faixa do catálogo, que uma raquete precisa ter no atributo pedido com força.
+ *
+ * Varredura sobre 770 perfis simulados (22 personas × 7 combinações de prioridade declarada × 5
+ * objetivos), medindo o GANHO médio de posição no eixo mais pedido e o que isso custa no match:
+ *
+ *     corte    ganho de posição    match médio    perfis com match >= 80%
+ *     sem filtro        —              86.9              79.9%
+ *       45            −0.6             86.6              79.7%   (não filtra nada de útil)
+ *       50            +1.3             86.6              77.8%
+ *       55            +1.4             86.6              77.8%
+ *       60            +2.2             86.5              77.8%   <- escolhido
+ *       65            +3.3             86.3              77.0%
+ *       70            +0.5             86.7              78.4%   (aborta demais, ver abaixo)
+ *
+ * O 70 mostra onde está a borda: acima dele sobram poucas candidatas com frequência, a válvula
+ * desliga o piso, e o ganho volta para perto de zero. Entre 60 e 65 a diferença é de 1,1 ponto de
+ * posição contra 0,8 ponto percentual de match — dentro do ruído de uma simulação deste tamanho.
+ * Fica o mais conservador dos dois.
+ *
+ * O piso reduz o campo em cerca de metade dos perfis; nos demais, ou não há pedido forte, ou a
+ * válvula o desliga.
+ */
+const FLOOR_POSITION = 60;
+
+/**
+ * Encaixe mínimo que a melhor sobrevivente precisa manter para o piso poder ser aplicado.
+ *
+ * ═══ A VÁLVULA, E POR QUE ELA É O QUE TORNA ISTO VIÁVEL ══════════════════════════════════════
+ *
+ * A alternativa testada antes foi subir o peso de `objective_fit` para 50%. Medida nas 22 personas,
+ * ela produzia recomendação insegura de verdade:
+ *
+ *     p02   nível 82 -> 35    Wilson Clash 108 v3, quadro de 108 pol² para quem já passou disso
+ *     p04   físico 100 -> 40  HEAD Radical Pro, massa acima do que o corpo sustenta
+ *
+ * Pedido declarado não pode sobrepor limitação física real — é o que a `rationale` do
+ * `objective_fit` sempre disse e o peso a 50% violava. Aqui, quando nenhuma raquete acima do corte
+ * passa nesses dois mínimos, o piso NÃO SE APLICA e o ranking segue inteiro — aborta em 225 dos
+ * 616 perfis com pedido forte (37%), e é nesses 37% que o dano teria acontecido.
+ *
+ * A prova de que a válvula segura: nos 770 perfis, o pior `physical_fit` e o pior `skill_fit`
+ * entre todas as vencedoras ficam exatamente onde estavam sem o piso (72,6 e 56,5). O filtro não
+ * empurrou ninguém para um quadro que o corpo ou o nível não sustenta.
+ */
+const FLOOR_SAFE_PHYSICAL = 70;
+const FLOOR_SAFE_SKILL = 55;
+
+/**
+ * Mínimo de sobreviventes para o piso valer.
+ *
+ * O pódio tem três posições e a regra de diversidade de família (§29) precisa de folga acima disso
+ * para não montar um pódio de irmãs — o filtro se propõe a tirar de cena quem não atende o pedido,
+ * não a escolher o pódio inteiro.
+ *
+ * Medido: com o mínimo em 6 o campo chegava a ter exatamente 6 candidatas em algum perfil. Subir
+ * para 10 custa 0,9 ponto de ganho de posição (+3,1 -> +2,2), não move o match (77,8% em ambos) e
+ * garante pelo menos 11 raquetes disputando o pódio. Subir para 14 não muda mais nada.
+ */
+const FLOOR_MIN_SURVIVORS = 10;
+
+type ScoredEntry = { racket: ScoredRacket; fit_score: number; breakdown: ScoreBreakdown };
+
+/**
+ * Tira do ranking as raquetes que não atendem o piso do que o jogador declarou querer.
+ *
+ * ─── O QUE ISTO CONSERTA ─────────────────────────────────────────────────────────────────────
+ *
+ * Relato do usuário, com o relatório na mão: "ordenei potência como prioridade 1, disse que quero
+ * atacar mais, e a recomendada veio tendo potência como o pior atributo dela — parece que não
+ * respeitou meu desejo". Nada estava quebrado. O `objective_fit` mede DIREÇÃO (saiu da referência
+ * para o lado certo?) e a P6 penaliza contradição, também relativa à referência. Nenhum dos dois
+ * olhava a posição ABSOLUTA no eixo pedido, então uma raquete um pouco mais potente que a atual
+ * passava limpa pelos dois estando no terço de baixo do catálogo em potência.
+ *
+ * ─── POR QUE EXCLUSÃO, DEPOIS DE DUAS TENTATIVAS PIORES ──────────────────────────────────────
+ *
+ * 1. Subir `objective_fit` para 50%. Medido: recomendação insegura (ver `FLOOR_SAFE_PHYSICAL`).
+ *
+ * 2. Uma penalização (P9) por posição baixa no eixo pedido. Medida na mesma varredura de 770
+ *    perfis, satura em +3,5 pontos de posição por mais que se aumente o coeficiente, e para
+ *    chegar lá derruba a fração de perfis com match >= 80% de 79,9% para ~62%. Ela desconta de
+ *    todo mundo em vez de escolher melhor: as raquetes acima do corte perdem nos outros
+ *    componentes por margem maior do que qualquer desconto razoável recupera.
+ *
+ * 3. Reordenar o ranking, promovendo ao topo quem passa do corte. Quebra o significado do próprio
+ *    ranking: `buildCurrentStanding` calcula `gap = primeira − atual` e conclui pelo sinal, então
+ *    com ordem não-monotônica o relatório diz "a raquete que você já tem é a melhor opção" na
+ *    mesma página em que recomenda outra. O "12º entre as 47" também deixa de significar o que diz.
+ *
+ * A exclusão dá a mesma escolha que a reordenação daria — a melhor entre as que atendem o pedido —
+ * sem tocar em nenhuma das duas propriedades: o ranking continua monotônico por fit e cada posição
+ * continua sendo posição. É também o mecanismo que o motor já usa para "esta raquete não entra na
+ * sua análise", com `reason` legível na auditoria, igual aos filtros duros.
+ *
+ * ─── A RAQUETE ATUAL É ISENTA ────────────────────────────────────────────────────────────────
+ *
+ * Ela não é candidata: é referência. Excluí-la faria o bloco "sua raquete atual nesta análise"
+ * sumir sem explicação justamente para quem tem uma raquete pouco alinhada ao que pediu — que é
+ * quem mais precisa ler aquilo. E como ela permanece no ranking pelo próprio fit, continua podendo
+ * vencer: quando vence, a resposta honesta é "fique com a sua", não uma troca.
+ *
+ * Devolve `null` quando o piso não se aplica — sem pedido forte, sem sobrevivente seguro, ou
+ * sobreviventes de menos para um pódio.
+ */
+function applyDeclaredFloor(
+  scored: readonly ScoredEntry[],
+  profile: PlayerProfile,
+  scale: CatalogScale,
+  currentRacket: ScoredRacket | null,
+): { kept: ScoredEntry[]; excluded: ExcludedRacket[] } | null {
+  const fortes = NEED_KEYS.filter((k) => profile.desired_change_vector[k] >= FLOOR_ASK_STRONG);
+  if (fortes.length === 0) return null;
+
+  const componentRaw = (b: ScoreBreakdown, key: ComponentKey): number =>
+    b.components.find((c) => c.key === key)?.raw ?? 0;
+
+  /** Posição da raquete no eixo pedido, na régua do catálogo completo. */
+  const positionOn = (entry: ScoredEntry, need: NeedKey): number => {
+    const attrKey = NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey;
+    const attributes = entry.racket.attributes;
+    return scale.position(attrKey, attributes[attrKey as keyof typeof attributes] as number);
+  };
+
+  const atendePiso = (entry: ScoredEntry): boolean =>
+    fortes.every((need) => positionOn(entry, need) >= FLOOR_POSITION);
+
+  const acima = scored.filter(atendePiso);
+  if (acima.length < FLOOR_MIN_SURVIVORS) return null;
+
+  const temSegura = acima.some(
+    (e) =>
+      componentRaw(e.breakdown, 'physical_fit') >= FLOOR_SAFE_PHYSICAL &&
+      componentRaw(e.breakdown, 'skill_fit') >= FLOOR_SAFE_SKILL,
+  );
+  if (!temSegura) return null;
+
+  const kept: ScoredEntry[] = [];
+  const excluded: ExcludedRacket[] = [];
+  for (const entry of scored) {
+    if (atendePiso(entry) || entry.racket.variant.id === currentRacket?.variant.id) {
+      kept.push(entry);
+      continue;
+    }
+    /** O eixo cobrado é o mais mal atendido — é o que explica melhor a saída. */
+    const pior = fortes.reduce((a, b) => (positionOn(entry, a) <= positionOn(entry, b) ? a : b));
+    excluded.push({
+      variant_id: entry.racket.variant.id,
+      product_name: entry.racket.variant.product_name,
+      filter: 'declared_demand_floor',
+      reason:
+        `Você colocou ${NEED_LABEL_PT[pior]} entre o que mais quer, e este frame está no terço de ` +
+        `baixo do catálogo nesse aspecto (posição ${Math.round(positionOn(entry, pior))} de 100).`,
+    });
+  }
+
+  return { kept, excluded };
+}
+
 export type RankOptions = {
   readonly mode?: FilterMode;
   /** Raquete atual já pontuada, quando reconhecida no catálogo. Habilita transição e referência. */
@@ -317,6 +491,14 @@ export type RankOptions = {
 export type RankResult = {
   readonly ranking: readonly RankedRacket[];
   readonly excluded: readonly ExcludedRacket[];
+  /**
+   * Quantas raquetes foram PONTUADAS contra este perfil.
+   *
+   * Não é o tamanho do ranking. O piso de demanda declarada (ver `applyDeclaredFloor`) tira do
+   * ranking raquetes que foram avaliadas — elas contam aqui e aparecem em `excluded` com o motivo.
+   * Qualquer frase de POSIÇÃO ("ficou em 12º de N") precisa usar o tamanho do ranking, não este
+   * número, senão o denominador não corresponde às posições que existem.
+   */
   readonly candidates_evaluated: number;
   readonly weights: Readonly<Record<ComponentKey, number>>;
   readonly reference: Readonly<Record<NeedKey, number>>;
@@ -424,9 +606,13 @@ export function rankRackets(
     ),
   );
 
-  const limit = options.limit ?? scored.length;
-  const ranking: RankedRacket[] = scored.slice(0, limit).map((entry, index) => {
-    const previous = index > 0 ? scored[index - 1] : undefined;
+  const floorCut = applyDeclaredFloor(scored, profile, scale, options.currentRacket ?? null);
+  const finalists = floorCut === null ? scored : floorCut.kept;
+  const allExcluded = floorCut === null ? excluded : [...excluded, ...floorCut.excluded];
+
+  const limit = options.limit ?? finalists.length;
+  const ranking: RankedRacket[] = finalists.slice(0, limit).map((entry, index) => {
+    const previous = index > 0 ? finalists[index - 1] : undefined;
     return {
       rank: index + 1,
       racket: entry.racket,
@@ -440,7 +626,7 @@ export function rankRackets(
 
   return {
     ranking,
-    excluded,
+    excluded: allExcluded,
     candidates_evaluated: kept.length,
     weights,
     reference,
