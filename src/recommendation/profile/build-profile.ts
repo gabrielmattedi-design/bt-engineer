@@ -249,6 +249,46 @@ function bodyScore(a: QuestionnaireAnswers): number {
   return clamp(size * (SEX_BODY_FACTOR[a.sex ?? ''] ?? 1.0), 0, 100);
 }
 
+/**
+ * Multiplicador de INTENSIDADE sobre a frequência — o que transforma sessões em carga.
+ *
+ * ═══ POR QUE A FREQUÊNCIA SOZINHA NÃO DESCREVE A CARGA ═══════════════════════════════════════
+ *
+ * A capacidade física usava `frequency_per_week` cru. Três vezes por semana peloteando e três
+ * vezes por semana jogando partida são o mesmo número e não são o mesmo condicionamento: a partida
+ * tem ponto disputado, deslocamento sob pressão e duas horas sem escolher o ritmo.
+ *
+ * `plays_matches` é a pergunta que separa os dois casos, e ela era COLETADA E DESCARTADA — nenhum
+ * componente do motor lia esse campo. O questionário perguntava e jogava fora.
+ *
+ * ─── POR QUE MULTIPLICADOR, E NÃO MAIS UM TERMO SOMADO ─────────────────────────────────────
+ *
+ * Somado, quem joga partida ganharia carga mesmo jogando uma vez por mês — e não ganha: sem volume
+ * não há condicionamento, por mais disputada que seja a partida. A intensidade MODULA o volume, ela
+ * não substitui. Quem não joga partida nenhuma mantém a maior parte da carga (0.75, não zero),
+ * porque treinar também condiciona.
+ */
+const MATCH_INTENSITY: Record<string, number> = {
+  sim: 1.0,
+  as_vezes: 0.88,
+  nao: 0.75,
+};
+
+/**
+ * Carga de jogo, 0–1 — volume modulado pela intensidade.
+ *
+ * Fica separada do NÍVEL TÉCNICO de propósito. `frequency_per_week` e `tournament_experience`
+ * também alimentam `calibrateLevel`, e é correto que alimentem: quem joga mais e compete tende a
+ * jogar melhor. Mas jogar melhor e aguentar mais raquete são coisas diferentes — um veterano de
+ * torneio aos 60 anos tem nível alto e carga física que o corpo dele já não sustenta. Misturar as
+ * duas leituras num número só foi o que manteve a intensidade fora da conta do físico até agora.
+ */
+function playLoad(a: QuestionnaireAnswers): number {
+  const volume = norm(a.frequency_per_week ?? 1, 0, 4);
+  const intensity = a.plays_matches === null ? 0.88 : (MATCH_INTENSITY[a.plays_matches] ?? 0.88);
+  return clamp(volume * intensity, 0, 1);
+}
+
 function computePhysicalCapacity(a: QuestionnaireAnswers): number {
   const strength = a.perceived_strength === null ? 50 : (STRENGTH_SCORE[a.perceived_strength] ?? 50);
   const fitness = a.fitness_level === null ? 50 : (FITNESS_SCORE[a.fitness_level] ?? 50);
@@ -263,15 +303,58 @@ function computePhysicalCapacity(a: QuestionnaireAnswers): number {
    * O que o porte impede é o oposto — que a ausência do dado deixe o motor cego para um corpo que
    * não sustenta 300 g, quando o próprio formulário já perguntou quanto ele pesa.
    */
-  return clamp(
+  /**
+   * ═══ POR QUE O PREPARO CEDEU PESO PARA A CARGA DE JOGO ═════════════════════════════════════
+   *
+   * Era preparo 0.24 e frequência 0.10. Os dois medem a MESMA coisa — condicionamento — por
+   * caminhos diferentes: `fitness_level` é o que a pessoa diz sobre si, `playLoad` é o que ela faz
+   * toda semana. Evidência de comportamento costuma valer mais que autoavaliação, e a distância de
+   * mais de duas vezes entre eles não tinha justificativa.
+   *
+   * Passam a 0.18 e 0.16 — quase par. Não fui além disso de propósito: `frequency_per_week` é uma
+   * contagem grosseira de 0 a 4, e deixá-la superar uma pergunta direta seria confiar demais numa
+   * régua curta. E o preparo declarado captura o que a frequência de tênis não vê — academia,
+   * corrida, quem é atlético fora da quadra.
+   *
+   * A soma dos cinco termos continua 1.00. Uma versão intermediária destas linhas somou 1.06 por
+   * engano e inflou a capacidade de todo mundo em ~6%, o que passou nos testes de persona e teria
+   * ido para produção parecendo o efeito pretendido — a soma é conferida agora porque ela não se
+   * denuncia sozinha.
+   */
+  const base =
     0.3 * strength +
-      0.24 * fitness +
-      0.22 * bodyScore(a) +
-      0.14 * (ageFactor(a.age) * 100) +
-      0.1 * (norm(a.frequency_per_week ?? 1, 0, 4) * 100),
-    0,
-    100,
-  );
+    0.18 * fitness +
+    0.22 * bodyScore(a) +
+    0.14 * (ageFactor(a.age) * 100) +
+    0.16 * (playLoad(a) * 100);
+
+  return clamp(base + backhandAdjustment(a), 0, 100);
+}
+
+/**
+ * Ajuste por backhand de uma mão — o outro campo que era coletado e descartado.
+ *
+ * ═══ POR QUE O BACKHAND ENTRA NA CAPACIDADE ══════════════════════════════════════════════════
+ *
+ * "Quanto de raquete o corpo sustenta" é decidido pelo golpe MAIS FRACO, não pela média. De nada
+ * adianta o forehand aguentar 310 g se o backhand desmonta: o jogador vai chegar atrasado nesse
+ * lado a tarde inteira. Para quem joga com uma mão só, o braço de trás não ajuda a sustentar o
+ * peso nem a estabilizar o impacto, e é esse lado que define o teto.
+ *
+ * ─── POR QUE PEQUENO, E POR QUE NÃO É "UMA MÃO PEDE RAQUETE LEVE" ──────────────────────────
+ *
+ * Muito jogador de uma mão usa quadro pesado, e com razão: massa ajuda a estabilizar o impacto
+ * justamente onde falta o segundo braço. O ajuste NÃO diz que uma mão quer raquete leve — diz que
+ * a margem de erro é menor, porque o mesmo excesso de massa cobra mais caro de um lado só.
+ *
+ * Por isso são 3 pontos, e não 10. É o suficiente para desempatar uma fronteira entre dois quadros
+ * próximos, e insuficiente para reescrever a recomendação de alguém — que é o mesmo critério usado
+ * no ajuste de composição corporal por sexo, algumas linhas acima.
+ *
+ * Sem resposta, nenhum ajuste: não inventamos um backhand que a pessoa não declarou.
+ */
+function backhandAdjustment(a: QuestionnaireAnswers): number {
+  return a.backhand_hands === 'uma_mao' ? -3 : 0;
 }
 
 function computeSwingLength(a: QuestionnaireAnswers): SwingLength {
