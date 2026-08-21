@@ -187,3 +187,42 @@ export function averageBeam(beam: string | null): number | null {
   if (parts.length === 0) return null;
   return parts.reduce((a, b) => a + b, 0) / parts.length;
 }
+
+/**
+ * Como a raquete ATUAL do jogador é nomeada — modelo e peso, nunca geração.
+ *
+ * ═══ O DEFEITO QUE ISTO CORRIGE ══════════════════════════════════════════════════════════════
+ *
+ * O questionário promete, com estas palavras: "Não precisa saber o ano nem a versão: o que importa
+ * é o modelo e o peso". A lista de busca cumpre a promessa e mostra "Blade 98 16×19 · 305 g", sem
+ * geração — decisão deliberada, documentada em `racket-picker.tsx` e em `questionario/page.tsx`:
+ * ninguém sabe de que geração é a própria raquete, e ver um ano que não bate faz a pessoa concluir
+ * que a dela não está na lista.
+ *
+ * O relatório então devolvia `product_name`, que é o nome COMERCIAL COMPLETO do catálogo:
+ * "Wilson Blade 98 16×19 v10 (2026)". A pessoa nunca respondeu "v10", nunca respondeu "2026", e
+ * recebia as duas coisas de volta como se tivesse afirmado. Num relatório pago, isso é o produto
+ * pondo na boca do cliente um dado que ele não deu — e que pode estar errado, porque a variante
+ * casada é uma escolha nossa entre gerações, não uma informação dele.
+ *
+ * ─── POR QUE UMA FUNÇÃO COMPARTILHADA, E NÃO DUAS MONTAGENS ────────────────────────────────
+ *
+ * Porque a regra é a mesma nos dois lugares e o defeito nasceu exatamente de elas serem separadas:
+ * o picker seguia a regra, o relatório não. Com uma função só, mudar a forma do nome muda os dois
+ * ao mesmo tempo, e o relatório não tem como voltar a divergir da pergunta em silêncio.
+ *
+ * ─── ONDE `product_name` CONTINUA CERTO ────────────────────────────────────────────────────
+ *
+ * Nas raquetes RECOMENDADAS. Ali a geração é informação necessária: a pessoa vai comprar, e
+ * precisa saber qual versão foi avaliada. A assimetria é proposital — o que ela declara é o modelo,
+ * o que nós indicamos é um produto específico.
+ */
+export function racketModelLabel(model: string, weightG: number | null): string {
+  return typeof weightG === 'number' ? `${model} · ${weightG} g` : model;
+}
+
+export function currentRacketLabel(
+  variant: Pick<RacketVariant, 'brand' | 'model' | 'specs'>,
+): string {
+  return `${variant.brand} ${racketModelLabel(variant.model, variant.specs.unstrung_weight_g)}`;
+}

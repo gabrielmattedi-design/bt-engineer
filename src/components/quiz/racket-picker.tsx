@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { racketModelLabel } from '@/domain/racket';
 
 export type RacketOption = {
   readonly id: string;
@@ -11,9 +12,16 @@ export type RacketOption = {
   readonly weightG: number | null;
 };
 
-/** "Pure Drive · 300 g" — o que a pessoa consegue reconhecer na própria raquete. */
+/**
+ * "Pure Drive · 300 g" — o que a pessoa consegue reconhecer na própria raquete.
+ *
+ * A forma vem de `racketModelLabel`, no domínio, e não de uma montagem local. O relatório precisa
+ * chamar a raquete atual do MESMO jeito que esta lista chamou, e enquanto as duas montagens eram
+ * separadas elas divergiram: aqui saía "Blade 98 16×19 · 305 g" e lá saía "Wilson Blade 98 16×19
+ * v10 (2026)" — uma versão que a pessoa nunca declarou.
+ */
 function label(option: RacketOption): string {
-  return option.weightG === null ? option.model : `${option.model} · ${option.weightG} g`;
+  return racketModelLabel(option.model, option.weightG);
 }
 
 /**
