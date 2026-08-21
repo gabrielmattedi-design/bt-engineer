@@ -34,9 +34,9 @@ import {
  *
  * ═══ OS DOIS BLOCOS MEDEM COISAS DIFERENTES, E A ESCALA DIZ ISSO ════════════════════════════
  *
- *   bola (3)    — POSIÇÃO NO CATÁLOGO, a mesma régua que o motor lê para decidir, comprimida em
- *                 15 a 90 para que a menor das 47 avaliadas não seja desenhada como ZERO (ver
- *                 `BALL_FLOOR`). A tracejada é o seu PEDIDO, normalizado ao que existe para você.
+ *   bola (3)    — QUANTO A RAQUETE ENTREGA em relação à que mais entrega no catálogo. Cem é a
+ *                 melhor das 47 naquele aspecto (ver `shareOfBest`). A tracejada é o seu PEDIDO,
+ *                 normalizado ao que existe para você.
  *   encaixe (5) — ADEQUAÇÃO do par raquete+jogador, de 0 a 100. A tracejada é a borda: 100 é
  *                 encaixe perfeito e ninguém passa dele.
  *
@@ -322,44 +322,61 @@ function ballTargetPosition(
   if (Math.abs(desired) <= MIN_ASK) return catalogPosition;
 
   const asked = (currentPosition ?? catalogPosition) + desired;
-  if (plausiblePositions.length === 0) return clampPosition(asked);
+  if (plausiblePositions.length === 0) return asked;
 
   const reach =
     desired > 0 ? Math.max(...plausiblePositions) : Math.min(...plausiblePositions);
-  return clampPosition(desired > 0 ? Math.min(asked, reach) : Math.max(asked, reach));
+  return desired > 0 ? Math.min(asked, reach) : Math.max(asked, reach);
 }
 
 /**
- * Piso e teto do desenho dos eixos de bola — a faixa do catálogo NÃO ocupa a escala inteira.
+ * Converte uma POSIÇÃO na faixa do catálogo no que o eixo de bola desenha: quanto aquela raquete
+ * entrega em relação à que MAIS entrega entre as 47 avaliadas.
  *
- * ═══ O DEFEITO QUE ISTO CONSERTA ═════════════════════════════════════════════════════════════
+ * ═══ POR QUE NÃO DESENHAR A POSIÇÃO DIRETO ═══════════════════════════════════════════════════
  *
- * `position` mapeia a faixa do catálogo para 0–100, e as faixas são estreitas: spin vai de 21,1 a
- * 55,1 entre as 47 avaliadas. A HEAD Speed Pro tem spin 22,4 — a segunda mais baixa, mas apenas
- * 1,3 ponto acima do piso. Em posição isso dava 4, e o gráfico afirmava, na prática, que a raquete
- * NÃO TEM SPIN. Pergunta do usuário, com o card na mão: "e a raquete tem zero de spin? É isso?".
+ * Porque posição é RANK dentro da faixa, e as faixas são estreitas. Spin vai de 21,1 a 55,1 no
+ * catálogo inteiro: a HEAD Speed Pro tem 22,4 — pouco, mas 1,3 ponto acima do piso —, e em posição
+ * isso dava 4. O gráfico afirmava, na prática, que a raquete NÃO TEM SPIN. Pergunta do usuário,
+ * com o card na mão: "e a raquete tem zero de spin? É isso?".
  *
- * Não é. Ela tem 22,4 num catálogo cujo máximo é 55,1 — pouco, e não nada. O erro era da régua:
- * "a menor deste catálogo" virava "o mínimo do que existe".
+ * Uma compressão linear (a faixa ocupando 15 a 90 em vez de 0 a 100) foi a primeira tentativa e
+ * resolvia pela metade: tirava o zero, mas o número continuava sendo rank disfarçado, e os três
+ * vértices ficavam colados no centro sem que isso quisesse dizer nada sobre a raquete.
  *
- * ═══ POR QUE COMPRIMIR EM VEZ DE MOSTRAR O VALOR CRU ═════════════════════════════════════════
+ * ═══ O QUE ESTA ESCALA DIZ ═══════════════════════════════════════════════════════════════════
  *
- * Mostrar o score cru seria o mais literal e apaga o gráfico: os atributos se aglomeram numa faixa
- * de trinta e poucos pontos, e quatro polígonos ali viram um borrão no meio do desenho. A
- * compressão preserva o contraste que faz o radar informar — 75 pontos de amplitude — e ao mesmo
- * tempo tira dos extremos a autoridade que eles não têm: 47 raquetes não são o universo do
- * possível, e nenhum produto real deveria ser desenhado como zero ou como perfeito.
+ * `valor / maior valor do catálogo`. Cem é a raquete que mais entrega naquele aspecto; cinquenta é
+ * metade do que ela entrega. É uma frase que dá para dizer em voz alta, e é verificável.
  *
- * Há ainda uma razão geométrica. Potência, spin e controle são fisicamente antagônicos: nenhuma
- * raquete pode estar no alto dos três. Com a faixa ocupando 0–100, TODA raquete real tinha pelo
- * menos um vértice colapsado no centro — não era característica do produto, era da escala.
+ * O piso deixa de ser zero e passa a ser o que a MENOR do catálogo realmente entrega:
+ *
+ *     potência   a menor desenha em 38    controle   a menor desenha em 54
+ *     spin       a menor desenha em 38
+ *
+ * Nenhum produto real aparece como nada, o contraste entre raquetes continua (62 pontos de
+ * amplitude em potência e spin), e a ordem entre elas é idêntica à da posição — as duas são
+ * lineares no valor cru, então nada muda de lugar no ranking nem no desenho relativo.
+ *
+ * ═══ ISTO NÃO É MAQUIAR O NÚMERO ═════════════════════════════════════════════════════════════
+ *
+ * A distinção importa e é fácil de errar: subir o piso por estética seria inflar a percepção de
+ * qualidade, que é exatamente o que o §58 proíbe. Aqui a mudança é de PERGUNTA, não de régua sobre
+ * a mesma pergunta — "em que lugar da fila esta raquete está" e "quanto ela entrega comparada à
+ * melhor" são coisas diferentes, e a segunda é a que o leitor de um relatório de compra precisa.
+ * A primeira continua disponível, sem transformação nenhuma, na tabela de índices.
  */
-const BALL_FLOOR = 15;
-const BALL_CEIL = 90;
+function shareOfBest(
+  bands: RecommendationResult['attribute_bands'],
+  attribute: string,
+  positionOnBand: number,
+): number {
+  const band = bands[attribute];
+  if (!band || band[1] <= 0) return Math.round(positionOnBand);
 
-function clampPosition(value: number): number {
-  const dentro = Math.max(0, Math.min(100, value));
-  return Math.round(BALL_FLOOR + (dentro / 100) * (BALL_CEIL - BALL_FLOOR));
+  const [lo, hi] = band;
+  const raw = lo + ((hi - lo) * Math.max(0, Math.min(100, positionOnBand))) / 100;
+  return Math.round(Math.max(0, Math.min(100, (raw / hi) * 100)));
 }
 
 export function buildRadar(
@@ -474,15 +491,19 @@ export function buildRadar(
        * tracejada, que é onde deve viver), e o que o gráfico mostra passa a ser exatamente o que
        * o motor leu para escolher.
        */
-      profile: ballTargetPosition(
-        desired,
-        catalogPosition,
-        currentPosition,
-        plausible.map((r) => position(bands, attribute, valueOf(r))),
+      profile: shareOfBest(
+        bands,
+        attribute,
+        ballTargetPosition(
+          desired,
+          catalogPosition,
+          currentPosition,
+          plausible.map((r) => position(bands, attribute, valueOf(r))),
+        ),
       ),
-      recommended: clampPosition(position(bands, attribute, valueOf(winner))),
-      current: currentPosition === null ? null : clampPosition(currentPosition),
-      catalog: clampPosition(catalogPosition),
+      recommended: shareOfBest(bands, attribute, position(bands, attribute, valueOf(winner))),
+      current: currentPosition === null ? null : shareOfBest(bands, attribute, currentPosition),
+      catalog: shareOfBest(bands, attribute, catalogPosition),
       weight:
         askTotal > 0
           ? (objectiveWeight * Math.abs(desired)) / askTotal

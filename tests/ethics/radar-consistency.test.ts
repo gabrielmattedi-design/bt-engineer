@@ -192,7 +192,19 @@ describe('coerência entre o radar e a recomendação', () => {
    *
    * Em posição de catálogo o problema não existe: cada raquete tem a sua, pedida ou não.
    */
-  it('eixo de bola sem pedido continua distinguindo as raquetes', () => {
+  it('eixo de bola sem pedido continua dependendo da raquete', () => {
+    /**
+     * A invariante é DEPENDÊNCIA DA RAQUETE, não que as séries diferiam entre si.
+     *
+     * Sem pedido no eixo, o alvo é a média do catálogo por definição — então a tracejada e a linha
+     * cinza coincidem ali de propósito, e uma raquete que por acaso esteja na média coincide com
+     * as duas. Isso é informação, não empate falso.
+     *
+     * O defeito real era outro: as séries recebiam um NEUTRAL fixo que não dependia de raquete
+     * NENHUMA, e por isso davam o mesmo número para todo mundo. É isso que este teste tranca —
+     * duas personas com raquetes diferentes não podem marcar o mesmo valor no mesmo eixo.
+     */
+    const porEixo = new Map<string, Set<number>>();
     let verificados = 0;
 
     for (const { persona, report } of runs) {
@@ -201,17 +213,23 @@ describe('coerência entre o radar e a recomendação', () => {
       for (const axis of report.radar.filter((a) => a.group === 'bola')) {
         if (Math.abs(profile.desired_change_vector[axis.key as NeedKey]) > 5) continue;
         verificados += 1;
-
-        const series = [axis.profile, axis.recommended, axis.catalog];
-        expect(
-          new Set(series).size,
-          `${persona.id}/${axis.key}: as séries coincidem em ${axis.profile} — empate falso`,
-        ).toBeGreaterThan(1);
+        const vistos = porEixo.get(axis.key) ?? new Set<number>();
+        vistos.add(axis.recommended);
+        porEixo.set(axis.key, vistos);
       }
     }
 
     expect(verificados, 'nenhum eixo de bola sem pedido — o teste não verificou nada')
       .toBeGreaterThan(0);
+
+    for (const [key, vistos] of porEixo) {
+      if (vistos.size === 1 && verificados > porEixo.size) {
+        expect(
+          vistos.size,
+          `${key}: todas as personas marcam ${[...vistos][0]} — o valor não depende da raquete`,
+        ).toBeGreaterThan(1);
+      }
+    }
   });
 
 

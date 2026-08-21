@@ -18,6 +18,19 @@
  */
 
 /**
+ * 2.18.0 — os três eixos de bola deixam de ser desenhados em POSIÇÃO (rank dentro da faixa do
+ * catálogo) e passam a ser QUANTO A RAQUETE ENTREGA em relação à que mais entrega: 100 é a melhor
+ * das 47 naquele aspecto, 50 é metade do que ela entrega.
+ *
+ * Posição é rank, e as faixas são estreitas — spin vai de 21,1 a 55,1 no catálogo inteiro. Uma
+ * raquete 1,3 ponto acima do piso desenhava em 4, e os três vértices ficavam colados no centro sem
+ * que isso dissesse nada sobre o produto. A compressão linear da 2.17.0 (a faixa ocupando 15 a 90)
+ * tirava o zero e não resolvia o resto: continuava sendo rank disfarçado.
+ *
+ * O piso do desenho passa a ser o que a MENOR do catálogo realmente entrega — 38 em potência e
+ * spin, 54 em controle. A ordem entre as raquetes é idêntica: as duas escalas são lineares no
+ * valor cru, então nada muda de lugar. O RANKING não muda.
+ *
  * 2.17.0 — duas mudanças, uma no motor e uma na régua do gráfico.
  *
  * MOTOR: o teto do peso de `declared_priorities` sobe de 0,30 para 0,40. Veio de uma proposta do
@@ -117,7 +130,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.17.0';
+export const METHODOLOGY_VERSION = '2.18.0';
 
 export type Range = readonly [lo: number, hi: number];
 

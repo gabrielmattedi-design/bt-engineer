@@ -109,9 +109,9 @@ const ZONES = {
     fill: PALETTE.zoneBall,
     title: 'O que ela faz com a bola',
     hint:
-      'Onde cada raquete cai na faixa do catálogo, da que menos entrega à que mais entrega. A ' +
-      'linha tracejada é o que VOCÊ pediu, limitado ao que existe para o seu perfil. Passar dela ' +
-      'é bom: significa entregar mais do que você pediu.',
+      'Quanto cada raquete entrega, comparada à que mais entrega no catálogo — 100 é a melhor das ' +
+      '47 naquele aspecto. A linha tracejada é o que VOCÊ pediu, limitado ao que existe para o seu ' +
+      'perfil. Passar dela é bom: significa entregar mais do que você pediu.',
   },
   voce: {
     fill: PALETTE.zoneYou,

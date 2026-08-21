@@ -263,8 +263,9 @@ export default async function ResultadoPage({
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Os três eixos de cima mostram <strong>onde cada raquete cai na faixa do catálogo</strong>{' '}
-              naquele aspecto — da que menos entrega à que mais entrega, entre todas as avaliadas.
+              Os três eixos de cima mostram <strong>quanto cada raquete entrega naquele aspecto,
+              comparada à que mais entrega</strong> entre todas as avaliadas — 100 é a melhor do
+              catálogo ali, 50 é metade do que ela entrega.
               Os cinco de baixo mostram <strong>o encaixe entre a raquete e você</strong>, e não são
               característica fixa do produto: mudariam de valor, na mesma raquete, se quem
               respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na
