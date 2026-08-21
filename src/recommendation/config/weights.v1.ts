@@ -98,7 +98,31 @@ export const DYNAMIC_ADJUSTMENTS = {
   declared_priorities: {
     component: 'objective_fit' as ComponentKey,
     /** Peso máximo, atingido por quem declarou prioridades no grau mais forte. */
-    ceiling: 0.3,
+    /**
+     * ═══ POR QUE 0,40, E POR QUE NÃO MAIS ═══════════════════════════════════════════════════
+     *
+     * Proposta do usuário: cada eixo do radar com peso 1, o declarado como prioridade 1 com peso
+     * 3, prioridade 2 com 2, prioridade 3 com 1,5. Feita a aritmética, isso equivale a pôr o
+     * pedido entre 50% e 57% da decisão — com três prioridades,
+     * (3 + 2 + 1,5) / (5 + 3 + 2 + 1,5) = 6,5/11,5 = 56,5%.
+     *
+     * Medido em 660 perfis simulados, variando só este teto:
+     *
+     *     teto    posição no eixo pedido   match   >=80%   físico<70   nível<55   pior que a atual
+     *     0,30            69,5             85,6    74,1%       0           0          5 de 120
+     *     0,40            70,8             84,9    71,8%       0           0          2 de 120
+     *     0,50            72,4             84,5    70,3%       3           1          2 de 120
+     *     0,565           73,6             84,4    69,8%       3          11          1 de 120
+     *
+     * A direção da proposta está certa: mais peso entrega mais do que foi pedido, e reduz os casos
+     * em que a recomendada é PIOR que a raquete atual no eixo pedido — que é a falha que o usuário
+     * enxerga primeiro. Mas a partir de 0,50 o dano começa a aparecer nos mínimos de segurança, e
+     * em 0,565 são onze perfis recebendo quadro abaixo do piso de nível técnico.
+     *
+     * 0,40 é onde o ganho já veio inteiro e nada quebrou: zero violação de físico ou de nível, e a
+     * metade dos casos de "pior que a minha atual" resolvida.
+     */
+    ceiling: 0.4,
     /** Intensidade de pedido (0–40) a partir da qual o teto é atingido. */
     full_strength: 28,
     rationale:

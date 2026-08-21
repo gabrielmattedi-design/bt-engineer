@@ -34,9 +34,9 @@ import {
  *
  * ═══ OS DOIS BLOCOS MEDEM COISAS DIFERENTES, E A ESCALA DIZ ISSO ════════════════════════════
  *
- *   bola (3)    — POSIÇÃO NO CATÁLOGO, de 0 (a que menos entrega) a 100 (a que mais entrega). A
- *                 mesma régua que o motor lê para decidir. A tracejada é o seu PEDIDO, normalizado
- *                 ao que existe para você (ver `ballTargetPosition`).
+ *   bola (3)    — POSIÇÃO NO CATÁLOGO, a mesma régua que o motor lê para decidir, comprimida em
+ *                 15 a 90 para que a menor das 47 avaliadas não seja desenhada como ZERO (ver
+ *                 `BALL_FLOOR`). A tracejada é o seu PEDIDO, normalizado ao que existe para você.
  *   encaixe (5) — ADEQUAÇÃO do par raquete+jogador, de 0 a 100. A tracejada é a borda: 100 é
  *                 encaixe perfeito e ninguém passa dele.
  *
@@ -329,8 +329,37 @@ function ballTargetPosition(
   return clampPosition(desired > 0 ? Math.min(asked, reach) : Math.max(asked, reach));
 }
 
+/**
+ * Piso e teto do desenho dos eixos de bola — a faixa do catálogo NÃO ocupa a escala inteira.
+ *
+ * ═══ O DEFEITO QUE ISTO CONSERTA ═════════════════════════════════════════════════════════════
+ *
+ * `position` mapeia a faixa do catálogo para 0–100, e as faixas são estreitas: spin vai de 21,1 a
+ * 55,1 entre as 47 avaliadas. A HEAD Speed Pro tem spin 22,4 — a segunda mais baixa, mas apenas
+ * 1,3 ponto acima do piso. Em posição isso dava 4, e o gráfico afirmava, na prática, que a raquete
+ * NÃO TEM SPIN. Pergunta do usuário, com o card na mão: "e a raquete tem zero de spin? É isso?".
+ *
+ * Não é. Ela tem 22,4 num catálogo cujo máximo é 55,1 — pouco, e não nada. O erro era da régua:
+ * "a menor deste catálogo" virava "o mínimo do que existe".
+ *
+ * ═══ POR QUE COMPRIMIR EM VEZ DE MOSTRAR O VALOR CRU ═════════════════════════════════════════
+ *
+ * Mostrar o score cru seria o mais literal e apaga o gráfico: os atributos se aglomeram numa faixa
+ * de trinta e poucos pontos, e quatro polígonos ali viram um borrão no meio do desenho. A
+ * compressão preserva o contraste que faz o radar informar — 75 pontos de amplitude — e ao mesmo
+ * tempo tira dos extremos a autoridade que eles não têm: 47 raquetes não são o universo do
+ * possível, e nenhum produto real deveria ser desenhado como zero ou como perfeito.
+ *
+ * Há ainda uma razão geométrica. Potência, spin e controle são fisicamente antagônicos: nenhuma
+ * raquete pode estar no alto dos três. Com a faixa ocupando 0–100, TODA raquete real tinha pelo
+ * menos um vértice colapsado no centro — não era característica do produto, era da escala.
+ */
+const BALL_FLOOR = 15;
+const BALL_CEIL = 90;
+
 function clampPosition(value: number): number {
-  return Math.round(Math.max(0, Math.min(100, value)));
+  const dentro = Math.max(0, Math.min(100, value));
+  return Math.round(BALL_FLOOR + (dentro / 100) * (BALL_CEIL - BALL_FLOOR));
 }
 
 export function buildRadar(

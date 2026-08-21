@@ -18,6 +18,24 @@
  */
 
 /**
+ * 2.17.0 — duas mudanças, uma no motor e uma na régua do gráfico.
+ *
+ * MOTOR: o teto do peso de `declared_priorities` sobe de 0,30 para 0,40. Veio de uma proposta do
+ * usuário — cada eixo do radar com peso 1, o de prioridade 1 com 3, o de prioridade 2 com 2, o de
+ * prioridade 3 com 1,5 — que, feita a aritmética, equivale a pôr o pedido em 50% a 57% da decisão.
+ * Medido em 660 perfis, a direção estava certa e a magnitude não: em 0,50 aparecem as primeiras
+ * vencedoras abaixo dos mínimos de segurança, e em 0,565 são onze perfis abaixo do piso de nível.
+ * Em 0,40 o ganho já veio inteiro sem nenhuma violação, e os casos em que a recomendada entrega
+ * MENOS que a raquete atual no eixo pedido caem de 5 para 2 em 120. Duas das 22 personas trocam de
+ * vencedora e o match mínimo vai de 76 para 75.
+ *
+ * GRÁFICO: os eixos de bola passam a ser desenhados numa faixa de 15 a 90 em vez de 0 a 100. As
+ * faixas do catálogo são estreitas — spin vai de 21,1 a 55,1 entre as 47 avaliadas —, então uma
+ * raquete 1,3 ponto acima do piso era desenhada em 4, e o gráfico afirmava que ela não tem spin.
+ * Pergunta do usuário: "e a raquete tem zero de spin? É isso?". Não tem. Havia também um efeito
+ * geométrico: potência, spin e controle são antagônicos, então TODA raquete real tinha ao menos um
+ * vértice colapsado no centro — característica da escala, não do produto.
+ *
  * 2.16.0 — a série "Média do catálogo" dos cinco eixos de encaixe passa a ser a média sobre TUDO
  * que foi pontuado, e não sobre o ranking que sobrou depois do piso de demanda. O piso remove
  * raquetes de um lado só — as fracas no eixo pedido, que tendem a ser as mais pesadas —, então
@@ -99,7 +117,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.16.0';
+export const METHODOLOGY_VERSION = '2.17.0';
 
 export type Range = readonly [lo: number, hi: number];
 
