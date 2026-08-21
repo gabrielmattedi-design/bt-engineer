@@ -195,12 +195,12 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
     {
       key: 'profile',
       /**
-       * Era `Melhor possível para você`, e esse rótulo morreu junto com a versão em que a linha era
-       * o teto da oferta. Ela agora é o PEDIDO do questionário, com hierarquia entre os eixos — o
-       * rótulo precisa dizer de quem é a exigência, senão o leitor volta a ler o gráfico como um
-       * ranking de produto em vez de um retrato do que ele mesmo respondeu.
+       * Já foi `Melhor possível para você` (época do teto da oferta) e `O que seu jogo pede` (época
+       * do nível de pedido). A linha agora é o IDEAL: a borda da escala de adequação, onde 100
+       * significa "perfeito para você neste aspecto". O rótulo diz isso, porque é o que impede o
+       * leitor de ler a borda como um máximo de mercado — ela é o máximo DELE.
        */
-      label: 'O que seu jogo pede',
+      label: 'O ideal para o seu jogo',
       values: axes.map((a) => a.profile),
       stroke: PALETTE.clay,
       fill: 'none',
