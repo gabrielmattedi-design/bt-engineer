@@ -224,19 +224,54 @@ export default async function ResultadoPage({
           </section>
         )}
 
+        {/*
+          ═══ AS TROCAS VÊM ANTES DO GRÁFICO ═══════════════════════════════════════════════
+
+          Estava depois, e a ordem produzia a leitura errada. Reclamação do usuário, com o card na
+          mão: ele pediu POTÊNCIA como prioridade 1, o vértice de potência aparece bem abaixo do
+          pedido, e a conclusão foi "parece não ter respeitado meu desejo".
+
+          A explicação para isso já existia e é boa — diz que a raquete mais potente do catálogo é
+          um frame de 280 g e 108 pol², desenhado para iniciante, e que no caso dele o lugar certo
+          de buscar potência é a corda e a tensão. Só que ela chegava DEPOIS do gráfico que provoca
+          a pergunta, e quem fecha a página no vão não chega no motivo.
+
+          Um vão sem explicação ao lado não é transparência, é uma acusação sem defesa.
+        */}
+        {winner && winner.attention.length > 0 && (
+          <section>
+            <h2 className="font-display text-2xl font-bold">As trocas desta escolha</h2>
+            <p className="mt-2 max-w-prose text-sm text-graphite">
+              Nenhuma raquete é a melhor em tudo — melhorar um eixo custa outro. Estas foram as
+              trocas feitas para chegar ao melhor conjunto para o seu jogo.
+            </p>
+            <ul className="mt-5 max-w-prose space-y-5 border-l-2 border-court pl-5 text-[15px]">
+              {winner.attention.map((item) => (
+                <li key={item.headline}>
+                  <p className="font-medium">{item.headline}</p>
+                  {item.rationale && (
+                    <p className="mt-1.5 text-sm text-graphite">{item.rationale}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* ── RADAR: quatro leituras nos mesmos eixos ──────────────────────── */}
         {report.radar.length > 0 && (
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo — não é uma nota da raquete. Os três de cima medem quanto do que VOCÊ PEDIU cada raquete entrega; os cinco de baixo medem o encaixe entre ela e você. Nenhum dos oito é uma característica fixa do produto: todos mudariam de valor, na mesma raquete, se quem respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na maioria dos eixos: foi exatamente por encaixar melhor que ela foi escolhida. Para comparar as raquetes entre si como PRODUTO, use a tabela de índices — lá toda raquete do catálogo soma o mesmo total.</p>
+              Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo — não é uma nota da raquete. Os três de cima medem quanto do que VOCÊ PEDIU cada raquete entrega — onde você não pediu mudança, as três linhas caem no mesmo ponto, o que não é empate e sim ausência de critério. Os cinco de baixo medem o encaixe entre ela e você. Nenhum dos oito é uma característica fixa do produto: todos mudariam de valor, na mesma raquete, se quem respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na maioria dos eixos: foi exatamente por encaixar melhor que ela foi escolhida. Para comparar as raquetes entre si como PRODUTO, use a tabela de índices — lá toda raquete do catálogo soma o mesmo total.</p>
             <p className="mt-3 max-w-prose text-sm text-graphite">
-              A linha laranja é o SEU IDEAL — a borda, em todos os eixos. Ela é constante porque a
-              escala já é adequação: 100 quer dizer &ldquo;perfeito para você neste aspecto&rdquo;, e
-              cada eixo tem sua própria régua interna. Nenhuma raquete a ultrapassa, porque não
-              existe mais adequado que perfeito. Onde o verde encosta, aquilo está atendido; onde
-              fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto cada
-              bloco pesou na decisão está logo abaixo do gráfico.
+              A linha laranja tem <strong>duas leituras</strong>, uma por bloco. Nos cinco eixos de
+              baixo ela é a <strong>borda</strong>: 100 é o ideal para você, e nenhuma raquete o
+              ultrapassa — não existe mais adequado que perfeito. Nos três eixos de cima ela é o{' '}
+              <strong>tamanho do seu pedido</strong>: quanto mais alto, mais você priorizou aquilo,
+              e uma raquete PODE passar dela, porque entregar mais potência do que você pediu é bom.
+              Onde o verde fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O
+              quanto cada bloco pesou na decisão está logo abaixo do gráfico.
             </p>
             <div className="mt-6 rounded border border-line bg-white p-6">
               <CompatibilityRadar axes={report.radar} />
@@ -287,25 +322,6 @@ export default async function ResultadoPage({
           custaria sai do mesmo breakdown que sustenta o resto do relatório. Esconder a troca seria
           o §35 ao contrário; mostrá-la sem o motivo é o que estava errado.
         */}
-        {winner && winner.attention.length > 0 && (
-          <section>
-            <h2 className="font-display text-2xl font-bold">As trocas desta escolha</h2>
-            <p className="mt-2 max-w-prose text-sm text-graphite">
-              Nenhuma raquete é a melhor em tudo — melhorar um eixo custa outro. Estas foram as
-              trocas feitas para chegar ao melhor conjunto para o seu jogo.
-            </p>
-            <ul className="mt-5 max-w-prose space-y-5 border-l-2 border-court pl-5 text-[15px]">
-              {winner.attention.map((item) => (
-                <li key={item.headline}>
-                  <p className="font-medium">{item.headline}</p>
-                  {item.rationale && (
-                    <p className="mt-1.5 text-sm text-graphite">{item.rationale}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         {/* ── TRANSIÇÃO (§22) ──────────────────────────────────────────────── */}
         <section>

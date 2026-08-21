@@ -28,17 +28,24 @@ import type { ComponentKey, RankedRacket, RecommendationResult } from '@/domain/
  * ele não tinha cometido. Pior: escondia os casos em que o erro era real, porque toda a diferença
  * parecia ruído de escala.
  *
- * ═══ AS QUATRO SÉRIES, TODAS EM ADEQUAÇÃO ════════════════════════════════════════════════════
+ * ═══ A LINHA TRACEJADA TEM DUAS LEITURAS, UMA POR BLOCO ══════════════════════════════════════
  *
- *   ideal       — a borda. 100 em todo eixo, porque a escala JÁ É adequação: 100 significa
- *                 "perfeito para você neste aspecto". Ver `profile`.
- *   recomendada — quão perto do seu ideal a raquete escolhida chega.
- *   atual       — a mesma leitura para a sua de hoje. Ausente quando não informada.
- *   catálogo    — a média das avaliadas, a régua de "normal".
+ * Não por indecisão: as duas unificações foram tentadas e falharam por lados opostos.
  *
- * As três linhas de raquete se APROXIMAM da borda conforme servem a você, e nenhuma a ultrapassa:
- * não existe "mais adequado que perfeito". Uma raquete que entrega muito mais potência do que você
- * pediu não é um encaixe melhor — é um desencaixe do outro lado, e a escala já cobra isso.
+ *   • como NÍVEL DE PEDIDO nos oito — nos cinco eixos de encaixe o verde passava do tracejado, e o
+ *     gráfico dizia "esta raquete entrega mais do que você precisa". Sem sentido: aqueles eixos já
+ *     são adequação, e não existe mais adequado que perfeito.
+ *   • como BORDA nos oito — nos três eixos de bola o mesmo desenho passou a acusar de excesso uma
+ *     raquete que entrega mais potência do que foi pedido, que é resultado bom.
+ *
+ * A separação sobrevive porque os dois blocos medem coisas diferentes:
+ *
+ *   encaixe (5) — adequação do par raquete+jogador. O tracejado é a BORDA, ninguém passa.
+ *   bola (3)    — quanto do PEDIDO foi entregue. O tracejado é o TAMANHO DO PEDIDO, e passar dele
+ *                 significa entregar mais do que se pediu.
+ *
+ * As outras três séries — recomendada, atual e catálogo — estão sempre na mesma unidade dentro de
+ * cada bloco, e é isso que mantém a comparação entre elas válida.
  *
  * ═══ POR QUE POSIÇÃO DE CATÁLOGO, E NÃO O VALOR CRU ══════════════════════════════════════════
  *
@@ -51,35 +58,31 @@ export type RadarAxis = {
   readonly key: string;
   readonly label: string;
   /**
-   * O IDEAL — 100 em todo eixo, e isso é uma consequência da escala, não uma escolha de desenho.
+   * A linha tracejada. NOS EIXOS DE ENCAIXE é o ideal (100); NOS DE BOLA é o tamanho do pedido.
    *
-   * ═══ AS TRÊS VERSÕES ANTERIORES, E POR QUE AS DUAS ÚLTIMAS ERRARAM ═════════════════════════
+   * ═══ AS QUATRO VERSÕES QUE ESTA LINHA JÁ TEVE ══════════════════════════════════════════════
    *
-   * 1. Foi 100 fixo, com as raquetes entrando em POSIÇÃO DE CATÁLOGO. Errado: a borda dizia
-   *    "quero o máximo de tudo" porque, naquela unidade, ela dizia isso mesmo.
+   * 1. 100 fixo, com as raquetes em POSIÇÃO DE CATÁLOGO. A borda dizia "quero o máximo de tudo"
+   *    porque, naquela unidade, dizia mesmo.
    *
-   * 2. Virou o TETO DA OFERTA — o melhor que alguma raquete viável alcançava no eixo. Saturava por
-   *    construção (máximo sobre ~19 raquetes) e, pior, cada vértice vinha de uma raquete diferente:
-   *    medido, 0 de 22 personas tinham alguma raquete real capaz de alcançar a linha inteira.
+   * 2. TETO DA OFERTA — o melhor que alguma raquete viável alcançava. Saturava por construção
+   *    (máximo sobre ~19 raquetes) e cada vértice vinha de uma raquete diferente: 0 de 22 personas
+   *    tinham alguma raquete real capaz de alcançar a linha inteira.
    *
-   * 3. Virou o PEDIDO DO QUESTIONÁRIO, num nível de 55 a 94. Resolveu a saturação e introduziu um
-   *    erro mais fundo, que é justamente o que o cabeçalho deste arquivo alerta: duas grandezas
-   *    diferentes no mesmo eixo. O verde é ADEQUAÇÃO (100 = ideal para você); a laranja era
-   *    INTENSIDADE DE PEDIDO. Comparar as duas não significa nada — e o sintoma foi o usuário
-   *    lendo, corretamente, "parece que a raquete me entrega muito mais do que eu preciso".
+   * 3. NÍVEL DE PEDIDO nos oito eixos. Corrigiu a saturação e criou um erro nos eixos de encaixe:
+   *    ali o verde é adequação, e passar do tracejado virou "entrega mais do que você precisa".
    *
-   * ═══ POR QUE 100 AGORA ESTÁ CERTO ══════════════════════════════════════════════════════════
+   * 4. BORDA nos oito eixos. Corrigiu o encaixe e quebrou a bola: uma raquete que entrega mais
+   *    potência do que foi pedido passou a parecer excessiva, quando é o resultado desejado.
    *
-   * Porque a unidade mudou junto. Nos oito eixos, 100 já quer dizer "perfeito PARA VOCÊ", e cada
-   * eixo tem sua régua interna: 100 em "Seu swing" para um jogador e 100 em "Seu swing" para outro
-   * são exigências absolutas diferentes, desenhadas no mesmo lugar. A borda é o seu ideal, não um
-   * máximo de mercado — e por isso nenhuma raquete pode passar dela.
+   * A quinta é a separação por bloco. Ela não é um meio-termo — é o reconhecimento de que os dois
+   * blocos nunca mediram a mesma coisa, e que uma linha só não descreve as duas.
    *
-   * ─── E A HIERARQUIA, QUE A BORDA CONSTANTE NÃO CARREGA ─────────────────────────────────────
+   * ─── NOS EIXOS DE BOLA, POR QUE NÃO ENCOSTA EM 100 ─────────────────────────────────────────
    *
-   * Some da geometria e vai para o rótulo, em `weight`. Sem isso a objeção de 2024 volta inteira
-   * ("não tem inteligência nenhuma por trás"), porque o polígono sozinho não distingue o eixo que
-   * decide a compra do eixo que não importa.
+   * Piso `DEMAND_FLOOR` e teto `DEMAND_CEIL`: não pedir um aspecto não é aceitar ser ruim nele, e
+   * um pedido, por mais forte, é prioridade e não exigência de perfeição. A folga até a borda é o
+   * que impede a linha de voltar a ser lida como "meu jogo exige o máximo de tudo".
    */
   readonly profile: number;
   readonly recommended: number;
@@ -255,38 +258,47 @@ const MIN_ASK = 5;
 const MIN_HEADROOM = 15;
 
 /**
- * Valor exibido num eixo em que o jogador NÃO PEDIU NADA.
+ * Valor de um eixo de bola em que o jogador não pediu nada.
  *
- * ═══ ERA 70, E ISSO CONTRADIZIA O MOTOR ════════════════════════════════════════════════════════
+ * Acima de 50 porque não pedir não é falha da raquete — nenhuma direção foi contrariada. É o mesmo
+ * neutro que `objectiveFit` usa.
  *
- * `objectiveFit` não pontua um eixo sem pedido: ele faz `continue` e o exclui da média. Para o
- * motor, não pedir não é atender mal — é não haver o que atender.
- *
- * O gráfico desenhava 70. Numa escala em que 100 é o ideal, isso afirma um déficit de 30 pontos
- * que o motor nunca calculou, e afirma no vértice, que é a parte do gráfico que o olho lê primeiro.
- *
- * Medido nas 22 personas: 58% dos eixos de bola estavam travados neste neutro. Efeito sobre a
- * credibilidade do número, que foi como o defeito apareceu — um usuário com 94% de match olhando
- * um polígono que parecia não atendê-lo:
- *
- *     p13   fit 96%   média dos oito eixos 85   ->   97
- *     p05   fit 90%   média dos oito eixos 83   ->   95
- *
- * ═══ POR QUE 100, E NÃO OMITIR O EIXO ══════════════════════════════════════════════════════════
- *
- * Omitir mudaria o número de vértices de pessoa para pessoa, e a forma do polígono deixaria de ser
- * comparável — inclusive com o próprio card, que tem geometria fixa.
- *
- * 100 é a leitura correta na unidade do gráfico: a escala mede ADEQUAÇÃO, e um requisito que não
- * existe está atendido. O eixo passa a dizer "isto não foi um critério para você", que é
- * exatamente o que o motor faz ao pular o termo.
- *
- * ─── O QUE ISTO NÃO É ────────────────────────────────────────────────────────────────────────
- *
- * Não é inflar o gráfico para o match parecer melhor. O número do match não muda em nada — ele
- * nunca contou esses eixos. O que muda é o desenho parar de cobrar por eles.
+ * ⚠️ LIMITAÇÃO CONHECIDA: como este valor não depende da raquete, as três séries (recomendada,
+ * atual e catálogo) caem no MESMO ponto quando não houve pedido. Visualmente parece um empate
+ * triplo, e não é: é a ausência de critério. Já foi tentado resolver isso levando o neutro a 100 —
+ * o empate continuou, só que na borda, onde chama mais atenção e ainda afirma que a raquete média
+ * atende 100% de uma exigência que não existe. O tratamento certo é de TEXTO, e está no explicador
+ * do bloco: o gráfico não tem como desenhar "não perguntado" num vértice.
  */
-const NO_REQUEST_MET = 100;
+const NEUTRAL = 70;
+
+/**
+ * Piso e teto da linha de exigência dos eixos de BOLA.
+ *
+ * O piso não é zero porque não pedir um aspecto não é aceitar ser ruim nele. O teto não é 100
+ * porque a borda, nesta escala, é o ideal — e um pedido é prioridade, não exigência de perfeição.
+ */
+const DEMAND_FLOOR = 55;
+const DEMAND_CEIL = 94;
+
+/**
+ * A exigência de um eixo de bola, 0–1, combinando quanto ele foi pedido em ABSOLUTO e em RELATIVO
+ * aos outros dois.
+ *
+ * A média geométrica exige as DUAS coisas: um eixo só chega perto de 1 se foi muito pedido E se foi
+ * o mais pedido do perfil. Uma média aritmética deixaria um pedido fraco que por acaso é o maior
+ * subir alto — o caso "não pedi quase nada, mas o gráfico grita".
+ */
+function axisDemand(pedidoAbsoluto: number, maiorPedido: number): number {
+  if (maiorPedido <= 0) return 0;
+  const relativo = Math.min(1, pedidoAbsoluto / maiorPedido);
+  const absoluto = Math.min(1, pedidoAbsoluto);
+  return Math.sqrt(absoluto * relativo);
+}
+
+function demandToAxis(demand: number): number {
+  return Math.round(DEMAND_FLOOR + (DEMAND_CEIL - DEMAND_FLOOR) * demand);
+}
 
 
 /**
@@ -313,7 +325,7 @@ const NO_REQUEST_MET = 100;
  * medir a mesma coisa.
  */
 function askAdequacy(desired: number, reference: number, actual: number): number {
-  if (Math.abs(desired) <= MIN_ASK) return NO_REQUEST_MET;
+  if (Math.abs(desired) <= MIN_ASK) return NEUTRAL;
 
   const headroom = Math.max(desired > 0 ? 100 - reference : reference, MIN_HEADROOM);
   const delivered = Math.max(-1, Math.min(1, ((actual - reference) * Math.sign(desired)) / headroom));
@@ -342,6 +354,21 @@ export function buildRadar(
   );
   const askTotal = askByAxis.reduce((s, v) => s + v, 0);
   const objectiveWeight = weightOf(winner, 'objective_fit');
+
+  /**
+   * O pedido de cada eixo de BOLA, 0–1, comparado apenas aos outros dois.
+   *
+   * A hierarquia que interessa aqui é interna ao bloco: quem pôs potência em 1º precisa ver o
+   * vértice de potência esticado em relação a controle e spin. Comparar contra os pesos dos eixos
+   * de encaixe misturaria fatia com bolo — o mesmo erro que tirou o peso dos rótulos.
+   */
+  const ballAsks = new Map<string, number>(
+    AXES.filter((a) => a.need).map((a) => [
+      a.key,
+      Math.min(1, Math.abs(profile.desired_change_vector[a.need!]) / 40),
+    ]),
+  );
+  const maiorPedido = Math.max(0, ...ballAsks.values());
 
   return AXES.map((axis): RadarAxis => {
     if (axis.component) {
@@ -401,7 +428,7 @@ export function buildRadar(
       key: axis.key,
       label: axis.label,
       group: axis.group,
-      profile: IDEAL,
+      profile: demandToAxis(axisDemand(ballAsks.get(axis.key) ?? 0, maiorPedido)),
       recommended: askAdequacy(desired, reference, position(bands, attribute, valueOf(winner))),
       // A atual entrega zero do pedido por definição — ela É o ponto de partida.
       current: currentPosition === null ? null : askAdequacy(desired, reference, currentPosition),

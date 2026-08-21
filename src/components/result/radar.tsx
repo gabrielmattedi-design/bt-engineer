@@ -16,9 +16,17 @@ import { axisAngle, labelAnchor, labelPoint, topBlockRotation } from './radar-ge
  *
  * ─── COMO LER ────────────────────────────────────────────────────────────────────────────────
  *
- * Todo eixo está em ADEQUAÇÃO: 100 é a borda, e significa "perfeito para você neste aspecto".
- * Quanto MAIOR o polígono, melhor a raquete serve ao jogador — e o maior é, por construção, o que o
- * motor escolheu, porque é a mesma conta que decidiu o ranking.
+ * Todo eixo vai de 0 a 100 e o maior polígono é o melhor encaixe — mas a linha TRACEJADA tem duas
+ * leituras, uma por bloco, e é isso que o explicador de cada setor precisa dizer:
+ *
+ *   • encaixe (5 eixos) — ela é a BORDA. 100 é o ideal e nenhuma raquete o ultrapassa, porque não
+ *     existe mais adequado que perfeito.
+ *   • bola (3 eixos)    — ela é o TAMANHO DO PEDIDO. As raquetes podem passar dela: entregar mais
+ *     potência do que foi pedido é bom, não é excesso.
+ *
+ * A tentativa de unificar as duas — pôr a borda em 100 nos oito — falhou por causa do segundo caso:
+ * o gráfico passou a dizer "esta raquete entrega mais do que você precisa" onde a leitura correta
+ * era "ela entrega mais do que você pediu, e isso é bom".
  *
  * Os oito eixos vêm em dois blocos, e os blocos são DESENHADOS — cada um num setor de fundo
  * próprio, com título. Os três primeiros são o que a raquete faz com a BOLA; os cinco últimos são
@@ -101,8 +109,10 @@ const ZONES = {
     fill: PALETTE.zoneBall,
     title: 'O que você pediu na bola',
     hint:
-      'Quanto do seu pedido cada raquete entrega. Onde você não pediu mudança, o eixo fica cheio — ' +
-      'não havia o que atender.',
+      'A linha tracejada é o TAMANHO do seu pedido, não a borda: quanto mais alto, mais você ' +
+      'priorizou aquilo. As raquetes podem passar dela — entregar mais do que você pediu é bom. ' +
+      'Onde você não pediu mudança, as três linhas caem no mesmo ponto: não é empate, é ausência ' +
+      'de critério.',
   },
   voce: {
     fill: PALETTE.zoneYou,
@@ -209,12 +219,17 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
     {
       key: 'profile',
       /**
-       * Já foi `Melhor possível para você` (época do teto da oferta) e `O que seu jogo pede` (época
-       * do nível de pedido). A linha agora é o IDEAL: a borda da escala de adequação, onde 100
-       * significa "perfeito para você neste aspecto". O rótulo diz isso, porque é o que impede o
-       * leitor de ler a borda como um máximo de mercado — ela é o máximo DELE.
+       * A linha tem DUAS leituras, uma por bloco, e o rótulo precisa servir às duas.
+       *
+       * Nos cinco eixos de encaixe ela é a borda: 100 é o ideal, e nenhuma raquete o ultrapassa,
+       * porque não existe mais adequado que perfeito. Nos três eixos de bola ela é o TAMANHO do
+       * pedido, e as raquetes podem passar dela — entregar mais potência do que foi pedido é bom.
+       *
+       * `O que seu jogo pede` cobre as duas. `O ideal para o seu jogo` cobria só a primeira e, nos
+       * eixos de bola, transformava "entregou mais do que pedi" em "passou do ideal", que foi
+       * exatamente a leitura errada que motivou esta separação.
        */
-      label: 'O ideal para o seu jogo',
+      label: 'O que seu jogo pede',
       values: axes.map((a) => a.profile),
       stroke: PALETTE.clay,
       fill: 'none',
