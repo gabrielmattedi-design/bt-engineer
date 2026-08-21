@@ -296,9 +296,12 @@ export default async function ResultadoPage({
               <p className="mt-2 max-w-prose text-sm text-graphite">
                 Cada trilho é a faixa do catálogo naquele aspecto — da raquete que menos entrega à
                 que mais entrega, entre todas as avaliadas. A linha tracejada é onde o seu pedido
-                aponta; a faixa laranja entre ela e a recomendada é a distância que ainda
-                existe. Quando essa faixa aparece, vale ler as trocas acima: quase sempre o que
-                está do outro lado é um quadro que não serve ao seu jogo.
+                aponta, <strong>limitada ao que existe para o seu perfil</strong>: quando você pede
+                mais do que qualquer raquete adequada a você alcança, ela para no teto e diz isso.
+                A faixa laranja entre ela e a recomendada é a distância que ainda existe — e, por
+                parar no teto, é uma distância que dá para fechar. Quando ela aparece, vale ler as
+                trocas acima: quase sempre o que está do outro lado é um quadro que não serve ao
+                seu jogo.
               </p>
               <div className="mt-5">
                 <MarketRails axes={report.radar} />

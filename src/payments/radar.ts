@@ -1,6 +1,10 @@
 import { clamp01 } from '@/domain/scores';
 import { NEED_KEYS, NEED_TO_RACKET_ATTRIBUTE, type NeedKey, type PlayerProfile } from '@/domain/player-profile';
 import type { ComponentKey, RankedRacket, RecommendationResult } from '@/domain/recommendation';
+import {
+  FLOOR_SAFE_PHYSICAL,
+  FLOOR_SAFE_SKILL,
+} from '@/recommendation/engine/rank-rackets';
 
 /**
  * Dados do radar — quatro leituras sobre os mesmos seis eixos.
@@ -106,15 +110,42 @@ export type RadarAxis = {
    * Medido neste catálogo: potência correlaciona +0,77 com tamanho de cabeça e −0,85 com peso.
    * "Quadro potente" é, quase por definição, quadro grande e leve.
    *
-   * `ask` é para onde o pedido do jogador aponta — posição atual (ou média do catálogo) mais a
-   * mudança pedida, limitada a 0–100. É o alvo, não uma promessa: pode cair numa região do
-   * mercado onde não existe raquete adequada a ele, e é exatamente isso que precisa ficar visível.
+   * O alvo do pedido vem em três campos porque uma versão só não bastava: `asked` é o pedido cru,
+   * `reach` é o teto do que existe para este perfil, e `ask` — o que a tela desenha — é o menor dos
+   * dois. Ver a nota em `ask`: apontar para fora do alcançável foi um defeito real, não um detalhe.
    */
   readonly market: {
     readonly recommended: number;
     readonly current: number | null;
     readonly catalog: number;
+    /**
+     * O alvo DESENHADO: o pedido, limitado ao que existe para este jogador.
+     *
+     * ═══ POR QUE O TETO ═════════════════════════════════════════════════════════════════════
+     *
+     * Sem ele o trilho apontava para um lugar onde não existe raquete adequada a este perfil, e
+     * depois pintava de laranja toda a distância até lá — cobrando da recomendada um vão que
+     * ninguém podia fechar. Medido em 566 perfis simulados: o alvo cru apontava acima do teto
+     * alcançável em 70% deles e ficava colado no fim da escala em 49%, com excesso médio de 20
+     * pontos. O vão laranja médio caía de 23,7 para 9,6 pontos ao ser limitado.
+     *
+     * Relato do usuário: "o que a raquete entrega de potência ficou muito longe da linha laranja,
+     * descredibiliza a análise". Estava certo — a linha marcava um ponto inalcançável.
+     *
+     * Um alvo que não pode ser atingido não é um alvo, é uma acusação. `reach` é o teto e `asked`
+     * guarda o pedido cru, para o texto poder dizer que ele era maior sem o gráfico ter que mentir.
+     */
     readonly ask: number;
+    /** O pedido cru, sem teto: posição de partida mais a mudança pedida. */
+    readonly asked: number;
+    /**
+     * Teto alcançável: a melhor posição neste eixo entre as raquetes PLAUSÍVEIS para o perfil —
+     * as que passam nos mesmos mínimos de físico e nível que o piso de demanda usa.
+     *
+     * `null` quando nenhuma candidata passa nesses mínimos; aí não há teto a afirmar e `ask`
+     * volta a ser o pedido cru.
+     */
+    readonly reach: number | null;
   } | null;
   /**
    * Quanto este eixo pesou na decisão, 0–1.
@@ -375,6 +406,20 @@ export function buildRadar(
    *
    * Sem pedido nenhum, volta a ser igual — não há ordem a respeitar.
    */
+  /**
+   * As candidatas PLAUSÍVEIS para este jogador — a base do teto de cada eixo de bola.
+   *
+   * Os mínimos são os mesmos que o piso de demanda declarada usa para decidir se pode agir
+   * (`FLOOR_SAFE_PHYSICAL` e `FLOOR_SAFE_SKILL`), importados de lá em vez de recopiados: se um dia
+   * a definição de "serve para este jogador" mudar no motor, o gráfico não pode continuar
+   * desenhando o teto da definição antiga.
+   */
+  const plausible = ranking.filter(
+    (r) =>
+      componentOf(r, 'physical_fit') >= FLOOR_SAFE_PHYSICAL &&
+      componentOf(r, 'skill_fit') >= FLOOR_SAFE_SKILL,
+  );
+
   const askByAxis = AXES.filter((a) => a.need).map((a) =>
     Math.abs(profile.desired_change_vector[a.need!]),
   );
@@ -460,13 +505,27 @@ export function buildRadar(
       // A atual entrega zero do pedido por definição — ela É o ponto de partida.
       current: currentPosition === null ? null : askAdequacy(desired, reference, currentPosition),
       catalog: askAdequacy(desired, reference, catalogPosition),
-      market: {
-        recommended: position(bands, attribute, valueOf(winner)),
-        current: currentPosition,
-        catalog: catalogPosition,
-        // O alvo é ancorado em quem o jogador é hoje; sem raquete conhecida, na média do catálogo.
-        ask: Math.round(Math.max(0, Math.min(100, (currentPosition ?? catalogPosition) + desired))),
-      },
+      market: (() => {
+        // O pedido é ancorado em quem o jogador é hoje; sem raquete conhecida, na média do catálogo.
+        const asked = Math.round(
+          Math.max(0, Math.min(100, (currentPosition ?? catalogPosition) + desired)),
+        );
+        const reach =
+          plausible.length === 0
+            ? null
+            : Math.round(
+                Math.max(...plausible.map((r) => position(bands, attribute, valueOf(r)))),
+              );
+
+        return {
+          recommended: position(bands, attribute, valueOf(winner)),
+          current: currentPosition,
+          catalog: catalogPosition,
+          ask: reach === null ? asked : Math.min(asked, reach),
+          asked,
+          reach,
+        };
+      })(),
       weight:
         askTotal > 0
           ? (objectiveWeight * Math.abs(desired)) / askTotal

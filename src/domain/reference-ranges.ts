@@ -18,6 +18,12 @@
  */
 
 /**
+ * 2.13.0 — o alvo do trilho de mercado passou a ser LIMITADO ao teto do perfil: o menor entre o
+ * pedido e a melhor posição alcançável entre as raquetes plausíveis para o jogador. O alvo cru
+ * apontava acima desse teto em 70% dos 566 perfis medidos e ficava colado no fim da escala em 49%,
+ * fazendo o gráfico cobrar da recomendada um vão que nenhuma escolha podia fechar (23,7 pontos em
+ * média; 9,6 com o teto). O RANKING não muda — nenhum score, peso ou filtro foi tocado.
+ *
  * 2.12.0 — pedido declarado com força virou PISO: raquetes abaixo da posição 60 do catálogo no
  * atributo pedido saem do ranking, desde que sobre candidata segura e campo para um pódio (ver
  * `applyDeclaredFloor`). É a primeira mudança desta série que altera QUAL raquete é recomendada —
@@ -46,7 +52,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.12.0';
+export const METHODOLOGY_VERSION = '2.13.0';
 
 export type Range = readonly [lo: number, hi: number];
 

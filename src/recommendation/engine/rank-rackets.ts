@@ -366,8 +366,8 @@ const FLOOR_POSITION = 60;
  * entre todas as vencedoras ficam exatamente onde estavam sem o piso (72,6 e 56,5). O filtro não
  * empurrou ninguém para um quadro que o corpo ou o nível não sustenta.
  */
-const FLOOR_SAFE_PHYSICAL = 70;
-const FLOOR_SAFE_SKILL = 55;
+export const FLOOR_SAFE_PHYSICAL = 70;
+export const FLOOR_SAFE_SKILL = 55;
 
 /**
  * Mínimo de sobreviventes para o piso valer.

@@ -28,6 +28,17 @@ import type { RadarAxis } from '@/payments/radar';
  *
  * Uma barra esconderia exatamente essa informação — a que transforma "a recomendação falhou" em
  * "o mercado não tem isso para você, e o caminho é a corda".
+ *
+ * ═══ O ALVO TEM TETO ═════════════════════════════════════════════════════════════════════════
+ *
+ * O tracejado marcava o pedido cru, e o pedido cru costuma apontar para fora do que existe: medido
+ * em 566 perfis simulados, ele ficava acima do teto alcançável em 70% deles e colado no fim da
+ * escala em 49%, com excesso médio de 20 pontos. A faixa laranja então pintava um vão de 23,7
+ * pontos em média — uma distância que nenhuma escolha de raquete podia fechar.
+ *
+ * Agora ele para no teto do perfil, e a faixa cai para 9,6 pontos: um vão que significa algo,
+ * porque é fechável. Quando o teto morde, o rótulo "teto do seu perfil" diz isso na cara — capar
+ * em silêncio trocaria uma cobrança injusta por uma promessa falsa.
  */
 
 const PALETTE = {
@@ -96,6 +107,15 @@ export function MarketRails({ axes }: { axes: readonly RadarAxis[] }) {
           const gapEnd = Math.max(m.recommended, m.ask);
           const hasGap = m.ask - m.recommended > 3;
 
+          /**
+           * O pedido foi maior do que existe para este perfil, e o alvo desenhado é o teto.
+           *
+           * Precisa aparecer escrito. Capar em silêncio faria o gráfico parecer dizer que o pedido
+           * foi atendido por inteiro — trocaria uma cobrança injusta por uma promessa falsa, que é
+           * pior. O rótulo é o que separa "você conseguiu tudo" de "isto é tudo o que há".
+           */
+          const capped = m.reach !== null && m.asked > m.reach;
+
           return (
             <g key={axis.key} transform={`translate(0 ${i * ROW_H + 18})`}>
               <text
@@ -153,6 +173,27 @@ export function MarketRails({ axes }: { axes: readonly RadarAxis[] }) {
                 label={`Recomendada: ${m.recommended}`}
               />
 
+              {/*
+                Ancorado no FIM do trilho, não na marca.
+
+                Seguir a marca parecia melhor — o rótulo apontando para o que descreve — e colidia
+                com o nome do eixo sempre que o alvo caía à esquerda: "Controle" e "teto do seu
+                perfil" viravam uma linha só de letras sobrepostas. Aqui não há colisão possível:
+                o nome do eixo é curto e alinhado à esquerda, o rótulo é curto e alinhado à
+                direita, e entre os dois sobram uns 190 px de trilho.
+              */}
+              {capped && (
+                <text
+                  x={TRACK_X + TRACK_W}
+                  y={-6}
+                  fontSize="8"
+                  textAnchor="end"
+                  fill={PALETTE.clay}
+                >
+                  teto do seu perfil
+                </text>
+              )}
+
               <text x={TRACK_X} y={TRACK_H + 16} fontSize="8.5" fill={PALETTE.graphite}>
                 menos
               </text>
@@ -194,7 +235,7 @@ export function MarketRails({ axes }: { axes: readonly RadarAxis[] }) {
             className="inline-block h-3 w-px border-l border-dashed"
             style={{ borderColor: PALETTE.clay }}
           />
-          Onde o seu pedido aponta
+          Seu pedido, até onde existe para o seu perfil
         </li>
       </ul>
     </div>
