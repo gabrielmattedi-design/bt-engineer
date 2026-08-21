@@ -85,10 +85,24 @@ const PALETTE = {
  * diferentes. O que a raquete FAZ, e o quanto ela SERVE A VOCÊ.
  */
 const ZONES = {
+  /**
+   * ═══ ESTE TÍTULO JÁ AFIRMOU O OPOSTO DO QUE O EIXO MEDE ═══════════════════════════════════
+   *
+   * Dizia "O que ela faz com a bola — Comportamento do quadro, o mesmo para qualquer pessoa que
+   * jogue com ela". Era falso, e mensurável: com o MESMO perfil, uma Pure Aero e uma HEAD Speed
+   * Team marcavam idêntico (70/70/70), e uma Pure Strike 18x20 — dos quadros mais controlados do
+   * catálogo — marcava 0 em controle. Nenhum desses números descreve o produto.
+   *
+   * O que o eixo mede é QUANTO DO PEDIDO a raquete entregou. Ele varia com quem pergunta, e some
+   * quando ninguém pediu nada. O título antigo convidava a ler os três vértices como spec de
+   * fabricante, e foi assim que um usuário concluiu que a recomendação não o atendia.
+   */
   bola: {
     fill: PALETTE.zoneBall,
-    title: 'O que ela faz com a bola',
-    hint: 'Comportamento do quadro — o mesmo para qualquer pessoa que jogue com ela.',
+    title: 'O que você pediu na bola',
+    hint:
+      'Quanto do seu pedido cada raquete entrega. Onde você não pediu mudança, o eixo fica cheio — ' +
+      'não havia o que atender.',
   },
   voce: {
     fill: PALETTE.zoneYou,

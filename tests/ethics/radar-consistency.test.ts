@@ -132,6 +132,46 @@ describe('coerência entre o radar e a recomendação', () => {
   });
 
   /**
+   * Um eixo SEM PEDIDO tem que aparecer atendido, porque o motor não cobra por ele.
+   *
+   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   *
+   * `objectiveFit` faz `continue` num eixo com |desired| <= 5: ele nem entra na média. Para o
+   * motor, não pedir não é atender mal — é não haver o que atender.
+   *
+   * O gráfico desenhava 70 nesses eixos. Numa escala em que 100 é o ideal, isso afirma um déficit
+   * de 30 pontos que o motor nunca calculou — e afirma no vértice, que é o que o olho lê primeiro.
+   * Medido: 58% dos eixos de bola estavam travados nesse neutro.
+   *
+   * O sintoma foi de credibilidade, e chegou como reclamação: um usuário com 94% de match olhando
+   * um polígono que parecia não atendê-lo. O número e o desenho discordavam porque um contava
+   * esses eixos e o outro não.
+   */
+  it('eixo sem pedido aparece atendido, como o motor o trata', () => {
+    let verificados = 0;
+
+    for (const { persona, report } of runs) {
+      const profile = buildPlayerProfile(persona.answers);
+
+      for (const axis of report.radar) {
+        if (axis.group !== 'bola') continue;
+        const pedido = Math.abs(profile.desired_change_vector[axis.key as NeedKey]);
+        // O mesmo limiar que `objectiveFit` usa para pular o termo.
+        if (pedido > 5) continue;
+
+        verificados += 1;
+        expect(
+          axis.recommended,
+          `${persona.id}/${axis.key}: sem pedido, mas o gráfico cobra ${axis.recommended}`,
+        ).toBe(100);
+      }
+    }
+
+    expect(verificados, 'nenhum eixo sem pedido nas personas — o teste não verificou nada')
+      .toBeGreaterThan(0);
+  });
+
+  /**
    * Os eixos de ENCAIXE precisam estar lá — são eles que carregam a decisão.
    *
    * Sem esta asserção, alguém "simplificando" o gráfico no futuro poderia remover exatamente as

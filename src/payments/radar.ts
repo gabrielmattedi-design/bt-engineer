@@ -255,12 +255,38 @@ const MIN_ASK = 5;
 const MIN_HEADROOM = 15;
 
 /**
- * Valor exibido num eixo em que o jogador não pediu nada.
+ * Valor exibido num eixo em que o jogador NÃO PEDIU NADA.
  *
- * O mesmo neutro que `objectiveFit` usa: não pedir não é falha da raquete, e não pode virar nota
- * cheia — senão um perfil sem pedido nenhum desenharia um polígono perfeito sem ter sido analisado.
+ * ═══ ERA 70, E ISSO CONTRADIZIA O MOTOR ════════════════════════════════════════════════════════
+ *
+ * `objectiveFit` não pontua um eixo sem pedido: ele faz `continue` e o exclui da média. Para o
+ * motor, não pedir não é atender mal — é não haver o que atender.
+ *
+ * O gráfico desenhava 70. Numa escala em que 100 é o ideal, isso afirma um déficit de 30 pontos
+ * que o motor nunca calculou, e afirma no vértice, que é a parte do gráfico que o olho lê primeiro.
+ *
+ * Medido nas 22 personas: 58% dos eixos de bola estavam travados neste neutro. Efeito sobre a
+ * credibilidade do número, que foi como o defeito apareceu — um usuário com 94% de match olhando
+ * um polígono que parecia não atendê-lo:
+ *
+ *     p13   fit 96%   média dos oito eixos 85   ->   97
+ *     p05   fit 90%   média dos oito eixos 83   ->   95
+ *
+ * ═══ POR QUE 100, E NÃO OMITIR O EIXO ══════════════════════════════════════════════════════════
+ *
+ * Omitir mudaria o número de vértices de pessoa para pessoa, e a forma do polígono deixaria de ser
+ * comparável — inclusive com o próprio card, que tem geometria fixa.
+ *
+ * 100 é a leitura correta na unidade do gráfico: a escala mede ADEQUAÇÃO, e um requisito que não
+ * existe está atendido. O eixo passa a dizer "isto não foi um critério para você", que é
+ * exatamente o que o motor faz ao pular o termo.
+ *
+ * ─── O QUE ISTO NÃO É ────────────────────────────────────────────────────────────────────────
+ *
+ * Não é inflar o gráfico para o match parecer melhor. O número do match não muda em nada — ele
+ * nunca contou esses eixos. O que muda é o desenho parar de cobrar por eles.
  */
-const NEUTRAL = 70;
+const NO_REQUEST_MET = 100;
 
 
 /**
@@ -287,7 +313,7 @@ const NEUTRAL = 70;
  * medir a mesma coisa.
  */
 function askAdequacy(desired: number, reference: number, actual: number): number {
-  if (Math.abs(desired) <= MIN_ASK) return NEUTRAL;
+  if (Math.abs(desired) <= MIN_ASK) return NO_REQUEST_MET;
 
   const headroom = Math.max(desired > 0 ? 100 - reference : reference, MIN_HEADROOM);
   const delivered = Math.max(-1, Math.min(1, ((actual - reference) * Math.sign(desired)) / headroom));
