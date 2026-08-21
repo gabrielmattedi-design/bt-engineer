@@ -190,6 +190,15 @@ export type RecommendationResult = {
    * relatório de ontem — sem que nada tivesse acontecido com a raquete recomendada.
    */
   readonly attribute_bands: Readonly<Record<string, readonly [number, number]>>;
+  /**
+   * Posição da média do catálogo em cada eixo exibido, 0–100.
+   *
+   * Viaja no resultado pelo mesmo motivo de `attribute_bands`: um relatório comprado precisa
+   * continuar sendo lido como foi vendido. E é indispensável ao radar — a média NÃO pode ser
+   * recalculada a partir de `full_ranking`, que já passou pelos filtros e tem a média deslocada
+   * para cima justamente no eixo que o jogador pediu.
+   */
+  readonly attribute_means: Readonly<Record<string, number>>;
 
   /**
    * Ponto de partida contra o qual o objetivo foi medido: a raquete atual quando reconhecida, a

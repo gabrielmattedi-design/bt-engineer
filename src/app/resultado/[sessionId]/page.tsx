@@ -4,7 +4,6 @@ import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { Podium } from '@/components/result/podium';
 import { AttributeReadout } from '@/components/result/attribute-readout';
-import { MarketRails } from '@/components/result/market-rails';
 import { CompatibilityRadar } from '@/components/result/radar';
 import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
@@ -266,47 +265,19 @@ export default async function ResultadoPage({
             <p className="mt-2 max-w-prose text-sm text-graphite">
               Cada eixo vai de 0 a 100 em ADEQUAÇÃO ao seu jogo — não é uma nota da raquete. Os três de cima medem quanto do que VOCÊ PEDIU cada raquete entrega — onde você não pediu mudança, as três linhas caem no mesmo ponto, o que não é empate e sim ausência de critério. Os cinco de baixo medem o encaixe entre ela e você. Nenhum dos oito é uma característica fixa do produto: todos mudariam de valor, na mesma raquete, se quem respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na maioria dos eixos: foi exatamente por encaixar melhor que ela foi escolhida. Para comparar as raquetes entre si como PRODUTO, use a tabela de índices — lá toda raquete do catálogo soma o mesmo total.</p>
             <p className="mt-3 max-w-prose text-sm text-graphite">
-              A linha laranja tem <strong>duas leituras</strong>, uma por bloco. Nos cinco eixos de
-              baixo ela é a <strong>borda</strong>: 100 é o ideal para você, e nenhuma raquete o
-              ultrapassa — não existe mais adequado que perfeito. Nos três eixos de cima ela é o{' '}
-              <strong>tamanho do seu pedido</strong>: quanto mais alto, mais você priorizou aquilo,
-              e uma raquete PODE passar dela, porque entregar mais potência do que você pediu é bom.
-              Onde o verde fica abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O
-              quanto cada bloco pesou na decisão está logo abaixo do gráfico.
+              A linha laranja é o <strong>ideal para você</strong> — a borda do gráfico, nos oito
+              eixos. Nenhuma raquete a ultrapassa, porque não existe mais adequado que perfeito.
+              Nos três eixos de cima esse ideal é o que você pediu,{' '}
+              <strong>limitado ao que existe para o seu perfil</strong>: quando você pede mais do
+              que qualquer raquete adequada a você alcança, o alvo para no que dá para alcançar, e
+              entregar mais do que você pediu chega na borda em vez de furá-la. Onde o verde fica
+              abaixo, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto cada
+              bloco pesou na decisão está logo abaixo do gráfico.
             </p>
+
             <div className="mt-6 rounded border border-line bg-white p-6">
-              <CompatibilityRadar axes={report.radar.filter((a) => a.group === 'voce')} />
+              <CompatibilityRadar axes={report.radar} />
             </div>
-
-            {/*
-              ═══ OS TRÊS EIXOS DE BOLA SAÍRAM DO RADAR ═══════════════════════════════════════
-
-              Eles nunca mediram a mesma coisa que os cinco de encaixe, e forçar um desenho só já
-              custou quatro versões da linha tracejada — cada uma consertando um bloco e quebrando
-              o outro.
-
-              Aqui a pergunta é diferente e o formato responde a ela: não "quanto", mas ONDE NO
-              MERCADO. Um usuário que pediu potência e recebeu o pior atributo da raquete precisa
-              ver que as mais potentes são quadros de 108 pol² e 280 g — território que não serve
-              ao jogo dele. Isso transforma "a recomendação falhou" em "o mercado não tem isso
-              para você, e o caminho é a corda", que é a verdade.
-            */}
-            <section className="mt-8 rounded border border-line bg-white p-6">
-              <h3 className="font-display text-lg font-semibold">O que você pediu na bola</h3>
-              <p className="mt-2 max-w-prose text-sm text-graphite">
-                Cada trilho é a faixa do catálogo naquele aspecto — da raquete que menos entrega à
-                que mais entrega, entre todas as avaliadas. A linha tracejada é onde o seu pedido
-                aponta, <strong>limitada ao que existe para o seu perfil</strong>: quando você pede
-                mais do que qualquer raquete adequada a você alcança, ela para no teto e diz isso.
-                A faixa laranja entre ela e a recomendada é a distância que ainda existe — e, por
-                parar no teto, é uma distância que dá para fechar. Quando ela aparece, vale ler as
-                trocas acima: quase sempre o que está do outro lado é um quadro que não serve ao
-                seu jogo.
-              </p>
-              <div className="mt-5">
-                <MarketRails axes={report.radar} />
-              </div>
-            </section>
             {/*
               O peso vive AQUI, e só aqui.
 

@@ -102,6 +102,17 @@ export type CatalogScale = {
   /** Largura da faixa, em pontos de atributo. Denominador honesto para deltas neste eixo. */
   readonly spread: (key: ScaleKey) => number;
   /**
+   * Posição da MÉDIA do catálogo neste eixo, 0–100.
+   *
+   * Sai do catálogo COMPLETO, como toda a régua — e é por isso que existe. Quem quiser "a média"
+   * a partir de um ranking já filtrado obtém outro número, porque os filtros removem raquetes de
+   * um lado só: o piso de demanda tira justamente as fracas no eixo pedido, e a média do que
+   * sobra sobe. Um gráfico ancorado nessa média passaria a acusar de fracasso o próprio acerto do
+   * filtro — medido: uma vencedora na posição 61, acima da média real de 49, aparecia com 3 de
+   * 100 no radar porque a âncora tinha subido junto.
+   */
+  readonly meanPosition: (key: ScaleKey) => number;
+  /**
    * Melhor aderência que QUALQUER raquete do catálogo alcança para uma mistura de estilos.
    *
    * `playstyle_fit` precisa disto porque os eixos de estilo já são scores de aderência, e não
@@ -251,6 +262,15 @@ export function buildCatalogScale(catalog: readonly ScoredRacket[]): CatalogScal
   const band = (key: ScaleKey): Band => bands.get(key) ?? [0, 100];
   const styleVectors = catalog.map((r) => r.fitProfile.styles);
 
+  /** Média bruta por eixo, calculada uma vez sobre o catálogo completo. */
+  const means = new Map<ScaleKey, number>();
+  for (const key of ATTRIBUTE_KEYS) {
+    const valores = catalog.map((r) => r.attributes[key]).filter((v) => typeof v === 'number');
+    if (valores.length > 0) {
+      means.set(key, valores.reduce((sum, v) => sum + v, 0) / valores.length);
+    }
+  }
+
   return {
     band,
     styleCeiling: (weights) => {
@@ -268,6 +288,12 @@ export function buildCatalogScale(catalog: readonly ScoredRacket[]): CatalogScal
     position: (key, value) => {
       const [lo, hi] = band(key);
       return clamp(((value - lo) / (hi - lo)) * 100, 0, 100);
+    },
+    meanPosition: (key) => {
+      const media = means.get(key);
+      if (media === undefined) return 50;
+      const [lo, hi] = band(key);
+      return clamp(((media - lo) / (hi - lo)) * 100, 0, 100);
     },
     target: (key, playerPosition) => {
       const [lo, hi] = band(key);

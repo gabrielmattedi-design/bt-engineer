@@ -382,6 +382,21 @@ export const FLOOR_SAFE_SKILL = 55;
  */
 const FLOOR_MIN_SURVIVORS = 10;
 
+/** Mínimo de sobreviventes do degrau de GARANTIA — o suficiente para um pódio. Ver `applyDeclaredFloor`. */
+const FLOOR_MIN_GUARANTEE = 3;
+
+/**
+ * A PREMISSA, em uma frase: quem pede mais de um aspecto não recebe menos que a média nele.
+ *
+ * Nas palavras do usuário: "não posso pedir potência, e o sistema não só tirar potência comparada
+ * à minha atual, mas também me entregar potência abaixo da média".
+ *
+ * O piso não é uma constante — é a posição da MÉDIA do catálogo naquele eixo, calculada por
+ * análise (ver `mediaDoEixo`). Uma constante foi tentada primeiro, em 50, e não cumpria a
+ * promessa: a régua de posição não põe a média no meio dela, e em potência a média das 47
+ * avaliadas cai na posição 74. O piso em 50 deixava 55,9% dos vencedores abaixo da média real.
+ */
+
 type ScoredEntry = { racket: ScoredRacket; fit_score: number; breakdown: ScoreBreakdown };
 
 /**
@@ -445,18 +460,79 @@ function applyDeclaredFloor(
     return scale.position(attrKey, attributes[attrKey as keyof typeof attributes] as number);
   };
 
-  const atendePiso = (entry: ScoredEntry): boolean =>
-    fortes.every((need) => positionOn(entry, need) >= FLOOR_POSITION);
+  const viavel = (candidatas: readonly ScoredEntry[], minimo: number): boolean =>
+    candidatas.length >= minimo &&
+    candidatas.some(
+      (e) =>
+        componentRaw(e.breakdown, 'physical_fit') >= FLOOR_SAFE_PHYSICAL &&
+        componentRaw(e.breakdown, 'skill_fit') >= FLOOR_SAFE_SKILL,
+    );
 
-  const acima = scored.filter(atendePiso);
-  if (acima.length < FLOOR_MIN_SURVIVORS) return null;
-
-  const temSegura = acima.some(
-    (e) =>
-      componentRaw(e.breakdown, 'physical_fit') >= FLOOR_SAFE_PHYSICAL &&
-      componentRaw(e.breakdown, 'skill_fit') >= FLOOR_SAFE_SKILL,
+  /**
+   * ═══ DOIS DEGRAUS, PORQUE UM SÓ DESLIGAVA JUSTO EM QUEM MAIS DECLAROU ══════════════════════
+   *
+   * A exigência conjuntiva — o corte em TODOS os eixos pedidos ao mesmo tempo — colapsa conforme a
+   * pessoa declara mais prioridades. Medido nos 616 perfis com pedido forte:
+   *
+   *     eixos pedidos   perfis   filtro desligou   candidatas acima do corte (média)
+   *           1           278          61                 16.9
+   *           2           266         162                  6.7
+   *           3            65          65                  0.3
+   *           4             7           7                  0.3
+   *
+   * Quem ordena três prioridades — exatamente quem declarou MAIS sobre o que quer — não recebia
+   * nenhum efeito do filtro. Sobram 0,3 raquetes em média porque potência e controle puxam a massa
+   * e o padrão de cordas em direções opostas: pedir os dois com força não deixa quase nada de pé.
+   *
+   * O segundo degrau abandona a conjunção e garante o PEDIDO MAIS FORTE. É a premissa que o
+   * usuário pediu, nas palavras dele: "não posso pedir potência e o sistema me entregar potência
+   * abaixo da média".
+   */
+  const eixoPrincipal = fortes.reduce((a, b) =>
+    profile.desired_change_vector[a] >= profile.desired_change_vector[b] ? a : b,
   );
-  if (!temSegura) return null;
+
+  const atendeConjuntivo = (entry: ScoredEntry): boolean =>
+    fortes.every((need) => positionOn(entry, need) >= FLOOR_POSITION);
+  /**
+   * "Não abaixo da média" é a MÉDIA DO CATÁLOGO neste eixo, não a posição 50.
+   *
+   * A régua de `catalog-scale` é de POSIÇÃO, e a média dos valores não cai no meio dela: em
+   * potência, a média das 47 avaliadas fica na posição 74. Um piso fixo em 50 parecia cumprir a
+   * promessa e não cumpria — media 8,3% de vencedoras abaixo de 50, mas 55,9% abaixo da média
+   * de verdade, que é o número que o usuário enxerga quando compara com o resto do mercado.
+   */
+  const mediaDoEixo = (need: NeedKey): number => {
+    const attrKey = NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey;
+    const soma = scored.reduce((acc, e) => {
+      const attributes = e.racket.attributes;
+      return acc + (attributes[attrKey as keyof typeof attributes] as number);
+    }, 0);
+    return scale.position(attrKey, soma / Math.max(1, scored.length));
+  };
+
+  const pisoPremissa = mediaDoEixo(eixoPrincipal);
+  const atendePremissa = (entry: ScoredEntry): boolean =>
+    positionOn(entry, eixoPrincipal) >= pisoPremissa;
+
+  const conjuntivo = scored.filter(atendeConjuntivo);
+  const usaConjuntivo = viavel(conjuntivo, FLOOR_MIN_SURVIVORS);
+  const atendePiso = usaConjuntivo ? atendeConjuntivo : atendePremissa;
+  const eixosCobrados = usaConjuntivo ? fortes : [eixoPrincipal];
+
+  /**
+   * O mínimo de sobreviventes é MENOR na garantia do que na preferência, e é de propósito.
+   *
+   * Os dez do degrau conjuntivo existem para o filtro não escolher o pódio inteiro — ele é uma
+   * PREFERÊNCIA, e uma preferência que sobra pouco deve ceder. A garantia é outra coisa: se só
+   * existem cinco raquetes que não deixam o jogador abaixo da média no que ele mais pediu, são
+   * essas cinco. Ceder aqui seria justamente quebrar a promessa.
+   *
+   * Medido: com o mesmo mínimo de dez, a garantia desligava tanto que o resultado PIORAVA —
+   * 59,1% de vencedores abaixo da média contra 55,9% sem ela.
+   */
+  const acima = scored.filter(atendePiso);
+  if (!viavel(acima, usaConjuntivo ? FLOOR_MIN_SURVIVORS : FLOOR_MIN_GUARANTEE)) return null;
 
   const kept: ScoredEntry[] = [];
   const excluded: ExcludedRacket[] = [];
@@ -466,14 +542,14 @@ function applyDeclaredFloor(
       continue;
     }
     /** O eixo cobrado é o mais mal atendido — é o que explica melhor a saída. */
-    const pior = fortes.reduce((a, b) => (positionOn(entry, a) <= positionOn(entry, b) ? a : b));
+    const pior = eixosCobrados.reduce((a, b) => (positionOn(entry, a) <= positionOn(entry, b) ? a : b));
     excluded.push({
       variant_id: entry.racket.variant.id,
       product_name: entry.racket.variant.product_name,
       filter: 'declared_demand_floor',
       reason:
-        `Você colocou ${NEED_LABEL_PT[pior]} entre o que mais quer, e este frame está no terço de ` +
-        `baixo do catálogo nesse aspecto (posição ${Math.round(positionOn(entry, pior))} de 100).`,
+        `Você colocou ${NEED_LABEL_PT[pior]} entre o que mais quer, e este frame fica abaixo do ` +
+        `que o seu pedido exige nesse aspecto (posição ${Math.round(positionOn(entry, pior))} de 100).`,
     });
   }
 

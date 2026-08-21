@@ -18,11 +18,28 @@
  */
 
 /**
+ * 2.14.0 — duas mudanças que vieram do mesmo relato.
+ *
+ * GRÁFICO: o radar volta a ter os OITO eixos num desenho só (os trilhos de mercado foram
+ * removidos), e a linha tracejada passa a ter UMA leitura — a borda do ideal, nos oito. Nos eixos
+ * de bola o alvo do pedido virou o DENOMINADOR: 100 é "chegou no ideal possível para você", e o
+ * alvo é o menor entre o que a pessoa pediu e o extremo alcançável entre as raquetes plausíveis
+ * para ela. Nenhuma série ultrapassa a tracejada em nenhum dos 2640 eixos medidos; antes eram 460,
+ * incluindo um caso que não dependia de dado nenhum — sem pedido no eixo, as raquetes valiam 70
+ * contra uma linha em 55.
+ *
+ * MOTOR: o piso de demanda ganhou um segundo degrau. O corte conjuntivo em todos os eixos pedidos
+ * desligava em quem declarava mais prioridades (162 de 266 com dois eixos, 65 de 65 com três);
+ * quando ele não se sustenta, entra a PREMISSA — o eixo mais pedido não pode ficar abaixo da média
+ * do catálogo nele. A vencedora fica abaixo dessa média em 14 de 686 perfis (2,0%), e nesses casos
+ * é porque nenhuma candidata acima da média é segura para o perfil. Custo: match médio 86,4 ->
+ * 85,2 e perfis com match >= 80% de 78,0% para 72,8%. Quatro das 22 personas trocam de vencedora.
+ *
  * 2.13.0 — o alvo do trilho de mercado passou a ser LIMITADO ao teto do perfil: o menor entre o
  * pedido e a melhor posição alcançável entre as raquetes plausíveis para o jogador. O alvo cru
  * apontava acima desse teto em 70% dos 566 perfis medidos e ficava colado no fim da escala em 49%,
  * fazendo o gráfico cobrar da recomendada um vão que nenhuma escolha podia fechar (23,7 pontos em
- * média; 9,6 com o teto). O RANKING não muda — nenhum score, peso ou filtro foi tocado.
+ * média; 9,6 com o teto). Os trilhos saíram na 2.14.0; o teto sobreviveu, dentro do radar.
  *
  * 2.12.0 — pedido declarado com força virou PISO: raquetes abaixo da posição 60 do catálogo no
  * atributo pedido saem do ranking, desde que sobre candidata segura e campo para um pódio (ver
@@ -52,7 +69,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.13.0';
+export const METHODOLOGY_VERSION = '2.14.0';
 
 export type Range = readonly [lo: number, hi: number];
 

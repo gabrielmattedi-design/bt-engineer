@@ -118,6 +118,9 @@ export function recommend(input: RecommendInput): RecommendationResult {
     confidence,
     top3_offer_available: top3OfferAvailable,
     attribute_bands: scaleBands(ranked.scale, DISPLAYED_ATTRIBUTES),
+    attribute_means: Object.fromEntries(
+      DISPLAYED_ATTRIBUTES.map((key) => [key, ranked.scale.meanPosition(key)]),
+    ),
     objective_reference: ranked.reference,
   };
 }

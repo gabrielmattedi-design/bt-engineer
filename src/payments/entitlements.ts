@@ -774,6 +774,7 @@ export function serializeRecommendation(
       first,
       result.full_ranking,
       result.attribute_bands,
+      result.attribute_means,
       // A raquete atual está no ranking quando foi reconhecida no catálogo e passou pelos filtros.
       result.full_ranking.find(
         (r) => r.racket.variant.id === profile.current_racket?.variant_id,

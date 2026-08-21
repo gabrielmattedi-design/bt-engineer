@@ -101,35 +101,69 @@ describe('coerência entre o radar e a recomendação', () => {
   });
 
   /**
-   * Nos eixos de bola o tracejado é PEDIDO, e por isso não pode encostar na borda.
+   * A INVARIANTE PRINCIPAL: nenhuma série ultrapassa a linha tracejada, em nenhum dos oito eixos.
    *
-   * Se ele chegasse a 100 voltaria a ser lido como "meu jogo exige o máximo de tudo" — a objeção
-   * que já matou uma versão desta linha. E o eixo mais pedido tem que ser o que o jogador de fato
-   * priorizou, senão a hierarquia é decorativa.
+   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   *
+   * Relato do usuário, com o gráfico na tela: "em spin, a raquete recomendada — que está dentro do
+   * meu perfil por consequência — está ACIMA do limite laranja".
+   *
+   * A causa não era calibração, era escala. Num eixo de bola SEM pedido as raquetes valiam NEUTRAL
+   * (70) enquanto a tracejada saía do piso de exigência (55): setenta contra cinquenta e cinco, o
+   * amarelo passava por CONSTRUÇÃO, em todo eixo não pedido, para todo mundo. E nos eixos COM
+   * pedido a linha marcava o tamanho do pedido, então entregar mais do que se pediu também a
+   * furava — 460 dos 2640 eixos medidos, com excesso mediano de 14 a 18 pontos.
+   *
+   * Hoje o alvo do pedido é o DENOMINADOR dos eixos de bola, então 100 significa "chegou no ideal
+   * possível para você" nos oito, e passar do pedido satura na borda em vez de furá-la.
+   *
+   * Este é o teste que não deixa a linha voltar a significar coisas diferentes em vértices
+   * diferentes: se alguém mudar a escala de um bloco sem mudar a do outro, alguma série passa da
+   * borda e isto falha.
    */
-  it('nos eixos de bola o tracejado é o tamanho do pedido, com hierarquia real', () => {
+  it('nenhuma série ultrapassa a linha tracejada, nos oito eixos', () => {
+    for (const { persona, report } of runs) {
+      for (const axis of report.radar) {
+        for (const [nome, valor] of [
+          ['recomendada', axis.recommended],
+          ['catálogo', axis.catalog],
+          ['atual', axis.current],
+        ] as const) {
+          if (valor === null) continue;
+          expect(
+            valor,
+            `${persona.id}/${axis.key}: ${nome} em ${valor} passou do tracejado em ${axis.profile}`,
+          ).toBeLessThanOrEqual(axis.profile);
+        }
+      }
+    }
+  });
+
+  /**
+   * Nos eixos de bola COM pedido a tracejada é a borda, igual aos de encaixe.
+   *
+   * A hierarquia entre os eixos pedidos não vive mais nesta linha — ela vive no PESO, que aparece
+   * escrito abaixo do gráfico. Foi uma troca deliberada: a linha carregando hierarquia obrigava
+   * duas escalas no mesmo desenho, e nada no gráfico dizia ao leitor qual delas valia onde.
+   */
+  it('eixo de bola com pedido tem o tracejado na borda', () => {
+    let verificados = 0;
+
     for (const { persona, report } of runs) {
       const profile = buildPlayerProfile(persona.answers);
       const bola = report.radar.filter((a) => a.group === 'bola');
       expect(bola.length, persona.id).toBe(3);
 
       for (const axis of bola) {
-        expect(axis.profile, `${persona.id}/${axis.key}: pedido encostou na borda`)
-          .toBeLessThanOrEqual(94);
-        expect(axis.profile, `${persona.id}/${axis.key}`).toBeGreaterThanOrEqual(55);
-      }
-
-      const pedidos = bola.map((a) => Math.abs(profile.desired_change_vector[a.key as NeedKey]));
-      const maior = Math.max(...pedidos);
-      if (maior === 0) continue;
-
-      const maiorExigencia = Math.max(...bola.map((a) => a.profile));
-      for (let i = 0; i < bola.length; i += 1) {
-        if (pedidos[i] === maior) {
-          expect(bola[i]!.profile, `${persona.id}/${bola[i]!.key}`).toBe(maiorExigencia);
-        }
+        const pedido = Math.abs(profile.desired_change_vector[axis.key as NeedKey]);
+        if (pedido <= 5) continue;
+        verificados += 1;
+        expect(axis.profile, `${persona.id}/${axis.key}: pedido não chegou à borda`).toBe(100);
       }
     }
+
+    expect(verificados, 'nenhum eixo de bola com pedido — o teste não verificou nada')
+      .toBeGreaterThan(0);
   });
 
   /**

@@ -64,13 +64,13 @@ const PHRASE_MAX_CHARS = 44;
  *
  * ═══ O DEFEITO ═══════════════════════════════════════════════════════════════════════════════
  *
- * `<text>` de SVG não quebra, não reticencia e não encolhe: ele simplesmente ATRAVESSA o que
- * estiver do lado. O nome da raquete e o número do match dividem a mesma linha, e "Wilson Blade 98
- * 18x20 v10 (2026)" — 32 caracteres, nem o maior do catálogo — passava por cima do "97%".
+ * `<text>` de SVG não encolhe e não reticencia: ele simplesmente ATRAVESSA o que estiver do lado.
+ * O nome da raquete e o número do match dividem a mesma linha, e "Wilson Blade 98 18x20 v10
+ * (2026)" — 32 caracteres, nem o maior do catálogo — passava por cima do "97%".
  *
  * Medido no card renderizado, com a fonte de sistema: 809 px para esses 32 caracteres em corpo 42,
  * terminando em x=889, contra o "97%" começando em x=847. Quarenta e dois pixels de sobreposição,
- * no artefato que existe justamente para circular sem ninguém por perto para explicar.
+ * no artefato que existe justamente para circular.
  *
  * ═══ O ORÇAMENTO ════════════════════════════════════════════════════════════════════════════
  *
@@ -167,21 +167,7 @@ export type ShareCardData = {
 };
 
 export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
-  /**
-   * Só os eixos de ENCAIXE — os mesmos cinco do radar do relatório.
-   *
-   * O card recebe os oito e descarta os três de bola aqui dentro, e não na página, porque quem
-   * quebra isto é quem desenha: a linha tracejada é uma coisa só no SVG, e nos oito eixos ela
-   * carregaria dois significados ao mesmo tempo. Nos cinco de encaixe ela é a BORDA — 100 é o
-   * ideal e nenhuma raquete o ultrapassa. Nos três de bola ela é o TAMANHO DO PEDIDO, e a raquete
-   * pode passar dela, o que é bom. Num polígono só, o amarelo cruzava para fora em alguns
-   * vértices e não em outros, sem nada na imagem dizendo por quê.
-   *
-   * Foi exatamente esse defeito que tirou os três de bola do radar do relatório (ver `radar.tsx`
-   * e `market-rails.tsx`). O card é a peça que circula sem legenda e sem quem explique — se em
-   * algum lugar as duas leituras não podem coexistir, é aqui.
-   */
-  const axes = data.radar.filter((a) => a.group === 'voce');
+  const axes = data.radar;
   const total = axes.length;
   const rotation = topBlockRotation(axes);
   const phraseLines = wrapPhrase(data.phrase);

@@ -219,17 +219,14 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
     {
       key: 'profile',
       /**
-       * A linha tem DUAS leituras, uma por bloco, e o rótulo precisa servir às duas.
+       * Uma leitura só, nos oito eixos: a BORDA do que é ideal para este jogador.
        *
-       * Nos cinco eixos de encaixe ela é a borda: 100 é o ideal, e nenhuma raquete o ultrapassa,
-       * porque não existe mais adequado que perfeito. Nos três eixos de bola ela é o TAMANHO do
-       * pedido, e as raquetes podem passar dela — entregar mais potência do que foi pedido é bom.
-       *
-       * `O que seu jogo pede` cobre as duas. `O ideal para o seu jogo` cobria só a primeira e, nos
-       * eixos de bola, transformava "entregou mais do que pedi" em "passou do ideal", que foi
-       * exatamente a leitura errada que motivou esta separação.
+       * O rótulo já foi `O que seu jogo pede` porque a linha tinha significado diferente por
+       * bloco e precisava cobrir os dois. Não tem mais: nos eixos de bola o alvo do pedido virou
+       * o denominador da conta, então 100 significa "chegou no ideal possível para você" nos oito,
+       * e nada ultrapassa. `O ideal para o seu jogo` voltou a ser exato.
        */
-      label: 'O que seu jogo pede',
+      label: 'O ideal para o seu jogo',
       values: axes.map((a) => a.profile),
       stroke: PALETTE.clay,
       fill: 'none',
