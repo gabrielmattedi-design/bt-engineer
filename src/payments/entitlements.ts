@@ -11,6 +11,7 @@
 
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
+import { currentRacketLabel } from '@/domain/racket';
 import { clamp, clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { RECOMMENDATION_ENGINE_VERSION } from '@/recommendation/config/version';
@@ -314,7 +315,13 @@ function buildCurrentStanding(
   if (!current) return null;
 
   const gap = Math.round(first.fit_score) - Math.round(current.fit_score);
-  const name = current.racket.variant.product_name;
+  /**
+   * O nome sai como a PESSOA declarou: modelo e peso, sem geração.
+   *
+   * `product_name` traria "Wilson Blade 98 16×19 v10 (2026)", e a pergunta nunca pediu a versão —
+   * o questionário promete explicitamente que ela não é necessária. Ver `currentRacketLabel`.
+   */
+  const name = currentRacketLabel(current.racket.variant);
 
   if (gap <= 0) {
     return {
