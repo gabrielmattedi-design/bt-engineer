@@ -4,6 +4,7 @@ import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { Podium } from '@/components/result/podium';
 import { AttributeReadout } from '@/components/result/attribute-readout';
+import { MarketRails } from '@/components/result/market-rails';
 import { CompatibilityRadar } from '@/components/result/radar';
 import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
@@ -274,8 +275,35 @@ export default async function ResultadoPage({
               quanto cada bloco pesou na decisão está logo abaixo do gráfico.
             </p>
             <div className="mt-6 rounded border border-line bg-white p-6">
-              <CompatibilityRadar axes={report.radar} />
+              <CompatibilityRadar axes={report.radar.filter((a) => a.group === 'voce')} />
             </div>
+
+            {/*
+              ═══ OS TRÊS EIXOS DE BOLA SAÍRAM DO RADAR ═══════════════════════════════════════
+
+              Eles nunca mediram a mesma coisa que os cinco de encaixe, e forçar um desenho só já
+              custou quatro versões da linha tracejada — cada uma consertando um bloco e quebrando
+              o outro.
+
+              Aqui a pergunta é diferente e o formato responde a ela: não "quanto", mas ONDE NO
+              MERCADO. Um usuário que pediu potência e recebeu o pior atributo da raquete precisa
+              ver que as mais potentes são quadros de 108 pol² e 280 g — território que não serve
+              ao jogo dele. Isso transforma "a recomendação falhou" em "o mercado não tem isso
+              para você, e o caminho é a corda", que é a verdade.
+            */}
+            <section className="mt-8 rounded border border-line bg-white p-6">
+              <h3 className="font-display text-lg font-semibold">O que você pediu na bola</h3>
+              <p className="mt-2 max-w-prose text-sm text-graphite">
+                Cada trilho é a faixa do catálogo naquele aspecto — da raquete que menos entrega à
+                que mais entrega, entre todas as avaliadas. A linha tracejada é onde o seu pedido
+                aponta; a faixa laranja entre ela e a recomendada é a distância que ainda
+                existe. Quando essa faixa aparece, vale ler as trocas acima: quase sempre o que
+                está do outro lado é um quadro que não serve ao seu jogo.
+              </p>
+              <div className="mt-5">
+                <MarketRails axes={report.radar} />
+              </div>
+            </section>
             {/*
               O peso vive AQUI, e só aqui.
 

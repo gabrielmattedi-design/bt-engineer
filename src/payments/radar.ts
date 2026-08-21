@@ -91,6 +91,32 @@ export type RadarAxis = {
   /** `bola` = o que a raquete faz com a bola; `voce` = o quanto ela encaixa em você. */
   readonly group: 'bola' | 'voce';
   /**
+   * Só nos eixos de BOLA: onde cada raquete cai na FAIXA DO CATÁLOGO, 0 a 100.
+   *
+   * ═══ POR QUE ESTE CAMPO PRECISOU EXISTIR ═══════════════════════════════════════════════════
+   *
+   * `recommended`, `current` e `catalog` nos eixos de bola são "que fração do pedido foi
+   * entregue" — uma medida relativa ao jogador. Ela não responde a pergunta que o usuário faz
+   * quando vê o vão: "existe raquete mais potente que sirva para mim?".
+   *
+   * Sem posição de mercado, o gráfico dizia que a recomendada entrega 32 de potência sem dizer que
+   * as que entregam 100 são quadros de 108 pol² e 280 g, feitos para iniciante. O número parecia
+   * uma falha da recomendação quando é uma característica do mercado.
+   *
+   * Medido neste catálogo: potência correlaciona +0,77 com tamanho de cabeça e −0,85 com peso.
+   * "Quadro potente" é, quase por definição, quadro grande e leve.
+   *
+   * `ask` é para onde o pedido do jogador aponta — posição atual (ou média do catálogo) mais a
+   * mudança pedida, limitada a 0–100. É o alvo, não uma promessa: pode cair numa região do
+   * mercado onde não existe raquete adequada a ele, e é exatamente isso que precisa ficar visível.
+   */
+  readonly market: {
+    readonly recommended: number;
+    readonly current: number | null;
+    readonly catalog: number;
+    readonly ask: number;
+  } | null;
+  /**
    * Quanto este eixo pesou na decisão, 0–1.
    *
    * Vai para a tela junto do rótulo. Um radar trata todos os vértices como iguais, e eles não são:
@@ -385,6 +411,7 @@ export function buildRadar(
         recommended: Math.round(componentOf(winner, axis.component)),
         current: currentRacket ? Math.round(componentOf(currentRacket, axis.component)) : null,
         catalog: Math.round(catalogMean),
+        market: null,
         weight: weightOf(winner, axis.component),
       };
     }
@@ -433,6 +460,13 @@ export function buildRadar(
       // A atual entrega zero do pedido por definição — ela É o ponto de partida.
       current: currentPosition === null ? null : askAdequacy(desired, reference, currentPosition),
       catalog: askAdequacy(desired, reference, catalogPosition),
+      market: {
+        recommended: position(bands, attribute, valueOf(winner)),
+        current: currentPosition,
+        catalog: catalogPosition,
+        // O alvo é ancorado em quem o jogador é hoje; sem raquete conhecida, na média do catálogo.
+        ask: Math.round(Math.max(0, Math.min(100, (currentPosition ?? catalogPosition) + desired))),
+      },
       weight:
         askTotal > 0
           ? (objectiveWeight * Math.abs(desired)) / askTotal
