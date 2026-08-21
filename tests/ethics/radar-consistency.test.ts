@@ -59,27 +59,30 @@ function area(axes: readonly { value: number; weight: number }[]): number {
 
 describe('coerência entre o radar e a recomendação', () => {
   /**
-   * A BORDA É O IDEAL, e nenhuma raquete a ultrapassa.
+   * A LINHA TRACEJADA TEM DUAS LEITURAS, uma por bloco — e cada uma tem seu invariante.
    *
-   * ═══ POR QUE A LINHA VOLTOU A SER CONSTANTE ════════════════════════════════════════════════
+   * ═══ POR QUE NÃO É UMA SÓ ══════════════════════════════════════════════════════════════════
    *
-   * Ela já foi 100 fixo e foi rejeitada — com razão, naquela época: as raquetes entravam em POSIÇÃO
-   * DE CATÁLOGO, e nessa unidade a borda dizia mesmo "quero o máximo de tudo".
+   * Foram tentadas as duas unificações, e as duas falharam por lados opostos.
    *
-   * Depois virou o teto da oferta (saturava, e descrevia um produto inexistente) e depois um nível
-   * de pedido de 55 a 94 — que resolveu a saturação e criou um erro mais fundo: duas grandezas
-   * diferentes no mesmo eixo. O verde é ADEQUAÇÃO, 100 = ideal para você; a laranja era INTENSIDADE
-   * DE PEDIDO. O sintoma foi o usuário lendo "parece que a raquete me entrega muito mais do que eu
-   * preciso" — leitura correta de um gráfico incoerente.
+   * Como NÍVEL DE PEDIDO nos oito eixos: nos cinco de encaixe o verde passava do tracejado e o
+   * gráfico dizia "esta raquete entrega mais do que você precisa" — leitura sem sentido, porque
+   * aqueles eixos já são adequação e não existe mais adequado que perfeito.
    *
-   * Com tudo em adequação, o ideal É 100 por definição da escala, e "mais adequado que perfeito"
-   * não existe. É isso que estas asserções trancam.
+   * Como BORDA nos oito: nos três de bola o mesmo desenho passou a acusar de excesso uma raquete
+   * que entrega mais potência do que foi pedido — que é resultado bom, não defeito.
+   *
+   * A separação é o que resta, e é honesta porque os dois blocos medem coisas diferentes:
+   *
+   *   • encaixe — adequação ao par raquete+jogador. A borda é o teto, ninguém passa.
+   *   • bola    — quanto do PEDIDO foi entregue. O tracejado é o tamanho do pedido, e passar dele
+   *               é entregar mais do que se pediu.
    */
-  it('a borda é o ideal e nenhuma linha de raquete a ultrapassa', () => {
+  it('nos eixos de encaixe a borda é o ideal, e nenhuma raquete a ultrapassa', () => {
     for (const { persona, report } of runs) {
       expect(report.radar.length, persona.id).toBeGreaterThanOrEqual(8);
 
-      for (const axis of report.radar) {
+      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
         expect(axis.profile, `${persona.id}/${axis.key}: a borda deixou de ser o ideal`).toBe(100);
 
         for (const [nome, valor] of [
@@ -89,12 +92,81 @@ describe('coerência entre o radar e a recomendação', () => {
         ] as const) {
           if (valor === null) continue;
           expect(valor, `${persona.id}/${axis.key}: ${nome} passou do ideal`).toBeLessThanOrEqual(
-            axis.profile,
+            100,
           );
           expect(valor, `${persona.id}/${axis.key}: ${nome}`).toBeGreaterThanOrEqual(0);
         }
       }
     }
+  });
+
+  /**
+   * Nos eixos de bola o tracejado é PEDIDO, e por isso não pode encostar na borda.
+   *
+   * Se ele chegasse a 100 voltaria a ser lido como "meu jogo exige o máximo de tudo" — a objeção
+   * que já matou uma versão desta linha. E o eixo mais pedido tem que ser o que o jogador de fato
+   * priorizou, senão a hierarquia é decorativa.
+   */
+  it('nos eixos de bola o tracejado é o tamanho do pedido, com hierarquia real', () => {
+    for (const { persona, report } of runs) {
+      const profile = buildPlayerProfile(persona.answers);
+      const bola = report.radar.filter((a) => a.group === 'bola');
+      expect(bola.length, persona.id).toBe(3);
+
+      for (const axis of bola) {
+        expect(axis.profile, `${persona.id}/${axis.key}: pedido encostou na borda`)
+          .toBeLessThanOrEqual(94);
+        expect(axis.profile, `${persona.id}/${axis.key}`).toBeGreaterThanOrEqual(55);
+      }
+
+      const pedidos = bola.map((a) => Math.abs(profile.desired_change_vector[a.key as NeedKey]));
+      const maior = Math.max(...pedidos);
+      if (maior === 0) continue;
+
+      const maiorExigencia = Math.max(...bola.map((a) => a.profile));
+      for (let i = 0; i < bola.length; i += 1) {
+        if (pedidos[i] === maior) {
+          expect(bola[i]!.profile, `${persona.id}/${bola[i]!.key}`).toBe(maiorExigencia);
+        }
+      }
+    }
+  });
+
+  /**
+   * Um eixo de bola SEM PEDIDO faz as três séries caírem no mesmo ponto — e isso é conhecido.
+   *
+   * O valor não depende da raquete, então recomendada, atual e catálogo coincidem. Visualmente
+   * parece um empate triplo e não é: é ausência de critério.
+   *
+   * Já foi tentado resolver levando o neutro a 100 (`objectiveFit` de fato exclui esses eixos da
+   * média, então "atendido" tem lógica). O empate continuou — só que na borda, onde chama mais
+   * atenção — e ainda passou a afirmar que a raquete MÉDIA do catálogo atende 100% de uma exigência
+   * que não existe. Um usuário pegou isso na primeira olhada.
+   *
+   * O gráfico não tem vocabulário para desenhar "não perguntado" num vértice. O tratamento é de
+   * texto, no explicador do bloco — e este teste existe para que o neutro não volte a ser mexido
+   * sem que alguém leia por que ele é 70.
+   */
+  it('eixo de bola sem pedido cai no neutro, igual para as três séries', () => {
+    let verificados = 0;
+
+    for (const { persona, report } of runs) {
+      const profile = buildPlayerProfile(persona.answers);
+
+      for (const axis of report.radar) {
+        if (axis.group !== 'bola') continue;
+        // O mesmo limiar que `objectiveFit` usa para pular o termo.
+        if (Math.abs(profile.desired_change_vector[axis.key as NeedKey]) > 5) continue;
+
+        verificados += 1;
+        expect(axis.recommended, `${persona.id}/${axis.key}`).toBe(70);
+        expect(axis.catalog, `${persona.id}/${axis.key}`).toBe(70);
+        if (axis.current !== null) expect(axis.current, `${persona.id}/${axis.key}`).toBe(70);
+      }
+    }
+
+    expect(verificados, 'nenhum eixo sem pedido nas personas — o teste não verificou nada')
+      .toBeGreaterThan(0);
   });
 
   /**
@@ -129,46 +201,6 @@ describe('coerência entre o radar e a recomendação', () => {
         `${persona.id}: todo eixo com o mesmo peso — a hierarquia sumiu`,
       ).toBeGreaterThan(1);
     }
-  });
-
-  /**
-   * Um eixo SEM PEDIDO tem que aparecer atendido, porque o motor não cobra por ele.
-   *
-   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
-   *
-   * `objectiveFit` faz `continue` num eixo com |desired| <= 5: ele nem entra na média. Para o
-   * motor, não pedir não é atender mal — é não haver o que atender.
-   *
-   * O gráfico desenhava 70 nesses eixos. Numa escala em que 100 é o ideal, isso afirma um déficit
-   * de 30 pontos que o motor nunca calculou — e afirma no vértice, que é o que o olho lê primeiro.
-   * Medido: 58% dos eixos de bola estavam travados nesse neutro.
-   *
-   * O sintoma foi de credibilidade, e chegou como reclamação: um usuário com 94% de match olhando
-   * um polígono que parecia não atendê-lo. O número e o desenho discordavam porque um contava
-   * esses eixos e o outro não.
-   */
-  it('eixo sem pedido aparece atendido, como o motor o trata', () => {
-    let verificados = 0;
-
-    for (const { persona, report } of runs) {
-      const profile = buildPlayerProfile(persona.answers);
-
-      for (const axis of report.radar) {
-        if (axis.group !== 'bola') continue;
-        const pedido = Math.abs(profile.desired_change_vector[axis.key as NeedKey]);
-        // O mesmo limiar que `objectiveFit` usa para pular o termo.
-        if (pedido > 5) continue;
-
-        verificados += 1;
-        expect(
-          axis.recommended,
-          `${persona.id}/${axis.key}: sem pedido, mas o gráfico cobra ${axis.recommended}`,
-        ).toBe(100);
-      }
-    }
-
-    expect(verificados, 'nenhum eixo sem pedido nas personas — o teste não verificou nada')
-      .toBeGreaterThan(0);
   });
 
   /**

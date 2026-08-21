@@ -18,6 +18,10 @@
  */
 
 /**
+ * 2.11.0 — a linha tracejada do radar passou a ter duas leituras: BORDA nos cinco eixos de encaixe
+ * (ninguém passa do ideal) e TAMANHO DO PEDIDO nos três de bola (a raquete pode entregar mais do
+ * que se pediu, e isso é bom). As duas unificações anteriores falharam por lados opostos.
+ *
  * 2.10.0 — um eixo de bola sem pedido deixou de ser desenhado em 70 e passa a aparecer atendido
  * (100), como o motor já o tratava: `objectiveFit` exclui esses eixos da média em vez de pontuá-los.
  * O número do match não muda — ele nunca contou esses eixos. O que muda é o gráfico parar de cobrar.
@@ -34,7 +38,7 @@
  * metodologia não pode carregar dois significados diferentes para a mesma linha do mesmo gráfico —
  * quem abrir um relatório antigo precisa conseguir saber qual das duas leituras estava valendo.
  */
-export const METHODOLOGY_VERSION = '2.10.0';
+export const METHODOLOGY_VERSION = '2.11.0';
 
 export type Range = readonly [lo: number, hi: number];
 
