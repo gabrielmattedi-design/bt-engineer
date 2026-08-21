@@ -90,15 +90,49 @@ export function physicalFit(
    * Foi isto que o usuário viu no gráfico e descreveu como "peso e manejo parece decidir sozinho".
    * Decidia mesmo, e não por ter peso demais na fórmula: por ter uma régua 5,5 vezes ampliada.
    *
-   * A tolerância passa a ser dimensionada pelo que ela representa em gramas. `MASS_TOLERANCE` de 15
-   * pontos de posição é da ordem de 4 g nesta faixa — a menor diferença de massa que um jogador
-   * amador percebe de forma consistente. Abaixo disso o componente cala; acima, a conta sobe, e sobe
-   * mais depressa quanto mais longe, porque sustentar massa demais é problema que se acumula.
+   * A tolerância passa a ser dimensionada pelo que ela representa em gramas: a menor diferença de
+   * massa que um jogador amador percebe de forma consistente, que é da ordem de 4 g. Abaixo disso o
+   * componente cala; acima, a conta sobe, e sobe mais depressa quanto mais longe, porque sustentar
+   * massa demais é problema que se acumula.
    *
    * Descer de peso continua mais barato que subir: é perda de desempenho, recuperável, e às vezes
    * exatamente o que o jogador quer.
+   *
+   * ═══ A CONSTANTE NÃO CORRESPONDIA AO PRÓPRIO RACIOCÍNIO ════════════════════════════════════
+   *
+   * Era 15, escrita aqui como sendo "da ordem de 4 g nesta faixa". Medido: regressão de posição
+   * contra peso sobre as 47 raquetes do catálogo dá 0,42 g por ponto de posição, então 15 pontos
+   * são ±6,3 g — uma janela de 12,6 g, mais de três vezes o limiar de percepção que o parágrafo
+   * acima usa para se justificar.
+   *
+   * O efeito não era neutro. O catálogo é apertado (270 a 315 g, mediana em 300) e as posições se
+   * aglomeram na metade superior; uma janela desse tamanho em volta da capacidade típica cobria
+   * metade do catálogo. Medido em 1.034 pares persona × raquete: `physical_fit` cravava exatamente
+   * 100 em 43,8% deles — contra 6,7% de `comfort_fit` e 1,3% de `objective_fit`. O componente
+   * deixava de distinguir justamente na faixa onde quase todo mundo joga.
+   *
+   * ═══ POR QUE 13, E NÃO OS 10 QUE OS 4 g PEDIRIAM ══════════════════════════════════════════
+   *
+   * 10 pontos são ~4,2 g e seriam o valor coerente com o parágrafo acima. Testado, e ele REGRIDE a
+   * persona 1 — o iniciante adulto de swing lento, justamente quem mais depende deste componente:
+   * a tolerância do conjunto recomendado cai para o percentil 44 do catálogo, abaixo da mediana que
+   * o teste de comportamento exige. Um iniciante recebendo quadros menos tolerantes é o oposto do
+   * que a mudança pretendia.
+   *
+   * A causa é que esta constante nunca foi só um limiar de percepção. Ela absorve também a
+   * imprecisão de `handlingCapacity`, que é uma ESTIMATIVA do jogador a partir do questionário, não
+   * uma medida. Apertar a zona morta obriga o componente a confiar nessa estimativa com uma
+   * precisão que ela não tem, e o erro aparece primeiro em quem está nos extremos da escala.
+   *
+   * 13 é o valor mais apertado que reduz a saturação sem regredir nenhuma das 22 personas —
+   * limite achado por varredura (10, 11 e 12 quebram; 13 e 14 passam), não derivado. Vale ~5,5 g.
+   * Medido: saturação de `physical_fit` cai de 43,8% para 38,3% dos pares persona × raquete, com
+   * mudança de vencedor em 1 de 22 personas, numa margem de 0,37 ponto — quase-empate.
+   *
+   * O que sobra de saturação não se resolve mexendo mais aqui: ela vem da precisão de
+   * `handlingCapacity`, que é o alvo certo da próxima investigação.
    */
-  const MASS_TOLERANCE = 15;
+  const MASS_TOLERANCE = 13;
 
   const delta = massPosition - capacity;
   const excess = Math.max(0, Math.abs(delta) - MASS_TOLERANCE);
