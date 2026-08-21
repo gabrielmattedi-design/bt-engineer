@@ -47,9 +47,9 @@ const runs = PERSONAS.map((persona) => {
  * produziria uma falha em todo caso de quase-empate — e um teste que falha por ruído é um teste que
  * alguém vai silenciar.
  *
- * Por isso o peso de cada eixo agora vai IMPRESSO ao lado do rótulo, na tela: o leitor recebe a
- * mesma informação que este teste usa, em vez de precisar deduzir por que dois polígonos parecidos
- * levaram a conclusões diferentes.
+ * O peso vai para a tela somado POR BLOCO, abaixo do gráfico. Por eixo ele já esteve no rótulo e
+ * foi removido: "Spin 3%" ao lado de "Seu swing 17%" sugere que o motor ignorou o spin, quando os
+ * três eixos de bola são fatias de um critério só. Bloco contra bloco é a comparação honesta.
  */
 function area(axes: readonly { value: number; weight: number }[]): number {
   const total = axes.reduce((sum, a) => sum + a.weight, 0);
@@ -59,81 +59,75 @@ function area(axes: readonly { value: number; weight: number }[]): number {
 
 describe('coerência entre o radar e a recomendação', () => {
   /**
-   * A LINHA DE EXIGÊNCIA não pode saturar — nem em 100, nem numa constante qualquer.
+   * A BORDA É O IDEAL, e nenhuma raquete a ultrapassa.
    *
-   * ═══ AS DUAS FORMAS DE SATURAR QUE JÁ ACONTECERAM ══════════════════════════════════════════
+   * ═══ POR QUE A LINHA VOLTOU A SER CONSTANTE ════════════════════════════════════════════════
    *
-   * Primeiro ela foi a constante 100, e o usuário matou a ideia com uma frase: "de acordo com a
-   * linha laranja, meu jogo pede o máximo de tudo, não tem inteligência nenhuma por trás".
+   * Ela já foi 100 fixo e foi rejeitada — com razão, naquela época: as raquetes entravam em POSIÇÃO
+   * DE CATÁLOGO, e nessa unidade a borda dizia mesmo "quero o máximo de tudo".
    *
-   * Depois virou o TETO — o melhor que alguma raquete viável alcança no eixo — e o mesmo defeito
-   * voltou disfarçado, porque um máximo sobre ~19 raquetes satura por construção. O teste antigo
-   * não pegou: ele só exigia que os valores não fossem TODOS iguais, e 100/100/100/100/99/100/100/93
-   * passa nesse critério enquanto é, visualmente, o mesmo círculo.
+   * Depois virou o teto da oferta (saturava, e descrevia um produto inexistente) e depois um nível
+   * de pedido de 55 a 94 — que resolveu a saturação e criou um erro mais fundo: duas grandezas
+   * diferentes no mesmo eixo. O verde é ADEQUAÇÃO, 100 = ideal para você; a laranja era INTENSIDADE
+   * DE PEDIDO. O sintoma foi o usuário lendo "parece que a raquete me entrega muito mais do que eu
+   * preciso" — leitura correta de um gráfico incoerente.
    *
-   * Medido na época, nas 22 personas: 56% dos eixos em 99+, "Seu físico" em 100 em todas elas.
-   *
-   * Por isso a asserção agora é sobre a AMPLITUDE, não sobre a mera existência de dois valores
-   * distintos. É a amplitude que o olho lê como hierarquia.
+   * Com tudo em adequação, o ideal É 100 por definição da escala, e "mais adequado que perfeito"
+   * não existe. É isso que estas asserções trancam.
    */
-  it('a linha de exigência tem hierarquia visível e não encosta na borda', () => {
+  it('a borda é o ideal e nenhuma linha de raquete a ultrapassa', () => {
     for (const { persona, report } of runs) {
       expect(report.radar.length, persona.id).toBeGreaterThanOrEqual(8);
 
-      const exigencias = report.radar.map((a) => a.profile);
-      const amplitude = Math.max(...exigencias) - Math.min(...exigencias);
-
-      // Sem isto, "quase constante" passaria — foi exatamente assim que a versão do teto escapou.
-      expect(amplitude, `${persona.id}: exigência quase plana (${exigencias.join('/')})`)
-        .toBeGreaterThanOrEqual(10);
-
       for (const axis of report.radar) {
-        /**
-         * A borda tem um significado que uma exigência não tem: 100 é adequação perfeita, um limite
-         * do que existe. Um pedido é prioridade, não exigência de perfeição — e a folga reservada é
-         * o que impede a linha de voltar a ser lida como "quero o máximo de tudo".
-         */
-        expect(axis.profile, `${persona.id}/${axis.key}: exigência encostou na borda`)
-          .toBeLessThanOrEqual(95);
-        expect(axis.profile, `${persona.id}/${axis.key}`).toBeGreaterThanOrEqual(50);
+        expect(axis.profile, `${persona.id}/${axis.key}: a borda deixou de ser o ideal`).toBe(100);
 
-        /**
-         * A recomendada PODE ultrapassar a exigência, e isso é um bom resultado — significa que ela
-         * entrega mais do que foi pedido naquele aspecto. O teste antigo proibia justamente isso,
-         * porque a linha era um teto de oferta; como agora ela é um pedido, a proibição virou erro.
-         */
-        expect(axis.recommended).toBeGreaterThanOrEqual(0);
-        expect(axis.recommended).toBeLessThanOrEqual(100);
-        if (axis.current !== null) {
-          expect(axis.current).toBeGreaterThanOrEqual(0);
-          expect(axis.current).toBeLessThanOrEqual(100);
+        for (const [nome, valor] of [
+          ['recomendada', axis.recommended],
+          ['catálogo', axis.catalog],
+          ['atual', axis.current],
+        ] as const) {
+          if (valor === null) continue;
+          expect(valor, `${persona.id}/${axis.key}: ${nome} passou do ideal`).toBeLessThanOrEqual(
+            axis.profile,
+          );
+          expect(valor, `${persona.id}/${axis.key}: ${nome}`).toBeGreaterThanOrEqual(0);
         }
       }
     }
   });
 
   /**
-   * A hierarquia tem que corresponder ao que foi RESPONDIDO, não a uma ordem qualquer.
+   * A hierarquia saiu da geometria — e precisa continuar existindo em `weight`.
    *
-   * Amplitude sozinha não basta: um gerador de números aleatórios passaria na asserção acima. O que
-   * torna a linha honesta é o eixo mais exigido ser o mais pedido no questionário.
+   * Com a borda constante, o polígono sozinho não distingue o eixo que decide a compra do eixo que
+   * não importa. O peso é o que carrega essa informação, somado POR BLOCO abaixo do gráfico (por
+   * eixo ele já foi tentado e removido: "Spin 3%" ao lado de "Seu swing 17%" sugere que o motor
+   * ignorou o spin, quando os três eixos de bola são fatias de um critério só).
+   *
+   * Se `weight` virar constante ou zerar, a borda constante passa a ser a objeção original — "não
+   * tem inteligência nenhuma por trás" — sem nada para respondê-la.
    */
-  it('o eixo de bola mais exigido é o que o jogador mais pediu', () => {
+  it('o peso continua carregando a hierarquia que a borda não mostra', () => {
     for (const { persona, report } of runs) {
-      const profile = buildPlayerProfile(persona.answers);
-      const bola = report.radar.filter((a) => a.group === 'bola');
+      const pesos = report.radar.map((a) => a.weight);
 
-      const pedidos = bola.map((a) => Math.abs(profile.desired_change_vector[a.key as NeedKey]));
-      const maiorPedido = Math.max(...pedidos);
-      // Sem pedido algum não há ordem a verificar — os três ficam no piso, e isso é o correto.
-      if (maiorPedido === 0) continue;
+      /**
+       * A soma NÃO é 1, e não deve ser: `transition_fit` — o tamanho da mudança em relação à
+       * raquete atual — pesa até 0.11 e não é eixo do radar, porque não mede adequação a você,
+       * mede distância do que você já tem. Medido nas 22 personas: a soma fica entre 0.887 e 1.000.
+       *
+       * O piso existe para pegar o caso em que um eixo perde o peso por engano e o gráfico passa a
+       * dizer que aquele aspecto não pesou na decisão.
+       */
+      const soma = pesos.reduce((s, p) => s + p, 0);
+      expect(soma, `${persona.id}: pesos somam ${soma}`).toBeGreaterThan(0.85);
+      expect(soma, `${persona.id}: pesos somam ${soma}`).toBeLessThanOrEqual(1.001);
 
-      const maiorExigencia = Math.max(...bola.map((a) => a.profile));
-      for (let i = 0; i < bola.length; i += 1) {
-        if (pedidos[i] === maiorPedido) {
-          expect(bola[i]!.profile, `${persona.id}/${bola[i]!.key}`).toBe(maiorExigencia);
-        }
-      }
+      expect(
+        new Set(pesos.map((p) => p.toFixed(4))).size,
+        `${persona.id}: todo eixo com o mesmo peso — a hierarquia sumiu`,
+      ).toBeGreaterThan(1);
     }
   });
 

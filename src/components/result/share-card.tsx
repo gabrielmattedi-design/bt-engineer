@@ -300,7 +300,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
           strokeDasharray="9 6"
         />
         <text x="430" y="971">
-          O que seu jogo pede
+          O ideal para o seu jogo
         </text>
       </g>
 

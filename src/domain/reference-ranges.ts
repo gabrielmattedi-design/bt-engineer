@@ -18,6 +18,10 @@
  */
 
 /**
+ * 2.9.0 — a linha do radar passou a ser o IDEAL: a borda da escala de adequação, 100 em todo eixo,
+ * que nenhuma raquete ultrapassa. A 2.8.0 a tinha posto como nível de pedido (55 a 94), o que
+ * plotava duas grandezas diferentes no mesmo eixo — adequação contra intensidade de pedido.
+ *
  * 2.8.0 — a linha "o que seu jogo pede" do radar deixou de ser o teto da oferta e passou a ser o
  * pedido do questionário, com hierarquia entre os eixos (ver `payments/radar.ts`).
  *
@@ -26,7 +30,7 @@
  * metodologia não pode carregar dois significados diferentes para a mesma linha do mesmo gráfico —
  * quem abrir um relatório antigo precisa conseguir saber qual das duas leituras estava valendo.
  */
-export const METHODOLOGY_VERSION = '2.8.0';
+export const METHODOLOGY_VERSION = '2.9.0';
 
 export type Range = readonly [lo: number, hi: number];
 
