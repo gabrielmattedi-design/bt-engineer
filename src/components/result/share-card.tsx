@@ -59,6 +59,38 @@ const PHRASE_LINE_HEIGHT = 46;
  */
 const PHRASE_MAX_CHARS = 44;
 
+/**
+ * Corpo do nome da raquete, encolhido quando o nome é longo demais para a linha.
+ *
+ * ═══ O DEFEITO ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * `<text>` de SVG não quebra, não reticencia e não encolhe: ele simplesmente ATRAVESSA o que
+ * estiver do lado. O nome da raquete e o número do match dividem a mesma linha, e "Wilson Blade 98
+ * 18x20 v10 (2026)" — 32 caracteres, nem o maior do catálogo — passava por cima do "97%".
+ *
+ * Medido no card renderizado, com a fonte de sistema: 809 px para esses 32 caracteres em corpo 42,
+ * terminando em x=889, contra o "97%" começando em x=847. Quarenta e dois pixels de sobreposição,
+ * no artefato que existe justamente para circular sem ninguém por perto para explicar.
+ *
+ * ═══ O ORÇAMENTO ════════════════════════════════════════════════════════════════════════════
+ *
+ * 686 px, de x=80 até a borda esquerda de um match de três dígitos ("100%", ~204 px terminando em
+ * x=1000), menos um vão de 30. A razão de 0,60 em por caractere sai da mesma medição (809/32/42) e
+ * é DELIBERADAMENTE a da fonte mais larga que apareceu: o download rasteriza no navegador de quem
+ * baixa, com a fonte que aquele sistema tiver. Errar para o lado largo encolhe um pouco mais que o
+ * necessário; errar para o estreito devolve a sobreposição.
+ *
+ * O piso de 26 nunca é alcançado pelo catálogo atual — o nome mais longo ("Babolat Pure Strike 100
+ * 16x19 Gen 4 (2024)", 42 caracteres) cai em 27. Ele existe para o dia em que entrar um mais
+ * comprido: melhor um nome pequeno e inteiro do que um nome cortado.
+ */
+export function racketNameSize(name: string): number {
+  const NAME_BUDGET_PX = 686;
+  const CHAR_WIDTH_EM = 0.6;
+  const size = Math.floor(NAME_BUDGET_PX / Math.max(1, name.length) / CHAR_WIDTH_EM);
+  return Math.max(26, Math.min(42, size));
+}
+
 /** Duas linhas no máximo: a terceira invadiria os rótulos do radar, que começam em y≈476. */
 const PHRASE_MAX_LINES = 2;
 
@@ -135,7 +167,21 @@ export type ShareCardData = {
 };
 
 export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
-  const axes = data.radar;
+  /**
+   * Só os eixos de ENCAIXE — os mesmos cinco do radar do relatório.
+   *
+   * O card recebe os oito e descarta os três de bola aqui dentro, e não na página, porque quem
+   * quebra isto é quem desenha: a linha tracejada é uma coisa só no SVG, e nos oito eixos ela
+   * carregaria dois significados ao mesmo tempo. Nos cinco de encaixe ela é a BORDA — 100 é o
+   * ideal e nenhuma raquete o ultrapassa. Nos três de bola ela é o TAMANHO DO PEDIDO, e a raquete
+   * pode passar dela, o que é bom. Num polígono só, o amarelo cruzava para fora em alguns
+   * vértices e não em outros, sem nada na imagem dizendo por quê.
+   *
+   * Foi exatamente esse defeito que tirou os três de bola do radar do relatório (ver `radar.tsx`
+   * e `market-rails.tsx`). O card é a peça que circula sem legenda e sem quem explique — se em
+   * algum lugar as duas leituras não podem coexistir, é aqui.
+   */
+  const axes = data.radar.filter((a) => a.group === 'voce');
   const total = axes.length;
   const rotation = topBlockRotation(axes);
   const phraseLines = wrapPhrase(data.phrase);
@@ -309,7 +355,7 @@ export function ShareCard({ data, id }: { data: ShareCardData; id: string }) {
       <text x="80" y="1090" fill={PALETTE.faint} fontSize="22" letterSpacing="3">
         SUA RAQUETE
       </text>
-      <text x="80" y="1142" fill={PALETTE.paper} fontSize="42" fontWeight="700">
+      <text x="80" y="1142" fill={PALETTE.paper} fontSize={racketNameSize(data.racketName)} fontWeight="700">
         {data.racketName}
       </text>
 

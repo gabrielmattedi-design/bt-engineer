@@ -24,7 +24,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { wrapPhrase } from '@/components/result/share-card';
+import { racketNameSize, wrapPhrase } from '@/components/result/share-card';
+import { loadRacketCatalog } from '@/data/load';
 
 /** O mesmo orçamento do componente. Ver a nota em `PHRASE_MAX_CHARS`. */
 const MAX = 44;
@@ -102,5 +103,67 @@ describe('quebra da frase do card', () => {
     expect(fonte).toContain('phraseLines.map');
     // `{data.phrase}` solto dentro de um <text> é o defeito original.
     expect(fonte).not.toMatch(/>\s*\{data\.phrase\}\s*</);
+  });
+});
+
+/**
+ * O nome da raquete e o número do match dividem a mesma linha do card.
+ *
+ * ═══ O DEFEITO, MEDIDO ═══════════════════════════════════════════════════════════════════════
+ *
+ * `<text>` de SVG não encolhe e não reticencia: ele atravessa o que estiver do lado. "Wilson Blade
+ * 98 18x20 v10 (2026)" — 32 caracteres, nem o maior do catálogo — renderizava 809 px de largura em
+ * corpo 42 e terminava em x=889, contra o "97%" começando em x=847. Quarenta e dois pixels por
+ * cima do número que é o ponto do card.
+ *
+ * O teste anda sobre o CATÁLOGO REAL, e não sobre uma lista de exemplos: quem quebra isto de novo
+ * é uma raquete nova com nome comprido, e a lista de exemplos não saberia dela.
+ */
+describe('corpo do nome da raquete no card', () => {
+  /** O mesmo orçamento do componente. Ver a nota em `racketNameSize`. */
+  const BUDGET_PX = 686;
+  const CHAR_EM = 0.6;
+
+  it('todo nome do catálogo cabe na linha, sem invadir o match', () => {
+    const nomes = loadRacketCatalog().map((v) => v.product_name);
+
+    expect(nomes.length, 'catálogo vazio — o teste não verificou nada').toBeGreaterThan(0);
+
+    for (const nome of nomes) {
+      const largura = nome.length * CHAR_EM * racketNameSize(nome);
+      expect(Math.round(largura), `"${nome}" (${nome.length} caracteres)`).toBeLessThanOrEqual(
+        BUDGET_PX,
+      );
+    }
+  });
+
+  /**
+   * O piso existe para o nome que ainda não entrou no catálogo. Ele não pode ser furado, senão o
+   * card volta a exibir nome ilegível — e o teto não pode ser furado, senão um nome curto vira
+   * manchete maior que o resto do bloco.
+   */
+  it('respeita teto e piso mesmo nos extremos', () => {
+    expect(racketNameSize('Yonex EZONE 98')).toBe(42);
+    expect(racketNameSize('X')).toBe(42);
+    expect(racketNameSize('N'.repeat(200))).toBe(26);
+  });
+
+  /** O caso exato que o usuário veria: o nome que estourava, agora dentro do orçamento. */
+  it('o nome que sobrepunha o match agora cabe', () => {
+    const nome = 'Wilson Blade 98 18x20 v10 (2026)';
+    expect(racketNameSize(nome)).toBeLessThan(42);
+    expect(nome.length * CHAR_EM * racketNameSize(nome)).toBeLessThanOrEqual(BUDGET_PX);
+  });
+
+  /** Se o componente parar de chamar a função, o defeito volta sem nada acusar. */
+  it('o card usa o corpo calculado em vez de um número fixo', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const fonte = readFileSync(
+      join(__dirname, '..', '..', 'src', 'components', 'result', 'share-card.tsx'),
+      'utf8',
+    );
+
+    expect(fonte).toContain('racketNameSize(data.racketName)');
   });
 });
