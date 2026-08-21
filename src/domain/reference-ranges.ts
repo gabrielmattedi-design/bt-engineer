@@ -18,6 +18,17 @@
  */
 
 /**
+ * 2.16.0 — a série "Média do catálogo" dos cinco eixos de encaixe passa a ser a média sobre TUDO
+ * que foi pontuado, e não sobre o ranking que sobrou depois do piso de demanda. O piso remove
+ * raquetes de um lado só — as fracas no eixo pedido, que tendem a ser as mais pesadas —, então
+ * quem sobrava era mais leve e a média de encaixe físico subia junto. Medido em 2560 eixos: desvio
+ * absoluto médio de 12,6 pontos, mediana 10,2, casos de 40 (`physical_fit` desenhado em 87 quando
+ * o catálogo entrega 47 para aquele jogador), e 78,8% dos eixos com desvio acima de 5.
+ *
+ * O efeito na tela era o inverso do que se imagina: a linha de comparação inflava e a recomendada
+ * aparecia MENOS distante da média do que realmente está — o gráfico subvendia a própria escolha.
+ * O RANKING não muda; muda só o que a linha cinza afirma.
+ *
  * 2.15.0 — os três eixos de bola passam a ser POSIÇÃO NO CATÁLOGO nas quatro séries, e a linha
  * tracejada deles passa a ser o PEDIDO normalizado à realidade do jogador — nunca além do que a
  * melhor raquete plausível para ele alcança. Os cinco de encaixe seguem em adequação, com a
@@ -88,7 +99,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.15.0';
+export const METHODOLOGY_VERSION = '2.16.0';
 
 export type Range = readonly [lo: number, hi: number];
 

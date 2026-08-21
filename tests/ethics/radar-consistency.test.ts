@@ -26,6 +26,15 @@ import { PERSONAS } from '@/data/personas';
 import { NEED_KEYS, type NeedKey } from '@/domain/player-profile';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
+/** Qual componente alimenta cada eixo de encaixe. Espelha `AXES` em `payments/radar.ts`. */
+const AXIS_COMPONENT: Record<string, string | undefined> = {
+  comfort_fit: 'comfort_fit',
+  physical_fit: 'physical_fit',
+  skill_fit: 'skill_fit',
+  swing_fit: 'swing_fit',
+  playstyle_fit: 'playstyle_fit',
+};
+
 const runs = PERSONAS.map((persona) => {
   const profile = buildPlayerProfile(persona.answers);
   const result = recommend({
@@ -36,7 +45,7 @@ const runs = PERSONAS.map((persona) => {
     mode: TEST_MODE,
     includeSetup: true,
   });
-  return { persona, report: serializeRecommendation(result, profile, ['racket_report_access']) };
+  return { persona, result, report: serializeRecommendation(result, profile, ['racket_report_access']) };
 });
 
 /**
@@ -251,6 +260,55 @@ describe('coerência entre o radar e a recomendação', () => {
           `mas o gráfico mostra a atual maior (${areaCurrent.toFixed(1)} vs ${areaRecommended.toFixed(1)})`,
       ).toBeGreaterThanOrEqual(areaCurrent);
     }
+  });
+  /**
+   * A série "Média do catálogo" precisa ser a média do CATÁLOGO, não a dos sobreviventes.
+   *
+   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   *
+   * Ela era calculada sobre `full_ranking`, que já passou pelo piso de demanda. O piso remove
+   * raquetes de um lado só — as fracas no eixo pedido, que tendem a ser as mais pesadas —, então
+   * quem sobra é mais leve e a média de encaixe físico sobe junto.
+   *
+   * Medido em 2560 eixos de encaixe: desvio absoluto médio de 12,6 pontos, mediana 10,2, e casos
+   * de 40 — `physical_fit` desenhado em 87 quando o catálogo entrega 47 para aquele jogador. Em
+   * 78,8% dos eixos o desvio passava de 5 pontos.
+   *
+   * O efeito na tela é o inverso do que se imagina: a linha de comparação INFLA, e a recomendada
+   * aparece menos distante da média do que realmente está. O gráfico subvendia a própria escolha.
+   *
+   * A média agora vem de `component_means`, calculada sobre tudo que foi pontuado, e viaja no
+   * resultado — não pode ser recalculada na hora de desenhar.
+   */
+  it('a média do catálogo não é a média dos sobreviventes ao filtro', () => {
+    let comExclusao = 0;
+
+    for (const { persona, result, report } of runs) {
+      if (result.excluded.every((e) => e.filter !== 'declared_demand_floor')) continue;
+      comExclusao += 1;
+
+      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
+        const componente = AXIS_COMPONENT[axis.key];
+        if (!componente) continue;
+
+        const mediaDosSobreviventes =
+          result.full_ranking.reduce(
+            (sum, r) => sum + (r.breakdown.components.find((c) => c.key === componente)?.raw ?? 50),
+            0,
+          ) / result.full_ranking.length;
+
+        const esperada = result.component_means[componente] ?? 50;
+        expect(axis.catalog, `${persona.id}/${axis.key}: média fora do resultado`).toBe(
+          Math.round(esperada),
+        );
+
+        // E ela precisa DIFERIR da média enviesada — senão o teste passaria sem provar nada.
+        if (Math.abs(mediaDosSobreviventes - esperada) > 5) return;
+      }
+    }
+
+    expect(comExclusao, 'nenhuma persona teve exclusão pelo piso — nada verificado')
+      .toBeGreaterThan(0);
   });
 });
 

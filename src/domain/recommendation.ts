@@ -199,6 +199,14 @@ export type RecommendationResult = {
    * para cima justamente no eixo que o jogador pediu.
    */
   readonly attribute_means: Readonly<Record<string, number>>;
+  /**
+   * Média de cada componente de encaixe sobre tudo que foi avaliado. Ver `RankResult`.
+   *
+   * Viaja no resultado pelos mesmos dois motivos das faixas: um relatório comprado precisa
+   * continuar sendo lido como foi vendido, e a média NÃO pode ser recalculada a partir de
+   * `full_ranking`, que já passou pelo piso de demanda.
+   */
+  readonly component_means: Readonly<Record<string, number>>;
 
   /**
    * Ponto de partida contra o qual o objetivo foi medido: a raquete atual quando reconhecida, a

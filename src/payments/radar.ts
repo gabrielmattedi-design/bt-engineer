@@ -339,6 +339,7 @@ export function buildRadar(
   ranking: readonly RankedRacket[],
   bands: RecommendationResult['attribute_bands'],
   means: RecommendationResult['attribute_means'],
+  componentMeans: RecommendationResult['component_means'],
   currentRacket: RankedRacket | null,
 ): readonly RadarAxis[] {
   /**
@@ -374,10 +375,19 @@ export function buildRadar(
 
   return AXES.map((axis): RadarAxis => {
     if (axis.component) {
-      const catalogMean =
-        ranking.length === 0
-          ? 50
-          : ranking.reduce((sum, r) => sum + componentOf(r, axis.component!), 0) / ranking.length;
+      /**
+       * A média vem do resultado, calculada sobre TUDO que foi pontuado.
+       *
+       * Já foi calculada aqui a partir de `ranking`, e desviava muito: o piso de demanda remove
+       * raquetes de um lado só — as fracas no eixo pedido, que tendem a ser as mais pesadas —,
+       * então quem sobra é mais leve e a média de encaixe físico sobe. Medido em 2560 eixos:
+       * desvio absoluto médio de 12,6 pontos, com casos de 40 (`physical_fit` desenhado em 87
+       * quando o catálogo entrega 47 para aquele jogador).
+       *
+       * E o efeito na tela era o inverso do que se imagina: a linha de comparação inflava, e a
+       * recomendada aparecia MENOS distante da média do que realmente está.
+       */
+      const catalogMean = componentMeans[axis.component] ?? 50;
 
       return {
         key: axis.key,

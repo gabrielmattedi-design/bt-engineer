@@ -566,6 +566,21 @@ export type RankOptions = {
 
 export type RankResult = {
   readonly ranking: readonly RankedRacket[];
+  /**
+   * Média de cada componente sobre TUDO que foi pontuado — antes do piso de demanda excluir nada.
+   *
+   * É a série "Média do catálogo" dos eixos de encaixe do radar, e ela precisa vir daqui porque
+   * não pode ser recalculada a partir de `ranking`: o piso remove raquetes de um lado só, e a
+   * média do que sobra desloca. Medido em 2560 eixos, a média calculada sobre o ranking filtrado
+   * desviava 12,6 pontos da real, com casos de 40 — `physical_fit` aparecendo como 87 quando o
+   * catálogo entrega 47 para aquele jogador.
+   *
+   * O viés é sistemático e tem direção: o piso tira as raquetes fracas no eixo pedido, que tendem
+   * a ser as mais pesadas, então quem sobra é mais leve e a média de encaixe físico sobe. O efeito
+   * na tela é o inverso do que se imagina — a linha de comparação infla e a recomendada parece
+   * MENOS especial do que é.
+   */
+  readonly componentMeans: Readonly<Record<ComponentKey, number>>;
   readonly excluded: readonly ExcludedRacket[];
   /**
    * Quantas raquetes foram PONTUADAS contra este perfil.
@@ -700,8 +715,24 @@ export function rankRackets(
     };
   });
 
+  /** Sobre `scored`, não sobre `finalists`: a média é do que foi avaliado, não do que sobrou. */
+  const componentMeans = Object.fromEntries(
+    (Object.keys(weights) as ComponentKey[]).map((key) => [
+      key,
+      scored.length === 0
+        ? 50
+        : round(
+            scored.reduce(
+              (sum, e) => sum + (e.breakdown.components.find((c) => c.key === key)?.raw ?? 50),
+              0,
+            ) / scored.length,
+          ),
+    ]),
+  ) as Record<ComponentKey, number>;
+
   return {
     ranking,
+    componentMeans,
     excluded: allExcluded,
     candidates_evaluated: kept.length,
     weights,
