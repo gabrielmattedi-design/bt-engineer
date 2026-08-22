@@ -18,6 +18,20 @@
  */
 
 /**
+ * 2.19.0 — nos cinco eixos de ENCAIXE a linha tracejada deixa de ser 100 fixo e passa a ser o
+ * maior encaixe que alguma candidata plausível para o jogador alcança. É o mesmo princípio que já
+ * valia nos três de bola — o gráfico não cobra da raquete uma distância que nenhuma escolha fecha.
+ *
+ * Medido nas 22 personas, o teto alcançável: Seu braço 94 de média com mínimo 62 e abaixo de 95 em
+ * 6 das 22; Seu nível 96/80/7; Seu jogo 97/87/6; Seu swing 99/84/1; Seu físico sempre 100. Na
+ * maioria dos casos a linha praticamente não se move, e é por isso que a mudança é segura: ela age
+ * só onde a perfeição não estava no cardápio.
+ *
+ * O VALOR DA RAQUETE não é tocado — segue sendo a adequação crua de 0 a 100. Mexer nele seria
+ * inflar a percepção de qualidade; mexer no alvo é parar de cobrar o impossível. Com isso os dois
+ * blocos passam a ter o mesmo significado de linha tracejada, ainda que em escalas diferentes.
+ * O RANKING não muda.
+ *
  * 2.18.0 — os três eixos de bola deixam de ser desenhados em POSIÇÃO (rank dentro da faixa do
  * catálogo) e passam a ser QUANTO A RAQUETE ENTREGA em relação à que mais entrega: 100 é a melhor
  * das 47 naquele aspecto, 50 é metade do que ela entrega.
@@ -130,7 +144,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.18.0';
+export const METHODOLOGY_VERSION = '2.19.0';
 
 export type Range = readonly [lo: number, hi: number];
 

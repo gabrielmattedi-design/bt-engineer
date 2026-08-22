@@ -272,15 +272,13 @@ export default async function ResultadoPage({
               maioria deles — foi exatamente por encaixar melhor que ela foi escolhida. Para
               comparar raquetes entre si como PRODUTO, use a tabela de índices.</p>
             <p className="mt-3 max-w-prose text-sm text-graphite">
-              A linha laranja é o <strong>seu alvo</strong>, e ela muda de natureza entre os dois
-              blocos — o que está escrito em cada quadro abaixo do gráfico. Nos cinco eixos de
-              baixo ela é a borda: 100 é o encaixe perfeito, e nenhuma raquete passa disso. Nos
-              três de cima ela é <strong>o que você pediu, normalizado ao que existe para o seu
-              perfil</strong>: se você pediu mais potência do que qualquer quadro adequado ao seu
-              nível oferece, o alvo desce para o que dá para alcançar, em vez de marcar um ponto
-              que ninguém atinge. Onde o verde fica abaixo do alvo, houve uma troca — e o tamanho
-              do vão é o tamanho da troca. O quanto cada bloco pesou na decisão está logo abaixo
-              do gráfico.
+              A linha laranja é <strong>o melhor que existe para você</strong> — nos oito eixos.
+              Nos três de cima ela é o que você pediu, limitado ao que alguma raquete adequada ao
+              seu perfil alcança; nos cinco de baixo, o maior encaixe que alguma dessas mesmas
+              candidatas atinge. Ela quase nunca é a perfeição, e não deveria ser: cobrar da
+              recomendação uma distância que nenhuma escolha fecha não informa nada. Onde o verde
+              fica abaixo dela, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto
+              cada bloco pesou na decisão está logo abaixo do gráfico.
             </p>
 
             <div className="mt-6 rounded border border-line bg-white p-6">

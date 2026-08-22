@@ -37,8 +37,9 @@ import {
  *   bola (3)    — QUANTO A RAQUETE ENTREGA em relação à que mais entrega no catálogo. Cem é a
  *                 melhor das 47 naquele aspecto (ver `shareOfBest`). A tracejada é o seu PEDIDO,
  *                 normalizado ao que existe para você.
- *   encaixe (5) — ADEQUAÇÃO do par raquete+jogador, de 0 a 100. A tracejada é a borda: 100 é
- *                 encaixe perfeito e ninguém passa dele.
+ *   encaixe (5) — ADEQUAÇÃO do par raquete+jogador, de 0 a 100. A tracejada é o MELHOR ENCAIXE
+ *                 que existe para este jogador entre as candidatas plausíveis — quase sempre 100,
+ *                 e menos que isso quando a perfeição não está no cardápio dele.
  *
  * Unificar as duas escalas foi tentado quatro vezes e falhou quatro vezes, sempre pelo mesmo
  * motivo de fundo: o melhor quadro em potência é um, o melhor em spin é outro, e a recomendada é a
@@ -61,8 +62,11 @@ export type RadarAxis = {
   readonly key: string;
   readonly label: string;
   /**
-   * A linha tracejada. Nos eixos de ENCAIXE é a borda (100). Nos de BOLA é o seu PEDIDO,
-   * normalizado ao que existe para o seu perfil — e por isso quase nunca encosta na borda.
+   * A linha tracejada: em ambos os blocos, O MELHOR QUE EXISTE PARA ESTE JOGADOR.
+   *
+   * Nos eixos de bola é o seu pedido, limitado ao que alguma raquete plausível para ele alcança.
+   * Nos de encaixe é o maior encaixe que alguma dessas mesmas candidatas atinge — quase sempre
+   * 100, e menos que isso quando a perfeição não está no cardápio dele.
    *
    * ═══ AS CINCO VERSÕES QUE ESTA LINHA JÁ TEVE ═══════════════════════════════════════════════
    *
@@ -83,10 +87,10 @@ export type RadarAxis = {
    *    reintroduziu o defeito da versão 2 — a recomendada não é a melhor em nenhum eixo isolado,
    *    então ficava aquém em todos os de bola e o eixo priorizado virava o pior do gráfico.
    *
-   * A atual não é uma sexta tentativa de unificar: é o reconhecimento de que os dois blocos medem
-   * grandezas diferentes e de que a tracejada deve ser o PEDIDO, nunca o teto do mercado. Nos
-   * eixos de bola ela vem em posição de catálogo, como as raquetes; nos de encaixe segue sendo a
-   * borda, porque ali não existe "mais adequado que perfeito".
+   * A atual não é uma sexta tentativa de unificar as ESCALAS — os dois blocos seguem medindo
+   * grandezas diferentes, e devem seguir. O que ficou igual nos dois é o SIGNIFICADO da linha: ela
+   * é sempre o melhor que existe para este jogador, e nunca um ideal que ninguém alcança. Foi essa
+   * distinção que faltou nas cinco anteriores.
    */
   readonly profile: number;
   readonly recommended: number;
@@ -435,11 +439,41 @@ export function buildRadar(
        */
       const catalogMean = componentMeans[axis.component] ?? 50;
 
+      /**
+       * A tracejada é o melhor encaixe que EXISTE para este jogador, não a perfeição.
+       *
+       * ═══ POR QUE DEIXOU DE SER 100 FIXO ═══════════════════════════════════════════════════
+       *
+       * Pelo mesmo princípio que já valia nos três eixos de bola: o gráfico não pode cobrar da
+       * raquete uma distância que nenhuma escolha fecha. Nos eixos de encaixe isso estava
+       * acontecendo de forma silenciosa — a borda em 100 afirma "existe encaixe perfeito aqui", e
+       * para parte dos jogadores não existe.
+       *
+       * Medido nas 22 personas, o teto alcançável entre as candidatas plausíveis:
+       *
+       *     Seu braço    média 94, mínimo 62, abaixo de 95 em 6 das 22
+       *     Seu nível    média 96, mínimo 80, abaixo de 95 em 7
+       *     Seu jogo     média 97, mínimo 87, abaixo de 95 em 6
+       *     Seu swing    média 99, mínimo 84, abaixo de 95 em 1
+       *     Seu físico   média 100, mínimo 100, nunca
+       *
+       * Na maioria dos casos a linha praticamente não se move — e é justamente por isso que a
+       * mudança é segura. Ela age só onde a perfeição não estava no cardápio, que é onde a borda
+       * fixa estava acusando a recomendação de uma falha do catálogo.
+       *
+       * O valor da RAQUETE não é tocado: continua sendo a adequação crua, de 0 a 100. Mexer nele
+       * seria inflar a percepção de qualidade; mexer no alvo é parar de cobrar o impossível.
+       */
+      const tetoDeEncaixe =
+        plausible.length === 0
+          ? IDEAL
+          : Math.round(Math.max(...plausible.map((r) => componentOf(r, axis.component!))));
+
       return {
         key: axis.key,
         label: axis.label,
         group: axis.group,
-        profile: IDEAL,
+        profile: tetoDeEncaixe,
         recommended: Math.round(componentOf(winner, axis.component)),
         current: currentRacket ? Math.round(componentOf(currentRacket, axis.component)) : null,
         catalog: Math.round(catalogMean),

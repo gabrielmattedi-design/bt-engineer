@@ -118,8 +118,8 @@ const ZONES = {
     title: 'Como ela encaixa em você',
     hint:
       'O quanto o par raquete + você funciona — muda de jogador para jogador, na mesma raquete. A ' +
-      'linha tracejada é a borda: 100 é o encaixe perfeito. Nenhuma raquete passa dela, porque ' +
-      'não existe mais adequado que perfeito.',
+      'linha tracejada é o melhor encaixe que EXISTE para você: quase sempre 100, e menos que isso ' +
+      'quando nenhuma raquete adequada ao seu perfil chega lá. A recomendada não passa dela.',
   },
 } as const;
 

@@ -22,6 +22,10 @@ import { describe, expect, it } from 'vitest';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
 import { serializeRecommendation } from '@/payments/entitlements';
+import {
+  FLOOR_SAFE_PHYSICAL,
+  FLOOR_SAFE_SKILL,
+} from '@/recommendation/engine/rank-rackets';
 import { PERSONAS } from '@/data/personas';
 import { NEED_KEYS, type NeedKey } from '@/domain/player-profile';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
@@ -87,24 +91,33 @@ describe('coerência entre o radar e a recomendação', () => {
    *   • bola    — quanto do PEDIDO foi entregue. O tracejado é o tamanho do pedido, e passar dele
    *               é entregar mais do que se pediu.
    */
-  it('nos eixos de encaixe a borda é o ideal, e nenhuma raquete a ultrapassa', () => {
-    for (const { persona, report } of runs) {
+  it('nos eixos de encaixe a tracejada é o melhor encaixe alcançável', () => {
+    for (const { persona, result, report } of runs) {
       expect(report.radar.length, persona.id).toBeGreaterThanOrEqual(8);
 
-      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
-        expect(axis.profile, `${persona.id}/${axis.key}: a borda deixou de ser o ideal`).toBe(100);
+      const plausiveis = result.full_ranking.filter((r) => {
+        const raw = (key: string) => r.breakdown.components.find((c) => c.key === key)?.raw ?? 0;
+        return raw('physical_fit') >= FLOOR_SAFE_PHYSICAL && raw('skill_fit') >= FLOOR_SAFE_SKILL;
+      });
 
-        for (const [nome, valor] of [
-          ['recomendada', axis.recommended],
-          ['catálogo', axis.catalog],
-          ['atual', axis.current],
-        ] as const) {
-          if (valor === null) continue;
-          expect(valor, `${persona.id}/${axis.key}: ${nome} passou do ideal`).toBeLessThanOrEqual(
-            100,
-          );
-          expect(valor, `${persona.id}/${axis.key}: ${nome}`).toBeGreaterThanOrEqual(0);
-        }
+      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
+        const componente = AXIS_COMPONENT[axis.key];
+        if (!componente || plausiveis.length === 0) continue;
+
+        const teto = Math.round(
+          Math.max(
+            ...plausiveis.map(
+              (r) => r.breakdown.components.find((c) => c.key === componente)?.raw ?? 0,
+            ),
+          ),
+        );
+
+        expect(axis.profile, `${persona.id}/${axis.key}: a tracejada não é o teto alcançável`).toBe(
+          teto,
+        );
+        expect(axis.profile, `${persona.id}/${axis.key}: teto acima do ideal`).toBeLessThanOrEqual(
+          100,
+        );
       }
     }
   });
@@ -155,25 +168,28 @@ describe('coerência entre o radar e a recomendação', () => {
   });
 
   /**
-   * Nos eixos de ENCAIXE a tracejada é a borda e ninguém passa: ali não existe "mais adequado que
-   * perfeito". Nos de BOLA ela é o pedido, e passar dela é entregar mais do que se pediu — por
-   * isso a checagem é só de um lado.
+   * A RECOMENDADA nunca passa da tracejada nos eixos de encaixe.
+   *
+   * A tracejada é o melhor encaixe entre as candidatas plausíveis, e a recomendada é uma delas
+   * sempre que serve ao jogador — então passar dela significaria que o teto foi calculado errado.
+   * As outras séries PODEM passar, e isso é informação: a raquete atual ultrapassando o teto num
+   * eixo quer dizer que ela encaixa ali melhor do que qualquer coisa que caiba na recomendação.
    */
-  it('nos eixos de encaixe nenhuma série passa da borda', () => {
-    for (const { persona, report } of runs) {
-      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
-        expect(axis.profile, `${persona.id}/${axis.key}: a borda deixou de ser 100`).toBe(100);
+  it('a recomendada não passa do teto de encaixe', () => {
+    for (const { persona, result, report } of runs) {
+      const vencedora = result.full_ranking[0]!;
+      const raw = (key: string) =>
+        vencedora.breakdown.components.find((c) => c.key === key)?.raw ?? 0;
+      const plausivel =
+        raw('physical_fit') >= FLOOR_SAFE_PHYSICAL && raw('skill_fit') >= FLOOR_SAFE_SKILL;
+      if (!plausivel) continue;
 
-        for (const [nome, valor] of [
-          ['recomendada', axis.recommended],
-          ['catálogo', axis.catalog],
-          ['atual', axis.current],
-        ] as const) {
-          if (valor === null) continue;
-          expect(valor, `${persona.id}/${axis.key}: ${nome} passou da borda`).toBeLessThanOrEqual(
-            100,
-          );
-        }
+      for (const axis of report.radar.filter((a) => a.group === 'voce')) {
+        expect(
+          axis.recommended,
+          `${persona.id}/${axis.key}: recomendada em ${axis.recommended} acima do teto ${axis.profile}`,
+        ).toBeLessThanOrEqual(axis.profile);
+        expect(axis.recommended, `${persona.id}/${axis.key}`).toBeGreaterThanOrEqual(0);
       }
     }
   });
