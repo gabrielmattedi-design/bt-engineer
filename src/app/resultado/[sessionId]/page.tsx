@@ -14,7 +14,7 @@ import { grantedEntitlements } from '@/database/repositories/session-repo';
 /**
  * Relatório — §35, §36, §64.
  *
- * ─── DE ONDE VÊM OS ENTITLEMENTS ─────────────────────────────────────────────────────────────
+ * ─── DE ONDE VÊM OS ENTITLEMENTS ────────────────────────────────────────────────────────────
  *
  * Da tabela `entitlements`, e SÓ dela. Até este commit eles eram derivados do query param
  * (`?plano=full_setup`), o que significava que qualquer pessoa lia o relatório completo editando a
@@ -73,7 +73,7 @@ export default async function ResultadoPage({
 
       <div className="mx-auto max-w-3xl space-y-16 px-6 py-12">
         {/*
-          ── ANÁLISE DE UMA VERSÃO ANTERIOR DO MOTOR ────────────────────────
+          ── ANÁLISE DE UMA VERSÃO ANTERIOR DO MOTOR ────────────────────
 
           A recomendação é calculada UMA vez, quando o questionário é enviado, e fica gravada.
           Reabrir o link não recalcula nada, e isso é deliberado: um relatório pago não pode mudar
@@ -95,7 +95,7 @@ export default async function ResultadoPage({
           </div>
         )}
 
-        {/* ── MATCH ────────────────────────────────────────────────────────── */}
+        {/* ── MATCH ──────────────────────────────────────────────── */}
         {winner && (
           <section>
             <p className="text-graphite">Encontramos seu match.</p>
@@ -156,7 +156,7 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── POR QUE COMBINA (§35) ────────────────────────────────────────── */}
+        {/* ── POR QUE COMBINA (§35) ───────────────────────────────── */}
         {winner && (
           <section>
             <h2 className="font-display text-2xl font-bold">Por que combina com você?</h2>
@@ -168,7 +168,7 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── O QUE VOCÊ DEVE PERCEBER (§35) ───────────────────────────────── */}
+        {/* ── O QUE VOCÊ DEVE PERCEBER (§35) ───────────────────────── */}
         {winner && winner.expectations.length > 0 && (
           <section>
             <h2 className="font-display text-2xl font-bold">O que você deve perceber</h2>
@@ -181,7 +181,7 @@ export default async function ResultadoPage({
         )}
 
         {/*
-          ── CARD COMPARTILHÁVEL ────────────────────────────────────────────
+          ── CARD COMPARTILHÁVEL ──────────────────────────────────
 
           Fica logo depois do resultado e antes da leitura técnica: é o momento em que a pessoa
           acabou de descobrir a raquete e tem vontade de contar. Enterrado no fim do relatório, o
@@ -225,7 +225,7 @@ export default async function ResultadoPage({
         )}
 
         {/*
-          ═══ AS TROCAS VÊM ANTES DO GRÁFICO ═══════════════════════════════════════════════
+          ═══ AS TROCAS VÊM ANTES DO GRÁFICO ══════════════════════════════════
 
           Estava depois, e a ordem produzia a leitura errada. Reclamação do usuário, com o card na
           mão: ele pediu POTÊNCIA como prioridade 1, o vértice de potência aparece bem abaixo do
@@ -258,27 +258,15 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── RADAR: quatro leituras nos mesmos eixos ──────────────────────── */}
+        {/* ── RADAR: quatro leituras nos mesmos eixos ─────────────────── */}
         {report.radar.length > 0 && (
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Os três eixos de cima mostram <strong>quanto cada raquete entrega naquele aspecto,
-              comparada à que mais entrega</strong> entre todas as avaliadas — 100 é a melhor do
-              catálogo ali, 50 é metade do que ela entrega.
-              Os cinco de baixo mostram <strong>o encaixe entre a raquete e você</strong>, e não são
-              característica fixa do produto: mudariam de valor, na mesma raquete, se quem
-              respondesse o teste fosse outra pessoa. Por isso a recomendada aparece à frente na
-              maioria deles — foi exatamente por encaixar melhor que ela foi escolhida. Para
-              comparar raquetes entre si como PRODUTO, use a tabela de índices.</p>
-            <p className="mt-3 max-w-prose text-sm text-graphite">
-              A linha laranja é <strong>o melhor que existe para você</strong> — nos oito eixos.
-              Nos três de cima ela é o que você pediu, limitado ao que alguma raquete adequada ao
-              seu perfil alcança; nos cinco de baixo, o maior encaixe que alguma dessas mesmas
-              candidatas atinge. Ela quase nunca é a perfeição, e não deveria ser: cobrar da
-              recomendação uma distância que nenhuma escolha fecha não informa nada. Onde o verde
-              fica abaixo dela, houve uma troca — e o tamanho do vão é o tamanho da troca. O quanto
-              cada bloco pesou na decisão está logo abaixo do gráfico.
+              Cada eixo vai de 0 a 100, e a <strong>largura de cada fatia é o peso que aquele eixo
+              teve na decisão</strong> — quanto mais larga, mais ela contou. A linha laranja é o seu
+              alvo: o melhor que existe para você, não a perfeição. Onde o verde fica abaixo dela,
+              houve uma troca, e o tamanho do vão é o tamanho da troca.
             </p>
 
             <div className="mt-6 rounded border border-line bg-white p-6">
@@ -318,7 +306,7 @@ export default async function ResultadoPage({
         )}
 
         {/*
-          ── AS TROCAS DA ESCOLHA (§35) ─────────────────────────────────────
+          ── AS TROCAS DA ESCOLHA (§35) ───────────────────────────────
 
           Antes esta seção se chamava "Pontos de atenção" e listava as penalizações do motor. O
           efeito, logo abaixo do nome do produto recém-comprado, era o de uma confissão: "você
@@ -331,7 +319,7 @@ export default async function ResultadoPage({
           o §35 ao contrário; mostrá-la sem o motivo é o que estava errado.
         */}
 
-        {/* ── TRANSIÇÃO (§22) ──────────────────────────────────────────────── */}
+        {/* ── TRANSIÇÃO (§22) ────────────────────────────────────── */}
         <section>
           <h2 className="font-display text-2xl font-bold">Comparação com sua raquete atual</h2>
           {report.transition.available ? (
@@ -387,7 +375,7 @@ export default async function ResultadoPage({
         </section>
 
         {/*
-          ── UPGRADE DE SETUP ───────────────────────────────────────────────
+          ── UPGRADE DE SETUP ──────────────────────────────────────
 
           Aparece só para quem tem a raquete e ainda não tem corda e tensão. A escolha de PARA QUAL
           das desbloqueadas fica dentro da própria seção de setup, depois da compra — oferecer a
@@ -421,7 +409,7 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── SETUP COMPLETO (§36) ─────────────────────────────────────────── */}
+        {/* ── SETUP COMPLETO (§36) ────────────────────────────────── */}
         {report.setup && (
           <section>
             <h2 className="font-display text-2xl font-bold">Seu setup completo</h2>
@@ -508,7 +496,7 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── VEREDICTO SOBRE A RAQUETE ATUAL ──────────────────────────────────
+        {/* ── VEREDICTO SOBRE A RAQUETE ATUAL ────────────────────────────────
             Vem ANTES do pódio de propósito.
 
             O pódio é uma lista de coisas para comprar. Quando a raquete que a pessoa já tem está
@@ -539,7 +527,7 @@ export default async function ResultadoPage({
           </section>
         )}
 
-        {/* ── PÓDIO (§28) ──────────────────────────────────────────────────── */}
+        {/* ── PÓDIO (§28) ─────────────────────────────────────────── */}
         <Podium
           entries={report.podium}
           tie={report.podium_tie ?? null}
@@ -587,7 +575,7 @@ export default async function ResultadoPage({
           }
         />
 
-        {/* ── COMPARATIVO TOP 3 (§31) ──────────────────────────────────────── */}
+        {/* ── COMPARATIVO TOP 3 (§31) ───────────────────────────────── */}
         {report.comparison && report.comparison.length > 1 && (
           <section>
             <h2 className="font-display text-2xl font-bold">Comparação entre as três</h2>
