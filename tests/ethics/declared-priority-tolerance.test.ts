@@ -106,6 +106,57 @@ describe('tolerância por posição no que foi declarado', () => {
     }
   });
 
+  /**
+   * A PREMISSA: o eixo declarado em 1º nunca fica abaixo da raquete média do catálogo.
+   *
+   * ═══ POR QUE A TOLERÂNCIA SOZINHA NÃO BASTAVA ══════════════════════════════════════════
+   *
+   * Exigência do usuário: "não posso pedir potência, e o sistema não só tirar potência comparado
+   * à minha atual, mas também me entregar potência abaixo da média".
+   *
+   * A tolerância é RELATIVA — top-10 do pool compatível com o jogador. Se o pool inteiro é fraco
+   * naquele eixo, o topo dele continua abaixo da média do catálogo. Medido nas 22 personas com
+   * potência forçada em 1º: só a tolerância deixava 6 perfis EXATAMENTE em cima da média, todos na
+   * mesma raquete equilibrada; com a premissa, 1. Nas personas como elas de fato respondem, 1
+   * abaixo da média antes e ZERO depois, ao custo de 0,1 ponto de match médio.
+   *
+   * O teste é condicional por isso, e a condição é a mesma que o motor usa: só cobra quando a
+   * saída existe. Sem ela, promover uma raquete que o corpo não sustenta para cumprir um número
+   * seria o dano já medido ao subir `objective_fit` para 50% (p04, físico 100 -> 40).
+   */
+  it('o eixo declarado em 1º não fica abaixo da média do catálogo, quando dá', () => {
+    let verificados = 0;
+
+    for (const { persona, profile, result } of analises) {
+      const primeira = profile.declared_priorities[0];
+      if (!primeira) continue;
+
+      const attrKey = NEED_TO_RACKET_ATTRIBUTE[primeira as NeedKey];
+      const banda = result.attribute_bands[attrKey];
+      const media = result.attribute_means[attrKey];
+      if (!banda || media === undefined || banda[1] <= banda[0]) continue;
+
+      const posicao = (r: { racket: { attributes: Record<string, unknown> } }) =>
+        ((r.racket.attributes[attrKey] as number) - banda[0]) / (banda[1] - banda[0]) * 100;
+
+      const campo = compativeis(result);
+      // A saída existe? Só então a promessa é cobrável — e o motor usa exatamente este critério.
+      if (!campo.some((r) => posicao(r) >= media)) continue;
+      verificados += 1;
+
+      const vencedora = result.full_ranking[0]!;
+      expect(
+        Math.round(posicao(vencedora)),
+        `${persona.id}: declarou ${primeira} em 1º e a recomendada entrega ` +
+          `${Math.round(posicao(vencedora))} de 100 nesse eixo, contra ${Math.round(media)} da ` +
+          `raquete média — existindo candidata compatível acima da média`,
+      ).toBeGreaterThanOrEqual(Math.round(media));
+    }
+
+    expect(verificados, 'nenhuma persona com prioridade e saída — nada verificado')
+      .toBeGreaterThan(0);
+  });
+
   /** A raquete atual é isenta: sem ela no ranking, o bloco de comparação some do relatório. */
   it('a raquete atual continua no ranking mesmo fora da tolerância', () => {
     let verificadas = 0;
