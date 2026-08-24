@@ -4,7 +4,7 @@ import { labelAnchor, labelPoint, layoutAxes, type AxisLayout } from './radar-ge
 /**
  * Radar de compatibilidade — SVG puro, sem biblioteca de gráficos.
  *
- * ─── POR QUE SVG À MÃO ───────────────────────────────────────────────────────────────────────
+ * ─── POR QUE SVG À MÃO ───────────────────────────────────────────────────────────────────
  *
  * Um radar de seis eixos é trigonometria de dez linhas. Uma biblioteca de gráficos custaria entre
  * 40 e 150 kB no bundle, traria seu próprio sistema de cores para brigar com a paleta da marca, e
@@ -14,7 +14,7 @@ import { labelAnchor, labelPoint, layoutAxes, type AxisLayout } from './radar-ge
  * Como SVG servido pelo servidor, o gráfico chega pronto, imprime bem e usa exatamente as cores
  * do brand book.
  *
- * ─── COMO LER ────────────────────────────────────────────────────────────────────────────────
+ * ─── COMO LER ───────────────────────────────────────────────────────────────────────────
  *
  * Todo eixo vai de 0 a 100 e o maior polígono é o melhor encaixe — mas a linha TRACEJADA tem duas
  * leituras, uma por bloco, e é isso que o explicador de cada setor precisa dizer:
@@ -78,7 +78,7 @@ const PALETTE = {
 /**
  * Os dois blocos, nomeados. A ordem dos eixos em `radar.ts` garante que cada grupo é contíguo.
  *
- * ═══ POR QUE O GRÁFICO PRECISA DIZER ISTO ════════════════════════════════════════════════════
+ * ═══ POR QUE O GRÁFICO PRECISA DIZER ISTO ════════════════════════════════════════════════
  *
  * Um usuário leu o radar três vezes seguidas como "a raquete recomendada é melhor que a minha em
  * cinco de seis características" — e concluiu, com toda lógica, que o catálogo tinha raquetes
@@ -93,7 +93,7 @@ const PALETTE = {
  * diferentes. O que a raquete FAZ, e o quanto ela SERVE A VOCÊ.
  */
 /**
- * ═══ OS DOIS QUADROS PRECISAM TER O MESMO PESO ═══════════════════════════════════════════════
+ * ═══ OS DOIS QUADROS PRECISAM TER O MESMO PESO ═════════════════════════════════════════════
  *
  * Reclamação do usuário: "tá muito discrepante o nível e a quantidade de informação explicadas no
  * quadrado verde e no laranja, iguale, não complique muito nem seja raso".
@@ -104,22 +104,25 @@ const PALETTE = {
  * A regra passa a ser: cada quadro responde as MESMAS três perguntas, na mesma ordem e no mesmo
  * tamanho — o que o eixo mede, o que a linha tracejada é, e o que significa a raquete passar dela.
  */
+/**
+ * Os dois quadros respondem as MESMAS duas perguntas, na mesma ordem e no mesmo tamanho: o que o
+ * eixo mede, e o que é o alvo ali. Sem terceira frase e sem repetir o que já está acima do gráfico
+ * — o texto anterior tinha quatro frases num quadro e uma no outro, e repetia o parágrafo inteiro.
+ */
 const ZONES = {
   bola: {
     fill: PALETTE.zoneBall,
     title: 'O que ela faz com a bola',
     hint:
-      'Quanto cada raquete entrega, comparada à que mais entrega no catálogo — 100 é a melhor das ' +
-      '47 naquele aspecto. A linha tracejada é o que VOCÊ pediu, limitado ao que existe para o seu ' +
-      'perfil. Passar dela é bom: significa entregar mais do que você pediu.',
+      'Quanto a raquete entrega, comparada à que mais entrega entre as 47 avaliadas. O alvo é o ' +
+      'que você pediu, até onde existe para o seu perfil.',
   },
   voce: {
     fill: PALETTE.zoneYou,
     title: 'Como ela encaixa em você',
     hint:
-      'O quanto o par raquete + você funciona — muda de jogador para jogador, na mesma raquete. A ' +
-      'linha tracejada é o melhor encaixe que EXISTE para você: quase sempre 100, e menos que isso ' +
-      'quando nenhuma raquete adequada ao seu perfil chega lá. A recomendada não passa dela.',
+      'O quanto o par raquete + você funciona — muda de jogador para jogador, na mesma raquete. O ' +
+      'alvo é o melhor encaixe que alguma raquete adequada a você alcança.',
   },
 } as const;
 

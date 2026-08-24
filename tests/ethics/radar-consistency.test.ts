@@ -1,7 +1,7 @@
 /**
  * O gráfico não pode contradizer a recomendação.
  *
- * ═══ O DEFEITO QUE ESTE TESTE TRANCA ═════════════════════════════════════════════════════════
+ * ═══ O DEFEITO QUE ESTE TESTE TRANCA ═══════════════════════════════════════════════════════
  *
  * Reclamação do usuário, com o gráfico na mão: a linha da raquete que ele já usa estava mais perto
  * do "o que seu jogo pede" do que a raquete recomendada. Medido no caso:
@@ -74,7 +74,7 @@ describe('coerência entre o radar e a recomendação', () => {
   /**
    * A LINHA TRACEJADA TEM DUAS LEITURAS, uma por bloco — e cada uma tem seu invariante.
    *
-   * ═══ POR QUE NÃO É UMA SÓ ══════════════════════════════════════════════════════════════════
+   * ═══ POR QUE NÃO É UMA SÓ ═══════════════════════════════════════════════════════════════
    *
    * Foram tentadas as duas unificações, e as duas falharam por lados opostos.
    *
@@ -125,7 +125,7 @@ describe('coerência entre o radar e a recomendação', () => {
   /**
    * A INVARIANTE PRINCIPAL: o eixo que a pessoa PRIORIZOU nunca é o pior vértice do gráfico.
    *
-   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   * ═══ O DEFEITO QUE ISTO TRANCA ══════════════════════════════════════════════════════════
    *
    * Relato do usuário: "pedi potência, e o sistema me mostra que está me dando tudo menos
    * potência. Isso não pode, de jeito nenhum".
@@ -197,7 +197,7 @@ describe('coerência entre o radar e a recomendação', () => {
   /**
    * Um eixo de bola SEM pedido precisa continuar tendo dado de verdade em cada série.
    *
-   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   * ═══ O DEFEITO QUE ISTO TRANCA ══════════════════════════════════════════════════════════
    *
    * Relato do usuário: "controle e spin devem ter algo errado, pois a linha laranja, a da
    * recomendada, a da atual e a da média estão todas no mesmo lugar".
@@ -298,7 +298,7 @@ describe('coerência entre o radar e a recomendação', () => {
   /**
    * A série "Média do catálogo" precisa ser a média do CATÁLOGO, não a dos sobreviventes.
    *
-   * ═══ O DEFEITO QUE ISTO TRANCA ═════════════════════════════════════════════════════════════
+   * ═══ O DEFEITO QUE ISTO TRANCA ══════════════════════════════════════════════════════════
    *
    * Ela era calculada sobre `full_ranking`, que já passou pelo piso de demanda. O piso remove
    * raquetes de um lado só — as fracas no eixo pedido, que tendem a ser as mais pesadas —, então
@@ -318,7 +318,7 @@ describe('coerência entre o radar e a recomendação', () => {
     let comExclusao = 0;
 
     for (const { persona, result, report } of runs) {
-      if (result.excluded.every((e) => e.filter !== 'declared_demand_floor')) continue;
+      if (result.excluded.every((e) => e.filter !== 'declared_priority_tolerance')) continue;
       comExclusao += 1;
 
       for (const axis of report.radar.filter((a) => a.group === 'voce')) {
@@ -349,7 +349,7 @@ describe('coerência entre o radar e a recomendação', () => {
 /**
  * Nenhum critério pode decidir sozinho.
  *
- * ═══ O QUE ISTO MEDE ═════════════════════════════════════════════════════════════════════════
+ * ═══ O QUE ISTO MEDE ══════════════════════════════════════════════════════════════════════
  *
  * Pedido do usuário, depois de olhar o gráfico: "faça um check de cada peso de forma que nenhum
  * isoladamente determine uma raquete específica". Ele estava vendo `Peso e manejo` marcar 98 contra
