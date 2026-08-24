@@ -385,6 +385,25 @@ export const FLOOR_SAFE_SKILL = 65;
  */
 const TOLERANCE_MIN_SURVIVORS = 6;
 
+/**
+ * A premissa exige MENOS sobreviventes que a tolerância, e a diferença é deliberada.
+ *
+ * As duas regras não valem o mesmo. A tolerância é uma preferência forte — "fique entre as dez
+ * melhores nisso" —, e uma preferência não justifica esvaziar o pódio. A premissa é uma PROMESSA:
+ * quem pede potência não recebe potência abaixo da média. Aplicar a ela o mesmo mínimo de seis
+ * fazia a promessa desligar exatamente onde ela é mais necessária, que é quando as raquetes
+ * adequadas ao jogador são poucas naquele eixo.
+ *
+ * Medido nas 22 personas, variando só este número: com 6 a p14 fica em 57 contra 60 da média;
+ * com 2 ela cumpre, e o match médio das personas cai 0,1 ponto (88,7 -> 88,6), com o mínimo
+ * intacto em 79.
+ *
+ * Dois é o menor número que preserva o produto inteiro: a vencedora mais uma alternativa real —
+ * que é o que `top3_offer_available` exige para o upsell existir (§30). Com um, o pódio viraria
+ * uma raquete só e a oferta sumiria; e medido, um não recupera nenhum caso a mais que dois.
+ */
+const PREMISE_MIN_SURVIVORS = 2;
+
 type ScoredEntry = { racket: ScoredRacket; fit_score: number; breakdown: ScoreBreakdown };
 
 /**
@@ -456,32 +475,121 @@ function applyDeclaredFloor(
   if (compativeis.length === 0) return null;
 
   /**
-   * As restrições entram UMA A UMA, da prioridade 1 para a 3, e só se o que sobra continuar viável.
+   * As restrições entram UMA A UMA, da mais forte para a mais fraca, e só se o que sobra continuar
+   * viável.
    *
-   * Exigir as três de uma vez é conjuntivo, e conjunção colapsa: basta a terceira não ter campo
-   * para a regra inteira desligar e nem a primeira ficar protegida. Medido numa versão anterior
-   * deste filtro, o efeito era recusar alternativas que custavam 0,1 ponto de match.
+   * Exigir tudo de uma vez é conjuntivo, e conjunção colapsa: basta a última não ter campo para a
+   * regra inteira desligar e nem a primeira ficar protegida. Medido numa versão anterior deste
+   * filtro, o efeito era recusar alternativas que custavam 0,1 ponto de match.
    */
-  const aplicadas: { need: NeedKey; permitidas: Set<string>; n: number }[] = [];
+  type Restricao = {
+    readonly need: NeedKey;
+    readonly permitidas: Set<string>;
+    /** O motivo cita ONDE a raquete ficou, e cada restrição mede isso na régua dela. */
+    readonly motivo: (entry: ScoredEntry) => string;
+  };
+
+  const aplicadas: Restricao[] = [];
   let restante: readonly ScoredEntry[] = scored;
+
+  /** A raquete ATUAL é isenta: ela é referência no relatório, não candidata. */
+  const tentar = (restricao: Restricao, minimo: number): void => {
+    const proximo = restante.filter(
+      (e) =>
+        restricao.permitidas.has(e.racket.variant.id) ||
+        e.racket.variant.id === currentRacket?.variant.id,
+    );
+    if (proximo.length < minimo) return;
+
+    restante = proximo;
+    aplicadas.push(restricao);
+  };
+
+  /**
+   * ═══ A PREMISSA, E POR QUE ELA VEM ANTES DA TOLERÂNCIA ═════════════════════════════════
+   *
+   * Exigência do usuário, nas palavras dele: "não posso pedir potência, e o sistema não só tirar
+   * potência comparado à minha atual, mas também me entregar potência abaixo da média".
+   *
+   * A tolerância por posição SOZINHA não garante isso, e a medição mostrou por quê: ela é
+   * RELATIVA — pede que a raquete esteja entre as dez melhores DO POOL COMPATÍVEL com o jogador.
+   * Se o pool inteiro é fraco no eixo pedido, o topo dele continua abaixo da média do catálogo.
+   *
+   * Medido nas 22 personas, com potência forçada em 1º lugar em todas:
+   *
+   *                                    só tolerância    + premissa
+   *     abaixo da média em potência        4/22            4/22
+   *     exatamente EM CIMA da média        6/22            1/22
+   *
+   * O número que salta é o segundo. Sem a premissa, seis perfis diferentes caíam EXATAMENTE na
+   * média — todos na mesma raquete, um frame equilibrado que não é bom em nada em particular.
+   * É o retrato do defeito: pedir potência e receber a média. Com a premissa esses seis sobem.
+   *
+   * Nas personas como elas de fato respondem, a conta é 1 abaixo da média antes e ZERO depois, ao
+   * custo de 0,1 ponto de match médio (88,7 -> 88,6) e nenhum ponto no match mínimo.
+   *
+   * E variar a folga da tolerância não mexe nisso: top 8, 10, 12, e só a 1ª prioridade dão todos
+   * entre 3 e 4 de 22. A tolerância não é a alavanca deste problema — o piso absoluto é.
+   *
+   * ─── POR QUE SÓ NO EIXO DECLARADO EM 1º ────────────────────────────────────────────────
+   *
+   * Porque potência, controle e spin se opõem dentro da física do quadro. Exigir a média do
+   * catálogo nos três empurra a escolha para o meio de tudo, que é o defeito oposto e igualmente
+   * ruim: a raquete deixa de ser boa naquilo que a pessoa pôs em primeiro lugar. A 1ª posição é
+   * onde a convicção está, e é ela que recebe a garantia forte.
+   *
+   * ─── E POR QUE ELA PODE NÃO AGIR ──────────────────────────────────────────────────────
+   *
+   * Se nenhuma candidata compatível com o físico e o nível do jogador chega à média do catálogo
+   * naquele eixo, a regra não age — e é correto que não aja. Promover uma raquete que o corpo não
+   * sustenta para cumprir um número seria o dano já medido ao subir `objective_fit` para 50%.
+   * Nesses casos o bloco "As trocas desta escolha" explica o vão, que é o trabalho dele.
+   *
+   * Os 4 de 22 que sobram acima são exatamente esses, e foi verificado que são irredutíveis:
+   * baixando o mínimo de sobreviventes até 1 — o limite teórico — continuam 4. Não é a regra sendo
+   * tímida, é o catálogo não tendo, para aqueles jogadores, nenhuma raquete segura acima da média.
+   */
+  const primeira = prioridades[0]!;
+  const attrPrimeira = NEED_TO_RACKET_ATTRIBUTE[primeira] as ScaleKey;
+  const mediaDoCatalogo = scale.meanPosition(attrPrimeira);
+  const posicaoNoCatalogo = (entry: ScoredEntry, need: NeedKey): number =>
+    scale.position(NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey, valorDe(entry, need));
+
+  const naMedia = compativeis.filter(
+    (e) => posicaoNoCatalogo(e, primeira) >= mediaDoCatalogo,
+  );
+  if (naMedia.length > 0) {
+    tentar({
+      need: primeira,
+      permitidas: new Set(naMedia.map((e) => e.racket.variant.id)),
+      motivo: (entry) =>
+        `Você colocou ${NEED_LABEL_PT[primeira]} em primeiro lugar, e esta raquete entrega menos ` +
+        `que a raquete média do mercado que analisamos nesse aspecto ` +
+        `(${Math.round(posicaoNoCatalogo(entry, primeira))} de 100, contra ` +
+        `${Math.round(mediaDoCatalogo)}).`,
+    }, PREMISE_MIN_SURVIVORS);
+  }
 
   for (const [posicao, need] of prioridades.entries()) {
     const n = PRIORITY_TOLERANCE[posicao]!;
     if (compativeis.length < n) continue; // sem campo: a tolerância não restringe nada
 
-    const topo = [...compativeis]
-      .sort((a, b) => valorDe(b, need) - valorDe(a, need))
-      .slice(0, n);
-    const permitidas = new Set(topo.map((e) => e.racket.variant.id));
+    const ordenadas = [...compativeis].sort((a, b) => valorDe(b, need) - valorDe(a, need));
+    const topo = ordenadas.slice(0, n);
 
-    /** A raquete ATUAL é isenta: ela é referência no relatório, não candidata. */
-    const proximo = restante.filter(
-      (e) => permitidas.has(e.racket.variant.id) || e.racket.variant.id === currentRacket?.variant.id,
-    );
-    if (proximo.length < TOLERANCE_MIN_SURVIVORS) continue;
-
-    restante = proximo;
-    aplicadas.push({ need, permitidas, n });
+    tentar({
+      need,
+      permitidas: new Set(topo.map((e) => e.racket.variant.id)),
+      motivo: (entry) => {
+        const posicaoDela =
+          ordenadas.findIndex((e) => e.racket.variant.id === entry.racket.variant.id) + 1;
+        return (
+          `Você colocou ${NEED_LABEL_PT[need]} entre o que mais quer, e entre as raquetes ` +
+          `adequadas ao seu perfil esta não está nas ${n} melhores nesse aspecto` +
+          (posicaoDela > 0 ? ` (está em ${posicaoDela}º).` : '.')
+        );
+      },
+    }, TOLERANCE_MIN_SURVIVORS);
   }
 
   if (aplicadas.length === 0) return null;
@@ -501,18 +609,11 @@ function applyDeclaredFloor(
       continue;
     }
 
-    const posicaoDela =
-      [...compativeis].sort((a, b) => valorDe(b, falhou.need) - valorDe(a, falhou.need))
-        .findIndex((e) => e.racket.variant.id === id) + 1;
-
     excluded.push({
       variant_id: id,
       product_name: entry.racket.variant.product_name,
       filter: 'declared_priority_tolerance',
-      reason:
-        `Você colocou ${NEED_LABEL_PT[falhou.need]} entre o que mais quer, e entre as raquetes ` +
-        `adequadas ao seu perfil esta não está nas ${falhou.n} melhores nesse aspecto` +
-        (posicaoDela > 0 ? ` (está em ${posicaoDela}º).` : '.'),
+      reason: falhou.motivo(entry),
     });
   }
 
