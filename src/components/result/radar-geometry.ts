@@ -5,44 +5,97 @@
  * diferentes —, mas a POSIÇÃO angular de cada eixo precisa ser a mesma nos dois. Quando ela vivia
  * duplicada, uma correção aplicada num lugar deixava o outro contando outra história, e o card é
  * justamente a peça que sai do site e circula sozinha.
+ *
+ * ═══ O SETOR DE CADA EIXO É PROPORCIONAL AO PESO DELE NA DECISÃO ═════════════════════════════
+ *
+ * Um radar de ângulos iguais convida o leitor a integrar a área — e a área de ângulos iguais trata
+ * todo vértice como se valesse o mesmo. O motor não trata: `Seu nível` pesa 0,20 e `Spin` pode
+ * pesar 0,05. O resultado era um gráfico que contradizia o próprio ranking.
+ *
+ * Medido nas personas com raquete atual fora do primeiro lugar, a vantagem da 1ª colocada em pontos
+ * de área:
+ *
+ *     persona   posição da atual   área de ângulos iguais   área ponderada
+ *       p02           8º              79 vs 83  (+4)          82 vs 86  (+4)
+ *       p05          18º              82 vs 84  (+2)          82 vs 85  (+3)
+ *       p06          17º              74 vs 84  (+10)         67 vs 87  (+20)
+ *       p20          20º              81 vs 82  (+1)          84 vs 90  (+6)
+ *       p22          21º              64 vs 82  (+18)         60 vs 91  (+31)
+ *
+ * Um ponto de diferença para uma raquete em VIGÉSIMO lugar. Relato do usuário, e ele estava certo:
+ * "parece que a minha atual está melhor do que a recomendada; nos aspectos que ela perde, perde por
+ * pouco, e nos que ganha, ganha por muito. E ela ficou só em décimo segundo".
+ *
+ * Estava mesmo — porque o desenho somava igual o que a decisão somou pesado. Com o setor
+ * proporcional, a área que o olho integra passa a ser a mesma conta que escolheu a raquete, e a
+ * separação média entre a 1ª e a atual sobe de 7,0 para 12,8 pontos.
+ *
+ * ═══ POR QUE EXISTE UM PISO DE SETOR ═════════════════════════════════════════════════════════
+ *
+ * Sem ele, um eixo de peso 0,05 receberia 18 graus e viraria um espeto ilegível com o rótulo
+ * colado no vizinho. O piso custa fidelidade — os eixos mais leves aparecem um pouco maiores do que
+ * pesam —, e é um custo assumido: um vértice que não dá para ler não informa nada, e a alternativa
+ * seria esconder o eixo, que é pior. Os pesos exatos continuam escritos abaixo do gráfico.
  */
 
 import type { RadarAxis } from '@/payments/radar';
 
+/** Fração mínima da circunferência para um eixo, em nome da legibilidade. Ver a nota acima. */
+const MIN_SHARE = 0.07;
+
+export type AxisLayout = {
+  /** Ângulo do CENTRO do setor, com a rotação já aplicada. É onde o vértice e o rótulo ficam. */
+  readonly angle: number;
+  /** Bordas angulares do setor, para as faixas de fundo de cada bloco. */
+  readonly start: number;
+  readonly end: number;
+};
+
 /**
- * Rotação da teia para que o bloco de BOLA fique centrado no topo.
+ * Distribui os eixos ao redor do círculo, cada um ocupando um setor proporcional ao seu peso, e
+ * gira o conjunto para que o bloco de BOLA fique centrado no topo.
  *
- * ═══ O QUE ESTAVA ERRADO ═════════════════════════════════════════════════════════════════════
- *
- * O texto do relatório diz "os três de cima medem o que ela faz com a bola". Com o primeiro eixo
- * fixado às 12 horas, os três de cima eram `Seu jogo`, `Potência` e `Controle` — dois de bola e um
- * de encaixe. A frase estava simplesmente errada sobre o próprio desenho, e o `Spin` ficava caído
- * às 3 horas, longe dos irmãos.
- *
- * Girar o conjunto meia casa por eixo de bola resolve: `Potência`, `Controle` e `Spin` passam a
- * ocupar 10:30, 12:00 e 1:30, lidos da esquerda para a direita na ordem em que o texto os nomeia.
- *
- * ═══ POR QUE CALCULADO, E NÃO −45° NO CÓDIGO ═════════════════════════════════════════════════
- *
- * −45° é a resposta certa para OITO eixos com TRÊS de bola. Escrito como constante, ele silenciosa-
- * mente deixaria de centrar nada no dia em que um eixo entrasse ou saísse — e o gráfico voltaria a
- * contradizer a legenda sem ninguém perceber. Derivar do próprio vetor mantém a promessa verdadeira
- * por construção.
+ * A rotação é CALCULADA, nunca uma constante: escrita como −45° ela deixaria silenciosamente de
+ * centrar nada no dia em que um eixo entrasse ou saísse, e o gráfico voltaria a contradizer a
+ * legenda sem ninguém perceber.
  */
-export function topBlockRotation(axes: readonly RadarAxis[]): number {
-  const ball: number[] = [];
-  for (let i = 0; i < axes.length; i += 1) if (axes[i]!.group === 'bola') ball.push(i);
+export function layoutAxes(axes: readonly RadarAxis[]): AxisLayout[] {
+  if (axes.length === 0) return [];
 
-  const first = ball[0];
-  const last = ball[ball.length - 1];
-  if (first === undefined || last === undefined || axes.length === 0) return 0;
+  const total = axes.reduce((sum, a) => sum + Math.max(0, a.weight), 0);
+  const brutas =
+    total <= 0
+      ? axes.map(() => 1 / axes.length)
+      : axes.map((a) => Math.max(0, a.weight) / total);
 
-  return -(Math.PI * 2 * ((first + last) / 2)) / axes.length;
-}
+  // Piso e renormalização: o piso tira fatia de quem tem de sobra, nunca cria circunferência.
+  const comPiso = brutas.map((s) => Math.max(s, MIN_SHARE));
+  const somaComPiso = comPiso.reduce((sum, s) => sum + s, 0);
+  const shares = comPiso.map((s) => s / somaComPiso);
 
-/** Ângulo do eixo `i`: começa no topo, gira no sentido horário, deslocado por `rotation`. */
-export function axisAngle(index: number, total: number, rotation: number): number {
-  return (Math.PI * 2 * index) / total - Math.PI / 2 + rotation;
+  const semRotacao: { start: number; end: number; angle: number }[] = [];
+  let acumulado = 0;
+  for (const share of shares) {
+    const start = acumulado * Math.PI * 2;
+    acumulado += share;
+    const end = acumulado * Math.PI * 2;
+    semRotacao.push({ start, end, angle: (start + end) / 2 });
+  }
+
+  /** Centro angular do bloco de bola, para levá-lo ao topo. */
+  const bola = semRotacao.filter((_, i) => axes[i]!.group === 'bola');
+  const centroBola =
+    bola.length === 0
+      ? 0
+      : (bola[0]!.start + bola[bola.length - 1]!.end) / 2;
+
+  const rotacao = -Math.PI / 2 - centroBola;
+
+  return semRotacao.map((s) => ({
+    angle: s.angle + rotacao,
+    start: s.start + rotacao,
+    end: s.end + rotacao,
+  }));
 }
 
 /**
@@ -57,23 +110,16 @@ export function axisAngle(index: number, total: number, rotation: number): numbe
  * card, o mesmo. Aqui o raio é raio.
  */
 export function labelPoint(
-  index: number,
-  total: number,
+  angle: number,
   radius: number,
-  rotation: number,
   center: { x: number; y: number },
 ): [number, number] {
-  const a = axisAngle(index, total, rotation);
-  return [center.x + Math.cos(a) * radius, center.y + Math.sin(a) * radius];
+  return [center.x + Math.cos(angle) * radius, center.y + Math.sin(angle) * radius];
 }
 
 /** Âncora horizontal do texto conforme o lado da teia em que o eixo cai. */
-export function labelAnchor(
-  index: number,
-  total: number,
-  rotation: number,
-): 'start' | 'middle' | 'end' {
-  const c = Math.cos(axisAngle(index, total, rotation));
+export function labelAnchor(angle: number): 'start' | 'middle' | 'end' {
+  const c = Math.cos(angle);
   if (Math.abs(c) < 0.3) return 'middle';
   return c > 0 ? 'start' : 'end';
 }

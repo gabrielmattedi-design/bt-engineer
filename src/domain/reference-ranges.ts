@@ -18,6 +18,38 @@
  */
 
 /**
+ * 2.20.0 — o SETOR de cada eixo do radar passa a ser proporcional ao peso dele na decisão, em vez
+ * de todos os oito ocuparem 45 graus.
+ *
+ * Um radar de ângulos iguais convida a integrar a área, e área de ângulos iguais trata todo vértice
+ * como se valesse o mesmo. O motor não trata. O resultado era um desenho que contradizia o próprio
+ * ranking — medido nas personas com raquete atual fora do 1º lugar, a vantagem da 1ª colocada em
+ * pontos de área:
+ *
+ *     persona   posição da atual   ângulos iguais   ponderada
+ *       p02           8º             79 vs 83        82 vs 86
+ *       p05          18º             82 vs 84        82 vs 85
+ *       p06          17º             74 vs 84        67 vs 87
+ *       p20          20º             81 vs 82        84 vs 90
+ *       p22          21º             64 vs 82        60 vs 91
+ *
+ * Um ponto de diferença para uma raquete em VIGÉSIMO. Relato do usuário: "parece que a minha atual
+ * está melhor do que a recomendada; nos aspectos que ela perde, perde por pouco, e nos que ganha,
+ * ganha por muito — e ela ficou só em décimo segundo". Estava certo: o desenho somava igual o que a
+ * decisão somou pesado. Com o setor proporcional, a separação média sobe de 7,0 para 12,8 pontos.
+ *
+ * Um piso de 7% de circunferência por eixo protege a legibilidade: sem ele um eixo de peso 0,05
+ * viraria um espeto de 18 graus com o rótulo colado no vizinho. O piso custa fidelidade nos eixos
+ * mais leves, e é um custo assumido e documentado.
+ *
+ * ANTES DISTO foi testada a hipótese de que o problema estava na ESCALA dos eixos de bola — que por
+ * medirem o produto ("fração da melhor do catálogo") e não o encaixe, inflavam raquetes potentes.
+ * Medido: trocar os três de bola para proximidade do alvo DERRUBA a discriminação, de 6,8 para 3,7
+ * pontos de vantagem sobre a raquete atual, e de 8,3 para 0,6 sobre a mediana do ranking. A
+ * hipótese estava errada e a escala anterior ficou.
+ *
+ * O RANKING não muda.
+ *
  * 2.19.0 — nos cinco eixos de ENCAIXE a linha tracejada deixa de ser 100 fixo e passa a ser o
  * maior encaixe que alguma candidata plausível para o jogador alcança. É o mesmo princípio que já
  * valia nos três de bola — o gráfico não cobra da raquete uma distância que nenhuma escolha fecha.
@@ -144,7 +176,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.19.0';
+export const METHODOLOGY_VERSION = '2.20.0';
 
 export type Range = readonly [lo: number, hi: number];
 

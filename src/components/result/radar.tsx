@@ -1,5 +1,5 @@
 import type { RadarAxis } from '@/payments/radar';
-import { axisAngle, labelAnchor, labelPoint, topBlockRotation } from './radar-geometry';
+import { labelAnchor, labelPoint, layoutAxes, type AxisLayout } from './radar-geometry';
 
 /**
  * Radar de compatibilidade — SVG puro, sem biblioteca de gráficos.
@@ -143,32 +143,31 @@ const PAD_Y = 18;
 /** Raio do setor de fundo: um pouco além da teia, para o sombreado emoldurar em vez de cortar. */
 const ZONE_RADIUS = RADIUS + 9;
 
-function point(index: number, total: number, value: number, rotation: number): [number, number] {
-  const a = axisAngle(index, total, rotation);
+function point(angle: number, value: number): [number, number] {
   const r = (Math.max(0, Math.min(100, value)) / 100) * RADIUS;
-  return [CENTER + Math.cos(a) * r, CENTER + Math.sin(a) * r];
+  return [CENTER + Math.cos(angle) * r, CENTER + Math.sin(angle) * r];
 }
 
 /** Distância dos nomes ao centro. Fora do setor sombreado, com folga para o traço mais grosso. */
 const LABEL_RADIUS = ZONE_RADIUS + 16;
 
-function polygon(values: readonly number[], rotation: number): string {
+function polygon(values: readonly number[], layout: readonly AxisLayout[]): string {
   return values
-    .map((v, i) => point(i, values.length, v, rotation).map((n) => n.toFixed(1)).join(','))
+    .map((v, i) => point(layout[i]!.angle, v).map((n) => n.toFixed(1)).join(','))
     .join(' ');
 }
 
 /**
- * Fatia de pizza cobrindo os eixos de `first` a `last`, com meia casa de folga de cada lado.
+ * Fatia de pizza cobrindo os eixos de `first` a `last`.
  *
- * A folga é o que faz os dois setores se encontrarem exatamente no meio do caminho entre dois
- * eixos vizinhos — sem ela, sobrariam fatias brancas e o vértice da fronteira pareceria pertencer
- * aos dois grupos.
+ * As bordas vêm do próprio layout, então os dois setores se encontram exatamente onde um eixo
+ * termina e o vizinho começa — sem fatias brancas e sem vértice de fronteira parecendo pertencer
+ * aos dois blocos. Como os setores agora têm larguras diferentes, a folga não pode mais ser "meia
+ * casa": ela é a borda real de cada eixo.
  */
-function sector(first: number, last: number, total: number, rotation: number): string {
-  const half = Math.PI / total;
-  const start = axisAngle(first, total, rotation) - half;
-  const end = axisAngle(last, total, rotation) + half;
+function sector(first: number, last: number, layout: readonly AxisLayout[]): string {
+  const start = layout[first]!.start;
+  const end = layout[last]!.end;
   const [x1, y1] = [
     CENTER + Math.cos(start) * ZONE_RADIUS,
     CENTER + Math.sin(start) * ZONE_RADIUS,
@@ -205,7 +204,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
   const total = axes.length;
   const hasCurrent = axes.every((a) => a.current !== null);
   const zones = zoneRanges(axes);
-  const rotation = topBlockRotation(axes);
+  const layout = layoutAxes(axes);
 
   const series = [
     {
@@ -275,7 +274,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           {zones.map((zone) => (
             <path
               key={zone.group}
-              d={sector(zone.first, zone.last, total, rotation)}
+              d={sector(zone.first, zone.last, layout)}
               fill={ZONES[zone.group].fill}
               stroke="none"
             />
@@ -290,7 +289,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           */}
           {zones.map((zone) => {
             // Meia casa antes do primeiro eixo do bloco: exatamente onde os dois setores se tocam.
-            const a = axisAngle(zone.first, total, rotation) - Math.PI / total;
+            const a = layout[zone.first]!.start;
             return (
               <line
                 key={`edge-${zone.group}`}
@@ -308,7 +307,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           {[25, 50, 75, 100].map((ring) => (
             <polygon
               key={ring}
-              points={polygon(axes.map(() => ring), rotation)}
+              points={polygon(axes.map(() => ring), layout)}
               fill="none"
               stroke={PALETTE.line}
               strokeWidth={ring === 100 ? 1.5 : 1}
@@ -317,7 +316,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
 
           {/* Raios */}
           {axes.map((axis, i) => {
-            const [x, y] = point(i, total, 100, rotation);
+            const [x, y] = point(layout[i]!.angle, 100);
             return (
               <line
                 key={axis.key}
@@ -334,7 +333,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           {series.map((s) => (
             <polygon
               key={s.key}
-              points={polygon(s.values, rotation)}
+              points={polygon(s.values, layout)}
               fill={s.fill}
               fillOpacity={s.fillOpacity}
               stroke={s.stroke}
@@ -346,21 +345,20 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
 
           {/* Rótulos dos eixos, empurrados para fora da teia. */}
           {axes.map((axis, i) => {
-            const [x, y] = labelPoint(i, total, LABEL_RADIUS, rotation, { x: CENTER, y: CENTER });
-            const anchor = labelAnchor(i, total, rotation);
+            const [x, y] = labelPoint(layout[i]!.angle, LABEL_RADIUS, { x: CENTER, y: CENTER });
+            const anchor = labelAnchor(layout[i]!.angle);
             /*
-              ═══ O PESO SAIU DAQUI, DE PROPÓSITO ═══════════════════════════════════════════
+              ═══ O PESO NÃO É IMPRESSO NO RÓTULO — ELE É A LARGURA DO SETOR ═══════════════
 
-              Cada vértice trazia impresso quanto pesava na decisão, para que ninguém lesse um
-              radar de nove pontas como se as nove valessem o mesmo. A intenção estava certa; o
-              efeito, não. Lado a lado, "Spin 3%" e "Seu swing 17%" convidam à conclusão de que o
-              motor ignorou o spin — quando os três eixos de bola são FATIAS de um único critério,
-              repartidas na ordem de prioridade declarada, e swing é um critério inteiro. O gráfico
-              misturava duas escalas incompatíveis num mesmo rótulo.
+              Cada vértice já trouxe impresso quanto pesava na decisão, e o efeito foi ruim: lado a
+              lado, "Spin 3%" e "Seu swing 17%" convidam à conclusão de que o motor ignorou o spin,
+              quando os três eixos de bola são FATIAS de um único critério e swing é um critério
+              inteiro. Duas escalas incompatíveis no mesmo rótulo.
 
-              O peso não sumiu do relatório: ele aparece somado POR BLOCO logo abaixo do gráfico,
-              que é a única comparação que faz sentido — bolo contra bolo. Aqui em cima o radar
-              volta a responder uma pergunta só: quanto cada raquete entrega em cada eixo.
+              Hoje o peso está na GEOMETRIA: o setor de cada eixo é proporcional a ele (ver
+              `radar-geometry.ts`). O leitor não precisa somar percentual nenhum — a área que ele
+              enxerga já é a conta que escolheu a raquete. Os números exatos seguem abaixo do
+              gráfico, somados por bloco, para quem quiser conferir.
             */
             return (
               <text
