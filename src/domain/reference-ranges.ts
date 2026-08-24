@@ -14,10 +14,40 @@
  * │ laboratório, não são publicadas pelo fabricante, variam por exemplar e não são obtíveis   │
  * │ de forma consistente entre as quatro marcas. Depender delas mantinha o catálogo em        │
  * │ completude 0.61 e travava a confiança em "Média" para todo mundo.                         │
- * └────────────────────────────────────────────────────────────────────────────────────┘
+ * └───────────────────────────────────────────────────────────────────────────────────┘
  */
 
 /**
+ * 2.23.0 — a PREMISSA volta, somada à tolerância por posição: o eixo declarado em 1º lugar nunca
+ * fica abaixo da raquete média do mercado que analisamos, sempre que existir candidata compatível
+ * com o jogador que cumpra isso.
+ *
+ * ─── POR QUE A TOLERÂNCIA SOZINHA NÃO BASTOU ────────────────────────────────────────────
+ *
+ * Ela é RELATIVA: pede que a raquete esteja entre as dez melhores DO POOL COMPATÍVEL com o
+ * jogador. Se o pool inteiro é fraco no eixo pedido, o topo dele continua abaixo da média do
+ * catálogo — e a queixa do usuário era exatamente essa, "potência muito baixa, inclusive abaixo
+ * da média".
+ *
+ * Medido nas 22 personas com potência forçada em 1º lugar:
+ *
+ *                                    2.22.0 (só tolerância)    2.23.0 (+ premissa)
+ *     abaixo da média em potência            4/22                    4/22
+ *     exatamente EM CIMA da média            6/22                    1/22
+ *
+ * O dado que decidiu foi o segundo. Sem a premissa, seis perfis diferentes caíam exatamente na
+ * média, todos na MESMA raquete equilibrada — pedir potência e receber o meio de tudo. Os 4 que
+ * restam são irredutíveis: baixando o mínimo de sobreviventes até 1, o limite teórico, continuam
+ * 4, porque para aqueles jogadores não existe raquete segura acima da média.
+ *
+ * Nas personas como elas de fato respondem: 1 abaixo da média antes, ZERO depois. Custo medido:
+ * 0,1 ponto de match médio (88,7 -> 88,6), match mínimo intacto em 79, nenhuma persona trocando
+ * de vencedora.
+ *
+ * A premissa vale só no eixo declarado em 1º. Potência, controle e spin se opõem dentro da física
+ * do quadro: exigir a média nos três empurraria a escolha para o meio de tudo, que é o defeito
+ * oposto e igualmente ruim.
+ *
  * 2.22.0 — o piso de demanda vira uma TOLERÂNCIA POR POSIÇÃO, proposta pelo usuário: o que ele
  * declarou em 1º lugar entra nas 10 melhores raquetes compatíveis com o perfil naquele aspecto, o
  * 2º nas 15, o 3º nas 20.
@@ -231,7 +261,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.22.0';
+export const METHODOLOGY_VERSION = '2.23.0';
 
 export type Range = readonly [lo: number, hi: number];
 
