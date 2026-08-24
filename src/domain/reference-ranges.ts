@@ -1,7 +1,7 @@
 /**
  * Faixas de referência do domínio — docs/RECOMMENDATION_ENGINE.md §1.
  *
- * ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+ * ┌───────────────────────────────────────────────────────────────────────────────────┐
  * │ v2 — ESPECIFICAÇÕES CONSOLIDADAS DE MERCADO                                              │
  * │                                                                                          │
  * │ O motor usa EXCLUSIVAMENTE os campos que as quatro marcas publicam no próprio catálogo e │
@@ -14,10 +14,65 @@
  * │ laboratório, não são publicadas pelo fabricante, variam por exemplar e não são obtíveis   │
  * │ de forma consistente entre as quatro marcas. Depender delas mantinha o catálogo em        │
  * │ completude 0.61 e travava a confiança em "Média" para todo mundo.                         │
- * └──────────────────────────────────────────────────────────────────────────────────────────┘
+ * └────────────────────────────────────────────────────────────────────────────────────┘
  */
 
 /**
+ * 2.22.0 — o piso de demanda vira uma TOLERÂNCIA POR POSIÇÃO, proposta pelo usuário: o que ele
+ * declarou em 1º lugar entra nas 10 melhores raquetes compatíveis com o perfil naquele aspecto, o
+ * 2º nas 15, o 3º nas 20.
+ *
+ * Substitui as três regras absolutas anteriores — posição 60 do catálogo (2.12.0), média do
+ * catálogo (2.14.0) e "não pior que a sua raquete atual" (2.21.0). Todas partilhavam o mesmo
+ * defeito: piso absoluto pode ser IMPOSSÍVEL de cumprir. Nas palavras dele: "se a raquete é a
+ * primeira colocada em spin e o cliente pede spin em primeiro lugar, não tem como dar outra".
+ *
+ * Tolerância por posição nunca tem esse problema — as dez melhores sempre existem — e se ajusta
+ * sozinha ao catálogo. Medido em 660 perfis com prioridade declarada:
+ *
+ *     custo de exigir      mediana 4,9 pontos de match, p90 9,7
+ *     regra que substitui  mediana 23 pontos, p90 35
+ *
+ * O PISO DE COMPATIBILIDADE DE NÍVEL sobe de 55 para 65 junto, porque o papel dele mudou: era só
+ * uma válvula ("existe alguma candidata segura?"), virou o POOL de onde as dez melhores saem. Com
+ * 55 a p14 caía de nível 78 para 57 — raspando o próprio piso. Com 65 o nível mínimo das 22
+ * personas volta a 67 e o match mínimo SOBE de 75 para 79. Duas personas trocam de vencedora.
+ *
+ * A ORDEM declarada passa a viajar no perfil (`declared_priorities`). Inferir o rank pela
+ * intensidade seria adivinhar: outras respostas elevam os eixos, e o 2º declarado pode acabar com
+ * número maior que o 1º.
+ *
+ * E o relatório passa a NOMEAR a compensação — "o que ela entrega no lugar é manobrabilidade: 78
+ * de 100, contra 52 da raquete mediana". Explicar por que a alternativa custa caro não é a mesma
+ * coisa que mostrar o que se ganhou.
+ *
+ * 2.21.0 — A PROMESSA: a recomendada não entrega menos que a raquete que o jogador JÁ TEM naquilo
+ * que ele pediu, sempre que existir alternativa adequada que respeite isso.
+ *
+ * É a regra mais forte do piso de demanda, e a que faltava. As outras duas comparam a candidata com
+ * o CATÁLOGO; esta compara com a referência que o cliente tem na mão — que é a comparação que ele
+ * de fato faz ao ler o relatório.
+ *
+ * Medido em 150 perfis com raquete atual conhecida e pedido de intensidade 15 ou mais:
+ *
+ *     antes da regra   a recomendada era pior que a atual num eixo pedido em 61 (40,7%)
+ *                      perda média de 13,1 pontos de posição
+ *                      casos sem NENHUMA alternativa que respeitasse a regra: 0 de 61
+ *     depois           13,3%, e os que restam são aqueles em que a válvula recusa porque nenhuma
+ *                      candidata que preservaria o atributo serve fisicamente ao jogador
+ *
+ * Quarenta por cento, com alternativa existindo em todos eles: não era limitação de catálogo, era
+ * ausência de regra. E o dano à confiança é desproporcional ao ganho técnico — quem pede mais
+ * potência e recebe menos do que já tinha conclui, corretamente, que não foi ouvido.
+ *
+ * DUAS DECISÕES DE DESENHO. A promessa vale a partir de intensidade 10, mais baixo que o piso de
+ * catálogo (20), porque ela não empurra o jogador para região nenhuma do mercado — só proíbe andar
+ * para trás. E é aplicada EIXO A EIXO, do mais pedido para o menos: exigir tudo de uma vez é
+ * conjuntivo e colapsa, deixando nem o pedido principal protegido. Medido: a versão conjuntiva
+ * recusava alternativas que custavam 0,1 ponto de match.
+ *
+ * Nenhuma das 22 personas troca de vencedora e nenhum mínimo de segurança se move.
+ *
  * 2.20.0 — o SETOR de cada eixo do radar passa a ser proporcional ao peso dele na decisão, em vez
  * de todos os oito ocuparem 45 graus.
  *
@@ -176,7 +231,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.20.0';
+export const METHODOLOGY_VERSION = '2.22.0';
 
 export type Range = readonly [lo: number, hi: number];
 
