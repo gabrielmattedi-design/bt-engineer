@@ -136,6 +136,15 @@ export type PlayerProfile = {
   /** Delta desejado por atributo, em pontos [-40, +40]. */
   readonly desired_change_vector: Readonly<Record<NeedKey, number>>;
   /**
+   * O que o jogador declarou sentir falta, NA ORDEM em que ele ordenou. Até três.
+   *
+   * A ordem é informação que o `desired_change_vector` não preserva: lá as intensidades podem ser
+   * elevadas por outras respostas, e o 2º declarado pode acabar com número maior que o 1º. Para
+   * uma regra que trata a prioridade 1 diferente da 2, inferir o rank pela intensidade seria
+   * adivinhar — e adivinhar errado justamente em quem respondeu mais.
+   */
+  readonly declared_priorities: readonly NeedKey[];
+  /**
    * Eixos que o jogador declarou GOSTAR na raquete atual — não são pedidos, são restrições.
    *
    * Ele não quer mais daquilo; não quer perder aquilo. Alimenta a penalização P9.
