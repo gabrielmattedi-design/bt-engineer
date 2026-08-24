@@ -39,7 +39,7 @@ function positionIn(
  * contrário. O usuário não tem como saber que o motor avaliou 46 opções, que as mais estáveis
  * falhavam em coisas que pesam mais no perfil dele, e que esta é a melhor combinação possível.
  *
- * ─── O QUE MUDA E O QUE NÃO MUDA ─────────────────────────────────────────────────────────────
+ * ─── O QUE MUDA E O QUE NÃO MUDA ────────────────────────────────────────────────────────
  *
  * O fato NÃO é escondido nem suavizado: continua dito que naquele eixo específico a raquete
  * entrega menos do que foi pedido. O que muda é que a frase passa a carregar o RACIOCÍNIO — o que
@@ -76,7 +76,7 @@ const NEED_TO_ATTRIBUTE: Record<NeedKey, string> = {
 /**
  * O que a alternativa custaria, dito em linguagem de quadra — e na DIREÇÃO certa.
  *
- * ═══ POR QUE ISTO NÃO É UM DICIONÁRIO ════════════════════════════════════════════════════════
+ * ═══ POR QUE ISTO NÃO É UM DICIONÁRIO ═════════════════════════════════════════════════════
  *
  * A primeira versão era um `Record<ComponentKey, string>`: cada componente tinha uma frase fixa.
  * Ela estava errada em metade dos casos, e o caso que a desmascarou é justamente o mais comum.
@@ -308,7 +308,7 @@ const STRONG_ASK = 20;
 /**
  * Pedidos fortes que a raquete NÃO atendeu — mesmo sem contrariá-los.
  *
- * ═══ O BURACO QUE ISTO FECHA ═════════════════════════════════════════════════════════════════
+ * ═══ O BURACO QUE ISTO FECHA ══════════════════════════════════════════════════════════════════
  *
  * A penalização P6 cobra CONTRADIÇÃO: a raquete andar para trás no eixo pedido. Mas o caso que
  * mais incomoda quem lê o relatório não é esse — é o pedido forte que fica quase parado.
@@ -322,6 +322,59 @@ const STRONG_ASK = 20;
  * catálogo são frames leves de cabeça grande, que seriam instáveis para o nível informado. Dizer
  * isso é o trabalho — a alternativa é o usuário concluir sozinho que o sistema ignorou o pedido.
  */
+/**
+ * O eixo em que esta raquete mais se destaca sobre a mediana do que foi avaliado.
+ *
+ * É a compensação NOMEADA: o que se ganhou ao abrir mão de parte do pedido. Sai da mesma régua de
+ * posição do resto do relatório, e o eixo pedido é excluído — dizer "em compensação, ela é boa
+ * justamente naquilo que você não recebeu" seria absurdo.
+ *
+ * `null` quando nada se destaca de forma material (menos de dez pontos acima da mediana): nesse
+ * caso é mais honesto não dizer nada do que inventar uma vantagem para preencher a frase.
+ */
+function standoutAxis(
+  winner: RankedRacket,
+  ranking: readonly RankedRacket[],
+  bands: TradeOffContext['bands'],
+  exclude: NeedKey,
+): { label: string; position: number; median: number } | null {
+  const MATERIAL = 10;
+  let melhor: { label: string; position: number; median: number; ganho: number } | null = null;
+
+  for (const need of Object.keys(NEED_LABEL_PT) as NeedKey[]) {
+    if (need === exclude) continue;
+
+    const attribute = NEED_TO_ATTRIBUTE[need];
+    const valorDe = (r: RankedRacket): number =>
+      (r.racket.attributes[attribute as keyof typeof r.racket.attributes] as number) ?? 0;
+
+    const posicaoVencedora = positionIn(bands, attribute, valorDe(winner));
+    if (posicaoVencedora === null) continue;
+
+    const posicoes = ranking
+      .map((r) => positionIn(bands, attribute, valorDe(r)))
+      .filter((p): p is number => p !== null)
+      .sort((a, b) => a - b);
+    if (posicoes.length === 0) continue;
+
+    const mediana = posicoes[Math.floor(posicoes.length / 2)]!;
+    const ganho = posicaoVencedora - mediana;
+    if (ganho < MATERIAL) continue;
+    if (melhor === null || ganho > melhor.ganho) {
+      melhor = {
+        label: NEED_LABEL_PT[need],
+        position: Math.round(posicaoVencedora),
+        median: Math.round(mediana),
+        ganho,
+      };
+    }
+  }
+
+  return melhor === null
+    ? null
+    : { label: melhor.label, position: melhor.position, median: melhor.median };
+}
+
 function unmetAsks(
   winner: RankedRacket,
   ranking: readonly RankedRacket[],
@@ -381,6 +434,21 @@ function unmetAsks(
       : `As raquetes com bem mais ${label} no mercado que analisamos são frames de outro ` +
         `propósito, que falhariam no que pesa mais para você. `;
 
+    /*
+      O QUE ELA DÁ EM TROCA.
+
+      Pedido do usuário: "eu quero potência, e me entrega uma raquete com potência levemente menor,
+      mas com outros atributos que compensem — essa explicação precisa estar no texto".
+
+      Sem essa frase o bloco explica só o que NÃO foi entregue e por que a alternativa custa caro.
+      Explicar o custo de não escolher outra não é a mesma coisa que mostrar o que se ganhou: o
+      leitor fica sabendo por que não levou o que pediu, e não por que vale a pena o que levou.
+
+      A compensação nomeada é o eixo em que esta raquete mais se destaca sobre a MEDIANA do que foi
+      avaliado — um número que ele pode conferir no próprio gráfico, e não um adjetivo.
+    */
+    const compensacao = standoutAxis(winner, ranking, bands, need);
+
     out.push({
       headline:
         `Você pediu mais ${label} como prioridade, e esta raquete avança pouco nesse ponto.`,
@@ -389,6 +457,10 @@ function unmetAsks(
         evidence +
         `Ganhar ${label} por esse caminho custaria mais do que ${label} vale para o seu jogo — e ` +
         `é por isso que a escolha foi outra.` +
+        (compensacao
+          ? ` O que ela entrega no lugar é ${compensacao.label}: ${compensacao.position} de 100, ` +
+            `contra ${compensacao.median} da raquete mediana entre as avaliadas.`
+          : '') +
         (SETUP_LEVER[need]
           ? ` O lugar certo de buscar ${label} no seu caso é o setup: ${SETUP_LEVER[need]}.`
           : ''),
