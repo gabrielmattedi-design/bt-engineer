@@ -375,6 +375,17 @@ export function buildCurrentStanding(
    * afirmando que a 2ª é a melhor, ao lado de outro dizendo que a 1ª pontuou mais, destrói a
    * confiança nos dois.
    *
+   * ─── ATÉ O CASO DE 1º LUGAR É CONDICIONAL (v2.31.0) ───────────────────────────────────────
+   *
+   * O ramo em que a raquete do jogador VENCE terminava em `Nenhuma troca de quadro te levaria
+   * adiante daqui`. Verdade, e ainda assim um ponto final onde cabia um caminho: quem chegou aqui
+   * incomodado com alguma coisa continua incomodado depois de ler que está tudo certo.
+   *
+   * Vencer o ranking não é o mesmo que estar satisfeito. O texto passa a separar os dois — se está
+   * satisfeito, não há motivo para trocar; se algo incomoda, a alavanca é o setup, e os eixos dizem
+   * onde. É a única resposta útil neste ramo, porque aqui não existe raquete melhor a oferecer: o
+   * que sobra é justamente o componente mais barato e mais reversível do conjunto.
+   *
    * ─── E POR QUE O TEXTO DELE SEGUE A MESMA ESCADA DOS OUTROS (v2.30.0) ──────────────────────
    *
    * A primeira versão deste ramo dizia `Não há ganho a buscar numa troca de quadro`. Era o registro
@@ -398,8 +409,11 @@ export function buildCurrentStanding(
       verdict: 'keep',
       message:
         `A raquete que você já tem é a melhor opção para o seu jogo entre as ` +
-        `${result.full_ranking.length} deste ranking. Nenhuma troca de quadro te levaria adiante ` +
-        `daqui — o que ainda dá para melhorar está na corda e na tensão.`,
+        `${result.full_ranking.length} deste ranking — nenhuma outra que avaliamos te levaria ` +
+        `adiante. Se você está satisfeito com ela, não há motivo para trocar de quadro. E se alguma ` +
+        `coisa vem te incomodando, a alavanca aqui é a corda e a tensão: custam uma fração de um ` +
+        `quadro e mudam bastante a resposta da raquete. Olhe os eixos abaixo — se o incômodo ` +
+        `estiver num deles, é por ali que o ajuste começa.`,
     };
   }
 

@@ -99,6 +99,29 @@ describe('o empate no arredondamento não vira "primeiro lugar"', () => {
   });
 
   /**
+   * Vencer o ranking não é o mesmo que estar satisfeito.
+   *
+   * A versão anterior terminava em "Nenhuma troca de quadro te levaria adiante daqui" — verdade, e
+   * ainda assim um ponto final onde cabia um caminho: quem chegou incomodado com alguma coisa
+   * continua incomodado depois de ler que está tudo certo. Aqui não há raquete melhor a oferecer,
+   * então a resposta útil é o setup.
+   */
+  it('mesmo em 1º, o "não troque" é condicionado à satisfação', () => {
+    const standing = cenario(90.0, 90.0, 1)!;
+
+    expect(standing.message, 'precisa condicionar à satisfação').toMatch(
+      /se você está satisfeito/i,
+    );
+    expect(standing.message, 'precisa dar um caminho a quem está incomodado').toMatch(
+      /incomod/i,
+    );
+    expect(standing.message, 'e esse caminho é o setup').toContain('corda e a tensão');
+
+    // Não pode terminar em ponto final incondicional.
+    expect(standing.message).not.toMatch(/nenhuma troca de quadro te levaria adiante/i);
+  });
+
+  /**
    * O empate segue a MESMA escada dos outros casos: calibra a expectativa para baixo, oferece o
    * setup como caminho de maior retorno, e ainda assim deixa a porta aberta para quem chegou aqui
    * por um incômodo específico. A primeira versão dizia "não há ganho a buscar numa troca de

@@ -18,6 +18,21 @@
  */
 
 /**
+ * 2.31.0 — até o caso em que a raquete do jogador VENCE virou condicional.
+ *
+ * Ele terminava em `Nenhuma troca de quadro te levaria adiante daqui`. Verdade, e ainda assim um
+ * ponto final onde cabia um caminho: quem chegou aqui incomodado com alguma coisa continua
+ * incomodado depois de ler que está tudo certo.
+ *
+ * Vencer o ranking não é o mesmo que estar satisfeito. O texto separa os dois — se está satisfeito,
+ * não há motivo para trocar; se algo incomoda, a alavanca é a corda e a tensão, e os eixos dizem
+ * onde. É a única resposta útil neste ramo, porque aqui não existe raquete melhor a oferecer.
+ *
+ * Com isto os CINCO veredictos ficam condicionais: nenhum deles decide pelo leitor, nem para trocar
+ * nem para ficar.
+ *
+ * O RANKING não muda.
+ *
  * 2.30.0 — o veredicto do EMPATE entrou na mesma escada dos outros quatro.
  *
  * O ramo criado na 2.29.0 saiu dizendo `Não há ganho a buscar numa troca de quadro` — exatamente o
@@ -436,7 +451,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.30.0';
+export const METHODOLOGY_VERSION = '2.31.0';
 
 export type Range = readonly [lo: number, hi: number];
 
