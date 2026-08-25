@@ -18,6 +18,38 @@
  */
 
 /**
+ * 2.24.0 — três correções de LEITURA do gráfico, todas vindas de quem estava lendo. O ranking e o
+ * desenho não mudam em nada; muda o que o texto afirma sobre eles.
+ *
+ * A REPARTIÇÃO PASSA A FECHAR 100. O resumo abaixo do gráfico dizia "o que você pediu vale 22% e o
+ * encaixe com você vale 68%", e o leitor perguntou onde estavam os outros 10%. Estavam em
+ * `transition_fit` — o quanto a mudança seria brusca em relação à raquete que ele já usa —, que
+ * não tem eixo no radar de propósito: os oito eixos respondem "o que a raquete faz" e "o quanto
+ * ela serve a você", e a transição não é nem uma coisa nem outra, ela mede a DISTÂNCIA entre dois
+ * equipamentos. Agora os três números aparecem e somam 100, com o terceiro nomeado e apontando
+ * para a tabela de comparação, onde ele já estava detalhado.
+ *
+ * "LARGURA DA FATIA" VIRA "ABERTURA DO EIXO". A frase anterior dizia que a largura da fatia era o
+ * peso do eixo, e o leitor observou, com razão, que cada indicador é um VÉRTICE — e um vértice tem
+ * duas arestas, uma de cada lado, compartilhadas com os vizinhos. Não havia resposta para "qual
+ * aresta é a minha". O que de fato é proporcional ao peso é o ÂNGULO que o eixo ocupa em volta do
+ * centro, com o vértice no meio dele.
+ *
+ * "TROCA" SAI DA LEGENDA DO VÃO. O termo aparecia três vezes na mesma página em sentidos um pouco
+ * diferentes, e a seção que o explica se chama "As trocas desta escolha" — chamar o vão de troca
+ * antes de explicar o que é uma troca é pedir para o leitor aceitar um jargão. O vão passa a ser
+ * dito como fato ("entrega menos do que o seu perfil pedia naquele ponto"), com um ponteiro para
+ * onde está o motivo.
+ *
+ * E O TESTE DE COERÊNCIA PASSA A MEDIR ÁREA DE VERDADE. Ele calculava `Σ valor × peso / Σ peso` e
+ * chamava aquilo de "área ponderada" — mas média ponderada é linear no valor de cada eixo, e a
+ * área de um polígono vai com o produto de raios vizinhos, ou seja, com o quadrado. O teste jurava
+ * verificar o que o leitor vê e verificava outra grandeza. Medido nas personas em que o motor põe
+ * a recomendada à frente, a área real amplifica a vantagem em vez de reduzi-la (p02 +4,5 pontos de
+ * média viram +12,3% de área; p22, +30,5 viram +70,8%), e em nenhuma delas o desenho contradiz o
+ * motor. A impressão de quase-empate no gráfico era ilusão de ótica; o teste agora tranca a porta
+ * certa.
+ *
  * 2.23.0 — a PREMISSA volta, somada à tolerância por posição: o eixo declarado em 1º lugar nunca
  * fica abaixo da raquete média do mercado que analisamos, sempre que existir candidata compatível
  * com o jogador que cumpra isso.
@@ -261,7 +293,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.23.0';
+export const METHODOLOGY_VERSION = '2.24.0';
 
 export type Range = readonly [lo: number, hi: number];
 
