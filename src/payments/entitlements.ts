@@ -329,7 +329,15 @@ const KEEP_CURRENT_GAP = 4;
 /** Acima disto a troca tem ganho real; entre os dois, é escolha da pessoa. */
 const REAL_UPGRADE_GAP = 9;
 
-function buildCurrentStanding(
+/**
+ * Exportada para teste, pelo mesmo motivo de `recommendableVariants`.
+ *
+ * Os ramos desta função dependem de um empate no ARREDONDAMENTO entre a primeira e a atual — um
+ * estado que nenhuma das 22 personas produz (medido: 0 delas cai em `gap === 0`). Um teste que
+ * dependesse das personas para cobrir isso passaria vazio, que foi exatamente como o defeito do
+ * "2º lugar é a melhor opção" chegou à produção.
+ */
+export function buildCurrentStanding(
   result: RecommendationResult,
   profile: PlayerProfile,
   first: RankedRacket,
@@ -349,7 +357,25 @@ function buildCurrentStanding(
    */
   const name = currentRacketLabel(current.racket.variant);
 
-  if (gap <= 0) {
+  /**
+   * ═══ POR QUE O EMPATE ARREDONDADO NÃO PODE DIZER "É A MELHOR" (v2.29.0) ══════════════════════
+   *
+   * Defeito pego por leitura, com o relatório na tela:
+   *
+   *     Babolat Pure Drive · 300 g — 2º lugar, 88% de compatibilidade
+   *     "A raquete que você já tem é A MELHOR OPÇÃO para o seu jogo entre as 8 deste ranking."
+   *
+   * O cabeçalho e o corpo do MESMO card se contradiziam. A causa é aritmética: `gap` é a diferença
+   * entre dois `fit_score` já ARREDONDADOS, e a primeira tinha 88,45 contra 88,00 da atual. Os dois
+   * viram 88, o gap dá 0, e o ramo de gap zero assumia que zero significa primeiro lugar.
+   *
+   * Não significa. Zero aqui quer dizer "empatadas no número que a gente exibe" — que é uma
+   * informação boa, e diferente. A distinção importa porque o pódio, logo abaixo, diz com todas as
+   * letras que a ordem entre as duas está correta e que a 1ª realmente pontuou mais. Um bloco
+   * afirmando que a 2ª é a melhor, ao lado de outro dizendo que a 1ª pontuou mais, destrói a
+   * confiança nos dois.
+   */
+  if (gap <= 0 && current.rank === 1) {
     return {
       product_name: name,
       rank: current.rank,
@@ -360,6 +386,22 @@ function buildCurrentStanding(
         `A raquete que você já tem é a melhor opção para o seu jogo entre as ` +
         `${result.full_ranking.length} deste ranking. Nenhuma troca de quadro te levaria adiante ` +
         `daqui — o que ainda dá para melhorar está na corda e na tensão.`,
+    };
+  }
+
+  if (gap <= 0) {
+    return {
+      product_name: name,
+      rank: current.rank,
+      fit_score: Math.round(current.fit_score),
+      gap_to_first: 0,
+      verdict: 'keep',
+      message:
+        `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ` +
+        `ranking, com os mesmos ${Math.round(current.fit_score)}% de compatibilidade da primeira. ` +
+        `A diferença entre as duas é menor que um ponto — menos do que separa duas unidades da ` +
+        `mesma raquete saídas de fábrica. Não há ganho a buscar numa troca de quadro: o que ainda ` +
+        `dá para melhorar está na corda e na tensão.`,
     };
   }
 

@@ -18,6 +18,23 @@
  */
 
 /**
+ * 2.29.0 — o empate no arredondamento parou de virar "primeiro lugar".
+ *
+ * Defeito pego por leitura, com o relatório na tela: o card exibia `2º lugar, 88% de
+ * compatibilidade` no título e, no corpo, `A raquete que você já tem é a melhor opção`. `gap` é a
+ * diferença entre dois `fit_score` já ARREDONDADOS — 88,45 da primeira contra 88,00 da atual viram
+ * 88 e 88 —, e o ramo de gap zero assumia que zero significa 1º lugar.
+ *
+ * Zero ali significa outra coisa: empatadas no número exibido. O caso agora tem texto próprio, que
+ * diz a posição real e enquadra a diferença (menor que um ponto, menos do que separa duas unidades
+ * da mesma raquete saídas de fábrica). O ramo de "melhor opção" passou a exigir `rank === 1`.
+ *
+ * Nenhuma das 22 personas produz esse estado — medido, ZERO delas cai em `gap === 0`. Por isso o
+ * teste que o tranca monta o cenário à mão em vez de varrer personas: um ramo que nenhuma persona
+ * alcança não é coberto por nenhuma varredura de personas, e foi assim que ele chegou à produção.
+ *
+ * O RANKING não muda.
+ *
  * 2.28.0 — "O que você deve perceber" passa a saber o que a pessoa PEDIU, e a conta da tensão
  * fecha na tela.
  *
@@ -399,7 +416,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.28.0';
+export const METHODOLOGY_VERSION = '2.29.0';
 
 export type Range = readonly [lo: number, hi: number];
 
