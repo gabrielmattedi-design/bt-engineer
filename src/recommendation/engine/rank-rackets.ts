@@ -830,6 +830,45 @@ export function rankRackets(
  * pagamento. Quem desbloqueia a 2ª sabendo que ela marca 71% está fazendo uma escolha informada,
  * que é uma proteção mais forte do que a ausência da informação. Cabe a `top3_offer_available` e
  * ao rótulo de qualidade da vitrine dizer quando a diferença é grande.
+ *
+ * ═══ A DIVERSIDADE DE FAMÍLIA PARA NO PÓDIO, E NÃO SOBE PARA O 1º LUGAR ══════════════════════
+ *
+ * Isto é uma decisão, não um esquecimento, e ela foi tomada depois de medir. Varredura de 20.000
+ * perfis (8.000 com respostas sorteadas de forma independente e 12.000 com respostas
+ * correlacionadas como as de um jogador real):
+ *
+ *     raquetes que aparecem em 1º ........ 47 de 47
+ *     nunca no pódio de nenhum perfil .... 0
+ *     concentração em 1º ................. top1 7,0%  ·  top5 29,8%  ·  top10 45,5%
+ *     por família ........................ Wilson Blade 21,9%  ·  as três primeiras somam 42,1%
+ *     por marca .......................... Wilson 1,38× o share dela no catálogo
+ *
+ * O 1,38× da Wilson NÃO vem da composição do catálogo: na faixa modal (295–310 g, 97–100 pol²) as
+ * marcas estão equilibradas — HEAD 8, Wilson 8, Babolat 7, Yonex 6 de 29. E a vitória é frágil:
+ * proibir a família vencedora custa MEDIANA DE 1,11 PONTO de match, abaixo do próprio
+ * `TECHNICAL_TIE_THRESHOLD` de 2,0. Em mais da metade dos perfis a melhor alternativa de outra
+ * família está tecnicamente empatada com a que ganhou.
+ *
+ * ─── POR QUE MESMO ASSIM NÃO SE GIRA A FAMÍLIA NO TOPO ─────────────────────────────────────
+ *
+ * 1. Seria recomendar uma raquete que pontuou MENOS, por um motivo que o usuário não pediu. Ele
+ *    paga pela melhor compatibilidade, não por equilíbrio de marcas. Empate técnico não é empate:
+ *    a 1ª realmente pontuou mais, e o produto diz isso com todas as letras em `buildTieGroup`.
+ *
+ * 2. Quebraria a consistência do relatório, e o defeito é concreto. Hoje `podium[0]` é sempre
+ *    `ranking[0]`, porque o primeiro do ranking nunca é filtrado pela diversidade. Promover outra
+ *    família ao topo separaria os dois, e `buildCurrentStanding` calcula `gap = podium[0] − atual`
+ *    exibindo `atual.rank` vindo do `full_ranking` — a pessoa leria "sua raquete ficou em 2º, a 1
+ *    ponto da primeira" tendo pontuado MAIS que a recomendada. É a mesma armadilha já documentada
+ *    em `applyDeclaredFloor`, item 3.
+ *
+ * 3. O que a concentração revela JÁ É DITO, e por um caminho honesto: `buildSeparation` conta
+ *    quantas das 47 empataram tecnicamente com a 1ª e, quando são muitas, conclui que para aquele
+ *    jogador o quadro importa pouco e o que importa é a corda e a tensão. Girar a marca escondendo
+ *    isso trocaria uma informação verdadeira por uma aparência de variedade.
+ *
+ * Se um dia isto for revisitado, o caminho que não mente é atacar a CAUSA — pesos e réguas que
+ * favorecem o perfil equilibrado 98–100 pol² / 300–305 g — e não o efeito.
  */
 export function selectPodium(
   ranking: readonly RankedRacket[],

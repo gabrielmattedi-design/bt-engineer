@@ -475,6 +475,24 @@ export function buildDistinction(
 export type PodiumSeparation = {
   readonly tied_with_first: number;
   readonly evaluated: number;
+  /**
+   * Quantas MARCAS diferentes há dentro do grupo empatado com a 1ª.
+   *
+   * ═══ POR QUE ESTE NÚMERO ENTROU ══════════════════════════════════════════════════════════
+   *
+   * Varredura de 20.000 perfis: uma única família — Wilson Blade — leva 21,9% de todas as
+   * recomendações, e a Wilson sai com 1,38× o share que tem no catálogo, sem que a composição do
+   * catálogo explique isso (na faixa modal as quatro marcas estão equilibradas). A vitória é
+   * frágil: proibir a família vencedora custa mediana de 1,11 ponto de match, ABAIXO do próprio
+   * limiar de empate técnico.
+   *
+   * A saída errada seria girar a marca do 1º lugar — recomendar uma raquete que pontuou menos, por
+   * um motivo que o cliente não pediu (ver a nota em `selectPodium`). A saída certa é a mesma que
+   * este módulo inteiro já usa: dizer o que é verdade. Se dez raquetes empataram com a primeira e
+   * elas são de quatro marcas, quem está lendo precisa saber que não está preso a uma marca — essa
+   * é exatamente a informação que a concentração esconderia.
+   */
+  readonly brands_tied: number;
   readonly verdict: 'aberto' | 'disputado' | 'indiferente';
   readonly message: string;
 };
@@ -488,9 +506,11 @@ export function buildSeparation(
   const first = fullRanking[0];
   if (!first || fullRanking.length < 4) return null;
 
-  const tied = fullRanking.filter(
+  const empatadas = fullRanking.filter(
     (r) => first.fit_score - r.fit_score < TECHNICAL_TIE_THRESHOLD,
-  ).length;
+  );
+  const tied = empatadas.length;
+  const brands = new Set(empatadas.map((r) => r.racket.variant.brand)).size;
   const evaluated = fullRanking.length;
   const share = tied / evaluated;
 
@@ -498,6 +518,7 @@ export function buildSeparation(
     return {
       tied_with_first: tied,
       evaluated,
+      brands_tied: brands,
       verdict: 'aberto',
       message:
         `A 1ª colocada se destacou: das ${evaluated} raquetes avaliadas, nenhuma outra chegou perto ` +
@@ -506,28 +527,53 @@ export function buildSeparation(
     };
   }
 
+  /**
+   * A frase de marcas só entra quando há mais de uma, e por um motivo de honestidade simétrico ao
+   * resto do módulo: dizer "são de 1 marca" soaria como recomendação de marca, quando o fato é o
+   * oposto — ali o catálogo é que não ofereceu alternativa equivalente fora dela.
+   */
+  const frasePorMarca =
+    brands > 1
+      ? ` As ${tied} vêm de ${brands} marcas diferentes, então a escolha dentro do grupo não te ` +
+        'prende a nenhuma delas.'
+      : '';
+
   if (share < WIDE_TIE_SHARE) {
     return {
       tied_with_first: tied,
       evaluated,
+      brands_tied: brands,
       verdict: 'disputado',
       message:
         `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª. É um ` +
         'grupo pequeno e bem definido: dentro dele a escolha é de preferência, mas ficar fora dele ' +
-        'custa compatibilidade de verdade.',
+        `custa compatibilidade de verdade.${frasePorMarca}`,
     };
   }
 
+  /*
+    ═══ A FRAÇÃO É CALCULADA, NÃO ESCRITA À MÃO ═══════════════════════════════════════════════
+
+    Esta frase dizia "— quase um quarto do catálogo" com o número cravado no texto, enquanto o
+    veredicto dispara a partir de 20% (`WIDE_TIE_SHARE`) e não tem teto. Numa amostra real saiu
+    "5 das 9 raquetes avaliadas ficaram empatadas — quase um quarto do catálogo": 55% descrito
+    como um quarto.
+
+    Não é preciosismo de redação. O relatório é pago e a sua única defesa é ser conferível — a
+    pessoa tem os dois números na mesma frase e faz a divisão de cabeça. Um texto que erra a conta
+    que ele mesmo exibe destrói mais confiança do que a informação vale.
+  */
   return {
     tied_with_first: tied,
     evaluated,
+    brands_tied: brands,
     verdict: 'indiferente',
     message:
-      `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª — quase ` +
-      'um quarto do catálogo. Isso não é indecisão da análise: é o resultado dela. Seu perfil ' +
-      'físico e seu swing se dão bem com uma faixa larga de quadros, e nessa faixa trocar de ' +
-      'raquete muda pouco. O que ainda muda bastante para você é a CORDA e a TENSÃO — e essas ' +
-      'custam uma fração do preço de um quadro novo.',
+      `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª — ` +
+      `${Math.round(share * 100)}% do catálogo. Isso não é indecisão da análise: é o resultado ` +
+      'dela. Seu perfil físico e seu swing se dão bem com uma faixa larga de quadros, e nessa ' +
+      'faixa trocar de raquete muda pouco. O que ainda muda bastante para você é a CORDA e a ' +
+      `TENSÃO — e essas custam uma fração do preço de um quadro novo.${frasePorMarca}`,
   };
 }
 
