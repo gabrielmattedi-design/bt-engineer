@@ -18,6 +18,27 @@
  */
 
 /**
+ * 2.25.0 — os dois números do resumo passam a ser a repartição DO GRÁFICO, não da decisão inteira.
+ *
+ * A 2.24.0 mostrava três (22 / 68 / 10) e explicava o terceiro. Ficou pior, e o motivo é o tipo de
+ * erro que só aparece com o texto na tela: um percentual chamado "a distância entre a sua atual e
+ * a recomendada" ao lado de um match de 92% convida a ler que a distância entre as duas raquetes
+ * é de 10% — que é outra grandeza inteiramente.
+ *
+ * Agora os dois blocos são renormalizados entre si e fecham 100, e a frase diz "entre os oito
+ * eixos do gráfico" em vez de "da decisão". A distinção não é preciosismo: os pesos crus dos oito
+ * somam ~90%, e chamar 24% de "fração da decisão" seria trocar um texto confuso por um errado. O
+ * critério que não aparece (`transition_fit`) continua explicado onde ele mora, na comparação com
+ * a raquete atual.
+ *
+ * A LINHA LARANJA passa a ser dita pelo que se quer dela, não pelo vão. As duas versões anteriores
+ * descreviam a falta — "houve uma troca", "entrega menos do que o seu perfil pedia" — e ensinavam
+ * o leitor a caçar o buraco, que é a exceção. Dita pela proximidade, ela se lê pela regra sem
+ * esconder nada: a distância continua desenhada para quem olhar.
+ *
+ * O RANKING e o DESENHO não mudam. E o número exibido é o único que muda de valor: 22% viram 24%
+ * no exemplo acima, pela renormalização.
+ *
  * 2.24.0 — três correções de LEITURA do gráfico, todas vindas de quem estava lendo. O ranking e o
  * desenho não mudam em nada; muda o que o texto afirma sobre eles.
  *
@@ -293,7 +314,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.24.0';
+export const METHODOLOGY_VERSION = '2.25.0';
 
 export type Range = readonly [lo: number, hi: number];
 
