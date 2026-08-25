@@ -183,7 +183,7 @@ export const STEPS: readonly Step[] = [
           se a qualidade da bola cai junto.
         */
         /*
-          ─── AS QUATRO OPÇÕES MEDEM A MESMA COISA ─────────────────────────────────────────
+          ─── AS QUATRO OPÇÕES MEDEM A MESMA COISA ─────────────────────────────────
           A régua anterior misturava dois eixos: as pontas falavam de ATIVIDADE ("só jogo tênis",
           "treino além do tênis") e o meio falava de RESISTÊNCIA ("cansa no segundo set"). Quem vai
           à academia três vezes por semana e mesmo assim apaga no segundo set não tinha onde se
@@ -584,7 +584,7 @@ export const STEPS: readonly Step[] = [
         ],
       },
       /*
-        ─── POR QUE UMA PERGUNTA VIROU QUATRO ─────────────────────────────────────────────────
+        ─── POR QUE UMA PERGUNTA VIROU QUATRO ────────────────────────────────────────
 
         Marcar "ombro" era suficiente para o motor tratar conforto como prioridade máxima. Só que a
         primeira pergunta aceita "sente OU JÁ SENTIU", e quase todo jogador de clube com alguns anos
@@ -733,7 +733,7 @@ export const STEPS: readonly Step[] = [
         key: 'player_name',
         // Não entra em cálculo nenhum: serve só para personalizar o card do resultado.
         optional: true,
-        title: 'Como podemos te chamar?',
+        title: 'Como você gostaria de ser chamado(a)?',
         help: 'Só para personalizar o card do seu resultado. Pode deixar em branco.',
         maxLength: 24,
         placeholder: 'Seu primeiro nome',

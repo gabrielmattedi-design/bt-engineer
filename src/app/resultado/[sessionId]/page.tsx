@@ -263,39 +263,41 @@ export default async function ResultadoPage({
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
             {/*
-              ═══ POR QUE "ABERTURA", E NÃO "LARGURA DA FATIA" ════════════════════════════
+              ═══ O PESO É O ESPAÇO, E A FRASE NÃO CITA O VÉRTICE ═══════════════════════
 
-              A frase anterior dizia "a largura de cada fatia é o peso que aquele eixo teve na
+              Uma versão anterior dizia "a largura de cada fatia é o peso que aquele eixo teve na
               decisão". Observação do usuário, e ela está certa: cada indicador é um VÉRTICE, e um
-              vértice tem duas arestas, uma de cada lado. Dizer "a fatia dele" faz o leitor procurar
-              qual das duas arestas pertence a quem, e não há resposta — a aresta é compartilhada
-              entre vizinhos.
+              vértice tem duas arestas, uma de cada lado, compartilhadas com os vizinhos — não havia
+              resposta para "qual aresta é a minha".
 
-              O que de fato é proporcional ao peso é o ÂNGULO que o eixo ocupa em volta do centro,
-              com o vértice no meio dele. Dizer "abertura" e situar o vértice no centro dela remove
-              a pergunta sem simplificar a verdade: o desenho continua sendo exatamente isso.
+              A versão seguinte falava em "abertura" e situava o vértice no meio dela. Correta, e
+              ainda assim cara: obrigava o leitor a montar a geometria na cabeça antes de olhar o
+              desenho. O que ele precisa saber cabe em uma frase sobre ESPAÇO, que é o que o olho já
+              enxerga sem instrução. A geometria exata continua documentada em `radar-geometry.ts`.
             */}
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Cada eixo vai de 0 a 100, e a <strong>abertura de cada eixo — o quanto ele ocupa em
-              volta do centro — é o peso que ele teve na decisão</strong>. O vértice fica no meio da
-              abertura dele: quanto mais espaço o eixo ocupa, mais aquele critério contou.
+              Cada eixo vai de 0 a 100, e <strong>o quanto ele ocupa em volta do centro é o peso que
+              ele teve na decisão</strong>. Quanto mais espaço o eixo ocupa, mais aquele critério
+              contou.
             </p>
             {/*
-              "TROCA" SAIU DAQUI.
+              A LINHA LARANJA É DITA PELO QUE SE QUER DELA, NÃO PELO QUE FALTA.
 
-              Observação do usuário: o termo deixou o texto confuso. E deixava mesmo — ele aparece
-              três vezes em três sentidos ligeiramente diferentes na mesma página, e a seção que o
-              explica se chama "As trocas desta escolha". Chamar o vão de troca antes de explicar o
-              que é uma troca é pedir para o leitor aceitar um jargão.
+              Duas versões anteriores descreviam o VÃO — "onde o verde fica abaixo dela houve uma
+              troca", depois "ela entrega menos do que o seu perfil pedia". As duas ensinavam o
+              leitor a caçar o buraco, e o buraco é a exceção: na maioria dos eixos o verde encosta
+              na laranja. Dito pela proximidade, o gráfico passa a ser lido pela regra em vez de
+              pela exceção, sem esconder nada — a distância continua visível para quem olhar.
 
-              Aqui a frase passa a dizer o FATO (entregou menos do que o seu perfil pedia) e a
-              apontar onde está o motivo, em vez de nomear o fenômeno.
+              A palavra "troca" saiu junto, e por um motivo próprio: ela aparecia três vezes na
+              mesma página em sentidos ligeiramente diferentes, e a seção que a explica se chama
+              "As trocas desta escolha". Nomear o vão com o jargão antes de explicar o jargão é
+              pedir para o leitor aceitar o termo de graça.
             */}
             <p className="mt-3 max-w-prose text-sm text-graphite">
-              A linha laranja é o seu alvo: o melhor que existe para você, não a perfeição. Onde o
-              verde fica abaixo dela, esta raquete entrega menos do que o seu perfil pedia naquele
-              ponto — quanto maior o vão, menos ela entregou. O motivo de cada vão está em{' '}
-              <strong>As trocas desta escolha</strong>, logo acima.
+              A linha laranja é o seu alvo: <strong>o melhor que poderia existir para você</strong>.
+              O objetivo é que a raquete recomendada fique o mais próximo possível desta linha.
+              Quanto mais próximo dela, mais ela entregou naquele critério.
             </p>
 
             <div className="mt-6 rounded border border-line bg-white p-6">
@@ -322,50 +324,40 @@ export default async function ResultadoPage({
                 .reduce((sum, a) => sum + a.weight, 0);
 
               /*
-                ═══ OS TRÊS NÚMEROS SOMAM 100, SEMPRE ═════════════════════════════════
+                ═══ OS DOIS NÚMEROS SÃO A REPARTIÇÃO DO GRÁFICO, NÃO DA DECISÃO INTEIRA ═════
 
-                Antes somavam 90, e o usuário perguntou onde estavam os outros 10%. Pergunta
-                justa: um relatório que mostra a repartição de uma decisão e deixa um décimo dela
-                sem dono convida exatamente a desconfiança que o produto inteiro tenta evitar.
+                Os pesos crus dos oito eixos somam ~90%, não 100. O que falta é `transition_fit` —
+                o quanto a mudança seria brusca em relação à raquete que a pessoa já usa —, que não
+                tem eixo no radar de propósito: os oito respondem "o que a raquete faz" e "o quanto
+                ela serve a você", e a transição não é nem uma coisa nem outra, ela mede a
+                DISTÂNCIA entre dois equipamentos. O lugar dela é a tabela de comparação.
 
-                O que faltava é `transition_fit` — o quanto a mudança seria brusca em relação à
-                raquete que a pessoa já usa. Ele não tem eixo no radar de propósito, e o motivo é
-                bom: os oito eixos respondem "o que a raquete faz" e "o quanto ela serve a você",
-                e a transição não é nem uma coisa nem outra — ela mede a DISTÂNCIA entre dois
-                equipamentos, e um vértice num gráfico de compatibilidade leria como qualidade.
-                O lugar dela é a tabela de comparação, onde ela já está, item por item.
+                A versão anterior mostrava os três números (22 / 68 / 10) e explicava o terceiro.
+                Foi pior, e o usuário disse por quê: um percentual chamado "distância entre a sua
+                atual e a recomendada" ao lado de um match de 92% convida a leitura de que a
+                distância entre as duas raquetes é de 10%, que é outra grandeza inteiramente.
 
-                O resto é calculado por SUBTRAÇÃO e o encaixe absorve o arredondamento, para que os
-                três números fechem 100 na tela. Arredondar os três de forma independente
-                devolveria somas de 99 e 101, que é o mesmo defeito com outro rosto.
+                Então os dois blocos são renormalizados ENTRE SI e fecham 100. A frase diz "entre
+                os oito eixos do gráfico" e não "da decisão", porque é isso que o número é: a
+                repartição do que está desenhado. Chamá-lo de fração da decisão seria trocar um
+                texto confuso por um texto errado, e o critério que não aparece continua explicado
+                onde ele mora, na comparação com a raquete atual.
+
+                O segundo sai por SUBTRAÇÃO para que a soma feche 100 mesmo com arredondamento.
               */
-              const pedidoPct = Math.round(pedido * 100);
-              const transicaoPct = Math.max(0, Math.round((1 - pedido - encaixe) * 100));
-              const encaixePct = 100 - pedidoPct - transicaoPct;
+              const base = pedido + encaixe;
+              const pedidoPct = base > 0 ? Math.round((pedido / base) * 100) : 50;
+              const encaixePct = 100 - pedidoPct;
 
               return (
                 <p className="mt-4 text-sm leading-relaxed text-graphite">
-                  Somando por bloco: <strong>o que você pediu</strong> (potência, controle e spin){' '}
-                  vale <strong>{pedidoPct}%</strong> da decisão e{' '}
-                  <strong>o encaixe com você</strong> (conforto, peso, nível, swing e estilo) vale{' '}
-                  <strong>{encaixePct}%</strong>
-                  {transicaoPct > 0 ? (
-                    <>
-                      . Os <strong>{transicaoPct}%</strong> que faltam para 100 são a{' '}
-                      <strong>proximidade com a raquete que você já usa</strong> — o quanto a
-                      mudança seria brusca. Esse critério não tem eixo no gráfico porque não
-                      descreve a raquete nem o encaixe com você: ele mede a distância entre a sua
-                      atual e a recomendada, e está detalhado na comparação logo abaixo.
-                    </>
-                  ) : (
-                    <>
-                      , e os dois fecham a decisão inteira — sem uma raquete atual informada, não há
-                      transição a considerar.
-                    </>
-                  )}{' '}
-                  Os três primeiros eixos são fatias de um mesmo critério, repartidas na ordem de
-                  prioridade que você declarou — por isso cada um sozinho aparece com um número
-                  menor que os critérios inteiros.
+                  Somando por bloco, entre os oito eixos do gráfico:{' '}
+                  <strong>o que você pediu</strong> (potência, controle e spin) responde por{' '}
+                  <strong>{pedidoPct}%</strong> e <strong>o encaixe com você</strong> (conforto,
+                  peso, nível, swing e estilo) por <strong>{encaixePct}%</strong>. Os três primeiros
+                  são fatias de um mesmo critério, repartidas na ordem de prioridade que você
+                  declarou — por isso cada um sozinho aparece com um número menor que os critérios
+                  inteiros.
                 </p>
               );
             })()}

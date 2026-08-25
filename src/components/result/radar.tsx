@@ -105,17 +105,27 @@ const PALETTE = {
  * tamanho — o que o eixo mede, o que a linha tracejada é, e o que significa a raquete passar dela.
  */
 /**
- * Os dois quadros respondem as MESMAS duas perguntas, na mesma ordem e no mesmo tamanho: o que o
- * eixo mede, e o que é o alvo ali. Sem terceira frase e sem repetir o que já está acima do gráfico
- * — o texto anterior tinha quatro frases num quadro e uma no outro, e repetia o parágrafo inteiro.
+ * Cada quadro responde o que o leitor ainda não sabe ao chegar nele, e só isso.
+ *
+ * A regra já foi "as mesmas duas perguntas nos dois quadros, na mesma ordem e no mesmo tamanho" —
+ * o que o eixo mede e qual é o alvo ali. Ela resolveu um desequilíbrio real (um quadro tinha
+ * quatro frases com ressalvas e o outro tinha uma linha), mas virou simetria por simetria: o
+ * parágrafo acima do gráfico já diz que os eixos vão de 0 a 100 e o que a linha laranja é, então
+ * repetir a escala aqui dentro custa atenção sem acrescentar informação.
+ *
+ * O quadro de BOLA ficou com o alvo, que é o que muda de pessoa para pessoa. O de ENCAIXE mantém a
+ * frase extra porque ele carrega a informação que o leitor mais erra sozinho: aqueles cinco eixos
+ * NÃO são notas da raquete, e mudariam de valor na mesma raquete se quem respondesse fosse outro.
+ * Sem isso o radar volta a ser lido como oito specs de fabricante, que é o defeito documentado
+ * mais acima neste arquivo.
  */
 const ZONES = {
   bola: {
     fill: PALETTE.zoneBall,
     title: 'O que ela faz com a bola',
     hint:
-      'Quanto a raquete entrega, comparada à que mais entrega entre as 47 avaliadas. O alvo é o ' +
-      'que você pediu, até onde existe para o seu perfil.',
+      'O alvo é o que você pediu, até onde existe para o seu perfil dentre todas as raquetes ' +
+      'analisadas.',
   },
   voce: {
     fill: PALETTE.zoneYou,
