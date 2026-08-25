@@ -313,41 +313,36 @@ function objectiveRescaler(
 }
 
 /**
- * Pedido forte o bastante para virar um PISO, e não só um peso.
+ * ═══ A TOLERÂNCIA POR POSIÇÃO ════════════════════════════════════════════════════════════════
  *
- * `desired_change_vector` vai de −40 a +40. Vinte é onde o questionário deixa de dizer "gostaria" e
- * passa a dizer "é isto que eu quero mudar" — abaixo disso a preferência já é atendida pelo peso do
- * `objective_fit`, e um piso cobraria convicção que não foi declarada.
+ * Quantas das raquetes COMPATÍVEIS COM O PERFIL, ordenadas por aquele atributo, contam como
+ * "atendeu" cada posição do top-3 declarado.
+ *
+ * Proposta do usuário, e ela resolve um defeito das versões anteriores deste filtro: elas usavam
+ * pisos ABSOLUTOS — posição 60 do catálogo, média do catálogo, não pior que a sua raquete atual —
+ * e piso absoluto pode ser impossível de cumprir. Nas palavras dele: "se a raquete é a primeira
+ * colocada em spin e o cliente pede spin em primeiro lugar, não tem como dar outra".
+ *
+ * Uma tolerância por POSIÇÃO nunca tem esse problema: as dez melhores sempre existem. E ela se
+ * ajusta sozinha ao catálogo — se todas as raquetes adequadas ao jogador são fracas em potência, o
+ * topo delas continua sendo a melhor resposta possível, sem o filtro desligar por não alcançar um
+ * número absoluto.
+ *
+ * Medido em 660 perfis com prioridade declarada:
+ *
+ *     a vencedora de hoje já cumpre .......... 493 (74,7%)
+ *     quando não cumpre, está fora por ....... 6,3 posições em média (mediana 4)
+ *     custo de exigir ........................ mediana 4,9 pontos de match, p90 9,7
+ *
+ * Contra a regra absoluta que ela substitui, cuja mediana de custo era 23 pontos e cujo p90 era 35.
+ *
+ * A folga cresce com a posição declarada porque a convicção decresce: quem põe algo em 1º está
+ * dizendo que é isso; quem põe em 3º está dizendo que também importa.
  */
-const FLOOR_ASK_STRONG = 20;
+const PRIORITY_TOLERANCE = [10, 15, 20];
 
 /**
- * Posição mínima, na faixa do catálogo, que uma raquete precisa ter no atributo pedido com força.
- *
- * Varredura sobre 770 perfis simulados (22 personas × 7 combinações de prioridade declarada × 5
- * objetivos), medindo o GANHO médio de posição no eixo mais pedido e o que isso custa no match:
- *
- *     corte    ganho de posição    match médio    perfis com match >= 80%
- *     sem filtro        —              86.9              79.9%
- *       45            −0.6             86.6              79.7%   (não filtra nada de útil)
- *       50            +1.3             86.6              77.8%
- *       55            +1.4             86.6              77.8%
- *       60            +2.2             86.5              77.8%   <- escolhido
- *       65            +3.3             86.3              77.0%
- *       70            +0.5             86.7              78.4%   (aborta demais, ver abaixo)
- *
- * O 70 mostra onde está a borda: acima dele sobram poucas candidatas com frequência, a válvula
- * desliga o piso, e o ganho volta para perto de zero. Entre 60 e 65 a diferença é de 1,1 ponto de
- * posição contra 0,8 ponto percentual de match — dentro do ruído de uma simulação deste tamanho.
- * Fica o mais conservador dos dois.
- *
- * O piso reduz o campo em cerca de metade dos perfis; nos demais, ou não há pedido forte, ou a
- * válvula o desliga.
- */
-const FLOOR_POSITION = 60;
-
-/**
- * Encaixe mínimo que a melhor sobrevivente precisa manter para o piso poder ser aplicado.
+ * Encaixe mínimo para uma raquete ser considerada COMPATÍVEL com o perfil.
  *
  * ═══ A VÁLVULA, E POR QUE ELA É O QUE TORNA ISTO VIÁVEL ══════════════════════════════════════
  *
@@ -357,45 +352,57 @@ const FLOOR_POSITION = 60;
  *     p02   nível 82 -> 35    Wilson Clash 108 v3, quadro de 108 pol² para quem já passou disso
  *     p04   físico 100 -> 40  HEAD Radical Pro, massa acima do que o corpo sustenta
  *
- * Pedido declarado não pode sobrepor limitação física real — é o que a `rationale` do
- * `objective_fit` sempre disse e o peso a 50% violava. Aqui, quando nenhuma raquete acima do corte
- * passa nesses dois mínimos, o piso NÃO SE APLICA e o ranking segue inteiro — aborta em 225 dos
- * 616 perfis com pedido forte (37%), e é nesses 37% que o dano teria acontecido.
+ * Pedido declarado não pode sobrepor limitação física real. Aqui o pedido escolhe DENTRO do que é
+ * compatível — nunca contra. É a diferença entre atender o cliente e obedecê-lo.
  *
- * A prova de que a válvula segura: nos 770 perfis, o pior `physical_fit` e o pior `skill_fit`
- * entre todas as vencedoras ficam exatamente onde estavam sem o piso (72,6 e 56,5). O filtro não
- * empurrou ninguém para um quadro que o corpo ou o nível não sustenta.
+ * ═══ POR QUE O PISO DE NÍVEL SUBIU DE 55 PARA 65 ═════════════════════════════════════════════
+ *
+ * Porque o papel dele mudou. Antes ele era só uma VÁLVULA — "existe alguma candidata segura?" —, e
+ * para essa pergunta 55 bastava. Com a tolerância por posição ele virou o POOL de onde as dez
+ * melhores são tiradas, e aí um piso permissivo deixa entrar quadros marginais que a tolerância
+ * então promove.
+ *
+ * Medido nas 22 personas, variando só este número:
+ *
+ *     piso   match médio   match mín   nível mín   personas que trocam
+ *      55       90,1          77          57              3
+ *      65       90,5          79          67              2
+ *      70       90,8          79          69              1
+ *
+ * Com 55, a p14 saía de nível 78 para 57 — raspando o próprio piso. 70 melhora mais um pouco a
+ * qualidade, mas esvazia o campo da tolerância (719 checagens sem candidatas suficientes contra
+ * 608 em 65), e uma regra que não age não protege ninguém. 65 mantém a tolerância ativa e devolve
+ * o nível mínimo ao patamar de antes.
  */
 export const FLOOR_SAFE_PHYSICAL = 70;
-export const FLOOR_SAFE_SKILL = 55;
+export const FLOOR_SAFE_SKILL = 65;
 
 /**
- * Mínimo de sobreviventes para o piso valer.
+ * Mínimo de sobreviventes para a tolerância valer.
  *
- * O pódio tem três posições e a regra de diversidade de família (§29) precisa de folga acima disso
- * para não montar um pódio de irmãs — o filtro se propõe a tirar de cena quem não atende o pedido,
- * não a escolher o pódio inteiro.
- *
- * Medido: com o mínimo em 6 o campo chegava a ter exatamente 6 candidatas em algum perfil. Subir
- * para 10 custa 0,9 ponto de ganho de posição (+3,1 -> +2,2), não move o match (77,8% em ambos) e
- * garante pelo menos 11 raquetes disputando o pódio. Subir para 14 não muda mais nada.
+ * O pódio tem três posições e a regra de diversidade de família (§29) precisa de folga acima disso.
+ * Abaixo de seis o filtro estaria escolhendo o pódio inteiro, que é mais do que ele se propõe.
  */
-const FLOOR_MIN_SURVIVORS = 10;
-
-/** Mínimo de sobreviventes do degrau de GARANTIA — o suficiente para um pódio. Ver `applyDeclaredFloor`. */
-const FLOOR_MIN_GUARANTEE = 3;
+const TOLERANCE_MIN_SURVIVORS = 6;
 
 /**
- * A PREMISSA, em uma frase: quem pede mais de um aspecto não recebe menos que a média nele.
+ * A premissa exige MENOS sobreviventes que a tolerância, e a diferença é deliberada.
  *
- * Nas palavras do usuário: "não posso pedir potência, e o sistema não só tirar potência comparada
- * à minha atual, mas também me entregar potência abaixo da média".
+ * As duas regras não valem o mesmo. A tolerância é uma preferência forte — "fique entre as dez
+ * melhores nisso" —, e uma preferência não justifica esvaziar o pódio. A premissa é uma PROMESSA:
+ * quem pede potência não recebe potência abaixo da média. Aplicar a ela o mesmo mínimo de seis
+ * fazia a promessa desligar exatamente onde ela é mais necessária, que é quando as raquetes
+ * adequadas ao jogador são poucas naquele eixo.
  *
- * O piso não é uma constante — é a posição da MÉDIA do catálogo naquele eixo, calculada por
- * análise (ver `mediaDoEixo`). Uma constante foi tentada primeiro, em 50, e não cumpria a
- * promessa: a régua de posição não põe a média no meio dela, e em potência a média das 47
- * avaliadas cai na posição 74. O piso em 50 deixava 55,9% dos vencedores abaixo da média real.
+ * Medido nas 22 personas, variando só este número: com 6 a p14 fica em 57 contra 60 da média;
+ * com 2 ela cumpre, e o match médio das personas cai 0,1 ponto (88,7 -> 88,6), com o mínimo
+ * intacto em 79.
+ *
+ * Dois é o menor número que preserva o produto inteiro: a vencedora mais uma alternativa real —
+ * que é o que `top3_offer_available` exige para o upsell existir (§30). Com um, o pódio viraria
+ * uma raquete só e a oferta sumiria; e medido, um não recupera nenhum caso a mais que dois.
  */
+const PREMISE_MIN_SURVIVORS = 2;
 
 type ScoredEntry = { racket: ScoredRacket; fit_score: number; breakdown: ScoreBreakdown };
 
@@ -447,109 +454,166 @@ function applyDeclaredFloor(
   scale: CatalogScale,
   currentRacket: ScoredRacket | null,
 ): { kept: ScoredEntry[]; excluded: ExcludedRacket[] } | null {
-  const fortes = NEED_KEYS.filter((k) => profile.desired_change_vector[k] >= FLOOR_ASK_STRONG);
-  if (fortes.length === 0) return null;
+  const prioridades = profile.declared_priorities.slice(0, PRIORITY_TOLERANCE.length);
+  if (prioridades.length === 0) return null;
 
   const componentRaw = (b: ScoreBreakdown, key: ComponentKey): number =>
     b.components.find((c) => c.key === key)?.raw ?? 0;
 
-  /** Posição da raquete no eixo pedido, na régua do catálogo completo. */
-  const positionOn = (entry: ScoredEntry, need: NeedKey): number => {
+  const valorDe = (entry: ScoredEntry, need: NeedKey): number => {
     const attrKey = NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey;
     const attributes = entry.racket.attributes;
-    return scale.position(attrKey, attributes[attrKey as keyof typeof attributes] as number);
+    return attributes[attrKey as keyof typeof attributes] as number;
   };
 
-  const viavel = (candidatas: readonly ScoredEntry[], minimo: number): boolean =>
-    candidatas.length >= minimo &&
-    candidatas.some(
-      (e) =>
-        componentRaw(e.breakdown, 'physical_fit') >= FLOOR_SAFE_PHYSICAL &&
-        componentRaw(e.breakdown, 'skill_fit') >= FLOOR_SAFE_SKILL,
-    );
-
-  /**
-   * ═══ DOIS DEGRAUS, PORQUE UM SÓ DESLIGAVA JUSTO EM QUEM MAIS DECLAROU ══════════════════════
-   *
-   * A exigência conjuntiva — o corte em TODOS os eixos pedidos ao mesmo tempo — colapsa conforme a
-   * pessoa declara mais prioridades. Medido nos 616 perfis com pedido forte:
-   *
-   *     eixos pedidos   perfis   filtro desligou   candidatas acima do corte (média)
-   *           1           278          61                 16.9
-   *           2           266         162                  6.7
-   *           3            65          65                  0.3
-   *           4             7           7                  0.3
-   *
-   * Quem ordena três prioridades — exatamente quem declarou MAIS sobre o que quer — não recebia
-   * nenhum efeito do filtro. Sobram 0,3 raquetes em média porque potência e controle puxam a massa
-   * e o padrão de cordas em direções opostas: pedir os dois com força não deixa quase nada de pé.
-   *
-   * O segundo degrau abandona a conjunção e garante o PEDIDO MAIS FORTE. É a premissa que o
-   * usuário pediu, nas palavras dele: "não posso pedir potência e o sistema me entregar potência
-   * abaixo da média".
-   */
-  const eixoPrincipal = fortes.reduce((a, b) =>
-    profile.desired_change_vector[a] >= profile.desired_change_vector[b] ? a : b,
+  /** Compatíveis com o perfil: é entre ELAS que a tolerância conta posições. */
+  const compativeis = scored.filter(
+    (e) =>
+      componentRaw(e.breakdown, 'physical_fit') >= FLOOR_SAFE_PHYSICAL &&
+      componentRaw(e.breakdown, 'skill_fit') >= FLOOR_SAFE_SKILL,
   );
+  if (compativeis.length === 0) return null;
 
-  const atendeConjuntivo = (entry: ScoredEntry): boolean =>
-    fortes.every((need) => positionOn(entry, need) >= FLOOR_POSITION);
   /**
-   * "Não abaixo da média" é a MÉDIA DO CATÁLOGO neste eixo, não a posição 50.
+   * As restrições entram UMA A UMA, da mais forte para a mais fraca, e só se o que sobra continuar
+   * viável.
    *
-   * A régua de `catalog-scale` é de POSIÇÃO, e a média dos valores não cai no meio dela: em
-   * potência, a média das 47 avaliadas fica na posição 74. Um piso fixo em 50 parecia cumprir a
-   * promessa e não cumpria — media 8,3% de vencedoras abaixo de 50, mas 55,9% abaixo da média
-   * de verdade, que é o número que o usuário enxerga quando compara com o resto do mercado.
+   * Exigir tudo de uma vez é conjuntivo, e conjunção colapsa: basta a última não ter campo para a
+   * regra inteira desligar e nem a primeira ficar protegida. Medido numa versão anterior deste
+   * filtro, o efeito era recusar alternativas que custavam 0,1 ponto de match.
    */
-  const mediaDoEixo = (need: NeedKey): number => {
-    const attrKey = NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey;
-    const soma = scored.reduce((acc, e) => {
-      const attributes = e.racket.attributes;
-      return acc + (attributes[attrKey as keyof typeof attributes] as number);
-    }, 0);
-    return scale.position(attrKey, soma / Math.max(1, scored.length));
+  type Restricao = {
+    readonly need: NeedKey;
+    readonly permitidas: Set<string>;
+    /** O motivo cita ONDE a raquete ficou, e cada restrição mede isso na régua dela. */
+    readonly motivo: (entry: ScoredEntry) => string;
   };
 
-  const pisoPremissa = mediaDoEixo(eixoPrincipal);
-  const atendePremissa = (entry: ScoredEntry): boolean =>
-    positionOn(entry, eixoPrincipal) >= pisoPremissa;
+  const aplicadas: Restricao[] = [];
+  let restante: readonly ScoredEntry[] = scored;
 
-  const conjuntivo = scored.filter(atendeConjuntivo);
-  const usaConjuntivo = viavel(conjuntivo, FLOOR_MIN_SURVIVORS);
-  const atendePiso = usaConjuntivo ? atendeConjuntivo : atendePremissa;
-  const eixosCobrados = usaConjuntivo ? fortes : [eixoPrincipal];
+  /** A raquete ATUAL é isenta: ela é referência no relatório, não candidata. */
+  const tentar = (restricao: Restricao, minimo: number): void => {
+    const proximo = restante.filter(
+      (e) =>
+        restricao.permitidas.has(e.racket.variant.id) ||
+        e.racket.variant.id === currentRacket?.variant.id,
+    );
+    if (proximo.length < minimo) return;
+
+    restante = proximo;
+    aplicadas.push(restricao);
+  };
 
   /**
-   * O mínimo de sobreviventes é MENOR na garantia do que na preferência, e é de propósito.
+   * ═══ A PREMISSA, E POR QUE ELA VEM ANTES DA TOLERÂNCIA ═════════════════════════════════
    *
-   * Os dez do degrau conjuntivo existem para o filtro não escolher o pódio inteiro — ele é uma
-   * PREFERÊNCIA, e uma preferência que sobra pouco deve ceder. A garantia é outra coisa: se só
-   * existem cinco raquetes que não deixam o jogador abaixo da média no que ele mais pediu, são
-   * essas cinco. Ceder aqui seria justamente quebrar a promessa.
+   * Exigência do usuário, nas palavras dele: "não posso pedir potência, e o sistema não só tirar
+   * potência comparado à minha atual, mas também me entregar potência abaixo da média".
    *
-   * Medido: com o mesmo mínimo de dez, a garantia desligava tanto que o resultado PIORAVA —
-   * 59,1% de vencedores abaixo da média contra 55,9% sem ela.
+   * A tolerância por posição SOZINHA não garante isso, e a medição mostrou por quê: ela é
+   * RELATIVA — pede que a raquete esteja entre as dez melhores DO POOL COMPATÍVEL com o jogador.
+   * Se o pool inteiro é fraco no eixo pedido, o topo dele continua abaixo da média do catálogo.
+   *
+   * Medido nas 22 personas, com potência forçada em 1º lugar em todas:
+   *
+   *                                    só tolerância    + premissa
+   *     abaixo da média em potência        4/22            4/22
+   *     exatamente EM CIMA da média        6/22            1/22
+   *
+   * O número que salta é o segundo. Sem a premissa, seis perfis diferentes caíam EXATAMENTE na
+   * média — todos na mesma raquete, um frame equilibrado que não é bom em nada em particular.
+   * É o retrato do defeito: pedir potência e receber a média. Com a premissa esses seis sobem.
+   *
+   * Nas personas como elas de fato respondem, a conta é 1 abaixo da média antes e ZERO depois, ao
+   * custo de 0,1 ponto de match médio (88,7 -> 88,6) e nenhum ponto no match mínimo.
+   *
+   * E variar a folga da tolerância não mexe nisso: top 8, 10, 12, e só a 1ª prioridade dão todos
+   * entre 3 e 4 de 22. A tolerância não é a alavanca deste problema — o piso absoluto é.
+   *
+   * ─── POR QUE SÓ NO EIXO DECLARADO EM 1º ────────────────────────────────────────────────
+   *
+   * Porque potência, controle e spin se opõem dentro da física do quadro. Exigir a média do
+   * catálogo nos três empurra a escolha para o meio de tudo, que é o defeito oposto e igualmente
+   * ruim: a raquete deixa de ser boa naquilo que a pessoa pôs em primeiro lugar. A 1ª posição é
+   * onde a convicção está, e é ela que recebe a garantia forte.
+   *
+   * ─── E POR QUE ELA PODE NÃO AGIR ──────────────────────────────────────────────────────
+   *
+   * Se nenhuma candidata compatível com o físico e o nível do jogador chega à média do catálogo
+   * naquele eixo, a regra não age — e é correto que não aja. Promover uma raquete que o corpo não
+   * sustenta para cumprir um número seria o dano já medido ao subir `objective_fit` para 50%.
+   * Nesses casos o bloco "As trocas desta escolha" explica o vão, que é o trabalho dele.
+   *
+   * Os 4 de 22 que sobram acima são exatamente esses, e foi verificado que são irredutíveis:
+   * baixando o mínimo de sobreviventes até 1 — o limite teórico — continuam 4. Não é a regra sendo
+   * tímida, é o catálogo não tendo, para aqueles jogadores, nenhuma raquete segura acima da média.
    */
-  const acima = scored.filter(atendePiso);
-  if (!viavel(acima, usaConjuntivo ? FLOOR_MIN_SURVIVORS : FLOOR_MIN_GUARANTEE)) return null;
+  const primeira = prioridades[0]!;
+  const attrPrimeira = NEED_TO_RACKET_ATTRIBUTE[primeira] as ScaleKey;
+  const mediaDoCatalogo = scale.meanPosition(attrPrimeira);
+  const posicaoNoCatalogo = (entry: ScoredEntry, need: NeedKey): number =>
+    scale.position(NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey, valorDe(entry, need));
+
+  const naMedia = compativeis.filter(
+    (e) => posicaoNoCatalogo(e, primeira) >= mediaDoCatalogo,
+  );
+  if (naMedia.length > 0) {
+    tentar({
+      need: primeira,
+      permitidas: new Set(naMedia.map((e) => e.racket.variant.id)),
+      motivo: (entry) =>
+        `Você colocou ${NEED_LABEL_PT[primeira]} em primeiro lugar, e esta raquete entrega menos ` +
+        `que a raquete média do mercado que analisamos nesse aspecto ` +
+        `(${Math.round(posicaoNoCatalogo(entry, primeira))} de 100, contra ` +
+        `${Math.round(mediaDoCatalogo)}).`,
+    }, PREMISE_MIN_SURVIVORS);
+  }
+
+  for (const [posicao, need] of prioridades.entries()) {
+    const n = PRIORITY_TOLERANCE[posicao]!;
+    if (compativeis.length < n) continue; // sem campo: a tolerância não restringe nada
+
+    const ordenadas = [...compativeis].sort((a, b) => valorDe(b, need) - valorDe(a, need));
+    const topo = ordenadas.slice(0, n);
+
+    tentar({
+      need,
+      permitidas: new Set(topo.map((e) => e.racket.variant.id)),
+      motivo: (entry) => {
+        const posicaoDela =
+          ordenadas.findIndex((e) => e.racket.variant.id === entry.racket.variant.id) + 1;
+        return (
+          `Você colocou ${NEED_LABEL_PT[need]} entre o que mais quer, e entre as raquetes ` +
+          `adequadas ao seu perfil esta não está nas ${n} melhores nesse aspecto` +
+          (posicaoDela > 0 ? ` (está em ${posicaoDela}º).` : '.')
+        );
+      },
+    }, TOLERANCE_MIN_SURVIVORS);
+  }
+
+  if (aplicadas.length === 0) return null;
 
   const kept: ScoredEntry[] = [];
   const excluded: ExcludedRacket[] = [];
   for (const entry of scored) {
-    if (atendePiso(entry) || entry.racket.variant.id === currentRacket?.variant.id) {
+    const id = entry.racket.variant.id;
+    if (id === currentRacket?.variant.id) {
       kept.push(entry);
       continue;
     }
-    /** O eixo cobrado é o mais mal atendido — é o que explica melhor a saída. */
-    const pior = eixosCobrados.reduce((a, b) => (positionOn(entry, a) <= positionOn(entry, b) ? a : b));
+
+    const falhou = aplicadas.find((a) => !a.permitidas.has(id));
+    if (!falhou) {
+      kept.push(entry);
+      continue;
+    }
+
     excluded.push({
-      variant_id: entry.racket.variant.id,
+      variant_id: id,
       product_name: entry.racket.variant.product_name,
-      filter: 'declared_demand_floor',
-      reason:
-        `Você colocou ${NEED_LABEL_PT[pior]} entre o que mais quer, e este frame fica abaixo do ` +
-        `que o seu pedido exige nesse aspecto (posição ${Math.round(positionOn(entry, pior))} de 100).`,
+      filter: 'declared_priority_tolerance',
+      reason: falhou.motivo(entry),
     });
   }
 

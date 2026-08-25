@@ -84,7 +84,7 @@ const SWING_LENGTH_SCORE: Record<SwingLength, number> = {
 };
 
 /**
- * ─── A RÉGUA É A DO AMADOR DE CLUBE ──────────────────────────────────────────────────────────
+ * ─── A RÉGUA É A DO AMADOR DE CLUBE ────────────────────────────────────────────────────────
  *
  * As duas escalas abaixo alimentam `physical_capacity_score`, que decide quanta massa a pessoa
  * consegue manejar. Elas estavam calibradas como se o universo fosse de atletas: "abaixo da média"
@@ -185,7 +185,7 @@ export function calibrateLevel(a: QuestionnaireAnswers): {
 /**
  * Porte físico — massa e estatura, na escala em que a raquete é comprada.
  *
- * ═══ O BURACO QUE ISTO FECHA ═════════════════════════════════════════════════════════════════
+ * ═══ O BURACO QUE ISTO FECHA ══════════════════════════════════════════════════════════════════
  *
  * `computePhysicalCapacity` pesava força percebida, preparo, idade e frequência — e NÃO usava
  * altura nem peso. O questionário perguntava as duas coisas na primeira tela e as descartava aqui.
@@ -221,7 +221,7 @@ export function calibrateLevel(a: QuestionnaireAnswers): {
  * final fica em torno de um ponto: suficiente para desempatar um caso de fronteira, insuficiente
  * para reescrever a recomendação de alguém.
  *
- * ─── O LIMITE QUE ISTO NÃO PODE CRUZAR ─────────────────────────────────────────────────────
+ * ─── O LIMITE QUE ISTO NÃO PODE CRUZAR ────────────────────────────────────────────────────
  *
  * Sexo é uma média de população; a pessoa que respondeu é uma pessoa. Existe muita mulher mais
  * forte que muito homem, e um motor que decidisse pelo sexo estaria errado sobre ela — e sobre a
@@ -261,7 +261,7 @@ function bodyScore(a: QuestionnaireAnswers): number {
  * `plays_matches` é a pergunta que separa os dois casos, e ela era COLETADA E DESCARTADA — nenhum
  * componente do motor lia esse campo. O questionário perguntava e jogava fora.
  *
- * ─── POR QUE MULTIPLICADOR, E NÃO MAIS UM TERMO SOMADO ─────────────────────────────────────
+ * ─── POR QUE MULTIPLICADOR, E NÃO MAIS UM TERMO SOMADO ──────────────────────────────────────
  *
  * Somado, quem joga partida ganharia carga mesmo jogando uma vez por mês — e não ganha: sem volume
  * não há condicionamento, por mais disputada que seja a partida. A intensidade MODULA o volume, ela
@@ -341,7 +341,7 @@ function computePhysicalCapacity(a: QuestionnaireAnswers): number {
  * lado a tarde inteira. Para quem joga com uma mão só, o braço de trás não ajuda a sustentar o
  * peso nem a estabilizar o impacto, e é esse lado que define o teto.
  *
- * ─── POR QUE PEQUENO, E POR QUE NÃO É "UMA MÃO PEDE RAQUETE LEVE" ──────────────────────────
+ * ─── POR QUE PEQUENO, E POR QUE NÃO É "UMA MÃO PEDE RAQUETE LEVE" ────────────────────────────
  *
  * Muito jogador de uma mão usa quadro pesado, e com razão: massa ajuda a estabilizar o impacto
  * justamente onde falta o segundo braço. O ajuste NÃO diz que uma mão quer raquete leve — diz que
@@ -374,7 +374,7 @@ function computeSwingLength(a: QuestionnaireAnswers): SwingLength {
 /**
  * Sensibilidade no braço — graduada por ÁREA, RECÊNCIA e INTENSIDADE.
  *
- * ═══ POR QUE ISTO PRECISOU MUDAR ═════════════════════════════════════════════════════════════
+ * ═══ POR QUE ISTO PRECISOU MUDAR ════════════════════════════════════════════════════════════
  *
  * Marcar "ombro" bastava para o motor tratar conforto como prioridade máxima. E a pergunta aceita
  * "sente OU JÁ SENTIU" — praticamente todo jogador de clube com alguns anos de quadra marca
@@ -385,7 +385,7 @@ function computeSwingLength(a: QuestionnaireAnswers): SwingLength {
  * Uma dor leve de três anos atrás — que pode nem ter vindo da raquete — governava a recomendação
  * inteira. E o jogador via uma raquete confortável e fraca sem entender por quê.
  *
- * ═══ COMO FICA ═══════════════════════════════════════════════════════════════════════════════
+ * ═══ COMO FICA ══════════════════════════════════════════════════════════════════════════
  *
  * A área dá a base. A recência e a intensidade MULTIPLICAM, e as duas juntas separam o histórico
  * do problema atual: dor forte e presente mantém o comportamento antigo, dor leve e antiga vira um
@@ -606,7 +606,7 @@ export function buildPlayerProfile(
   /**
    * Velocidade de swing declarada é LIMITADA pelo que o nível calibrado sustenta.
    *
-   * ═══ O SEGUNDO MOTIVO DA RAQUETE DE 300 g ══════════════════════════════════════════════════
+   * ═══ O SEGUNDO MOTIVO DA RAQUETE DE 300 g ════════════════════════════════════════════════
    *
    * Varrendo as 9600 combinações possíveis para 1,60 m e 50 kg iniciante, 3,6% terminavam com uma
    * raquete de 295 g ou mais — e TODAS tinham a mesma resposta: swing "muito rápido". Aquele 90
@@ -667,7 +667,7 @@ export function buildPlayerProfile(
   }
 
   /**
-   * ═══ PISO POR POSIÇÃO NO TOP-3 DECLARADO ═══════════════════════════════════════════════════
+   * ═══ PISO POR POSIÇÃO NO TOP-3 DECLARADO ═════════════════════════════════════════════════
    *
    * A pergunta "do que você mais sente falta" é ORDENADA, e o jogador escolhe até três. A ordem
    * precisa aparecer na saída — mas o terceiro colocado é o terceiro DAQUELE TOP-3, não o último da
@@ -769,6 +769,7 @@ export function buildPlayerProfile(
     discomfort_areas: a.discomfort_areas.filter((x) => x !== 'nenhum'),
     needs,
     desired_change_vector: desired,
+    declared_priorities: declaredPriorities,
     preserved_needs: preservedNeeds(a),
     // Sanitizado aqui e não na UI: o nome vai para uma imagem gerada no servidor, e é o servidor
     // que precisa garantir que ele não carregue markup nem tamanho absurdo.
