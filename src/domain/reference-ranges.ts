@@ -18,6 +18,85 @@
  */
 
 /**
+ * 2.29.0 — o empate no arredondamento parou de virar "primeiro lugar".
+ *
+ * Defeito pego por leitura, com o relatório na tela: o card exibia `2º lugar, 88% de
+ * compatibilidade` no título e, no corpo, `A raquete que você já tem é a melhor opção`. `gap` é a
+ * diferença entre dois `fit_score` já ARREDONDADOS — 88,45 da primeira contra 88,00 da atual viram
+ * 88 e 88 —, e o ramo de gap zero assumia que zero significa 1º lugar.
+ *
+ * Zero ali significa outra coisa: empatadas no número exibido. O caso agora tem texto próprio, que
+ * diz a posição real e enquadra a diferença (menor que um ponto, menos do que separa duas unidades
+ * da mesma raquete saídas de fábrica). O ramo de "melhor opção" passou a exigir `rank === 1`.
+ *
+ * Nenhuma das 22 personas produz esse estado — medido, ZERO delas cai em `gap === 0`. Por isso o
+ * teste que o tranca monta o cenário à mão em vez de varrer personas: um ramo que nenhuma persona
+ * alcança não é coberto por nenhuma varredura de personas, e foi assim que ele chegou à produção.
+ *
+ * O RANKING não muda.
+ *
+ * 2.28.0 — "O que você deve perceber" passa a saber o que a pessoa PEDIU, e a conta da tensão
+ * fecha na tela.
+ *
+ * ─── AS EXPECTATIVAS ────────────────────────────────────────────────────────────────────────
+ *
+ * Reclamação do usuário: o relatório dele abria com `Spin: trajetória mais plana; o spin dependerá
+ * mais da sua técnica` — sendo que ele não pediu spin. Eram dois defeitos empilhados.
+ *
+ * `explainExpectations` recebia só a raquete, sem o perfil: era impossível distinguir o eixo que
+ * decidiu a recomendação daquele que o leitor nunca mencionou. E os limiares eram ABSOLUTOS (>= 65
+ * e <= 40) sobre atributos derivados que regridem ao centro — o erro de unidades que
+ * `catalog-scale.ts` já corrigira no resto do motor. Medido no catálogo de produção: em potência
+ * (21…57), spin (21…55) e estabilidade (40…62) NENHUMA raquete alcançava 65, então a frase
+ * positiva desses três eixos não podia ser exibida a ninguém, nunca. Só a negativa disparava.
+ * Resultado: média de 1,0 linha por raquete, das quais 0,8 eram limitação, e 18 das 47 raquetes
+ * saíam sem linha nenhuma. A seção prometia "o que esperar em quadra" e entregava defeitos em
+ * eixos sorteados.
+ *
+ * Agora mede por POSIÇÃO de catálogo, com corte em 60/40 — calibrado sobre 4.000 perfis, onde a
+ * zona sem destaque cai de 55,8% (70/30) para 27,4%. Todo eixo declarado aparece, com o lado que
+ * for; os que ficam no meio saem agrupados em uma linha que os nomeia, em vez de repetirem a mesma
+ * frase. Eixos não pedidos entram só quando notáveis, no máximo dois, e nunca repetindo o que a
+ * seção de trocas já explicou com o raciocínio junto. Medido depois: 2,96 linhas por relatório,
+ * 0,0% de pedido sem cobertura, 0,2% caindo no texto genérico.
+ *
+ * O trade-off NÃO foi escondido: ele tem seção própria (`buildTradeOffs`), que já media por posição
+ * e já partia do que foi pedido. O que saiu daqui foi a duplicata sem raciocínio.
+ *
+ * ─── A TENSÃO ───────────────────────────────────────────────────────────────────────────────
+ *
+ * Mesma leitura, outro defeito: base 55 lbs, ajustes de −3, −2,1 e −1,3 na tela, resultado 50.
+ * Quem somasse chegava a −6,4 e via −5. Havia quatro fontes de divergência e nenhuma aparecia: o
+ * `slice(0, 3)` omitia ajustes sem dizer que existiam, a ancoragem misturava a tensão atual, os
+ * clamps diziam "ajustamos" sem dizer de quanto para quanto, e o arredondamento final. Agora a
+ * lista traz o somatório dos ajustes omitidos, o subtotal explícito, os dois valores de cada clamp
+ * e — só quando muda algo visível — o arredondamento. Trancado por `tests/ethics/tension-arithmetic`.
+ *
+ * O RANKING não mudou em nenhuma das duas: nenhum score, peso, limiar ou penalidade foi tocado.
+ *
+ * 2.27.0 — o veredicto sobre a raquete ATUAL parou de afirmar o resultado financeiro de uma troca.
+ *
+ * Os dois limiares não mudaram (`KEEP_CURRENT_GAP` 4, `REAL_UPGRADE_GAP` 9), e nenhum score, peso
+ * ou penalidade foi tocado: as mesmas respostas produzem a mesma raquete e o mesmo `gap`. O que
+ * mudou é o SIGNIFICADO do que se lê no veredicto, e por isso a versão sobe.
+ *
+ * A frase antiga do caso `keep` era `Uma diferença desse tamanho não paga a troca de um quadro`.
+ * Ela concluía, de um `fit_score` agregado, uma coisa que o agregado não sabe: `gap` resume oito
+ * componentes num número só e perde ONDE está a diferença. Duas raquetes a 2 pontos podem ser
+ * quase idênticas ou divergir forte num eixo e compensar no outro — e quem preenche o questionário
+ * com uma raquete na mão em geral está incomodado com algo ESPECÍFICO, que é o motivo de ter
+ * procurado a análise. Responder "fique com a sua" a essa pessoa ignora a pergunta que ela fez.
+ *
+ * O texto novo diz o mesmo sobre a MAGNITUDE — diferença pequena, não espere um salto, corda e
+ * tensão têm maior retorno e custam uma fração — e para de decidir por quem lê: nessa faixa quem
+ * decide é tato, adaptação e preferência de marca, que nenhum modelo mede. Fica a instrução de
+ * olhar os eixos, porque é lá que está a informação que o número agregado apagou.
+ *
+ * Os casos `marginal` e `upgrade` foram reescritos na mesma escada: moderado passa a convidar ao
+ * teste, e grande passa a recomendar com firmeza. Nenhum dos quatro usa urgência, escassez ou
+ * incentivo a comprar — §58 vale nas duas direções, e empurrar a troca aqui seria o mesmo defeito
+ * com o sinal trocado.
+ *
  * 2.26.0 — a frase de separação do pódio para de errar a própria conta, e passa a dizer quantas
  * MARCAS há dentro do empate técnico.
  *
@@ -337,7 +416,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.26.0';
+export const METHODOLOGY_VERSION = '2.29.0';
 
 export type Range = readonly [lo: number, hi: number];
 

@@ -1,0 +1,175 @@
+/**
+ * O veredicto sobre a raquete atual não pode contradizer o próprio cabeçalho.
+ *
+ * ═══ O DEFEITO QUE ESTE TESTE TRANCA ═════════════════════════════════════════════════════════
+ *
+ * Pego por leitura, com o relatório na tela:
+ *
+ *     Babolat Pure Drive · 300 g — 2º lugar, 88% de compatibilidade
+ *     "A raquete que você já tem é A MELHOR OPÇÃO para o seu jogo entre as 8 deste ranking."
+ *
+ * O título e o corpo do MESMO card se contradiziam. A causa é aritmética: `gap` é a diferença
+ * entre dois `fit_score` já arredondados, e a primeira marcava 88,45 contra 88,00 da atual — os
+ * dois viram 88, o gap dá zero, e o ramo de gap zero assumia que zero significa primeiro lugar.
+ *
+ * Zero ali quer dizer outra coisa: "empatadas no número que exibimos". É informação boa e é
+ * diferente, e a distinção importa porque o bloco do pódio, logo abaixo, afirma que a ordem entre
+ * as duas está correta e que a 1ª realmente pontuou mais. Duas afirmações opostas na mesma página
+ * não custam meia confiança cada — custam a confiança nas duas.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { buildCurrentStanding, serializeRecommendation } from '@/payments/entitlements';
+import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
+import { recommend } from '@/recommendation';
+import { PERSONAS } from '@/data/personas';
+import type { PlayerProfile } from '@/domain/player-profile';
+import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
+import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
+
+const analises = PERSONAS.map((persona) => {
+  const profile = buildPlayerProfile(persona.answers);
+  const result = recommend({
+    profile,
+    rackets: testRackets(),
+    strings: testStrings(),
+    datasetVersion: TEST_DATASET_VERSION,
+    mode: TEST_MODE,
+    includeSetup: true,
+  });
+  return {
+    persona,
+    result,
+    report: serializeRecommendation(result, profile, ['racket_report_access']),
+  };
+});
+
+/** Frases que só podem sair para quem está REALMENTE em 1º. */
+const AFIRMA_PRIMEIRO = /é a melhor opção|melhor opção para o seu jogo/i;
+
+/**
+ * O CENÁRIO EXATO DO DEFEITO, MONTADO À MÃO.
+ *
+ * Ele não existe entre as personas — medido, ZERO das 22 produz `gap === 0` —, e foi por isso que
+ * o defeito passou. Um teste que só varre personas não cobre um ramo que nenhuma persona alcança.
+ */
+function cenario(primeiroFit: number, atualFit: number, atualRank: number) {
+  const rackets = testRackets();
+  const ranking: RankedRacket[] = rackets.slice(0, 8).map((racket, i) => ({
+    rank: i + 1,
+    racket,
+    fit_score: i === 0 ? primeiroFit : i + 1 === atualRank ? atualFit : atualFit - i,
+    breakdown: {
+      final_score: 0, components: [], penalties: [], data_completeness: 1, gained: [], lost: [],
+    },
+    technical_tie_with_previous: false,
+  }));
+  const atual = ranking[atualRank - 1]!;
+
+  const result = { full_ranking: ranking } as unknown as RecommendationResult;
+  const profile = {
+    current_racket: { variant_id: atual.racket.variant.id, unrecognized: false },
+  } as unknown as PlayerProfile;
+
+  return buildCurrentStanding(result, profile, ranking[0]!);
+}
+
+describe('o empate no arredondamento não vira "primeiro lugar"', () => {
+  it('reproduz o caso relatado: 2º lugar com o mesmo 88% da primeira', () => {
+    // 88,45 e 88,00 arredondam os dois para 88 — gap zero, mas a atual está em 2º.
+    const standing = cenario(88.45, 88.0, 2)!;
+
+    expect(standing.rank).toBe(2);
+    expect(standing.fit_score).toBe(88);
+    expect(standing.gap_to_first).toBe(0);
+    expect(
+      standing.message,
+      'o card não pode chamar de "a melhor opção" uma raquete que ele mesmo exibe em 2º',
+    ).not.toMatch(AFIRMA_PRIMEIRO);
+    expect(standing.message, 'precisa dizer a posição real').toContain('2º');
+    expect(standing.verdict).toBe('keep');
+  });
+
+  it('em 1º lugar de verdade, continua dizendo que é a melhor opção', () => {
+    const standing = cenario(90.0, 90.0, 1)!;
+
+    expect(standing.rank).toBe(1);
+    expect(standing.gap_to_first).toBe(0);
+    expect(standing.message).toMatch(AFIRMA_PRIMEIRO);
+  });
+
+  it('o texto do empate não promete ganho onde não há', () => {
+    const standing = cenario(88.45, 88.0, 2)!;
+    expect(standing.message).toContain('corda e na tensão');
+    expect(standing.message).not.toMatch(/vale a pena trocar|recomendamos a troca/i);
+  });
+});
+
+describe('o card da raquete atual bate com o próprio número', () => {
+  it('só diz "a melhor opção" quando a raquete está de fato em 1º', () => {
+    let verificadas = 0;
+
+    for (const { persona, report } of analises) {
+      const atual = report.current_racket_standing;
+      if (!atual) continue;
+      verificadas += 1;
+
+      if (AFIRMA_PRIMEIRO.test(atual.message)) {
+        expect(
+          atual.rank,
+          `${persona.id}: o card diz "a melhor opção" mas exibe ${atual.rank}º lugar`,
+        ).toBe(1);
+      }
+    }
+
+    expect(
+      verificadas,
+      'nenhuma persona com raquete atual — o teste não verificou nada',
+    ).toBeGreaterThan(0);
+  });
+
+  it('empate no número exibido, fora do 1º lugar, é dito como empate e não como vitória', () => {
+    for (const { persona, report } of analises) {
+      const atual = report.current_racket_standing;
+      if (!atual) continue;
+      if (atual.gap_to_first !== 0 || atual.rank === 1) continue;
+
+      expect(
+        atual.message,
+        `${persona.id}: empate em ${atual.rank}º descrito como se fosse o primeiro lugar`,
+      ).not.toMatch(AFIRMA_PRIMEIRO);
+      expect(
+        atual.message,
+        `${persona.id}: o empate precisa dizer a posição real`,
+      ).toContain(`${atual.rank}º`);
+    }
+  });
+
+  it('o veredicto é coerente com o gap que o próprio card exibe', () => {
+    for (const { persona, report } of analises) {
+      const atual = report.current_racket_standing;
+      if (!atual) continue;
+
+      // `keep` até 3 pontos, `marginal` até 8, `upgrade` daí em diante.
+      const esperado = atual.gap_to_first < 4 ? 'keep' : atual.gap_to_first < 9 ? 'marginal' : 'upgrade';
+      expect(
+        atual.verdict,
+        `${persona.id}: gap ${atual.gap_to_first} deveria ser "${esperado}", veio "${atual.verdict}"`,
+      ).toBe(esperado);
+    }
+  });
+
+  it('a posição exibida é a mesma do ranking completo', () => {
+    for (const { persona, result, report } of analises) {
+      const atual = report.current_racket_standing;
+      if (!atual) continue;
+
+      const noRanking = result.full_ranking.find((r) => r.rank === atual.rank);
+      expect(noRanking, `${persona.id}: posição ${atual.rank} não existe no ranking`).toBeDefined();
+      expect(
+        Math.round(noRanking!.fit_score),
+        `${persona.id}: o match exibido não bate com o do ranking`,
+      ).toBe(atual.fit_score);
+    }
+  });
+});

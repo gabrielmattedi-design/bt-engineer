@@ -10,8 +10,8 @@
 
 import { round } from '@/domain/scores';
 import { formatTension } from '@/domain/units';
-import type { ScoredRacket } from '@/domain/racket';
-import type { PlayerProfile } from '@/domain/player-profile';
+import type { RacketAttributes, ScoredRacket } from '@/domain/racket';
+import type { NeedKey, PlayerProfile } from '@/domain/player-profile';
 import type {
   RankedRacket,
   StringRecommendation,
@@ -97,54 +97,224 @@ export function explainRacketFit(
   return out;
 }
 
-/** "O que você deve perceber?" (§35) */
-export function explainExpectations(ranked: RankedRacket): string[] {
-  const a = ranked.racket.attributes;
-  const out: string[] = [];
+/**
+ * Um eixo do "O que você deve perceber": rótulo, atributo e as duas leituras com destaque.
+ *
+ * Não há texto para o meio da escala: eixo sem destaque só aparece quando foi PEDIDO, e aí sai
+ * agrupado com os outros na mesma situação — ver a nota da função.
+ */
+type ExpectationAxis = {
+  readonly need: NeedKey;
+  readonly label: string;
+  readonly attribute: string;
+  readonly value: (a: RacketAttributes) => number;
+  readonly high: string;
+  readonly low: string;
+};
 
-  const describe = (label: string, score: number, high: string, low: string): void => {
-    if (score >= 65) out.push(`**${label}:** ${high}`);
-    else if (score <= 40) out.push(`**${label}:** ${low}`);
+const EXPECTATION_AXES: readonly ExpectationAxis[] = [
+  {
+    need: 'power',
+    label: 'Potência',
+    attribute: 'power_score',
+    value: (a) => a.power_score,
+    high: 'entre as mais potentes do catálogo — nos primeiros treinos sobra bola até o swing calibrar.',
+    low: 'frame contido: a potência vem mais de você do que da raquete.',
+  },
+  {
+    need: 'control',
+    label: 'Controle',
+    attribute: 'control_score',
+    value: (a) => a.control_score,
+    high: 'entre as mais controladoras do catálogo — a bola fica previsível quando você acelera.',
+    low: 'menos controle direcional que a média, em troca de mais tolerância.',
+  },
+  {
+    need: 'spin',
+    label: 'Spin',
+    attribute: 'spin_score',
+    value: (a) => a.spin_score,
+    high: 'entre as que mais ajudam a rotação — fica mais fácil elevar a bola com o mesmo gesto.',
+    low: 'trajetória mais plana que a média; o spin dependerá mais da sua técnica.',
+  },
+  {
+    need: 'comfort',
+    label: 'Conforto',
+    attribute: 'comfort_score',
+    value: (a) => a.comfort_score,
+    high: 'entre as mais macias do catálogo no impacto.',
+    low: 'resposta mais seca que a média — acompanhe como seu braço reage nas primeiras semanas.',
+  },
+  {
+    need: 'stability',
+    label: 'Estabilidade',
+    attribute: 'stability_score',
+    value: (a) => a.stability_score,
+    high: 'entre as mais firmes contra bolas pesadas e impactos descentralizados.',
+    low: 'cede mais que a média contra bolas muito pesadas.',
+  },
+  {
+    need: 'maneuverability',
+    label: 'Manobrabilidade',
+    attribute: 'maneuverability_score',
+    value: (a) => a.maneuverability_score,
+    high: 'entre as mais rápidas de reposicionar em defesa e na rede.',
+    low: 'exige preparação mais cedo que a média, especialmente em bolas rápidas.',
+  },
+];
+
+/**
+ * Acima disto o eixo é destaque; abaixo do piso, é limitação. Em POSIÇÃO de catálogo.
+ *
+ * O par 60/40 saiu de medição, não de gosto. Sobre 4.000 perfis, a fração dos eixos da raquete
+ * VENCEDORA que cai na zona sem destaque é 55,8% com 70/30, 40,9% com 65/35 e 27,4% com 60/40. Com
+ * o corte em 70/30 a maioria das linhas virava "no meio do catálogo" repetido — trocar um ruído
+ * (defeito em eixo não pedido) por outro (três linhas dizendo que não há nada a dizer).
+ */
+const EXPECTATION_HIGH = 60;
+const EXPECTATION_LOW = 40;
+
+/** Teto de linhas. Acima disso a seção vira lista de specs e para de ser lida. */
+const MAX_EXPECTATIONS = 5;
+/** Quantos eixos NÃO pedidos podem entrar, quando são notáveis. */
+const MAX_UNREQUESTED = 2;
+
+/**
+ * "O que você deve perceber?" (§35)
+ *
+ * ═══ OS DOIS DEFEITOS QUE ISTO CORRIGE (v2.28.0) ═════════════════════════════════════════════
+ *
+ * Reclamação do usuário: o relatório dele abria a linha `Spin: trajetória mais plana; o spin
+ * dependerá mais da sua técnica` — sendo que ele não tinha pedido spin, e spin era secundário na
+ * análise dele. Investigando, eram dois defeitos empilhados.
+ *
+ * ─── 1. A FUNÇÃO NÃO SABIA O QUE A PESSOA PEDIU ────────────────────────────────────────────
+ *
+ * Ela recebia só `RankedRacket`. Sem `profile`, era IMPOSSÍVEL distinguir o eixo que decidiu a
+ * recomendação daquele que a pessoa nunca mencionou — e os dois saíam com o mesmo peso visual,
+ * no mesmo bloco. Uma seção chamada "o que você deve perceber" que abre com um eixo que o leitor
+ * não pediu gasta a atenção dele no lugar errado.
+ *
+ * ─── 2. O LADO POSITIVO ERA INALCANÇÁVEL EM TRÊS EIXOS ─────────────────────────────────────
+ *
+ * Os limiares eram absolutos (>= 65 e <= 40) sobre atributos derivados, que regridem ao centro —
+ * o mesmo erro de unidades que `catalog-scale.ts` já corrigiu no resto do motor. Medido no
+ * catálogo de produção (47 variantes):
+ *
+ *     potência       21 … 57     0 raquetes >= 65     26 <= 40
+ *     spin           21 … 55     0 raquetes >= 65      9 <= 40
+ *     estabilidade   40 … 62     0 raquetes >= 65      1 <= 40
+ *     controle       44 … 81     6 raquetes >= 65      0 <= 40
+ *     conforto       45 … 65     2 raquetes >= 65      0 <= 40
+ *     manobra        41 … 69     1 raquete  >= 65      0 <= 40
+ *
+ * Em potência, spin e estabilidade a frase POSITIVA não podia ser exibida a ninguém, nunca — não
+ * existe raquete no catálogo que alcance o limiar. Só a negativa disparava. O resultado agregado:
+ * média de 1,0 linha por raquete, das quais 0,8 eram limitação, e 18 das 47 raquetes não
+ * produziam linha nenhuma — a seção saía vazia para 38% do catálogo.
+ *
+ * Somados, os dois defeitos faziam uma seção que se apresenta como "o que esperar em quadra"
+ * funcionar como lista de defeitos em eixos aleatórios. Não é honestidade — é ruído com cara de
+ * honestidade, e ele desloca a atenção de onde o trade-off REAL está.
+ *
+ * ─── POR QUE ISTO NÃO ESCONDE TRADE-OFF ────────────────────────────────────────────────────
+ *
+ * Porque o trade-off tem seção própria, e mais bem feita: `buildTradeOffs` já mede por posição de
+ * catálogo, já parte do que o jogador pediu, e já diz o que a alternativa custaria no ranking
+ * real. Um eixo pedido em que a raquete entrega menos aparece LÁ, com o raciocínio junto — e é
+ * por isso que aqui os eixos já cobertos por um trade-off são pulados: repetir a limitação em dois
+ * blocos vizinhos, num deles sem o raciocínio, é o que fazia a leitura parecer contraditória.
+ *
+ * O que continua garantido: todo eixo que a pessoa DECLAROU aparece, com o lado que for — alto,
+ * médio ou baixo. Se ela pediu spin e a raquete é fraca em spin, ela lê isso. O que deixou de
+ * acontecer é a raquete ser julgada em público num eixo que ninguém perguntou.
+ */
+export function explainExpectations(
+  ranked: RankedRacket,
+  profile: PlayerProfile,
+  bands: Readonly<Record<string, readonly [number, number]>>,
+  coveredByTradeOff: readonly NeedKey[] = [],
+): string[] {
+  const a = ranked.racket.attributes;
+  const declared = new Set(profile.declared_priorities);
+  const covered = new Set(coveredByTradeOff);
+
+  const position = (axis: ExpectationAxis): number | null => {
+    const band = bands[axis.attribute];
+    if (!band || band[1] <= band[0]) return null;
+    return Math.max(0, Math.min(100, ((axis.value(a) - band[0]) / (band[1] - band[0])) * 100));
   };
 
-  describe(
-    'Potência',
-    a.power_score,
-    'o frame ajuda a bola a viajar; cuidado com o excesso nos primeiros treinos.',
-    'a potência virá principalmente de você, não da raquete.',
-  );
-  describe(
-    'Controle',
-    a.control_score,
-    'a bola deve ficar mais previsível quando você acelera.',
-    'menos controle direcional, em troca de mais tolerância.',
-  );
-  describe(
-    'Spin',
-    a.spin_score,
-    'facilidade para elevar a bola e produzir rotação com o mesmo gesto.',
-    'trajetória mais plana; o spin dependerá mais da sua técnica.',
-  );
-  describe(
-    'Conforto',
-    a.comfort_score,
-    'resposta mais macia no impacto.',
-    'resposta mais direta e seca — acompanhe como seu braço reage.',
-  );
-  describe(
-    'Estabilidade',
-    a.stability_score,
-    'firmeza contra bolas pesadas e em impactos descentralizados.',
-    'pode ceder contra bolas muito pesadas.',
-  );
-  describe(
-    'Manobrabilidade',
-    a.maneuverability_score,
-    'rápida de reposicionar em defesa e na rede.',
-    'exige preparação mais cedo, especialmente em bolas rápidas.',
-  );
+  const line = (axis: ExpectationAxis, pos: number): string =>
+    `**${axis.label}:** ${pos >= EXPECTATION_HIGH ? axis.high : axis.low}`;
 
-  return out;
+  const pedidos: string[] = [];
+  const pedidosNoMeio: string[] = [];
+  const extras: Array<{ line: string; distance: number }> = [];
+
+  for (const axis of EXPECTATION_AXES) {
+    const pos = position(axis);
+    if (pos === null) continue;
+    const notavel = pos >= EXPECTATION_HIGH || pos <= EXPECTATION_LOW;
+
+    if (declared.has(axis.need)) {
+      // Eixo pedido entra sempre — mas os que não têm destaque saem AGRUPADOS, ver abaixo.
+      if (notavel) pedidos.push(line(axis, pos));
+      else pedidosNoMeio.push(axis.label);
+      continue;
+    }
+
+    // Eixo não pedido: só quando é notável, e nunca repetindo o que a seção de atenção já disse.
+    if (covered.has(axis.need)) continue;
+    if (!notavel) continue;
+    extras.push({ line: line(axis, pos), distance: Math.abs(pos - 50) });
+  }
+
+  /*
+    OS EIXOS PEDIDOS SEM DESTAQUE SAEM EM UMA LINHA SÓ.
+
+    Eles precisam ser ditos: quem pediu potência tem o direito de saber que a raquete não é um
+    destaque em potência, mesmo quando isso não vira uma troca (`buildTradeOffs` só dispara quando
+    o déficit contra a referência é relevante). O que não pode é virar três linhas seguidas com a
+    mesma frase, que foi o que a primeira versão desta correção produziu — medido, a maioria dos
+    relatórios saía com "no meio do catálogo" repetido, e uma seção que se repete deixa de ser lida.
+
+    Agrupados, os eixos são NOMEADOS e a informação continua inteira, em uma linha que se lê.
+  */
+  if (pedidosNoMeio.length > 0) {
+    const eixos = listPt(pedidosNoMeio);
+    pedidos.push(
+      pedidosNoMeio.length === 1
+        ? `**${eixos}:** no meio do catálogo — não é aqui que esta raquete se destaca, e também ` +
+          `não é aqui que ela decepciona.`
+        : `**${eixos}:** a raquete fica no meio do catálogo nesses eixos que você pediu. Ela não ` +
+          `decepciona em nenhum deles, e também não é neles que se destaca — o encaixe com você ` +
+          `vem do conjunto.`,
+    );
+  }
+
+  /*
+    A ORDEM é a do questionário, não a do catálogo.
+
+    `declared_priorities` já chega ordenado pelo que a pessoa colocou em 1º, e `EXPECTATION_AXES`
+    preserva essa ordem para os pedidos. Os extras entram depois, do mais notável para o menos —
+    quem não foi perguntado não disputa o topo da lista com quem foi.
+  */
+  const ordenados = [...pedidos];
+  extras.sort((x, y) => y.distance - x.distance);
+  for (const extra of extras.slice(0, MAX_UNREQUESTED)) {
+    if (ordenados.length >= MAX_EXPECTATIONS) break;
+    ordenados.push(extra.line);
+  }
+
+  if (ordenados.length === 0) {
+    ordenados.push(
+      'Esta raquete não se destaca nem decepciona em nenhum eixo isolado — o encaixe dela com ' +
+        'você está no conjunto, não em uma característica única.',
+    );
+  }
+
+  return ordenados.slice(0, MAX_EXPECTATIONS);
 }
 
 /** Explicação da corda (§36). */
@@ -194,12 +364,55 @@ export function explainTension(tension: TensionRecommendation): string[] {
       ' e ajustamos a partir do seu perfil.',
   );
 
-  // Os três ajustes de maior magnitude — o relatório completo aparece na auditoria.
-  const top = [...tension.adjustments]
-    .sort((a, b) => Math.abs(b.delta_lbs) - Math.abs(a.delta_lbs))
-    .slice(0, 3);
-  for (const adj of top) {
+  /**
+   * ═══ A CONTA PRECISA FECHAR NA TELA (v2.28.0) ══════════════════════════════════════════════
+   *
+   * Reclamação do usuário, com o relatório aberto: base 55 lbs, ajustes listados de −3, −2,1 e
+   * −1,3, e resultado final 50 lbs. Ou seja, ele lia −6,4 de ajuste e via −5 de resultado, sem
+   * nada na página explicando os 1,4 lbs de diferença.
+   *
+   * Havia QUATRO fontes de divergência, e nenhuma delas aparecia:
+   *
+   *   1. `slice(0, 3)` mostra os três maiores ajustes e cala sobre os demais, sem dizer que
+   *      existem — quem soma o que está na tela nunca chega ao subtotal real.
+   *   2. A ancoragem na tensão atual mistura o valor calculado com o que a pessoa já usa.
+   *   3. Os clamps de segurança (limite do tipo de corda, faixa do fabricante) podem mover o
+   *      número, e a nota dizia que houve ajuste sem dizer de quanto para quanto.
+   *   4. O arredondamento final para lbs inteiro.
+   *
+   * Um relatório que mostra parcelas e um total que não bate com elas destrói a confiança em
+   * TODO o resto — e este produto vende justamente a auditabilidade da conta (§48). O conserto é
+   * mostrar as etapas que faltavam, não esconder as parcelas.
+   */
+  const ordenados = [...tension.adjustments].sort(
+    (a, b) => Math.abs(b.delta_lbs) - Math.abs(a.delta_lbs),
+  );
+  const MOSTRADOS = 3;
+  for (const adj of ordenados.slice(0, MOSTRADOS)) {
     out.push(`${adj.delta_lbs > 0 ? '+' : ''}${adj.delta_lbs} lbs — ${adj.rationale}`);
+  }
+
+  const resto = ordenados.slice(MOSTRADOS);
+  if (resto.length > 0) {
+    const soma = round(
+      resto.reduce((s, a) => s + a.delta_lbs, 0),
+      1,
+    );
+    out.push(
+      `${soma > 0 ? '+' : ''}${soma} lbs — outros ${resto.length} ` +
+        `${resto.length === 1 ? 'ajuste menor' : 'ajustes menores'} do seu perfil, somados.`,
+    );
+  }
+
+  const somaAjustes = round(
+    tension.adjustments.reduce((s, a) => s + a.delta_lbs, 0),
+    1,
+  );
+  if (tension.adjustments.length > 0) {
+    out.push(
+      `Somados, os ajustes levam a base de ${round(tension.base_lbs, 1)} lbs para ` +
+        `${round(tension.base_lbs + somaAjustes, 1)} lbs.`,
+    );
   }
 
   if (tension.anchored_to_current) {
@@ -210,6 +423,21 @@ export function explainTension(tension: TensionRecommendation): string[] {
   }
 
   out.push(...tension.notes);
+
+  /*
+    O último passo da conta: o arredondamento.
+
+    Só é dito quando explica uma diferença que o leitor consegue VER — encordoador não regula
+    máquina em décimo de libra, e anunciar "arredondamos de 50,0 para 50" seria ruído.
+  */
+  const antes = tension.pre_clamp_lbs;
+  if (antes != null && tension.clamped_by === null && Math.abs(antes - tension.lbs) >= 0.1) {
+    out.push(
+      `A conta fechou em ${round(antes, 1)} lbs e arredondamos para ${tension.lbs} — é assim que ` +
+        `a tensão é regulada na máquina.`,
+    );
+  }
+
   out.push(tension.guidance);
 
   return out;

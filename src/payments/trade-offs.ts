@@ -195,6 +195,13 @@ export type TradeOff = {
   readonly headline: string;
   /** O raciocínio: por que a alternativa não compensa. */
   readonly rationale: string;
+  /**
+   * Qual eixo esta troca discute. `undefined` quando a penalização não é ligada a um eixo.
+   *
+   * Não é exibido. Existe para que "O que você deve perceber" saiba o que já foi dito AQUI e não
+   * repita a mesma limitação no bloco vizinho, sem o raciocínio que a torna compreensível.
+   */
+  readonly axis?: NeedKey;
 };
 
 /**
@@ -450,6 +457,7 @@ function unmetAsks(
     const compensacao = standoutAxis(winner, ranking, bands, need);
 
     out.push({
+      axis: need,
       headline:
         `Você pediu mais ${label} como prioridade, e esta raquete avança pouco nesse ponto.`,
       rationale:
@@ -490,6 +498,7 @@ export function buildTradeOffs(
     const alternative = bestAlternative(penalty.axis, winner, ranking, context);
 
     out.push({
+      axis: penalty.axis,
       headline: `Em ${label}, esta raquete entrega menos do que você pediu.`,
       rationale: alternative
         ? `Entre as ${candidatesEvaluated} avaliadas existem opções com mais ${label} — mas a ` +

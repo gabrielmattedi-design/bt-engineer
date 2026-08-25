@@ -192,7 +192,7 @@ export default async function ResultadoPage({
             <h2 className="font-display text-2xl font-bold">Seu card</h2>
             <p className="mt-2 max-w-prose text-sm text-graphite">
               Baixe e compartilhe. O card traz seu perfil, a raquete indicada
-              {report.setup ? ', a corda e a tensão' : ''} — e nada que você não queira mostrar.
+              {report.setup ? ', a corda e a tensão' : ''}.
             </p>
 
             <div className="mt-6 overflow-hidden rounded border border-line">
@@ -356,8 +356,7 @@ export default async function ResultadoPage({
                   <strong>{pedidoPct}%</strong> e <strong>o encaixe com você</strong> (conforto,
                   peso, nível, swing e estilo) por <strong>{encaixePct}%</strong>. Os três primeiros
                   são fatias de um mesmo critério, repartidas na ordem de prioridade que você
-                  declarou — por isso cada um sozinho aparece com um número menor que os critérios
-                  inteiros.
+                  declarou.
                 </p>
               );
             })()}
