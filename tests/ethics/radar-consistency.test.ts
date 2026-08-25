@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
 import { serializeRecommendation } from '@/payments/entitlements';
+import { layoutAxes } from '@/components/result/radar-geometry';
 import {
   FLOOR_SAFE_PHYSICAL,
   FLOOR_SAFE_SKILL,
@@ -53,21 +54,41 @@ const runs = PERSONAS.map((persona) => {
 });
 
 /**
- * Área ponderada — a mesma conta que decidiu o ranking, e a que o gráfico agora exibe.
+ * A ÁREA DE VERDADE do polígono desenhado — a mesma que o olho integra ao bater o olho no gráfico.
  *
- * A área CRUA de um radar trata todos os vértices como iguais. O motor não trata: `Nível técnico`
- * pesa 0.20 e cada eixo de bola pesa um terço de 0.16. Comparar área crua com decisão ponderada
- * produziria uma falha em todo caso de quase-empate — e um teste que falha por ruído é um teste que
- * alguém vai silenciar.
+ * ═══ POR QUE ISTO DEIXOU DE SER UMA MÉDIA PONDERADA ══════════════════════════════════════
  *
- * O peso vai para a tela somado POR BLOCO, abaixo do gráfico. Por eixo ele já esteve no rótulo e
- * foi removido: "Spin 3%" ao lado de "Seu swing 17%" sugere que o motor ignorou o spin, quando os
- * três eixos de bola são fatias de um critério só. Bloco contra bloco é a comparação honesta.
+ * Esta função já foi `Σ valor × peso / Σ peso` e se chamava "área ponderada". O nome era uma
+ * promessa que ela não cumpria: média ponderada é LINEAR no valor de cada eixo, e a área de um
+ * polígono não é — ela vai com o PRODUTO de raios vizinhos, ou seja, aproximadamente com o
+ * quadrado. Um teste que jura verificar o que o leitor vê e na verdade verifica outra grandeza é
+ * pior do que não existir, porque dá por trancada uma porta que está aberta.
+ *
+ * A diferença não é acadêmica. Medida nas personas em que o motor põe a recomendada à frente:
+ *
+ *     persona   vantagem no motor   média ponderada   ÁREA REAL
+ *       p02           +4                 +4,5           +12,3%
+ *       p05          +11                 +2,3            +5,8%
+ *       p06          +35                +19,9           +45,5%
+ *       p20           +7                 +6,1           +10,8%
+ *       p22          +35                +30,5           +70,8%
+ *
+ * A área amplifica, e amplifica na direção certa. Mas ela PODERIA amplificar na direção errada num
+ * caso de quase-empate com os pesos distribuídos de outro jeito, e é exatamente esse caso que este
+ * teste existe para pegar. Com a média ponderada ele não pegaria.
+ *
+ * Os ângulos vêm de `layoutAxes`, o mesmo módulo que desenha — não de uma cópia. Se a geometria
+ * mudar, o teste acompanha; se ele tivesse a própria fórmula de ângulos, passaria a medir um
+ * gráfico que não existe mais.
  */
-function area(axes: readonly { value: number; weight: number }[]): number {
-  const total = axes.reduce((sum, a) => sum + a.weight, 0);
-  if (total <= 0) return axes.reduce((sum, a) => sum + a.value, 0) / axes.length;
-  return axes.reduce((sum, a) => sum + a.value * a.weight, 0) / total;
+function area(values: readonly number[], axes: Parameters<typeof layoutAxes>[0]): number {
+  const layout = layoutAxes(axes);
+  let soma = 0;
+  for (let i = 0; i < values.length; i += 1) {
+    const j = (i + 1) % values.length;
+    soma += values[i]! * values[j]! * Math.sin(layout[j]!.angle - layout[i]!.angle);
+  }
+  return Math.abs(soma) / 2;
 }
 
 describe('coerência entre o radar e a recomendação', () => {
@@ -281,17 +302,13 @@ describe('coerência entre o radar e a recomendação', () => {
       if (!standing || standing.gap_to_first <= 0) continue;
       if (report.radar.some((a) => a.current === null)) continue;
 
-      const areaRecommended = area(
-        report.radar.map((a) => ({ value: a.recommended, weight: a.weight })),
-      );
-      const areaCurrent = area(
-        report.radar.map((a) => ({ value: a.current as number, weight: a.weight })),
-      );
+      const areaRecommended = area(report.radar.map((a) => a.recommended), report.radar);
+      const areaCurrent = area(report.radar.map((a) => a.current as number), report.radar);
 
       expect(
         areaRecommended,
         `${persona.id}: motor dá ${standing.gap_to_first} pontos de vantagem à recomendada, ` +
-          `mas o gráfico mostra a atual maior (${areaCurrent.toFixed(1)} vs ${areaRecommended.toFixed(1)})`,
+          `mas a área desenhada da atual é maior (${areaCurrent.toFixed(0)} vs ${areaRecommended.toFixed(0)})`,
       ).toBeGreaterThanOrEqual(areaCurrent);
     }
   });

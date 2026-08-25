@@ -262,11 +262,40 @@ export default async function ResultadoPage({
         {report.radar.length > 0 && (
           <section>
             <h2 className="font-display text-2xl font-bold">Seu jogo e a raquete, lado a lado</h2>
+            {/*
+              ═══ POR QUE "ABERTURA", E NÃO "LARGURA DA FATIA" ════════════════════════════
+
+              A frase anterior dizia "a largura de cada fatia é o peso que aquele eixo teve na
+              decisão". Observação do usuário, e ela está certa: cada indicador é um VÉRTICE, e um
+              vértice tem duas arestas, uma de cada lado. Dizer "a fatia dele" faz o leitor procurar
+              qual das duas arestas pertence a quem, e não há resposta — a aresta é compartilhada
+              entre vizinhos.
+
+              O que de fato é proporcional ao peso é o ÂNGULO que o eixo ocupa em volta do centro,
+              com o vértice no meio dele. Dizer "abertura" e situar o vértice no centro dela remove
+              a pergunta sem simplificar a verdade: o desenho continua sendo exatamente isso.
+            */}
             <p className="mt-2 max-w-prose text-sm text-graphite">
-              Cada eixo vai de 0 a 100, e a <strong>largura de cada fatia é o peso que aquele eixo
-              teve na decisão</strong> — quanto mais larga, mais ela contou. A linha laranja é o seu
-              alvo: o melhor que existe para você, não a perfeição. Onde o verde fica abaixo dela,
-              houve uma troca, e o tamanho do vão é o tamanho da troca.
+              Cada eixo vai de 0 a 100, e a <strong>abertura de cada eixo — o quanto ele ocupa em
+              volta do centro — é o peso que ele teve na decisão</strong>. O vértice fica no meio da
+              abertura dele: quanto mais espaço o eixo ocupa, mais aquele critério contou.
+            </p>
+            {/*
+              "TROCA" SAIU DAQUI.
+
+              Observação do usuário: o termo deixou o texto confuso. E deixava mesmo — ele aparece
+              três vezes em três sentidos ligeiramente diferentes na mesma página, e a seção que o
+              explica se chama "As trocas desta escolha". Chamar o vão de troca antes de explicar o
+              que é uma troca é pedir para o leitor aceitar um jargão.
+
+              Aqui a frase passa a dizer o FATO (entregou menos do que o seu perfil pedia) e a
+              apontar onde está o motivo, em vez de nomear o fenômeno.
+            */}
+            <p className="mt-3 max-w-prose text-sm text-graphite">
+              A linha laranja é o seu alvo: o melhor que existe para você, não a perfeição. Onde o
+              verde fica abaixo dela, esta raquete entrega menos do que o seu perfil pedia naquele
+              ponto — quanto maior o vão, menos ela entregou. O motivo de cada vão está em{' '}
+              <strong>As trocas desta escolha</strong>, logo acima.
             </p>
 
             <div className="mt-6 rounded border border-line bg-white p-6">
@@ -281,7 +310,7 @@ export default async function ResultadoPage({
               ordem de prioridade declarada; swing é um critério inteiro. Fatia contra bolo não é
               comparação.
 
-              Somado por bloco, os dois números são da mesma natureza e podem ser lidos um contra o
+              Somados por bloco, os números são da mesma natureza e podem ser lidos um contra o
               outro. É a única forma em que o peso informa em vez de confundir.
             */}
             {(() => {
@@ -291,14 +320,52 @@ export default async function ResultadoPage({
               const encaixe = report.radar
                 .filter((a) => a.group === 'voce')
                 .reduce((sum, a) => sum + a.weight, 0);
+
+              /*
+                ═══ OS TRÊS NÚMEROS SOMAM 100, SEMPRE ═════════════════════════════════
+
+                Antes somavam 90, e o usuário perguntou onde estavam os outros 10%. Pergunta
+                justa: um relatório que mostra a repartição de uma decisão e deixa um décimo dela
+                sem dono convida exatamente a desconfiança que o produto inteiro tenta evitar.
+
+                O que faltava é `transition_fit` — o quanto a mudança seria brusca em relação à
+                raquete que a pessoa já usa. Ele não tem eixo no radar de propósito, e o motivo é
+                bom: os oito eixos respondem "o que a raquete faz" e "o quanto ela serve a você",
+                e a transição não é nem uma coisa nem outra — ela mede a DISTÂNCIA entre dois
+                equipamentos, e um vértice num gráfico de compatibilidade leria como qualidade.
+                O lugar dela é a tabela de comparação, onde ela já está, item por item.
+
+                O resto é calculado por SUBTRAÇÃO e o encaixe absorve o arredondamento, para que os
+                três números fechem 100 na tela. Arredondar os três de forma independente
+                devolveria somas de 99 e 101, que é o mesmo defeito com outro rosto.
+              */
+              const pedidoPct = Math.round(pedido * 100);
+              const transicaoPct = Math.max(0, Math.round((1 - pedido - encaixe) * 100));
+              const encaixePct = 100 - pedidoPct - transicaoPct;
+
               return (
                 <p className="mt-4 text-sm leading-relaxed text-graphite">
                   Somando por bloco: <strong>o que você pediu</strong> (potência, controle e spin){' '}
-                  vale <strong>{Math.round(pedido * 100)}%</strong> da decisão, e{' '}
+                  vale <strong>{pedidoPct}%</strong> da decisão e{' '}
                   <strong>o encaixe com você</strong> (conforto, peso, nível, swing e estilo) vale{' '}
-                  <strong>{Math.round(encaixe * 100)}%</strong>. Os três primeiros são fatias de um
-                  mesmo critério, repartidas na ordem de prioridade que você declarou — por isso cada
-                  um sozinho aparece com um número menor que os critérios inteiros.
+                  <strong>{encaixePct}%</strong>
+                  {transicaoPct > 0 ? (
+                    <>
+                      . Os <strong>{transicaoPct}%</strong> que faltam para 100 são a{' '}
+                      <strong>proximidade com a raquete que você já usa</strong> — o quanto a
+                      mudança seria brusca. Esse critério não tem eixo no gráfico porque não
+                      descreve a raquete nem o encaixe com você: ele mede a distância entre a sua
+                      atual e a recomendada, e está detalhado na comparação logo abaixo.
+                    </>
+                  ) : (
+                    <>
+                      , e os dois fecham a decisão inteira — sem uma raquete atual informada, não há
+                      transição a considerar.
+                    </>
+                  )}{' '}
+                  Os três primeiros eixos são fatias de um mesmo critério, repartidas na ordem de
+                  prioridade que você declarou — por isso cada um sozinho aparece com um número
+                  menor que os critérios inteiros.
                 </p>
               );
             })()}
