@@ -18,6 +18,19 @@
  */
 
 /**
+ * 2.32.0 — o card da raquete atual parou de comparar a diferença com a variação de fábrica.
+ *
+ * A frase do empate trazia `menor que um ponto, menos do que separa duas unidades da mesma raquete
+ * saídas de fábrica`. A segunda metade é redundante — "menor que um ponto" já diz o tamanho — e
+ * ela aparecia DUAS VEZES na mesma página, porque o bloco de empate técnico do pódio usa a mesma
+ * comparação algumas seções abaixo.
+ *
+ * Lá ela fica, e deve ficar: é o argumento que sustenta chamar 0,45 ponto de empate, e sem ela
+ * aquele número não tem referência de escala. Aqui era ilustração repetida, e ilustração repetida
+ * vira ruído — o leitor para para conferir se são a mesma informação ou duas diferentes.
+ *
+ * O RANKING não muda.
+ *
  * 2.31.0 — até o caso em que a raquete do jogador VENCE virou condicional.
  *
  * Ele terminava em `Nenhuma troca de quadro te levaria adiante daqui`. Verdade, e ainda assim um
@@ -451,7 +464,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.31.0';
+export const METHODOLOGY_VERSION = '2.32.0';
 
 export type Range = readonly [lo: number, hi: number];
 

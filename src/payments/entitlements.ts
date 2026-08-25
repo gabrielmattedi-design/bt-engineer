@@ -427,13 +427,12 @@ export function buildCurrentStanding(
       message:
         `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ` +
         `ranking, com os mesmos ${Math.round(current.fit_score)}% de compatibilidade da primeira — ` +
-        `a diferença entre as duas é menor que um ponto, menos do que separa duas unidades da mesma ` +
-        `raquete saídas de fábrica. Nessa faixa o número deixou de decidir: entram o tato de cada ` +
-        `jogador, o tempo de adaptação a um quadro diferente e a intimidade com uma marca — coisas ` +
-        `que nenhuma análise mede. Não espere um salto ao trocar. O caminho de maior retorno aqui é ` +
-        `a corda e a tensão, que custam uma fração. Mas se o que te trouxe até aqui foi um incômodo ` +
-        `específico, olhe os eixos abaixo: se a diferença estiver justamente nele, testar a ` +
-        `recomendada faz sentido.`,
+        `a diferença entre as duas é menor que um ponto. Nessa faixa o número deixou de decidir: ` +
+        `entram o tato de cada jogador, o tempo de adaptação a um quadro diferente e a intimidade ` +
+        `com uma marca — coisas que nenhuma análise mede. Não espere um salto ao trocar. O caminho ` +
+        `de maior retorno aqui é a corda e a tensão, que custam uma fração. Mas se o que te trouxe ` +
+        `até aqui foi um incômodo específico, olhe os eixos abaixo: se a diferença estiver ` +
+        `justamente nele, testar a recomendada faz sentido.`,
     };
   }
 
