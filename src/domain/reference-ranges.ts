@@ -18,6 +18,29 @@
  */
 
 /**
+ * 2.27.0 — o veredicto sobre a raquete ATUAL parou de afirmar o resultado financeiro de uma troca.
+ *
+ * Os dois limiares não mudaram (`KEEP_CURRENT_GAP` 4, `REAL_UPGRADE_GAP` 9), e nenhum score, peso
+ * ou penalidade foi tocado: as mesmas respostas produzem a mesma raquete e o mesmo `gap`. O que
+ * mudou é o SIGNIFICADO do que se lê no veredicto, e por isso a versão sobe.
+ *
+ * A frase antiga do caso `keep` era `Uma diferença desse tamanho não paga a troca de um quadro`.
+ * Ela concluía, de um `fit_score` agregado, uma coisa que o agregado não sabe: `gap` resume oito
+ * componentes num número só e perde ONDE está a diferença. Duas raquetes a 2 pontos podem ser
+ * quase idênticas ou divergir forte num eixo e compensar no outro — e quem preenche o questionário
+ * com uma raquete na mão em geral está incomodado com algo ESPECÍFICO, que é o motivo de ter
+ * procurado a análise. Responder "fique com a sua" a essa pessoa ignora a pergunta que ela fez.
+ *
+ * O texto novo diz o mesmo sobre a MAGNITUDE — diferença pequena, não espere um salto, corda e
+ * tensão têm maior retorno e custam uma fração — e para de decidir por quem lê: nessa faixa quem
+ * decide é tato, adaptação e preferência de marca, que nenhum modelo mede. Fica a instrução de
+ * olhar os eixos, porque é lá que está a informação que o número agregado apagou.
+ *
+ * Os casos `marginal` e `upgrade` foram reescritos na mesma escada: moderado passa a convidar ao
+ * teste, e grande passa a recomendar com firmeza. Nenhum dos quatro usa urgência, escassez ou
+ * incentivo a comprar — §58 vale nas duas direções, e empurrar a troca aqui seria o mesmo defeito
+ * com o sinal trocado.
+ *
  * 2.26.0 — a frase de separação do pódio para de errar a própria conta, e passa a dizer quantas
  * MARCAS há dentro do empate técnico.
  *
@@ -337,7 +360,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.26.0';
+export const METHODOLOGY_VERSION = '2.27.0';
 
 export type Range = readonly [lo: number, hi: number];
 

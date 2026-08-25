@@ -297,6 +297,32 @@ export type CurrentRacketStanding = {
  *
  * O limiar é o mesmo do empate técnico exibido no pódio: abaixo dele, as opções são alternativas
  * legítimas e não um upgrade.
+ *
+ * ═══ POR QUE O TEXTO DEIXOU DE DIZER "NÃO PAGA A TROCA" (v2.27.0) ════════════════════════════
+ *
+ * A frase anterior era `Uma diferença desse tamanho não paga a troca de um quadro`. O limiar está
+ * certo e não mudou; o que mudou é que a FRASE afirmava mais do que o número sustenta, em três
+ * pontos:
+ *
+ *   1. `gap` é a diferença entre dois `fit_score` AGREGADOS. Ele resume oito componentes num
+ *      número só, e some justamente com a informação de ONDE a diferença está. Duas raquetes a 2
+ *      pontos podem ser quase idênticas ou divergir forte num eixo e compensar no outro — e é o
+ *      segundo caso que interessa a quem veio aqui incomodado com uma coisa específica.
+ *
+ *   2. Quem preenche este questionário com uma raquete na mão frequentemente está DESCONFORTÁVEL
+ *      com ela — é o motivo de ter procurado a análise. Responder "fique com a sua" a quem disse
+ *      que algo o incomoda ignora a pergunta que a pessoa fez. O gap agregado não sabe se o
+ *      incômodo dela é exatamente o eixo em que a recomendada abre vantagem.
+ *
+ *   3. Nessa faixa, o que decide de fato não é medido por nenhum modelo: tato, tempo de adaptação
+ *      a um quadro diferente, intimidade com uma marca. Afirmar o resultado financeiro de uma
+ *      troca ("não paga") é uma conclusão que os dados não sustentam.
+ *
+ * O que NÃO mudou, e não pode mudar: o texto continua dizendo com todas as letras que o ganho
+ * esperado é pequeno, continua oferecendo corda e tensão como o caminho de maior retorno, e
+ * continua sem nenhuma urgência, escassez ou incentivo a comprar. A calibração é para PARAR DE
+ * AFIRMAR DEMAIS — nos dois sentidos. Empurrar a troca aqui seria o mesmo defeito com o sinal
+ * trocado, e §58 vale igual nas duas direções.
  */
 const KEEP_CURRENT_GAP = 4;
 
@@ -332,8 +358,8 @@ function buildCurrentStanding(
       verdict: 'keep',
       message:
         `A raquete que você já tem é a melhor opção para o seu jogo entre as ` +
-        `${result.full_ranking.length} deste ranking. Não troque de quadro — o que ainda dá para ` +
-        `melhorar está na corda e na tensão.`,
+        `${result.full_ranking.length} deste ranking. Nenhuma troca de quadro te levaria adiante ` +
+        `daqui — o que ainda dá para melhorar está na corda e na tensão.`,
     };
   }
 
@@ -346,10 +372,12 @@ function buildCurrentStanding(
       verdict: 'keep',
       message:
         `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ranking, ` +
-        `a ${gap} ${gap === 1 ? 'ponto' : 'pontos'} da primeira. Uma diferença desse tamanho não ` +
-        `paga a troca de um quadro: é do tamanho da margem de erro do próprio modelo. Nossa ` +
-        `recomendação é continuar com ela e investir na corda e na tensão, onde o ganho é imediato ` +
-        `e custa uma fração.`,
+        `a ${gap} ${gap === 1 ? 'ponto' : 'pontos'} da primeira. É uma diferença pequena, e nessa ` +
+        `faixa o que decide deixa de ser o número: entram o tato de cada jogador, o tempo de ` +
+        `adaptação a um quadro diferente e a intimidade com uma marca — coisas que nenhuma análise ` +
+        `mede. Não espere um salto ao trocar. O caminho de maior retorno aqui é a corda e a tensão, ` +
+        `que custam uma fração. Mas se o que te trouxe até aqui foi um incômodo específico, olhe os ` +
+        `eixos abaixo: se a diferença estiver justamente nele, testar a recomendada faz sentido.`,
     };
   }
 
@@ -361,9 +389,11 @@ function buildCurrentStanding(
       gap_to_first: gap,
       verdict: 'marginal',
       message:
-        `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Existe ganho na troca, ` +
-        `mas ele é moderado — vale se você já pensava em trocar, e não é urgente se você está bem ` +
-        `com ela. Ajustar corda e tensão captura parte desse ganho sem trocar de quadro.`,
+        `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Aqui já existe ganho ` +
+        `real, ainda que moderado — é o tipo de diferença que pode ser sentida em quadra, sobretudo ` +
+        `nos eixos em que o vão é maior. Se você já pensava em trocar, esta é uma boa razão para ` +
+        `experimentar a recomendada antes de decidir. Se prefere ir com calma, ajustar corda e ` +
+        `tensão captura parte desse ganho sem trocar de quadro.`,
     };
   }
 
@@ -374,8 +404,10 @@ function buildCurrentStanding(
     gap_to_first: gap,
     verdict: 'upgrade',
     message:
-      `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Aqui a diferença é ` +
-      `material: a troca deve ser sentida em quadra, não só na planilha.`,
+      `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Aqui a diferença não é ` +
+      `questão de gosto: a recomendada atende o seu perfil num nível que a sua atual não alcança, ` +
+      `e a troca deve ser sentida em quadra. Se for para investir em uma coisa só, invista no ` +
+      `quadro — e depois ajuste corda e tensão sobre ele.`,
   };
 }
 
