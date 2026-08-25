@@ -18,6 +18,29 @@
  */
 
 /**
+ * 2.26.0 — a frase de separação do pódio para de errar a própria conta, e passa a dizer quantas
+ * MARCAS há dentro do empate técnico.
+ *
+ * O veredicto "indiferente" trazia "— quase um quarto do catálogo" com a fração escrita à mão,
+ * enquanto ele dispara a partir de 20% e não tem teto. Numa amostra real saiu "5 das 9 raquetes
+ * avaliadas ficaram empatadas — quase um quarto do catálogo": 55% descrito como um quarto, com os
+ * dois números na mesma frase para qualquer leitor conferir. A fração agora é calculada.
+ *
+ * A CONTAGEM DE MARCAS é a resposta honesta a um viés medido numa varredura de 20.000 perfis: uma
+ * única família, a Wilson Blade, leva 21,9% de todas as recomendações, e a Wilson sai com 1,38× o
+ * share que tem no catálogo — sem que a composição do catálogo explique isso, já que na faixa modal
+ * (295–310 g, 97–100 pol²) as quatro marcas estão equilibradas em 8/8/7/6. E a vitória é frágil:
+ * proibir a família vencedora custa mediana de 1,11 ponto de match, ABAIXO do limiar de empate
+ * técnico de 2,0.
+ *
+ * A saída que NÃO foi tomada, e o motivo está documentado em `selectPodium`: girar a marca do 1º
+ * lugar seria recomendar uma raquete que pontuou menos por um motivo que o cliente não pediu, e
+ * quebraria a consistência entre `podium[0]` e `full_ranking[0]` de que `buildCurrentStanding`
+ * depende. A saída tomada é dizer o que é verdade — quando dez raquetes empatam com a primeira e
+ * elas vêm de quatro marcas, quem lê precisa saber que não está preso a nenhuma.
+ *
+ * O RANKING não muda.
+ *
  * 2.25.0 — os dois números do resumo passam a ser a repartição DO GRÁFICO, não da decisão inteira.
  *
  * A 2.24.0 mostrava três (22 / 68 / 10) e explicava o terceiro. Ficou pior, e o motivo é o tipo de
@@ -314,7 +337,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.25.0';
+export const METHODOLOGY_VERSION = '2.26.0';
 
 export type Range = readonly [lo: number, hi: number];
 
@@ -399,11 +422,42 @@ export const MIN_PODIUM_FIT = 75;
 export const TARGET_TOP_MATCH = 80;
 
 /**
- * Piso absoluto do primeiro colocado, verificado em teste.
+ * Piso do primeiro colocado NAS 22 PERSONAS — não um piso absoluto.
  *
  * Fica abaixo de `TARGET_TOP_MATCH` porque existem perfis cujo pedido é internamente
  * contraditório — mais estabilidade E mais manobrabilidade, que puxam a massa em direções opostas.
  * Para eles a melhor raquete do mercado ainda deixa algo por atender, e o número honesto é menor.
+ *
+ * ═══ O QUE ESTA CONSTANTE PROMETIA A MAIS DO QUE ENTREGA ═════════════════════════════════════
+ *
+ * Ela se chamava aqui "piso absoluto do primeiro colocado, verificado em teste". As duas metades
+ * eram verdadeiras isoladamente e a frase inteira era falsa: o teste que a verifica
+ * (`tests/ethics/always-recommendable.test.ts`) roda sobre as 22 personas, e 22 perfis escolhidos
+ * a dedo não estabelecem piso nenhum sobre o universo de quem responde o questionário.
+ *
+ * Medido numa varredura de 12.000 perfis gerados com respostas correlacionadas (nível puxa
+ * calibração, força puxa preparo, altura e peso saem de IMC realista):
+ *
+ *     match mínimo ......... 43,9
+ *     p5 ................... 70,2
+ *     mediana .............. 86,8
+ *     abaixo de 70 ......... 4,3%
+ *
+ * Os 4,3% não são perfis contraditórios — a contagem de contradições é idêntica à do resto da
+ * população. São perfis para os quais o catálogo não tem quadro: `skill_fit` cai 26,9 pontos
+ * contra a média dos demais, `swing_fit` 20,4, e as penalizações sobem de 1,0 para 8,5. E eles se
+ * concentram nos EXTREMOS, que é onde 47 raquetes de 285–315 g e 97–100 pol² rareiam:
+ *
+ *     nível 0–19 ........... 7,3% abaixo de 70      capacidade física 20–39 ... 7,0%
+ *     nível 40–59 .......... 3,4%                   capacidade física 60–79 ... 4,2%
+ *     nível 80–99 .......... 5,6%                   capacidade física 80–99 ... 5,2%
+ *
+ * Declarar prioridade também custa, e é o custo já documentado da tolerância e da premissa: sem
+ * pedido nenhum são 1,8% abaixo de 70; com um pedido, 5,7%.
+ *
+ * Nada disso é defeito de motor — é cobertura de catálogo, e o relatório já é honesto sobre ela
+ * pela confiança e pelo bloco de trocas. O que era defeito é esta constante afirmar um piso que
+ * ninguém verificou. Ela continua sendo a régua das personas, e agora diz só isso.
  */
 export const MIN_TOP_MATCH = 75;
 

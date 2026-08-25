@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { recommend } from '@/recommendation';
 import { serializeRecommendation } from '@/payments/entitlements';
-import { buildDistinction, buildTieGroup } from '@/payments/podium-tie';
+import { buildDistinction, buildSeparation, buildTieGroup } from '@/payments/podium-tie';
 import { TECHNICAL_TIE_THRESHOLD } from '@/domain/reference-ranges';
 import { PERSONAS } from '@/data/personas';
 import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
@@ -305,6 +305,67 @@ describe('as frases do pódio se distinguem entre si', () => {
         // A frase de gêmeas cita o nome do produto e é naturalmente mais longa.
         if (h.startsWith('Tecnicamente idêntica')) continue;
         expect(h.length, `${persona.id}: ${h.length} caracteres — "${h}"`).toBeLessThanOrEqual(130);
+      }
+    }
+  });
+});
+
+/**
+ * A frase de separação não pode contradizer os próprios números que exibe.
+ *
+ * ═══ O DEFEITO QUE ISTO TRANCA ═══════════════════════════════════════════════════════════════
+ *
+ * O veredicto `indiferente` dizia "— quase um quarto do catálogo" com a fração escrita à mão,
+ * enquanto ele dispara a partir de 20% e não tem teto. Numa amostra real saiu "5 das 9 raquetes
+ * avaliadas ficaram empatadas — quase um quarto do catálogo": 55% descrito como um quarto, com os
+ * dois números na mesma frase para qualquer leitor conferir.
+ *
+ * Um relatório pago se sustenta em ser conferível. Errar a conta que o próprio texto exibe custa
+ * mais do que a informação vale — e é o tipo de erro que nenhuma revisão de redação pega, porque a
+ * frase só fica falsa em parte dos perfis.
+ */
+describe('a separação diz a verdade sobre os próprios números', () => {
+  it('a fração citada bate com as raquetes empatadas', () => {
+    let verificados = 0;
+
+    for (const { persona, result } of runs) {
+      const sep = buildSeparation(result.full_ranking);
+      if (!sep) continue;
+      verificados += 1;
+
+      const percentual = sep.message.match(/— (\d+)% do catálogo/);
+      if (!percentual) continue;
+
+      const real = Math.round((sep.tied_with_first / sep.evaluated) * 100);
+      expect(Number(percentual[1]), `${persona.id}: texto diz ${percentual[1]}%, dado é ${real}%`)
+        .toBe(real);
+    }
+
+    expect(verificados, 'nenhuma persona produziu separação').toBeGreaterThan(0);
+  });
+
+  /**
+   * `brands_tied` existe para dizer ao leitor que o empate atravessa marcas — a resposta honesta à
+   * concentração medida na varredura de 20.000 perfis (Wilson Blade em 21,9% das recomendações).
+   * Se o número não for o número, a frase vira propaganda.
+   */
+  it('a contagem de marcas empatadas é a contagem real', () => {
+    for (const { persona, result } of runs) {
+      const sep = buildSeparation(result.full_ranking);
+      if (!sep) continue;
+
+      const primeiro = result.full_ranking[0]!;
+      const empatadas = result.full_ranking.filter(
+        (r) => primeiro.fit_score - r.fit_score < TECHNICAL_TIE_THRESHOLD,
+      );
+      const marcas = new Set(empatadas.map((r) => r.racket.variant.brand)).size;
+
+      expect(sep.brands_tied, `${persona.id}`).toBe(marcas);
+      expect(sep.tied_with_first, `${persona.id}`).toBe(empatadas.length);
+
+      // Uma marca só nunca vira frase: soaria como recomendação de marca.
+      if (sep.brands_tied <= 1) {
+        expect(sep.message, `${persona.id}: citou marcas com apenas uma`).not.toContain('marcas diferentes');
       }
     }
   });
