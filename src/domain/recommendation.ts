@@ -118,6 +118,14 @@ export type TensionRecommendation = {
   readonly base_source: 'manufacturer_range' | 'fallback';
   readonly adjustments: readonly TensionAdjustment[];
   readonly clamped_by: 'frame_range' | 'string_type_bounds' | null;
+  /**
+   * O valor ANTES dos limites de segurança — o que a conta daria se nada a tivesse contido.
+   *
+   * Existe para o relatório poder fechar a própria aritmética. Sem ele, o leitor via a base, via os
+   * ajustes e via um resultado final que não era a soma dos dois, sem nada explicando a diferença.
+   * `undefined` em relatórios gravados antes deste campo existir.
+   */
+  readonly pre_clamp_lbs?: number;
   readonly anchored_to_current: boolean;
   readonly anchor_weight: number;
   readonly guidance: string;

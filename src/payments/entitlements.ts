@@ -593,7 +593,18 @@ function unlockedEntry(
     indices: buildIndices(ranked, bands),
     tags: buildTags(ranked),
     why: explainRacketFit(ranked, profile),
-    expectations: explainExpectations(ranked),
+    /*
+      Os eixos já explicados como TROCA não voltam em "o que você deve perceber".
+
+      Repetir a mesma limitação em dois blocos vizinhos — num deles com o raciocínio e a
+      alternativa, no outro como frase solta — é o que fazia a leitura parecer contraditória.
+    */
+    expectations: explainExpectations(
+      ranked,
+      profile,
+      bands,
+      tradeOffs.flatMap((t) => (t.axis ? [t.axis] : [])),
+    ),
     attention: tradeOffs,
   };
 }

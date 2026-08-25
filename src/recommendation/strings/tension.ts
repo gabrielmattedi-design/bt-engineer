@@ -227,13 +227,20 @@ export function computeTension(
 
   // ── Limites. Nunca ultrapassar o tecnicamente aceitável para o frame (§9). ───────────────────
   let clampedBy: TensionRecommendation['clamped_by'] = null;
+  /*
+    Guardado ANTES de qualquer limite, para o relatório poder mostrar de onde para onde o clamp
+    moveu o número. A frase "ajustamos para a faixa do fabricante" sem os dois valores deixava o
+    leitor com uma conta que não fecha: base menos ajustes não dava o resultado exibido.
+  */
+  const preClamp = round(final, 1);
 
   const bounds = TENSION_BOUNDS_LBS[stringType];
   const boundClamped = clamp(final, bounds[0], bounds[1]);
   if (boundClamped !== final) {
     clampedBy = 'string_type_bounds';
     notes.push(
-      `Ajustamos para os limites praticáveis deste tipo de corda (${bounds[0]}–${bounds[1]} lbs).`,
+      `A conta dava ${round(final, 1)} lbs; ajustamos para os limites praticáveis deste tipo de ` +
+        `corda (${bounds[0]}–${bounds[1]} lbs), o que levou a ${round(boundClamped, 1)} lbs.`,
     );
     final = boundClamped;
   }
@@ -245,7 +252,8 @@ export function computeTension(
     if (frameClamped !== final) {
       clampedBy = 'frame_range';
       notes.push(
-        `Ajustamos para a faixa recomendada pelo fabricante para este frame (${min}–${max} lbs).`,
+        `A conta dava ${round(final, 1)} lbs; ajustamos para a faixa recomendada pelo fabricante ` +
+          `para este frame (${min}–${max} lbs), o que levou a ${round(frameClamped, 1)} lbs.`,
       );
       final = frameClamped;
     }
@@ -269,6 +277,7 @@ export function computeTension(
     base_source: hasRange ? 'manufacturer_range' : 'fallback',
     adjustments,
     clamped_by: clampedBy,
+    pre_clamp_lbs: preClamp,
     anchored_to_current: alpha > 0,
     anchor_weight: alpha,
     guidance: buildGuidance(lbs),
