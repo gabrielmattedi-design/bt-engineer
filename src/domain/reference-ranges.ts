@@ -18,6 +18,24 @@
  */
 
 /**
+ * 2.33.0 — a comparação com a variação de fábrica saiu do relatório inteiro.
+ *
+ * A 2.32.0 tirou a frase do card da raquete atual e a manteve no bloco de empate técnico do pódio,
+ * onde ela era o argumento que dava escala ao "0,45 ponto". O pedido era outro: o problema é a
+ * COMPARAÇÃO, não o lugar dela.
+ *
+ * E o pedido está certo. A frase obriga quem lê a segurar duas grandezas ao mesmo tempo — a
+ * diferença entre DUAS raquetes distintas e a variação entre duas unidades de UM mesmo modelo —
+ * para entender uma frase que só precisava dizer que a diferença é pequena. O bloco do pódio agora
+ * fecha com "uma margem pequena demais para chamar as outras de piores", que é a conclusão que
+ * importa e não pede nenhuma conta.
+ *
+ * O argumento em si continua válido e continua registrado em `podium-tie.ts`: é ele que sustenta a
+ * decisão de não exibir casa decimal no score. O que ele deixou de ser é texto de produto. Uma
+ * justificativa de engenharia não vira automaticamente uma boa explicação para quem lê.
+ *
+ * O RANKING não muda.
+ *
  * 2.32.0 — o card da raquete atual parou de comparar a diferença com a variação de fábrica.
  *
  * A frase do empate trazia `menor que um ponto, menos do que separa duas unidades da mesma raquete
@@ -464,7 +482,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.32.0';
+export const METHODOLOGY_VERSION = '2.33.0';
 
 export type Range = readonly [lo: number, hi: number];
 

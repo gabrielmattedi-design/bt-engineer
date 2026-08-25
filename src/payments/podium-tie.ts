@@ -17,6 +17,13 @@
  * nenhuma medição sustenta — exatamente o tipo de precisão inventada que o produto promete não
  * fazer.
  *
+ * Este argumento continua sendo o motivo da decisão, e por isso fica registrado aqui. O que ele
+ * NÃO é mais é texto exibido: a frase "menos do que separa duas unidades da mesma raquete saídas de
+ * fábrica" saiu do relatório na v2.33.0, por pedido do usuário — ela obriga quem lê a segurar duas
+ * grandezas na cabeça (a diferença entre DUAS raquetes e a variação dentro de UM modelo) para
+ * entender uma frase que só precisava dizer que a diferença é pequena. Uma justificativa de
+ * engenharia não vira automaticamente uma boa explicação de produto.
+ *
  * Pior: no caso concreto do relatório, duas das três empatadas eram GÊMEAS DE ESPECIFICAÇÃO — 98
  * pol², 305 g, 315 mm, 16×19, 27". Elas não empatam por arredondamento; empatam até o último
  * decimal, porque recebem o mesmo vetor de atributos. Nenhuma casa decimal as separa, e insistir
@@ -182,9 +189,9 @@ export function buildTieGroup(podium: readonly RankedRacket[]): PodiumTieGroup |
     message:
       `Estas ${n} primeiras empataram tecnicamente: ${spread.toFixed(2)} ponto separa a maior da ` +
       'menor, num score construído sobre seis especificações publicadas. A ordem entre elas está ' +
-      'correta — a 1ª realmente pontuou mais —, mas por uma margem menor do que a diferença entre ' +
-      'duas unidades da mesma raquete saídas de fábrica. Não leia como "melhor" e "piores": são ' +
-      'alternativas equivalentes, e o que separa cada uma está escrito no próprio card.',
+      'correta — a 1ª realmente pontuou mais —, mas por uma margem pequena demais para chamar as ' +
+      'outras de piores. São alternativas equivalentes, e o que separa cada uma está escrito no ' +
+      'próprio card.',
   };
 }
 
