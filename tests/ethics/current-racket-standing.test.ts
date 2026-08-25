@@ -98,10 +98,45 @@ describe('o empate no arredondamento não vira "primeiro lugar"', () => {
     expect(standing.message).toMatch(AFIRMA_PRIMEIRO);
   });
 
-  it('o texto do empate não promete ganho onde não há', () => {
+  /**
+   * O empate segue a MESMA escada dos outros casos: calibra a expectativa para baixo, oferece o
+   * setup como caminho de maior retorno, e ainda assim deixa a porta aberta para quem chegou aqui
+   * por um incômodo específico. A primeira versão dizia "não há ganho a buscar numa troca de
+   * quadro" — o registro categórico que a 2.27.0 tinha acabado de remover dos outros quatro,
+   * reintroduzido sem querer num ramo novo.
+   */
+  it('calibra a expectativa para baixo sem fechar a porta da troca', () => {
     const standing = cenario(88.45, 88.0, 2)!;
-    expect(standing.message).toContain('corda e na tensão');
+
+    expect(standing.message, 'precisa dizer que não se espera um salto').toContain(
+      'Não espere um salto',
+    );
+    expect(standing.message, 'precisa oferecer o caminho mais barato').toContain(
+      'corda e a tensão',
+    );
+    expect(standing.message, 'precisa abrir a porta para o incômodo específico').toContain(
+      'incômodo específico',
+    );
+
+    // O que ele NÃO pode fazer: decidir pelo leitor, em nenhuma das duas direções.
+    expect(standing.message).not.toMatch(/não há ganho|não paga a troca|não troque/i);
     expect(standing.message).not.toMatch(/vale a pena trocar|recomendamos a troca/i);
+  });
+
+  it('os quatro veredictos falam a mesma língua: nenhum decide pelo leitor', () => {
+    const CATEGORICO = /não paga a troca|não há ganho a buscar|não troque de quadro/i;
+    for (const [primeiro, atual, rank] of [
+      [88.45, 88.0, 2],
+      [90.0, 88.0, 3],
+      [95.0, 89.0, 4],
+      [99.0, 88.0, 6],
+    ] as const) {
+      const standing = cenario(primeiro, atual, rank)!;
+      expect(
+        standing.message,
+        `gap ${standing.gap_to_first}: voltou a decidir pelo leitor — "${standing.message.slice(0, 70)}..."`,
+      ).not.toMatch(CATEGORICO);
+    }
   });
 });
 

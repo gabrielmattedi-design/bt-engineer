@@ -374,6 +374,20 @@ export function buildCurrentStanding(
    * letras que a ordem entre as duas está correta e que a 1ª realmente pontuou mais. Um bloco
    * afirmando que a 2ª é a melhor, ao lado de outro dizendo que a 1ª pontuou mais, destrói a
    * confiança nos dois.
+   *
+   * ─── E POR QUE O TEXTO DELE SEGUE A MESMA ESCADA DOS OUTROS (v2.30.0) ──────────────────────
+   *
+   * A primeira versão deste ramo dizia `Não há ganho a buscar numa troca de quadro`. Era o registro
+   * que a 2.27.0 tinha acabado de remover dos outros quatro casos, reintroduzido sem querer num
+   * ramo novo — o mesmo defeito documentado logo acima em `KEEP_CURRENT_GAP`, e pela mesma razão:
+   * concluir sobre a troca a partir de um agregado que não sabe ONDE está a diferença, para uma
+   * pessoa que em geral chegou aqui incomodada com algo específico.
+   *
+   * Aqui a razão é ainda mais forte que no caso de 1 a 3 pontos, porque a diferença é MENOR — está
+   * dentro do arredondamento. Se em três pontos o que decide já é tato, adaptação e marca, em menos
+   * de um ponto isso vale integralmente. O texto diz o tamanho real da diferença, calibra a
+   * expectativa, oferece o setup como caminho de maior retorno e manda olhar os eixos: é lá que
+   * está a informação que o número agregado apagou.
    */
   if (gap <= 0 && current.rank === 1) {
     return {
@@ -398,10 +412,14 @@ export function buildCurrentStanding(
       verdict: 'keep',
       message:
         `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ` +
-        `ranking, com os mesmos ${Math.round(current.fit_score)}% de compatibilidade da primeira. ` +
-        `A diferença entre as duas é menor que um ponto — menos do que separa duas unidades da ` +
-        `mesma raquete saídas de fábrica. Não há ganho a buscar numa troca de quadro: o que ainda ` +
-        `dá para melhorar está na corda e na tensão.`,
+        `ranking, com os mesmos ${Math.round(current.fit_score)}% de compatibilidade da primeira — ` +
+        `a diferença entre as duas é menor que um ponto, menos do que separa duas unidades da mesma ` +
+        `raquete saídas de fábrica. Nessa faixa o número deixou de decidir: entram o tato de cada ` +
+        `jogador, o tempo de adaptação a um quadro diferente e a intimidade com uma marca — coisas ` +
+        `que nenhuma análise mede. Não espere um salto ao trocar. O caminho de maior retorno aqui é ` +
+        `a corda e a tensão, que custam uma fração. Mas se o que te trouxe até aqui foi um incômodo ` +
+        `específico, olhe os eixos abaixo: se a diferença estiver justamente nele, testar a ` +
+        `recomendada faz sentido.`,
     };
   }
 

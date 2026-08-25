@@ -18,6 +18,26 @@
  */
 
 /**
+ * 2.30.0 — o veredicto do EMPATE entrou na mesma escada dos outros quatro.
+ *
+ * O ramo criado na 2.29.0 saiu dizendo `Não há ganho a buscar numa troca de quadro` — exatamente o
+ * registro categórico que a 2.27.0 tinha acabado de remover dos outros casos, reintroduzido sem
+ * querer num ramo novo. Mesmo defeito, mesma razão: concluir sobre a troca a partir de um agregado
+ * que não sabe ONDE está a diferença, para alguém que em geral chegou aqui incomodado com algo
+ * específico.
+ *
+ * Aqui o argumento é ainda mais forte que no caso de 1 a 3 pontos, porque a diferença é MENOR —
+ * cabe dentro do arredondamento. Se em três pontos o que decide já é tato, adaptação e marca, em
+ * menos de um ponto isso vale integralmente.
+ *
+ * Os cinco textos agora seguem a mesma escada: dizem o tamanho real da diferença, calibram a
+ * expectativa, oferecem o setup como caminho de maior retorno e — até 3 pontos — mandam olhar os
+ * eixos, que é onde está a informação que o agregado apagou. Do 4 em diante o convite ao teste
+ * cresce; do 9 em diante a recomendação é firme. Nenhum decide pelo leitor em nenhuma das duas
+ * direções, e um teste varre os quatro contra o registro categórico.
+ *
+ * O RANKING não muda.
+ *
  * 2.29.0 — o empate no arredondamento parou de virar "primeiro lugar".
  *
  * Defeito pego por leitura, com o relatório na tela: o card exibia `2º lugar, 88% de
@@ -416,7 +436,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.29.0';
+export const METHODOLOGY_VERSION = '2.30.0';
 
 export type Range = readonly [lo: number, hi: number];
 
