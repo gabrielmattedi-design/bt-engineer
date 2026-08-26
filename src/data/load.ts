@@ -150,6 +150,26 @@ const stringFileSchema = z.object({
   default_provenance: provenanceSchema,
   integrity_note: z.string(),
   scores_note: z.string(),
+  /**
+   * Verificação declarada no nível do ARQUIVO.
+   *
+   * O catálogo de raquetes registra a conferência variante a variante; o de cordas não tem essa
+   * estrutura, e criar uma para depois preenchê-la com o mesmo valor 58 vezes descreveria mal o que
+   * aconteceu — a conferência foi declarada em bloco pela curadoria. O bloco fica onde a afirmação
+   * de fato é feita.
+   *
+   * `optional` de propósito: sem ele, o estado continua sendo o pendente. Omissão nunca vira
+   * confirmação.
+   */
+  verification: z
+    .object({
+      state: z.enum(['pending_verification', 'verified']),
+      verified_at: z.string().nullable(),
+      verified_by: z.string().nullable(),
+      source_url: z.string().nullable(),
+      notes: z.string().nullable(),
+    })
+    .optional(),
   strings: z.array(stringEntrySchema).min(1),
 });
 
@@ -326,10 +346,21 @@ export function loadStringCatalog(): LoadedStringCatalog {
         global_availability: 'unknown',
         brazil_availability_status: v.brazil_availability_status,
         commercial_availability_note: v.commercial_availability_note ?? null,
-        verification_state: 'pending_verification',
+        /*
+          O catálogo de cordas não tem bloco de verificação POR VARIANTE, como o de raquetes tem.
+          O estado vinha fixo em `pending_verification`, o que estava certo enquanto conferência
+          nenhuma existia — e passou a estar errado quando ela foi feita, porque não havia onde
+          registrá-la.
+
+          O bloco vive no nível do ARQUIVO, e essa é a granularidade honesta: a conferência foi
+          declarada em bloco pela curadoria, não variante a variante. Continua sem `??  'verified'`
+          por omissão — sem o bloco, o estado segue sendo o pendente. O silêncio nunca vale como
+          confirmação (mesma regra da linha 253).
+        */
+        verification_state: file.verification?.state ?? 'pending_verification',
         source_tier: file.default_provenance.source,
         source_url: file.default_provenance.source_url,
-        last_verified_at: null,
+        last_verified_at: file.verification?.verified_at ?? null,
         data_version: file.data_version,
       });
     }

@@ -925,5 +925,12 @@
         }
       ]
     }
-  ]
+  ],
+  "verification": {
+    "state": "verified",
+    "verified_at": "2026-08-26",
+    "verified_by": "curadoria",
+    "source_url": null,
+    "notes": "Conferida pela curadoria contra a página oficial do fabricante em ago/2026. Registro consolidado fora do painel: a URL da ficha individual não foi anotada no ato da conferência. Verificações feitas pelo /admin/verificacao a partir daqui continuam exigindo a URL."
+  }
 }
