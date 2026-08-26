@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { Wordmark } from '@/components/marketing/wordmark';
 import { RacketPicker, type RacketOption } from './racket-picker';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { unansweredIn, visibleSteps, type Question } from './steps';
@@ -112,11 +114,36 @@ export function QuizForm({
             aria-label={`Etapa ${stepIndex + 1} de ${steps.length}`}
           />
         </div>
-        <div className="mx-auto flex max-w-2xl items-baseline justify-between px-6 py-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-court">
-            {step.label}
-          </span>
-          <span className="text-xs tabular-nums text-graphite">
+        {/*
+          ── A ÚNICA SAÍDA DO QUESTIONÁRIO ──────────────────────────────────────────────────────
+
+          Levantamento de telas sem saída: esta era a única do site sem NENHUM caminho de volta —
+          nem marca clicável, nem link. O "Voltar ao início" existia só na tela de erro, que quase
+          ninguém vê. Quem abria o questionário e mudava de ideia dependia do botão do navegador.
+
+          É a tela de maior tráfego do funil e a primeira que um visitante de anúncio encontra, o
+          que torna a ausência mais cara: sem saída, a alternativa dele é fechar a aba.
+
+          A marca entra em vez de um "voltar" porque resolve duas coisas com um elemento — dá a
+          saída E assina a página, que era a outra ausência (§64, a assinatura acompanha a leitura).
+          Fica na linha do rótulo da etapa, sem ganhar peso: o foco continua sendo a pergunta.
+        */}
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-baseline gap-3">
+            <Link
+              href="/"
+              aria-label="Tennis Engineer — voltar ao início"
+              className="rounded transition-opacity hover:opacity-70
+                         focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-offset-4 focus-visible:outline-current"
+            >
+              <Wordmark size="sm" withTagline={false} />
+            </Link>
+            <span className="text-xs font-semibold uppercase tracking-wider text-court">
+              {step.label}
+            </span>
+          </div>
+          <span className="shrink-0 text-xs tabular-nums text-graphite">
             {stepIndex + 1} / {steps.length}
           </span>
         </div>

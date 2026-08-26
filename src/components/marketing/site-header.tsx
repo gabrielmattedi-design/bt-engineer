@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Wordmark } from './wordmark';
 import { cn } from '@/lib/cn';
+import { authConfigured, currentUser } from '@/auth/session';
 
 /**
  * Cabeçalho do site — fixo no topo e sempre clicável de volta para a home.
@@ -34,7 +35,28 @@ const TONES = {
   court: 'border-white/10 bg-court/95 text-paper',
 } as const;
 
-export function SiteHeader({
+/**
+ * ═══ POR QUE O CABEÇALHO PRECISOU DE NAVEGAÇÃO ═══════════════════════════════════════════════
+ *
+ * `/entrar` e `/minhas-analises` existiam, funcionavam e não tinham NENHUM link apontando para
+ * elas em lugar nenhum do site — só o e-mail do magic link levava até lá. Quem fechasse aquele
+ * e-mail não tinha como voltar às próprias análises, mesmo estando logado.
+ *
+ * É a pior forma de uma funcionalidade falhar: ela existe, foi paga em tempo de desenvolvimento, e
+ * o usuário conclui que o produto não a tem.
+ *
+ * ─── POR QUE O ESTADO DE LOGIN DECIDE O QUE APARECE ────────────────────────────────────────
+ *
+ * "Entrar" para quem já está logado é ruído, e "Minhas análises" para quem nunca comprou nada leva
+ * a uma tela vazia que parece erro. Cada estado mostra a única ação que faz sentido nele.
+ *
+ * ─── E POR QUE ELE SOME SEM `AUTH_SECRET` ──────────────────────────────────────────────────
+ *
+ * Sem a variável, `currentUser()` devolve `null` para todo mundo e o login não tem como funcionar
+ * (ver `authConfigured`). Exibir "Entrar" nesse estado é oferecer uma porta que não abre. Enquanto
+ * a variável não estiver configurada em produção, o cabeçalho fica como era.
+ */
+export async function SiteHeader({
   tone = 'light',
   withTagline = true,
 }: {
@@ -42,6 +64,9 @@ export function SiteHeader({
   /** O relatório e o catálogo já anunciam do que tratam; ali a linha de conceito é repetição. */
   withTagline?: boolean;
 }) {
+  const user = authConfigured() ? await currentUser() : null;
+  const mostrarConta = authConfigured();
+
   return (
     <header
       className={cn(
@@ -53,7 +78,7 @@ export function SiteHeader({
         TONES[tone],
       )}
     >
-      <div className="mx-auto max-w-5xl px-6 py-4">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
         <Link
           href="/"
           aria-label="Tennis Engineer — voltar ao início"
@@ -67,6 +92,32 @@ export function SiteHeader({
             withTagline={withTagline}
           />
         </Link>
+
+        {mostrarConta && (
+          <nav aria-label="Sua conta" className="shrink-0 text-sm">
+            {user ? (
+              <Link
+                href="/minhas-analises"
+                className="rounded px-1 font-medium underline underline-offset-4 opacity-90
+                           transition-opacity hover:opacity-100
+                           focus-visible:outline focus-visible:outline-2
+                           focus-visible:outline-offset-4 focus-visible:outline-current"
+              >
+                Minhas análises
+              </Link>
+            ) : (
+              <Link
+                href="/entrar"
+                className="rounded px-1 font-medium underline underline-offset-4 opacity-90
+                           transition-opacity hover:opacity-100
+                           focus-visible:outline focus-visible:outline-2
+                           focus-visible:outline-offset-4 focus-visible:outline-current"
+              >
+                Entrar
+              </Link>
+            )}
+          </nav>
+        )}
       </div>
     </header>
   );
