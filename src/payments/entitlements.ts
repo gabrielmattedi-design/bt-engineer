@@ -69,8 +69,27 @@ export const PRODUCT_ENTITLEMENTS: Readonly<Record<string, readonly Entitlement[
   full_setup: ['racket_report_access', 'full_setup_access', 'rank2_access', 'rank3_access'],
   unlock_rank_2: ['rank2_access'],
   unlock_rank_3: ['rank3_access'],
-  /** Upgrade para quem já tem o relatório da raquete e quer corda e tensão. */
-  setup_upgrade: ['full_setup_access'],
+  /**
+   * Upgrade para quem já tem o relatório da raquete e quer corda e tensão.
+   *
+   * ═══ POR QUE ELE TAMBÉM ABRE A 2ª E A 3ª ═════════════════════════════════════════════════
+   *
+   * Ele concedia só `full_setup_access`, e a conta não fechava para o cliente. Comparando os dois
+   * caminhos até o mesmo conteúdo:
+   *
+   *     de uma vez     full_setup .................................. R$ 49,99  (tudo)
+   *     em duas etapas racket_report + setup_upgrade ............... R$ 59,98  (sem a 2ª e a 3ª)
+   *                    + unlock_rank_2 + unlock_rank_3 ............. R$ 79,96  (tudo)
+   *
+   * Quem decidiu em duas etapas pagava 20% a mais para receber MENOS, e precisava de mais R$ 19,98
+   * para empatar — 60% acima do preço de quem comprou tudo junto. Cobrar pelo parcelamento da
+   * decisão é legítimo; entregar menos por mais dinheiro não é, e o cliente descobre isso depois de
+   * pagar, que é a pior hora.
+   *
+   * Com a 2ª e a 3ª incluídas, os dois caminhos chegam ao mesmo conteúdo e a diferença de R$ 9,99
+   * fica sendo o que ela sempre deveria ter sido: o preço de decidir em duas vezes.
+   */
+  setup_upgrade: ['full_setup_access', 'rank2_access', 'rank3_access'],
   /** Produto legado: uma compra só que abria as duas posições. */
   top3_unlock: ['top3_access'],
 };

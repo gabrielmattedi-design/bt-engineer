@@ -50,13 +50,33 @@ describe('desbloqueio por posição', () => {
   });
 
   /**
-   * O upgrade de setup é vendido a quem JÁ tem o relatório da raquete. Ele não pode, sozinho,
-   * abrir posições do pódio — senão sairia mais barato comprar o upgrade do que as duas posições.
+   * O upgrade de setup é vendido a quem JÁ tem o relatório da raquete, e passou a incluir a 2ª e a
+   * 3ª colocadas.
+   *
+   * ─── O ARGUMENTO ANTERIOR NÃO FECHAVA A CONTA ──────────────────────────────────────────────
+   *
+   * A versão anterior deste teste travava o contrário, justificando: "senão sairia mais barato
+   * comprar o upgrade do que as duas posições". A aritmética diz o oposto — o upgrade custa
+   * R$ 39,99 e as duas posições avulsas somam R$ 19,98. Quem quer só as posições continua
+   * comprando as posições, pela metade do preço; não havia incentivo perverso a evitar.
+   *
+   * O que a regra produzia de fato era punir quem decide em duas etapas: racket_report +
+   * setup_upgrade = R$ 59,98 para receber MENOS do que os R$ 49,99 do pacote entregam, e mais
+   * R$ 19,98 para empatar. Cobrar pelo parcelamento da decisão é legítimo; entregar menos por mais
+   * dinheiro não é.
    */
-  it('o upgrade de setup não abre posições do pódio', () => {
+  it('o upgrade de setup inclui a 2ª e a 3ª', () => {
     const granted = PRODUCT_ENTITLEMENTS.setup_upgrade!;
-    expect(canSeeRank(granted, 2)).toBe(false);
-    expect(canSeeRank(granted, 3)).toBe(false);
+    expect(canSeeRank(granted, 2)).toBe(true);
+    expect(canSeeRank(granted, 3)).toBe(true);
+  });
+
+  /**
+   * E ele continua NÃO sendo atalho para o relatório: `serializeRecommendation` exige
+   * `racket_report_access` na primeira linha, então o upgrade sozinho não serializa nada.
+   */
+  it('o upgrade sozinho não abre o relatório', () => {
+    expect(PRODUCT_ENTITLEMENTS.setup_upgrade).not.toContain('racket_report_access');
   });
 
   it('cada desbloqueio concede exatamente a sua posição', () => {

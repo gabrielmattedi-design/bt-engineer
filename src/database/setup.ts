@@ -59,9 +59,9 @@ export const PRODUCT_SEED = [
     name: 'Completar com corda e tensão',
     description:
       'Corda, espessura e tensão inicial para a raquete que você escolher entre as do pódio, ' +
-      'com a faixa de ajuste e o motivo de cada escolha.',
+      'com a faixa de ajuste e o motivo de cada escolha. Inclui a 2ª e a 3ª colocadas.',
     priceCents: 3999,
-    grantsEntitlements: ['full_setup_access'],
+    grantsEntitlements: ['full_setup_access', 'rank2_access', 'rank3_access'],
   },
 ] as const;
 

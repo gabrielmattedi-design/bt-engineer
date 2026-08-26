@@ -450,9 +450,33 @@ export default async function ResultadoPage({
               </h2>
               <p className="mt-2 max-w-prose text-sm text-graphite">
                 A raquete é metade do setup. A corda define o que você sente no impacto e quanto a
-                bola gira; a tensão ajusta o resto. Você escolhe para qual das raquetes já
-                desbloqueadas quer o cálculo — e pode trocar depois.
+                bola gira; a tensão ajusta o resto. Você escolhe para qual raquete quer o cálculo —
+                e pode trocar depois.
               </p>
+              {/*
+                O QUE ESTE PREÇO ABRE, DITO ANTES DE PAGAR.
+
+                `setup_upgrade` também concede `rank2_access` e `rank3_access` (ver
+                `PRODUCT_ENTITLEMENTS`). Isso estava no código e não estava na oferta: a pessoa
+                pagava e descobria depois. Uma vantagem que só aparece após o pagamento não vende
+                nada e ainda parece pegadinha quando o cliente compara os preços sozinho.
+              */}
+              <ul className="mt-4 space-y-1.5 text-sm">
+                <li className="flex gap-2">
+                  <span aria-hidden className="text-court">✓</span>
+                  <span>Corda, espessura e tensão inicial, com a faixa de ajuste</span>
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden className="text-court">✓</span>
+                  <span>
+                    <strong>A 2ª e a 3ª colocadas</strong>, com marca, modelo e leitura técnica
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden className="text-court">✓</span>
+                  <span>A comparação lado a lado entre as três</span>
+                </li>
+              </ul>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   href={`/planos/${sessionId}?produto=setup_upgrade`}
