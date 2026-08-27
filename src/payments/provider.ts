@@ -15,6 +15,17 @@ export type CreateCheckoutInput = {
   readonly currency: string;
   /** Para onde o gateway devolve o usuário depois de pagar. */
   readonly returnUrl: string;
+  /**
+   * Para onde o gateway envia a confirmação, servidor a servidor.
+   *
+   * Separado de `returnUrl` porque são coisas diferentes: o retorno é o navegador do cliente
+   * voltando, e ele pode nunca acontecer — a pessoa fecha a aba, o PIX cai vinte minutos depois,
+   * o celular desliga. A confirmação que concede acesso é SEMPRE esta, e ela chega mesmo que o
+   * cliente desapareça (§33).
+   *
+   * O adapter simulado ignora este campo: a tela local de checkout já sabe para onde postar.
+   */
+  readonly notificationUrl: string;
 };
 
 export type CheckoutSession = {

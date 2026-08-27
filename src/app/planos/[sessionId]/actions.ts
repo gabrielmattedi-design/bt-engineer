@@ -148,6 +148,7 @@ export async function startCheckout(
       amountCents: order.product.priceCents,
       currency: order.product.currency,
       returnUrl: `${scheme}://${host}/resultado/${publicId}`,
+      notificationUrl: `${scheme}://${host}/api/webhooks/payment`,
     });
 
     await attachPayment({

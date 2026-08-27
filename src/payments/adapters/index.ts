@@ -1,12 +1,13 @@
 import type { PaymentProvider } from '../provider';
 import { fakeProvider } from './fake';
+import { mercadoPagoProvider } from './mercadopago';
 
 /**
  * Seleção do gateway por ambiente — docs/MONETIZATION.md §5.
  *
- * `mercadopago` e `stripe` ainda não têm adapter. O erro abaixo é deliberadamente explícito: é
- * melhor um deploy falhar dizendo exatamente o que falta do que cair silenciosamente no provedor
- * simulado e passar a entregar relatórios pagos de graça.
+ * `stripe` ainda não tem adapter. O erro abaixo é deliberadamente explícito: é melhor um deploy
+ * falhar dizendo exatamente o que falta do que cair silenciosamente no provedor simulado e passar
+ * a entregar relatórios pagos de graça.
  */
 export function paymentProvider(): PaymentProvider {
   const id = process.env.PAYMENT_PROVIDER ?? 'fake';
@@ -15,6 +16,7 @@ export function paymentProvider(): PaymentProvider {
     case 'fake':
       return fakeProvider;
     case 'mercadopago':
+      return mercadoPagoProvider;
     case 'stripe':
       throw new Error(
         `O adapter "${id}" ainda não foi implementado. Implemente PaymentProvider em ` +

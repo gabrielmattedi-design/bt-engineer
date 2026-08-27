@@ -82,6 +82,19 @@ const verificationSchema = z.object({
   brazil_sources: z.array(z.string().url()).optional(),
   image_url: z.string().url().nullable().optional(),
   image_verified: z.boolean().optional(),
+  /**
+   * Data em que a curadoria confirmou que ESTA é a geração vigente do modelo.
+   *
+   * O gate avisa sobre variantes com três anos ou mais porque uma geração nova torna a
+   * recomendação obsoleta sem nada quebrar. Mas existe modelo que fica em linha por muito tempo —
+   * a HEAD Ti.S6 é vendida há duas décadas —, e nesses casos o aviso se repete a cada build sem
+   * nada a fazer. Um aviso que sempre aparece e nunca exige ação deixa de ser lido, e leva junto
+   * os avisos que importam.
+   *
+   * Confirmar a geração silencia o aviso pelo período de revisão. Passado ele, o aviso volta: a
+   * confirmação vale para o mercado daquele momento, não para sempre.
+   */
+  generation_confirmed_at: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 
@@ -275,6 +288,7 @@ function loadRacketFile(raw: unknown): RacketVariant[] {
       brazil_availability_status: entry.verification?.brazil_availability_status ?? 'unknown',
       data_version: file.data_version,
       last_verified_at: entry.verification?.verified_at ?? null,
+      generation_confirmed_at: entry.verification?.generation_confirmed_at ?? null,
       image_url: entry.verification?.image_url ?? null,
       image_verified: entry.verification?.image_verified ?? false,
     };

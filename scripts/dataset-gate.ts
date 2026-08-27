@@ -108,8 +108,27 @@ function main(): void {
    * produziria falso positivo — mas passar em silêncio produz o erro caro.
    */
   const thisYear = new Date().getFullYear();
+  /*
+    A confirmação da curadoria silencia o aviso — mas só enquanto for recente.
+
+    Sem isso, um modelo que fica anos em linha gera o mesmo aviso a cada build, sem nada a fazer a
+    respeito. Aviso que sempre aparece e nunca exige ação para de ser lido, e leva junto os que
+    importam. Com prazo, a pergunta volta a ser feita quando volta a valer a pena fazê-la: a
+    confirmação descreve o mercado do dia em que foi dada, não uma verdade permanente.
+  */
+  const confirmadaRecentemente = (iso: string | null): boolean => {
+    if (!iso) return false;
+    const anos = (Date.now() - new Date(iso).getTime()) / (365.25 * 24 * 3600 * 1000);
+    return anos < CATALOG_REVIEW_AFTER_YEARS;
+  };
+
   const aging = rackets
-    .filter((r) => r.year !== null && thisYear - r.year >= CATALOG_REVIEW_AFTER_YEARS)
+    .filter(
+      (r) =>
+        r.year !== null &&
+        thisYear - r.year >= CATALOG_REVIEW_AFTER_YEARS &&
+        !confirmadaRecentemente(r.generation_confirmed_at),
+    )
     .sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
 
   if (aging.length > 0) {

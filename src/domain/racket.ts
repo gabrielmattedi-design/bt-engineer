@@ -65,6 +65,13 @@ export type RacketVariant = {
   readonly brazil_availability_status: AvailabilityStatus;
   readonly data_version: string;
   readonly last_verified_at: string | null;
+  /**
+   * Quando a curadoria confirmou que esta é a geração vigente. `null` = nunca confirmada.
+   *
+   * Silencia o aviso de idade do gate enquanto a confirmação for recente — ver `verificationSchema`
+   * em `data/load.ts`.
+   */
+  readonly generation_confirmed_at: string | null;
   readonly image_url: string | null;
   /** Só exibimos a imagem se ela foi confirmada como sendo desta variante e geração (§54). */
   readonly image_verified: boolean;
