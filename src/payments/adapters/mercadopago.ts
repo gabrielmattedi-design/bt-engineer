@@ -61,7 +61,18 @@ function webhookSecret(): string {
         'aplicação → Webhooks → Configurar notificação, junto com a URL que você cadastrar.',
     );
   }
-  return secret;
+  /*
+    `trim()` — e não é preciosismo.
+
+    Este valor é copiado à mão de um painel e colado num formulário de hospedagem. Um espaço ou uma
+    quebra de linha invisível no fim entra no HMAC e muda o hash inteiro, produzindo o sintoma mais
+    caro que existe: assinatura que nunca confere, com o valor visualmente idêntico ao correto nos
+    dois lados. Ninguém encontra isso olhando.
+
+    Nenhum segredo do Mercado Pago tem espaço nas pontas, então recortar não pode quebrar um valor
+    legítimo.
+  */
+  return secret.trim();
 }
 
 /**
@@ -196,7 +207,21 @@ function assinaturaConfere(
     Publicar o hash esperado seria outra história: ele é derivado do segredo, e um oráculo que
     devolve o hash correto para qualquer manifesto dispensa conhecer o segredo para forjar.
   */
-  console.error(`[mercadopago] assinatura não confere para o manifesto "${manifesto}"`);
+  /*
+    O TAMANHO do segredo vai junto, e é a informação que fecha o caso mais comum.
+
+    A assinatura secreta do Mercado Pago tem 64 caracteres hexadecimais. Se o log mostrar outro
+    número, o problema não é o algoritmo nem a configuração do painel — é o valor colado na
+    hospedagem: truncado, com espaço, com aspas em volta, ou com o token de acesso no lugar do
+    segredo. Todos esses parecem iguais na tela e produzem o mesmo `hash-nao-confere`.
+
+    O tamanho não revela o segredo: ele já é público na prática (64 é o formato documentado), e
+    saber que um segredo tem 64 caracteres não ajuda ninguém a adivinhá-lo.
+  */
+  console.error(
+    `[mercadopago] assinatura não confere para o manifesto "${manifesto}" ` +
+      `(o segredo configurado tem ${webhookSecret().length} caracteres; o do painel tem 64)`,
+  );
   return 'hash-nao-confere';
 }
 
