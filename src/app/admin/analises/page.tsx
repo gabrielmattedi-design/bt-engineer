@@ -5,6 +5,7 @@ import { anyEmailStored, recentLookups } from '@/database/repositories/support-r
 import { withAutoBootstrap } from '@/database/setup';
 import { Wordmark } from '@/components/marketing/wordmark';
 import { SearchForm } from './search-form';
+import { dataCurta } from '@/lib/datas';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,10 +82,7 @@ export default async function AnalisesPage() {
                     </span>
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-graphite">
-                    {l.createdAt.toLocaleString('pt-BR', {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    })}
+                    {dataCurta(l.createdAt)}
                   </span>
                 </li>
               ))}

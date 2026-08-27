@@ -12,6 +12,21 @@ import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Fora do índice dos buscadores.
+ *
+ * Esta URL é o conteúdo de UMA pessoa, e o acesso a ela é o próprio endereço — quem tem o link
+ * tem a página. Indexada, ela deixaria de ser privada sem que ninguém percebesse.
+ *
+ * Segunda camada: `robots.ts` já pede o mesmo para a rota inteira. As duas existem porque falham
+ * de formas diferentes — o arquivo cobre antes da visita, esta tag cobre a página mesmo quando o
+ * robô chegou nela por outro caminho.
+ */
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
+
+/**
  * Escolha de plano — §26, §57, §58.
  *
  * Regras aplicadas aqui, todas do §58: sem cronômetro, sem "última chance", sem desconto fictício,

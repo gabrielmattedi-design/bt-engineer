@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { searchAnalyses, type SearchResult } from './actions';
 import type { SupportMatch } from '@/database/repositories/support-repo';
+import { dataCurta } from '@/lib/datas';
 
 const KIND_LABEL: Readonly<Record<string, string>> = {
   analise: 'ID de análise',
@@ -47,7 +48,7 @@ function money(cents: number): string {
 }
 
 function when(date: Date): string {
-  return new Date(date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  return dataCurta(date);
 }
 
 export function SearchForm() {

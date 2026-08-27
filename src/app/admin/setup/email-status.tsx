@@ -1,6 +1,9 @@
 import { FROM, emailEnabled } from '@/email/send';
 import { EmailTest } from './email-test';
 import { SITE_DOMAIN } from '@/lib/site';
+import { dataCurta } from '@/lib/datas';
+import { readSetting } from '@/database/repositories/settings-repo';
+import { SETTING_KEYS } from '@/database/schema';
 
 /**
  * Diagnóstico do envio de e-mail — §9/§10 da lista de lançamento.
@@ -77,6 +80,43 @@ async function checarDominio(): Promise<EstadoDominio> {
 }
 
 export async function EmailStatus() {
+  /*
+    ═══ EVIDÊNCIA VENCE INFERÊNCIA ════════════════════════════════════════════════════════════
+
+    Se um e-mail de teste já saiu com sucesso, isso é FATO sobre a única pergunta que interessa, e
+    nenhuma consulta indireta o contradiz. Uma chave de envio não pode listar domínios e responde
+    401 na checagem — o painel ficaria avisando para sempre sobre um sistema que funciona.
+
+    E esse é o pior tipo de aviso: o que sempre aparece deixa de ser lido. Quando o e-mail parar de
+    verdade, a faixa já terá virado paisagem.
+
+    O registro não expira sozinho de propósito. "Funcionou em tal dia" é verdade sobre aquele dia, e
+    envelhecer o texto sem evidência nova seria voltar a inferir — a data fica visível para que
+    quem lê julgue se ela ainda vale.
+  */
+  const ultimoOk = await readSetting(SETTING_KEYS.lastEmailOk);
+  if (ultimoOk) {
+    return (
+      <section className="mt-10">
+        <h2 className="font-display text-lg font-semibold">E-mail</h2>
+        <p className="mt-1 max-w-prose text-sm text-graphite">
+          É por aqui que sai o link de acesso e o link do relatório depois da compra.
+        </p>
+
+        <div className="mt-4 rounded border border-court/30 bg-court/5 p-5 text-sm">
+          <p className="font-semibold text-ink">
+            Envio funcionando — último teste enviado em {dataCurta(ultimoOk)}.
+          </p>
+          <p className="mt-3 text-xs text-graphite">
+            Remetente: <code>{FROM}</code>
+          </p>
+        </div>
+
+        <EmailTest />
+      </section>
+    );
+  }
+
   const estado = await checarDominio();
 
   /*

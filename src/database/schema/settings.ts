@@ -40,4 +40,14 @@ export const SETTING_KEYS = {
    * que tem dono, limite e histórico.
    */
   inviteOnly: 'invite_only_access',
+  /**
+   * Quando um e-mail de teste saiu com sucesso pela última vez (ISO 8601).
+   *
+   * Existe porque o diagnóstico de e-mail INFERE e este campo REGISTRA. A consulta que o painel faz
+   * ao provedor exige uma chave de acesso total; uma chave de envio responde 401 nela e manda
+   * e-mail perfeitamente. Sem um registro do que de fato aconteceu, o painel fica preso num aviso
+   * permanente sobre um sistema que funciona — e um aviso que sempre aparece deixa de ser lido,
+   * inclusive no dia em que for verdade.
+   */
+  lastEmailOk: 'last_email_test_ok_at',
 } as const;

@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/marketing/site-header';
 import { currentUser, endUserSession } from '@/auth/session';
 import { analysesForUser } from '@/database/repositories/auth-repo';
 import { withAutoBootstrap } from '@/database/setup';
+import { dataLonga, hora } from '@/lib/datas';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,16 +99,9 @@ export default async function MinhasAnalisesPage() {
                       {a.playerName ? `Análise de ${a.playerName}` : 'Análise sem nome'}
                     </span>
                     <span className="mt-0.5 block text-sm text-graphite">
-                      {a.createdAt.toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
+                      {dataLonga(a.createdAt)}
                       {' às '}
-                      {a.createdAt.toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {hora(a.createdAt)}
                       {/*
                         O valor só aparece quando existe.
 

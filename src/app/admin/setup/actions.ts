@@ -124,6 +124,15 @@ export async function sendTestEmail(_prev: unknown, formData: FormData): Promise
   });
 
   if (result.ok) {
+    /*
+      O sucesso fica REGISTRADO, e não só exibido.
+
+      É o que permite o painel parar de avisar sobre um e-mail que funciona: sem isto, uma chave de
+      envio (que não pode consultar domínios) mantém o alerta para sempre — e um alerta permanente
+      sobre um sistema saudável treina quem o lê a ignorá-lo, inclusive no dia em que for verdade.
+    */
+    await writeSetting(SETTING_KEYS.lastEmailOk, new Date().toISOString());
+    revalidatePath('/admin/setup');
     return { ok: `Enviado para ${to}. Confira a caixa de entrada e o spam.` };
   }
 
