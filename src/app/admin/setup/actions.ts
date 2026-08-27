@@ -6,6 +6,7 @@ import { runMigrations, seedProducts, withAutoBootstrap } from '@/database/setup
 import { writeSetting } from '@/database/repositories/settings-repo';
 import { SETTING_KEYS } from '@/database/schema';
 import { seedInviteCoupons } from '@/database/repositories/coupon-repo';
+import { sendEmail } from '@/email/send';
 
 export type SetupResult = { ok: string } | { error: string };
 
@@ -91,4 +92,55 @@ export async function setInviteOnly(formData: FormData): Promise<void> {
   revalidatePath('/', 'layout');
   revalidatePath('/admin/setup');
   revalidatePath('/admin/codigos');
+}
+
+/**
+ * Manda um e-mail de teste e devolve o que o provedor respondeu.
+ *
+ * ═══ POR QUE ISTO EXISTE, SE JÁ HÁ UM DIAGNÓSTICO ════════════════════════════════════════════
+ *
+ * Porque o diagnóstico INFERE e este VERIFICA — e a inferência já errou. Ele consulta a lista de
+ * domínios do Resend, e uma chave do tipo "Sending access" não tem permissão para essa consulta:
+ * responde 401 e envia e-mail normalmente. O painel concluiu "a chave não vale" num momento em que
+ * o domínio estava verificado e o envio provavelmente funcionava.
+ *
+ * Nenhuma consulta indireta resolve isso. A única pergunta que importa — "sai e-mail deste site?" —
+ * só tem uma resposta confiável, que é mandar um.
+ *
+ * O destinatário é digitado a cada vez, e não fixado: o e-mail precisa chegar numa caixa que a
+ * pessoa consiga abrir agora, e ela é a única que sabe qual é.
+ */
+export async function sendTestEmail(_prev: unknown, formData: FormData): Promise<SetupResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const to = String(formData.get('para') ?? '').trim();
+  if (!to.includes('@')) return { error: 'Digite um endereço de e-mail válido.' };
+
+  const result = await sendEmail({
+    to,
+    subject: 'Teste de envio — Tennis Engineer',
+    html: '<p>Se você está lendo isto, o envio de e-mail do Tennis Engineer está funcionando.</p>',
+    text: 'Se você está lendo isto, o envio de e-mail do Tennis Engineer está funcionando.',
+  });
+
+  if (result.ok) {
+    return { ok: `Enviado para ${to}. Confira a caixa de entrada e o spam.` };
+  }
+
+  /*
+    O motivo vai INTEIRO para a tela — ao contrário de toda mensagem voltada ao visitante.
+
+    Quem está nesta página já se autenticou como administrador e é exatamente quem precisa do
+    detalhe técnico para consertar. Esconder o código HTTP aqui reproduziria o problema que este
+    botão veio resolver: uma falha sem causa nomeada.
+  */
+  if (result.reason === 'not_configured') {
+    return { error: 'RESEND_API_KEY não chegou ao servidor. Configure na Vercel e refaça o deploy.' };
+  }
+  return {
+    error:
+      `O Resend recusou o envio (${result.detail ?? 'sem detalhe'}). ` +
+      '401 significa chave inválida; 403 costuma ser domínio do remetente não verificado ou ' +
+      'diferente do configurado em EMAIL_FROM.',
+  };
 }

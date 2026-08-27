@@ -1,4 +1,5 @@
 import { FROM, emailEnabled } from '@/email/send';
+import { EmailTest } from './email-test';
 import { SITE_DOMAIN } from '@/lib/site';
 
 /**
@@ -99,10 +100,29 @@ export async function EmailStatus() {
           acao: 'Adicione RESEND_API_KEY nas configurações do projeto na Vercel, marque o ambiente Production e refaça o deploy.',
         };
       case 'chave-invalida':
+        /*
+          ═══ ESTE RAMO JÁ DEU ALARME FALSO ═══════════════════════════════════════════════════
+
+          `401` nesta consulta NÃO prova que a chave é ruim. As chaves do Resend têm dois níveis:
+          "Full access" e "Sending access". Uma chave de envio manda e-mail perfeitamente e não tem
+          permissão para LISTAR domínios — responde 401 exatamente aqui, com o envio funcionando.
+
+          A primeira versão deste texto dizia "a chave existe mas não vale" e mandava gerar outra,
+          num momento em que o domínio já estava verificado e o envio possivelmente já funcionava.
+          Era uma conclusão que a evidência não sustentava, sobre a única coisa que este painel
+          existe para diagnosticar.
+
+          Agora o texto diz o que se sabe — não deu para consultar — e oferece o teste que decide,
+          que é mandar um e-mail de verdade.
+        */
         return {
-          titulo: `O Resend recusou a chave (${estado.detalhe}).`,
-          cor: 'border-warn/40 bg-warn/5',
-          acao: 'A chave existe mas não vale. Gere uma nova em resend.com → API Keys, substitua na Vercel e refaça o deploy.',
+          titulo: `Não consegui consultar os domínios (${estado.detalhe}).`,
+          cor: 'border-line bg-white',
+          acao:
+            'Isso é NORMAL quando a chave é do tipo "Sending access": ela envia e-mail, mas não ' +
+            'tem permissão para listar domínios. Não conclua nada daqui — use o teste de envio ' +
+            'abaixo, que é o que responde de verdade. Se o teste também falhar com 401, aí sim a ' +
+            'chave não vale e vale gerar outra em resend.com → API Keys.',
         };
       case 'sem-dominio':
         return {
@@ -141,6 +161,8 @@ export async function EmailStatus() {
           {!emailEnabled() && ' · nenhuma chave configurada'}
         </p>
       </div>
+
+      <EmailTest />
     </section>
   );
 }
