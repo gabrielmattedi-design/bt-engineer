@@ -219,7 +219,7 @@ describe('credenciais ausentes falham alto', () => {
 describe('criação do checkout', () => {
   it('manda o orderId como external_reference e converte centavos', async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_url: string, _init?: RequestInit) =>
         new Response(JSON.stringify({ id: 'pref_1', init_point: 'https://mp/checkout' }), {
           status: 200,
         }),
@@ -238,7 +238,7 @@ describe('criação do checkout', () => {
 
     expect(sessao.redirectUrl).toBe('https://mp/checkout');
 
-    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
     expect(corpo.external_reference, 'sem isto o webhook não acha o pedido').toBe('ord_abc');
     expect(corpo.items[0].unit_price, 'o Mercado Pago cobra em unidades, não centavos').toBe(49.99);
     expect(corpo.notification_url).toContain('/api/webhooks/payment');

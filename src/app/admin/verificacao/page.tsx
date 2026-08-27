@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AdminNav } from '../nav';
 import { isAuthenticated } from '../auth';
 import { buildVerificationQueue } from '@/data/verification-queue';
 import { readVerificationsFromDisk } from '@/data/write-verification';
@@ -42,18 +43,7 @@ export default async function VerificacaoPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <nav className="mb-6 flex flex-wrap gap-4 text-sm">
-          <span className="font-semibold">Curadoria</span>
-          <a href="/admin/setup" className="text-graphite underline">
-            Preparar o sistema
-          </a>
-          <a href="/admin/codigos" className="text-graphite underline">
-            Códigos de acesso
-          </a>
-          <a href="/admin/analises" className="text-graphite underline">
-            Atendimento
-          </a>
-        </nav>
+        <AdminNav current="verificacao" />
 
         <h1 className="font-display text-2xl font-semibold">Fila de verificação</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">

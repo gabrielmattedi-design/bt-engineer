@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AdminNav } from '../nav';
 import { isAuthenticated } from '../auth';
 import { setupStatus } from '@/database/setup';
 import { catalogStats } from '@/data/load';
@@ -29,18 +30,7 @@ export default async function SetupPage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-6 py-10">
-        <nav className="mb-6 flex flex-wrap gap-4 text-sm">
-          <a href="/admin/verificacao" className="text-graphite underline">
-            Curadoria
-          </a>
-          <span className="font-semibold">Preparar o sistema</span>
-          <a href="/admin/codigos" className="text-graphite underline">
-            Códigos de acesso
-          </a>
-          <a href="/admin/analises" className="text-graphite underline">
-            Atendimento
-          </a>
-        </nav>
+        <AdminNav current="setup" />
 
         <h1 className="font-display text-2xl font-semibold">Preparar o sistema</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">

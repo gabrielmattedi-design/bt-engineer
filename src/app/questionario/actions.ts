@@ -23,11 +23,9 @@ import type { QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { datasetMode } from '@/domain/sourced';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RecommendationResult } from '@/domain/recommendation';
-import {
-  loadRecommendation,
-  newSessionToken,
-  saveRecommendation,
-} from '@/database/repositories/session-repo';
+import { loadRecommendation, saveRecommendation } from '@/database/repositories/session-repo';
+import { markFunnel } from '@/database/repositories/funnel-repo';
+import { visitorToken } from './visitor';
 import {
   serializeRecommendation,
   serializeTeaser,
@@ -83,6 +81,15 @@ export async function analyzeAnswers(
   const sessionId = randomUUID();
 
   try {
+    /*
+      O marco de conclusão fica AQUI e não na página seguinte.
+
+      Terminar o questionário e a análise ser gravada com sucesso são o mesmo fato do ponto de
+      vista do funil; separá-los criaria uma etapa fantasma entre os dois, com perda que não
+      corresponde a desistência de ninguém.
+    */
+    await markFunnel(await visitorToken(), 'quiz:done');
+
     await saveRecommendation({
       sessionToken: await visitorToken(),
       publicId: sessionId,
@@ -172,26 +179,3 @@ export async function getTeaser(sessionId: string): Promise<TeaserPayload | null
   return serializeTeaser(stored.result, loadStringCatalog().variants.length);
 }
 
-/**
- * Token anônimo do visitante — §57: nenhum cadastro é exigido antes do resultado.
- *
- * É um identificador opaco, sem nada sobre a pessoa. No banco guardamos apenas o SHA-256 dele, de
- * modo que um vazamento do banco não permita se passar por ninguém (LGPD, §51).
- */
-const VISITOR_COOKIE = 'te_visitor';
-
-async function visitorToken(): Promise<string> {
-  const jar = await cookies();
-  const existing = jar.get(VISITOR_COOKIE)?.value;
-  if (existing) return existing;
-
-  const token = newSessionToken();
-  jar.set(VISITOR_COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 180,
-  });
-  return token;
-}

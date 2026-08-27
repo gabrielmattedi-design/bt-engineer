@@ -20,9 +20,17 @@ import { unansweredIn, visibleSteps, type Question } from './steps';
 export function QuizForm({
   onComplete,
   rackets,
+  onStep,
 }: {
   onComplete: (answers: QuestionnaireAnswers) => void;
   readonly rackets: readonly RacketOption[];
+  /**
+   * Marco de funil, disparado a cada etapa alcançada (0 = abertura).
+   *
+   * NÃO é aguardado em lugar nenhum: medir não pode atrasar o clique mais frequente do produto.
+   * Opcional para que o componente continue montável em teste sem infraestrutura.
+   */
+  onStep?: (stepIndex: number) => void;
 }) {
   const [answers, setAnswers] = useState<QuestionnaireAnswers>(emptyAnswers);
   const [stepIndex, setStepIndex] = useState(0);
@@ -45,6 +53,23 @@ export function QuizForm({
       return;
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [stepIndex]);
+
+  /*
+    O marco da etapa alcançada.
+
+    Separado do efeito de rolagem porque a primeira renderização É um marco aqui (abriu o
+    questionário) e não é lá (não há de onde rolar). Juntá-los exigiria uma condição a mais em
+    cada um para desfazer o comportamento do outro.
+
+    `onStep` roda para o índice atual, então voltar uma etapa não regrava nada de novo: o marco já
+    existe e o banco ignora a repetição.
+  */
+  useEffect(() => {
+    onStep?.(stepIndex);
+    // `onStep` fora das dependências de propósito: uma função recriada a cada render dispararia o
+    // efeito a cada render, transformando um marco por etapa em um marco por letra digitada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIndex]);
 
   const steps = useMemo(() => visibleSteps(answers), [answers]);

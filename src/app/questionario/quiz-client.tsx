@@ -1,5 +1,7 @@
 'use client';
 
+import { trackQuizStep } from './funnel-actions';
+
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -88,5 +90,11 @@ export function QuizClient({ rackets }: { rackets: readonly RacketOption[] }) {
     );
   }
 
-  return <QuizForm onComplete={handleComplete} rackets={rackets} />;
+  return (
+    <QuizForm
+      onComplete={handleComplete}
+      rackets={rackets}
+      onStep={(i) => void trackQuizStep(i)}
+    />
+  );
 }

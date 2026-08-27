@@ -11,6 +11,7 @@ import {
 } from '@/database/schema';
 import { PRODUCT_SEED } from '@/database/setup';
 import { canTransition, type PaymentEvent, type PaymentStatus } from '@/payments/provider';
+import { markFunnelBySessionId } from './funnel-repo';
 import { PRODUCT_ENTITLEMENTS } from '@/payments/entitlements';
 
 export type Product = {
@@ -223,6 +224,8 @@ export async function processPaymentEvent(
       .where(eq(paymentEvents.id, claimed[0].id));
     return { kind: 'processed', granted: [] };
   }
+
+  await markFunnelBySessionId(order.sessionId, 'paid');
 
   const grants = PRODUCT_ENTITLEMENTS[order.sku] ?? [];
   if (grants.length > 0) {

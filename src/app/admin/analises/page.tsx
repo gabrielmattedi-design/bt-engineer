@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AdminNav } from '../nav';
 import { isAuthenticated } from '../auth';
 import { anyEmailStored, recentLookups } from '@/database/repositories/support-repo';
 import { withAutoBootstrap } from '@/database/setup';
@@ -42,18 +43,7 @@ export default async function AnalisesPage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-6 py-10">
-        <nav className="mb-6 flex flex-wrap gap-4 text-sm">
-          <a href="/admin/verificacao" className="text-graphite underline">
-            Curadoria
-          </a>
-          <a href="/admin/setup" className="text-graphite underline">
-            Preparar o sistema
-          </a>
-          <a href="/admin/codigos" className="text-graphite underline">
-            Códigos de acesso
-          </a>
-          <span className="font-semibold">Atendimento</span>
-        </nav>
+        <AdminNav current="analises" />
 
         <h1 className="font-display text-2xl font-semibold">Atendimento</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">

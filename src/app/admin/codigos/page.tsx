@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AdminNav } from '../nav';
 import { isAuthenticated } from '../auth';
 import { listCoupons } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
@@ -31,18 +32,7 @@ export default async function CodigosPage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-6 py-10">
-        <nav className="mb-6 flex flex-wrap gap-4 text-sm">
-          <a href="/admin/verificacao" className="text-graphite underline">
-            Curadoria
-          </a>
-          <a href="/admin/setup" className="text-graphite underline">
-            Preparar o sistema
-          </a>
-          <span className="font-semibold">Códigos de acesso</span>
-          <a href="/admin/analises" className="text-graphite underline">
-            Atendimento
-          </a>
-        </nav>
+        <AdminNav current="codigos" />
 
         <h1 className="font-display text-2xl font-semibold">Códigos de acesso</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">

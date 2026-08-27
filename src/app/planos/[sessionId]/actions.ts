@@ -6,6 +6,7 @@ import { createOrder, attachPayment } from '@/database/repositories/commerce-rep
 import { ensureAnonymousSession } from '@/database/repositories/session-repo';
 import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
+import { markFunnel } from '@/database/repositories/funnel-repo';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
@@ -157,6 +158,15 @@ export async function startCheckout(
       providerPaymentId: checkout.providerPaymentId,
       amountCents: order.product.priceCents,
     });
+
+    /*
+      Marcado quando o gateway ACEITOU criar o checkout, não quando o botão foi clicado.
+
+      Entre as duas coisas existe a criação do pedido e uma chamada de rede que pode falhar; contar
+      o clique faria uma falha de integração aparecer no painel como desistência do cliente, que é
+      o diagnóstico oposto do certo.
+    */
+    await markFunnel(token, 'checkout');
 
     destination = checkout.redirectUrl;
   } catch (error) {

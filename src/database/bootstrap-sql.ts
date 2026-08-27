@@ -249,4 +249,12 @@ END $$`,
 END $$`,
   `CREATE INDEX IF NOT EXISTS "login_tokens_user_idx" ON "login_tokens" USING btree ("user_id","created_at")`,
   `ALTER TABLE "recommendation_sessions" ADD COLUMN IF NOT EXISTS "user_id" uuid`,
+  `CREATE TABLE IF NOT EXISTS "funnel_markers" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"visitor_hash" text NOT NULL,
+	"marker" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "funnel_markers_visitor_marker_key" UNIQUE("visitor_hash","marker")
+)`,
+  `CREATE INDEX IF NOT EXISTS "funnel_markers_marker_idx" ON "funnel_markers" USING btree ("marker","created_at")`,
 ];

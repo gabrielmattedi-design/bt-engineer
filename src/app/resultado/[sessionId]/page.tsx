@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { markPageFunnel } from '@/app/funnel-mark';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { Podium } from '@/components/result/podium';
@@ -49,6 +50,14 @@ export default async function ResultadoPage({
     redirect(`/analise/${sessionId}`);
   }
   if (!report) notFound();
+
+  /*
+    Marcado só quando o relatório EXISTE e foi entregue.
+
+    Antes dos redirecionamentos acima, este ponto contaria também quem chegou sem entitlement e
+    foi mandado de volta aos planos — inflando o fim do funil justamente com quem não converteu.
+  */
+  await markPageFunnel('report');
 
   const first = report.podium[0];
   const winner = first && !first.locked ? first : null;
