@@ -6,3 +6,4 @@ export * from './settings';
 export * from './coupons';
 export * from './support';
 export * from './funnel';
+export * from './campaigns';

@@ -1,6 +1,9 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { markFunnel } from '@/database/repositories/funnel-repo';
+import { recordCampaign, type Campanha } from '@/database/repositories/campaign-repo';
+import { CAMPAIGN_COOKIE } from '@/middleware';
 import { visitorToken } from './visitor';
 
 /**
@@ -44,4 +47,39 @@ export async function trackQuizStep(stepIndex: number): Promise<void> {
 
   const token = await visitorToken();
   await markFunnel(token, stepIndex === 0 ? 'quiz:start' : `quiz:${stepIndex}`);
+
+  /*
+    ═══ A ORIGEM É GRAVADA NA ABERTURA, E SÓ NELA ═════════════════════════════════════════════
+
+    Este é o primeiro instante em que as duas metades existem ao mesmo tempo: o cookie de campanha,
+    posto pelo middleware quando o visitante chegou pelo anúncio, e o identificador do visitante,
+    que acabou de nascer na linha acima. Antes daqui não há a quem atribuir; depois daqui o cookie
+    de campanha pode já ter expirado.
+
+    Só na etapa 0 porque o gravador é idempotente por visitante — repetir em toda etapa seria uma
+    consulta ao banco por clique, todas descartadas pelo `onConflictDoNothing`, num caminho que a
+    documentação desta função exige que seja rápido.
+  */
+  if (stepIndex === 0) await recordVisitorCampaign(token);
+}
+
+/**
+ * Lê o cookie de campanha e grava a origem deste visitante.
+ *
+ * O cookie é escrito pelo nosso próprio middleware, mas é lido com desconfiança: ele vive no
+ * navegador e pode voltar corrompido, editado à mão, ou simplesmente truncado. Um JSON inválido
+ * aqui não pode derrubar a abertura do questionário — que é a ação mais importante do produto.
+ */
+async function recordVisitorCampaign(token: string): Promise<void> {
+  try {
+    const bruto = (await cookies()).get(CAMPAIGN_COOKIE)?.value;
+    if (!bruto) return;
+
+    const dados = JSON.parse(bruto) as Campanha;
+    if (typeof dados?.utm_source !== 'string') return;
+
+    await recordCampaign(token, dados);
+  } catch (error) {
+    console.error('[campanha] cookie de origem ilegível', error);
+  }
 }

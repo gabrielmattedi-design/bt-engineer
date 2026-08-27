@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
 import { funnelReport, quizDropoff } from '@/database/repositories/funnel-repo';
+import { campaignReport } from '@/database/repositories/campaign-repo';
 import { withAutoBootstrap } from '@/database/setup';
 
 export const dynamic = 'force-dynamic';
@@ -42,8 +43,8 @@ export default async function FunilPage({
     tela e ver o erro. Bootstrap sob demanda cria a estrutura e a tela passa a funcionar sozinha, no
     primeiro acesso.
   */
-  const [funil, etapas] = await withAutoBootstrap(() =>
-    Promise.all([funnelReport(janela), quizDropoff(janela)]),
+  const [funil, etapas, origens] = await withAutoBootstrap(() =>
+    Promise.all([funnelReport(janela), quizDropoff(janela), campaignReport(janela)]),
   );
 
   const topo = funil[0]?.visitors ?? 0;
@@ -189,6 +190,71 @@ export default async function FunilPage({
               </section>
             )}
           </>
+        )}
+
+        {/*
+          Desempenho por origem — §15.
+
+          O funil acima dá a média. Com dois anúncios no ar, uma média de 5% pode ser 9% e 1%, e a
+          decisão certa — desligar um, dobrar no outro — fica escondida atrás dela. Esta tabela é a
+          única que responde onde colocar dinheiro.
+        */}
+        {origens.length > 0 && (
+          <section className="mt-12">
+            <h2 className="font-display text-lg font-semibold">De onde vieram</h2>
+            <p className="mt-1 max-w-prose text-sm text-graphite">
+              Só quem chegou por um link com <code>utm_source</code>. Quem veio direto ou por busca
+              não aparece aqui — a origem só existe se você a escreveu no link.
+            </p>
+
+            <div className="mt-4 overflow-x-auto rounded border border-line bg-white">
+              <table className="w-full min-w-[36rem] text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-graphite">
+                    <th className="px-4 py-3 font-semibold">Origem</th>
+                    <th className="px-4 py-3 font-semibold">Campanha</th>
+                    <th className="px-4 py-3 text-right font-semibold">Chegaram</th>
+                    <th className="px-4 py-3 text-right font-semibold">Terminaram</th>
+                    <th className="px-4 py-3 text-right font-semibold">Pagaram</th>
+                    <th className="px-4 py-3 text-right font-semibold">Conversão</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {origens.map((o) => (
+                    <tr
+                      key={`${o.source}|${o.campaign ?? ''}`}
+                      className="border-b border-line/60 last:border-0"
+                    >
+                      <td className="px-4 py-3 font-medium">{o.source}</td>
+                      <td className="px-4 py-3 text-graphite">{o.campaign ?? '—'}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{o.visitors}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
+                        {o.finished}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">{o.paid}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {o.conversion.toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/*
+              A ressalva que impede a decisão errada mais comum.
+
+              Uma origem com 3 visitantes e 1 pagante marca 33% e parece a melhor da tabela. Não é
+              resultado, é acaso de amostra pequena — e desligar a campanha de 300 visitantes para
+              investir naquela seria a pior decisão que este painel poderia induzir.
+            */}
+            <p className="mt-3 max-w-prose text-xs text-graphite">
+              Ordenado por volume, e não por conversão: abaixo de umas 50 pessoas o percentual
+              oscila demais para decidir. As colunas do meio dizem ONDE a origem falha — quem não
+              termina o questionário veio pelo anúncio errado; quem termina e não paga é público
+              certo com oferta errada.
+            </p>
+          </section>
         )}
 
         {/*
