@@ -130,7 +130,35 @@ export function physicalFit(
    * mudança de vencedor em 1 de 22 personas, numa margem de 0,37 ponto — quase-empate.
    *
    * O que sobra de saturação não se resolve mexendo mais aqui: ela vem da precisão de
-   * `handlingCapacity`, que é o alvo certo da próxima investigação.
+   * `handlingCapacity`.
+   *
+   * ═══ A INVESTIGAÇÃO FOI FEITA — E FECHA ESTA CONSTANTE ════════════════════════════════════
+   *
+   * Ver `tests/integrity/handling-capacity-noise.test.ts`. Não existe gabarito para a capacidade
+   * de um respondente, então o que se mede é ESTABILIDADE: mover em um degrau cada autoavaliação
+   * que admite hesitação honesta e ver quanto a capacidade anda. Sobre 4.000 perfis:
+   *
+   *     velocidade de swing ..... 6,36    ← 62% do ruído
+   *     força percebida ......... 2,11
+   *     preparo físico .......... 1,34
+   *     nível técnico ........... 0,44
+   *     as quatro juntas ....... 10,28    (mediana 11,10 · máx 14,37)
+   *
+   * O ruído tem a MESMA ORDEM DE GRANDEZA dos 13 pontos desta constante. Ou seja: ela não está
+   * folgada, está dimensionada — e a suspeita escrita acima, de que ela absorve a imprecisão da
+   * estimativa, se confirma numericamente. Apertar mais obrigaria o componente a confiar num
+   * número com uma precisão que ele não tem.
+   *
+   * Comprimir `SWING_SPEED_SCORE` (20…90 → 30…80) foi testado e REJEITADO: derrubaria a troca
+   * material de recomendação de 20,8% para 17,3%, ao custo de trocar a raquete de 4 das 22
+   * personas. Comprimir a escala não tira só ruído — tira sinal de quem de fato tem swing rápido,
+   * que é justamente quem mais precisa de um frame que acompanhe.
+   *
+   * O que sobra é uma propriedade do produto, não um defeito a corrigir aqui: a pergunta mais
+   * difícil de responder do questionário é também a mais decisiva, e em ~8% dos perfis hesitar
+   * nela muda a recomendação de forma material. O caminho para isso não passa por esta constante
+   * — passa por DIZER a incerteza ao leitor, que é o que `computeConfidence` já faz com o swing
+   * inferido e ainda não faz com o swing declarado numa fronteira.
    */
   const MASS_TOLERANCE = 13;
 
