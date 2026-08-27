@@ -356,16 +356,38 @@ export const mercadoPagoProvider: PaymentProvider = {
       return null;
     }
 
-    const dataId = payload.data?.id;
+    /*
+      ═══ DE ONDE SAI O ID QUE ENTRA NO MANIFESTO ══════════════════════════════════════════════
+
+      Da QUERY STRING da notificação, e não do corpo. A documentação do Mercado Pago descreve o
+      manifesto como `id:[data.id_url];…` — o `data.id` que vem na URL.
+
+      Nós usávamos o do corpo. Nas notificações de pagamento os dois valores coincidem, então
+      funcionava; mas coincidir não é a mesma coisa que estar certo, e a diferença aparece
+      justamente onde ninguém procura — num formato de notificação em que eles divergem, com o
+      webhook rejeitando tudo e nenhuma pista do motivo.
+
+      A regra do minúsculo vem da mesma página: ids alfanuméricos entram no manifesto em caixa
+      baixa. Ids de pagamento são numéricos e não são afetados, o que torna esta a espécie de linha
+      que nunca é exercitada até o dia em que é.
+
+      O corpo continua sendo a origem de tudo o mais — inclusive de qual pagamento consultar na API.
+    */
+    const url = new URL(request.url);
+    const idDaUrl = url.searchParams.get('data.id') ?? url.searchParams.get('id');
+
+    const dataId = payload.data?.id ?? idDaUrl;
     if (dataId === undefined || dataId === null) {
-      console.error('[mercadopago] notificação recusada: sem data.id no corpo');
+      console.error('[mercadopago] notificação recusada: sem data.id no corpo nem na URL');
       return null;
     }
+
+    const idAssinado = (idDaUrl ?? String(dataId)).toLowerCase();
 
     const falha = assinaturaConfere(
       request.headers.get('x-signature'),
       request.headers.get('x-request-id'),
-      String(dataId),
+      idAssinado,
     );
     if (falha) {
       /*
