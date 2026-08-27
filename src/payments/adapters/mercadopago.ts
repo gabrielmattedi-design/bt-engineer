@@ -320,21 +320,47 @@ export const mercadoPagoProvider: PaymentProvider = {
   },
 
   async parseWebhook(request: Request): Promise<PaymentEvent | null> {
+    /*
+      ═══ TODA SAÍDA POR `null` DIZ O MOTIVO ══════════════════════════════════════════════════
+
+      Esta função devolve `null` por seis razões diferentes, e a rota traduz TODAS elas para a mesma
+      resposta: `400 assinatura inválida`. Isso é uma mentira em cinco dos seis casos.
+
+      O custo apareceu na primeira investigação real: o painel do Mercado Pago mostrava `400` nas
+      notificações, e a leitura óbvia — que o problema era a assinatura — podia estar errada desde o
+      começo, porque uma falha ao consultar a API do gateway produz exatamente a mesma resposta. Não
+      havia como distinguir "recusamos por segurança" de "não conseguimos confirmar", e as duas
+      exigem consertos que não se parecem em nada.
+
+      Uma linha por caminho custa nada e transforma um palpite em leitura.
+    */
     const body = await request.text();
 
     let payload: { type?: string; action?: string; data?: { id?: string | number } };
     try {
       payload = JSON.parse(body) as typeof payload;
     } catch {
+      console.error('[mercadopago] notificação recusada: corpo não é JSON');
       return null;
     }
 
-    // Só notificação de pagamento interessa. As de merchant_order chegam junto e são ruído aqui.
+    /*
+      Só notificação de pagamento interessa. As de `merchant_order` chegam junto e são ruído aqui —
+      e as de `application` (vinculação de aplicações) e `fraud_alert` também, quando esses eventos
+      estão marcados no painel. Ignorá-las é o comportamento certo, mas não é erro nenhum e não
+      pode aparecer no log com a mesma cara de uma falha.
+    */
     const tipo = payload.type ?? payload.action?.split('.')[0];
-    if (tipo !== 'payment') return null;
+    if (tipo !== 'payment') {
+      console.info(`[mercadopago] notificação ignorada: tipo "${tipo ?? 'ausente'}" não é pagamento`);
+      return null;
+    }
 
     const dataId = payload.data?.id;
-    if (dataId === undefined || dataId === null) return null;
+    if (dataId === undefined || dataId === null) {
+      console.error('[mercadopago] notificação recusada: sem data.id no corpo');
+      return null;
+    }
 
     const falha = assinaturaConfere(
       request.headers.get('x-signature'),
@@ -363,13 +389,30 @@ export const mercadoPagoProvider: PaymentProvider = {
       pudesse declarar `approved`.
     */
     const payment = await fetchPayment(String(dataId));
-    if (!payment) return null;
+    if (!payment) {
+      // Assinatura VÁLIDA e API que não respondeu. Nada a ver com segurança: ou o token não lê
+      // este pagamento, ou a API está fora. Confundir isto com assinatura inválida foi o que quase
+      // mandou a investigação para o lado errado.
+      console.error(
+        `[mercadopago] assinatura ok, mas a API não devolveu o pagamento ${String(dataId)} — ` +
+          'confira o MERCADOPAGO_ACCESS_TOKEN da mesma aplicação',
+      );
+      return null;
+    }
 
     const orderId = payment.external_reference;
-    if (!orderId) return null;
+    if (!orderId) {
+      console.error(
+        `[mercadopago] pagamento ${payment.id} sem external_reference — não dá para saber o pedido`,
+      );
+      return null;
+    }
 
     const status = STATUS[payment.status];
-    if (!status) return null;
+    if (!status) {
+      console.error(`[mercadopago] estado desconhecido "${payment.status}" — nada concedido`);
+      return null;
+    }
 
     return {
       /*
