@@ -374,6 +374,52 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/*
+        ═══ O FECHO QUE FALTAVA ═══════════════════════════════════════════════════════════════
+
+        A página inteira tinha UM caminho para o questionário: o botão do herói. Tudo o que vem
+        depois — os seis pilares, o fluxo, "Como funciona", a seção de medida e os dois preços —
+        terminava no rodapé sem nenhuma forma de começar.
+
+        O prejuízo é o inverso do que parece. Quem sai no primeiro terço nunca ia converter mesmo;
+        quem lê os dois cards de preço até o fim é a pessoa MAIS convencida da página, e era
+        exatamente ela que precisava rolar de volta ao topo para agir. Em tráfego frio, esse
+        percurso de volta é onde a intenção morre.
+
+        Vem depois dos preços de propósito, e não antes: pedir a ação antes de a pessoa saber quanto
+        custa é o que faz alguém começar o questionário e desistir ao ver o valor — abandono que
+        aparece no funil como problema do questionário, quando o problema foi a ordem da página.
+
+        ═══ POR QUE REPETE O AVISO DO HERÓI ═══════════════════════════════════════════════════
+
+        "Gratuito, sem cadastro" está lá em cima, a dois mil pixels daqui. Quem chega neste ponto
+        acabou de ler dois preços, e a dúvida imediata é se o botão leva a um pagamento. Repetir a
+        linha custa uma frase e responde a única objeção que existe neste ponto exato da página.
+      */}
+      <section className="bg-court text-paper">
+        <div className="mx-auto max-w-5xl px-6 py-16 text-center sm:py-20">
+          <h2 className="font-display text-2xl font-bold sm:text-3xl">
+            Descubra o que combina com o seu jogo
+          </h2>
+          <p className="mx-auto mt-4 max-w-prose text-paper/80">
+            Responda o questionário e veja a análise antes de decidir qualquer coisa. Avaliamos{' '}
+            {stats.rackets} raquetes contra o seu perfil.
+          </p>
+
+          <Link
+            href="/questionario"
+            className="mt-8 inline-flex min-h-[56px] items-center justify-center rounded bg-clay
+                       px-8 font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            Descobrir meu setup
+          </Link>
+
+          <p className="mt-6 text-sm text-paper/50">
+            Questionário gratuito · 3 a 5 minutos · sem cadastro
+          </p>
+        </div>
+      </section>
+
       <footer className="court-line mx-auto max-w-5xl px-6 py-12">
         <Logo size="sm" />
         <BrandSignature className="mt-6" />
