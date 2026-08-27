@@ -1,4 +1,5 @@
 import { SITE_DOMAIN } from '@/lib/site';
+import { CONTATO_EMAIL } from '@/lib/contato';
 
 /**
  * Corpos dos e-mails transacionais.
@@ -43,8 +44,19 @@ function layout(input: { preheader: string; body: string }): string {
 ${input.body}
   </td></tr>
 </table>
+<!--
+  ═══ O RODAPÉ DIZIA ONDE NÃO FALAR, SEM DIZER ONDE FALAR ═══════════════════════════════════
+
+  "Este endereço não recebe respostas" é verdade e era metade da informação. Quem pagou e não
+  recebeu o relatório lia isso e ficava sem saída — e a saída que sobra nesse ponto é abrir
+  disputa no gateway, que custa o valor, a taxa e uma marca na conta que recebe.
+
+  Fechar a porta sem apontar a próxima é o que transforma um problema de suporte de dois minutos
+  numa contestação.
+-->
 <div style="max-width:520px;padding:16px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:${GRAPHITE};text-align:center;">
-  ${SITE_DOMAIN} · este endereço não recebe respostas
+  ${SITE_DOMAIN} · este endereço não recebe respostas<br>
+  Precisa de ajuda? Escreva para <a href="mailto:${CONTATO_EMAIL}" style="color:${GRAPHITE};">${CONTATO_EMAIL}</a>
 </div>
 </td></tr></table>
 </body></html>`;

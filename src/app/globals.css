@@ -183,3 +183,52 @@
     animation: none;
   }
 }
+
+/*
+  Corpo de texto das páginas legais.
+  
+  Elas são as únicas telas do produto feitas de parágrafos corridos — todo o resto é interface. Em
+  vez de repetir classes de tipografia em cada tag, o estilo mora aqui: as páginas escrevem HTML
+  semântico e o texto sai legível sozinho.
+
+  A medida é ~65 caracteres por linha, que é onde o olho volta para a linha certa sem esforço. Sem
+  isso, um parágrafo de política ocupa a largura toda e vira um bloco que ninguém termina — e uma
+  política que ninguém lê falha no único trabalho que tem.
+*/
+.legal-prose h1 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.legal-prose .lead {
+  margin-top: 0.75rem;
+  color: #5A6472;
+  font-size: 1.0625rem;
+}
+
+.legal-prose h2 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 2.5rem;
+}
+
+.legal-prose p,
+.legal-prose li {
+  margin-top: 0.75rem;
+  line-height: 1.7;
+  color: #2A3038;
+}
+
+.legal-prose ul {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.legal-prose strong {
+  font-weight: 600;
+  color: #0B0F14;
+}

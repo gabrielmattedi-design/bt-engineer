@@ -5,6 +5,7 @@ import { currentUser, endUserSession } from '@/auth/session';
 import { analysesForUser } from '@/database/repositories/auth-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { dataLonga, hora } from '@/lib/datas';
+import { CONTATO_EMAIL } from '@/lib/contato';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,8 +61,11 @@ export default async function MinhasAnalisesPage() {
               <Link href="/entrar" className="text-clay underline">
                 tente com o outro e-mail
               </Link>
-              . Se o pagamento foi feito e nada aparece aqui, fale com a gente que localizamos pelo
-              comprovante.
+              . Se o pagamento foi feito e nada aparece aqui, escreva para{' '}
+              <a href={`mailto:${CONTATO_EMAIL}`} className="text-clay underline">
+                {CONTATO_EMAIL}
+              </a>{' '}
+              com o comprovante que localizamos.
             </p>
             <Link
               href="/questionario"

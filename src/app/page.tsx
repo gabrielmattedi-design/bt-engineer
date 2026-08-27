@@ -5,6 +5,7 @@ import { Logo } from '@/components/marketing/logo';
 import { Pillars } from '@/components/marketing/pillars';
 import { BrandWall } from '@/components/marketing/brand-wall';
 import { catalogStats } from '@/data/load';
+import { CONTATO_EMAIL } from '@/lib/contato';
 
 /**
  * Home — §40, §41, §42.
@@ -428,6 +429,26 @@ export default function HomePage() {
           fabricante. Equipamento adequado ajuda, mas não substitui a avaliação de um profissional
           de saúde.
         </p>
+
+        {/*
+          Links legais no rodapé, pequenos e sem destaque.
+
+          Eles cumprem uma obrigação e não vendem nada — dar peso a eles seria roubar atenção da
+          única ação que a página quer. Mas precisam EXISTIR e ser alcançáveis de qualquer página
+          pública: é o que as plataformas de anúncio checam antes de aprovar uma campanha, e é onde
+          um cliente com problema procura o contato antes de abrir disputa no gateway.
+        */}
+        <nav className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-graphite">
+          <Link href="/privacidade" className="underline">
+            Privacidade
+          </Link>
+          <Link href="/termos" className="underline">
+            Termos e reembolso
+          </Link>
+          <a href={`mailto:${CONTATO_EMAIL}`} className="underline">
+            Contato
+          </a>
+        </nav>
       </footer>
     </main>
   );

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
+import { CONTATO_EMAIL } from '@/lib/contato';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,8 +152,11 @@ export default async function RetornoPage({
             </div>
 
             <p className="mt-10 text-xs text-graphite">
-              Se em alguns minutos nada chegar, responda o e-mail da compra que a gente resolve.
-              Guarde o comprovante do Mercado Pago.
+              Se em alguns minutos nada chegar, escreva para{' '}
+              <a href={`mailto:${CONTATO_EMAIL}`} className="underline">
+                {CONTATO_EMAIL}
+              </a>{' '}
+              com o comprovante do Mercado Pago que a gente libera na mão.
             </p>
           </>
         )}

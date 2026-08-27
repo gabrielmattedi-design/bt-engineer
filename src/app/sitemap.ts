@@ -48,5 +48,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.5,
     },
+    /*
+      As páginas legais entram no sitemap, e não é formalidade.
+
+      As plataformas de anúncio verificam se existe política de privacidade acessível antes de
+      aprovar campanha de produto pago. Listá-las é o caminho mais curto entre o robô e a página —
+      e elas não competem com nada, porque ninguém busca por elas.
+    */
+    { url: `${SITE_URL}/privacidade`, lastModified: agora, changeFrequency: 'yearly', priority: 0.1 },
+    { url: `${SITE_URL}/termos`, lastModified: agora, changeFrequency: 'yearly', priority: 0.1 },
   ];
 }

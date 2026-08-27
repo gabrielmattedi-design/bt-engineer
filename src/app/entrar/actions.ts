@@ -7,6 +7,7 @@ import { startUserSession, authConfigured } from '@/auth/session';
 import { sendEmail, emailEnabled } from '@/email/send';
 import { magicLinkEmail } from '@/email/templates';
 import { SITE_URL } from '@/lib/site';
+import { CONTATO_EMAIL } from '@/lib/contato';
 
 export type LoginRequestResult = { sent: true } | { error: string };
 
@@ -78,8 +79,8 @@ export async function requestLink(
         return {
           error:
             'O envio de e-mail está indisponível no momento. Se você ainda tem o link do seu ' +
-            'relatório, ele continua funcionando. Se não tiver, fale com a gente que localizamos ' +
-            'a sua análise.',
+            `relatório, ele continua funcionando. Se não tiver, escreva para ${CONTATO_EMAIL} que ` +
+            'localizamos a sua análise.',
         };
       }
     }
