@@ -59,7 +59,28 @@ export async function requestLink(
 
       const sent = await sendEmail({ to: result.email, ...mail });
       if (!sent.ok) {
-        return { error: 'Não conseguimos enviar o e-mail agora. Tente novamente em alguns minutos.' };
+        /*
+          ═══ "TENTE NOVAMENTE EM ALGUNS MINUTOS" ERA UMA MENTIRA ═══════════════════════════════
+
+          A causa mais comum de recusa aqui não passa com o tempo: é o domínio do remetente ainda
+          não verificado no provedor. Nesse estado, o envio falha em toda tentativa, e mandar a
+          pessoa tentar de novo a faz repetir um gesto inútil até desistir do produto.
+
+          O texto novo não promete recuperação que não existe. Ele aponta o caminho que FUNCIONA
+          naquele momento — o link do relatório, que a pessoa já tem — e oferece contato para quem
+          não tem mais o link.
+
+          A causa real vai para o log e aparece nomeada em /admin/setup. Ela não pode vir para cá:
+          "o domínio do remetente não está verificado" é informação de infraestrutura, e quem está
+          nesta tela é um visitante.
+        */
+        console.error(`[entrar] link não enviado para o pedido de acesso: ${sent.reason}`);
+        return {
+          error:
+            'O envio de e-mail está indisponível no momento. Se você ainda tem o link do seu ' +
+            'relatório, ele continua funcionando. Se não tiver, fale com a gente que localizamos ' +
+            'a sua análise.',
+        };
       }
     }
 
