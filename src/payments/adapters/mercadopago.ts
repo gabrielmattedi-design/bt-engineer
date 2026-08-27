@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type {
   CheckoutSession,
   CreateCheckoutInput,
@@ -234,10 +234,21 @@ function assinaturaConfere(
     que devolve o hash correto para qualquer manifesto é um oráculo: dispensa conhecer o segredo
     para forjar uma assinatura válida.
   */
+  /*
+    A impressão digital é o que responde "o valor certo chegou até aqui?" sem revelar o valor.
+
+    Contar caracteres provou pouco: o segredo errado tinha exatamente 64, como o certo. Já os
+    primeiros 8 hexadecimais do SHA-256 identificam o valor sem permitir voltar a ele — quem
+    investiga calcula a mesma impressão do segredo que tem em mãos e compara com a do log.
+
+    É a diferença entre "tem o tamanho certo" e "é o valor certo", e foi ela que faltou.
+  */
+  const digital = createHash('sha256').update(webhookSecret()).digest('hex').slice(0, 8);
+
   console.error(
     `[mercadopago] assinatura não confere para o manifesto "${manifesto}" ` +
-      `(o segredo configurado tem ${webhookSecret().length} caracteres; o do painel tem 64) ` +
-      `— v1 recebido: ${v1}`,
+      `— v1 recebido: ${v1} · segredo configurado: ${webhookSecret().length} caracteres, ` +
+      `impressão ${digital}`,
   );
   return 'hash-nao-confere';
 }
