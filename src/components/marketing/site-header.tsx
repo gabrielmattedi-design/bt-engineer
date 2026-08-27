@@ -93,32 +93,53 @@ export async function SiteHeader({
           />
         </Link>
 
-        {mostrarConta && (
-          <nav aria-label="Sua conta" className="shrink-0 text-sm">
-            {user ? (
-              <Link
-                href="/minhas-analises"
-                className="rounded px-1 font-medium underline underline-offset-4 opacity-90
-                           transition-opacity hover:opacity-100
-                           focus-visible:outline focus-visible:outline-2
-                           focus-visible:outline-offset-4 focus-visible:outline-current"
-              >
-                Minhas análises
-              </Link>
-            ) : (
-              <Link
-                href="/entrar"
-                className="rounded px-1 font-medium underline underline-offset-4 opacity-90
-                           transition-opacity hover:opacity-100
-                           focus-visible:outline focus-visible:outline-2
-                           focus-visible:outline-offset-4 focus-visible:outline-current"
-              >
-                Entrar
-              </Link>
-            )}
-          </nav>
-        )}
+        {mostrarConta && <AccountNav logged={user !== null} />}
       </div>
     </header>
+  );
+}
+
+/**
+ * O link de conta, separado do cabeçalho para poder aparecer também na HOME.
+ *
+ * ═══ POR QUE ELE PRECISOU SAIR DAQUI ═════════════════════════════════════════════════════════
+ *
+ * A home é a única página do site que não usa `SiteHeader` — o herói já carrega a marca em grande,
+ * e um cabeçalho por cima dela repetiria o logo duas vezes na mesma dobra. A consequência não
+ * intencional: a home, que é onde quase todo mundo chega, era a única tela sem NENHUM caminho para
+ * as análises já compradas.
+ *
+ * Quem comprou, fechou o e-mail e voltou pelo endereço do site não tinha como reabrir o relatório.
+ * A única forma seria adivinhar `/resultado/<id>`, e ninguém adivinha um id.
+ */
+export async function AccountLink({ tone }: { tone: 'light' | 'dark' }) {
+  if (!authConfigured()) return null;
+  const user = await currentUser();
+  return <AccountNav logged={user !== null} tone={tone} />;
+}
+
+function AccountNav({ logged, tone }: { logged: boolean; tone?: 'light' | 'dark' }) {
+  return (
+    <nav
+      aria-label="Sua conta"
+      className={cn('shrink-0 text-sm', tone === 'dark' && 'text-paper')}
+    >
+      <Link
+        href={logged ? '/minhas-analises' : '/entrar'}
+        className="rounded px-1 font-medium underline underline-offset-4 opacity-90
+                   transition-opacity hover:opacity-100
+                   focus-visible:outline focus-visible:outline-2
+                   focus-visible:outline-offset-4 focus-visible:outline-current"
+      >
+        {/*
+          O rótulo muda com o estado, e os dois casos são diferentes de propósito.
+
+          "Entrar" para quem já está logado é ruído. "Minhas análises" para quem nunca entrou leva a
+          uma tela de login que parece um obstáculo em vez de um destino — e quem chega aqui já sabe
+          que tem algo para reabrir.
+        */}
+        {logged ? 'Minhas análises' : 'Já fiz uma análise'}
+      </Link>
+    </nav>
   );
 }

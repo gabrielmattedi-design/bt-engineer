@@ -35,10 +35,31 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const event = await provider.parseWebhook(request);
   if (!event) {
+    /*
+      ═══ POR QUE ESTA LINHA DE LOG EXISTE ══════════════════════════════════════════════════════
+
+      Uma recusa silenciosa aqui é indistinguível, de fora, de o gateway nunca ter chamado. E as
+      duas causas exigem investigações opostas: uma se resolve no segredo do webhook, a outra na URL
+      de notificação. Sem registro, a única saída era adivinhar entre as duas.
+
+      Aconteceu de verdade (ago/2026): um pagamento aprovado que não liberou o relatório, e nenhuma
+      forma de saber se a notificação chegou. Uma linha de log teria fechado a questão em segundos.
+
+      O que vai para o log é só o suficiente para decidir: nada do corpo, que carrega dados do
+      comprador.
+    */
+    console.error(
+      `[webhook] notificação recusada — provedor ${provider.id}, ` +
+        `assinatura ${request.headers.get('x-signature') ? 'presente' : 'ausente'}. ` +
+        'Confira MERCADOPAGO_WEBHOOK_SECRET contra a assinatura secreta da aplicação.',
+    );
     return NextResponse.json({ error: 'assinatura inválida' }, { status: 400 });
   }
 
   const outcome = await processPaymentEvent(provider.id, event);
+  // O caminho feliz também deixa rastro: sem ele, "chegou e foi ignorado" some do log tão
+  // silenciosamente quanto a recusa, e a diferença entre os dois é o diagnóstico inteiro.
+  console.info(`[webhook] ${event.providerEventId} → ${outcome.kind} (pedido ${event.orderId})`);
 
   switch (outcome.kind) {
     case 'duplicate':

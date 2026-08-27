@@ -80,20 +80,49 @@ export default async function MinhasAnalisesPage() {
                              border-line bg-white p-5 transition-colors hover:border-court"
                 >
                   <span>
+                    {/*
+                      O NOME primeiro, a data depois — e a hora junto da data.
+
+                      Antes o rótulo era só "Análise de 27 de agosto de 2026". Duas análises feitas
+                      no mesmo dia ficavam idênticas, com o mesmo texto e o mesmo valor, e a única
+                      forma de saber qual era qual era abrir as duas.
+
+                      Não é caso raro: o uso natural do produto é responder uma vez por si e outra
+                      pelo filho ou pelo parceiro de duplas, na mesma tarde. E quem tem mais de uma
+                      análise é exatamente quem mais volta a esta tela.
+
+                      O nome vem antes porque é como a pessoa de fato lembra — "a da Maitê", não "a
+                      das 15h47". A hora entra como desempate para quem não deu nome nenhum.
+                    */}
                     <span className="block font-display font-semibold">
-                      Análise de{' '}
+                      {a.playerName ? `Análise de ${a.playerName}` : 'Análise sem nome'}
+                    </span>
+                    <span className="mt-0.5 block text-sm text-graphite">
                       {a.createdAt.toLocaleDateString('pt-BR', {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric',
                       })}
-                    </span>
-                    <span className="mt-0.5 block text-sm text-graphite">
-                      {(a.paidCents / 100).toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}{' '}
-                      pagos
+                      {' às '}
+                      {a.createdAt.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                      {/*
+                        O valor só aparece quando existe.
+
+                        Relatório liberado por código de convite não tem pedido, e "R$ 0,00 pagos"
+                        ali soaria como cobrança falhada em vez de acesso concedido.
+                      */}
+                      {a.paidCents > 0 && (
+                        <>
+                          {' · '}
+                          {(a.paidCents / 100).toLocaleString('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          })}
+                        </>
+                      )}
                     </span>
                   </span>
                   <span className="text-sm text-clay underline">Abrir</span>

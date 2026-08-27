@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BrandSignature } from '@/components/marketing/wordmark';
+import { AccountLink } from '@/components/marketing/site-header';
 import { Logo } from '@/components/marketing/logo';
 import { Pillars } from '@/components/marketing/pillars';
 import { BrandWall } from '@/components/marketing/brand-wall';
@@ -36,7 +37,23 @@ export default function HomePage() {
           className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30"
           aria-hidden
         />
-        <div className="relative mx-auto max-w-5xl px-6 py-20 sm:py-28">
+        {/*
+          O caminho de volta para quem já comprou.
+
+          A home não usa `SiteHeader` — o herói já traz a marca em grande, e um cabeçalho por cima
+          repetiria o logo na mesma dobra. O efeito colateral era que a home, por onde quase todo
+          mundo entra, era a ÚNICA tela sem nenhum caminho para as análises já pagas: quem fechasse
+          o e-mail do relatório só voltaria adivinhando `/resultado/<id>`.
+
+          Fica alinhado à direita, acima do herói, em corpo pequeno: é a ação de uma minoria dos
+          visitantes, e competir com "Descobrir meu setup" seria trocar a conversão pela
+          conveniência de quem já converteu.
+        */}
+        <div className="relative mx-auto flex max-w-5xl justify-end px-6 pt-6">
+          <AccountLink tone="dark" />
+        </div>
+
+        <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-10 sm:pb-28 sm:pt-14">
           {/* Marca em BRANCO sobre o verde institucional — nunca colorida (brand book pág. 04). */}
           <Logo size="lg" tone="dark" withTagline={false} />
 

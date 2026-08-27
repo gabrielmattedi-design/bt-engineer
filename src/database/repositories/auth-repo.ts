@@ -1,7 +1,14 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import { db } from '@/database/client';
-import { loginTokens, normalizeEmail, orders, recommendationSessions, users } from '@/database/schema';
+import {
+  loginTokens,
+  normalizeEmail,
+  orders,
+  playerProfiles,
+  recommendationSessions,
+  users,
+} from '@/database/schema';
 
 /**
  * Emissão e consumo dos links de acesso.
@@ -175,6 +182,20 @@ export type OwnedAnalysis = {
   readonly publicId: string;
   readonly createdAt: Date;
   readonly paidCents: number;
+  /**
+   * O nome que a pessoa escolheu para ser chamada naquela análise, quando deu um.
+   *
+   * ─── POR QUE ELE FAZ FALTA NA LISTA ────────────────────────────────────────────────────────
+   *
+   * A lista mostrava só a data, sem hora. Duas análises feitas no mesmo dia ficavam com o MESMO
+   * rótulo e o mesmo valor — indistinguíveis. E não é um caso raro: o uso natural do produto é
+   * responder uma vez por si e outra pelo filho, pela esposa ou pelo parceiro de duplas, na mesma
+   * tarde. A pessoa que mais volta a esta tela é justamente quem tem mais de uma.
+   *
+   * O nome resolve o que a data não resolve, porque é o que a pessoa realmente usa para lembrar
+   * de qual análise é qual — "a da Maitê" e não "a das 15h47".
+   */
+  readonly playerName: string | null;
 };
 
 /**
@@ -195,8 +216,17 @@ export async function analysesForUser(userId: string): Promise<OwnedAnalysis[]> 
       id: recommendationSessions.id,
       publicId: recommendationSessions.publicId,
       createdAt: recommendationSessions.createdAt,
+      /*
+        O nome sai do PERFIL gravado, e não de uma coluna própria.
+
+        `player_profiles.profile` é o `PlayerProfile` serializado — a mesma fonte que o card
+        compartilhável usa. Ler dali significa que a lista mostra exatamente o nome que aparece no
+        relatório daquela análise, sem uma segunda cópia que pode divergir da primeira.
+      */
+      playerName: sql<string | null>`${playerProfiles.profile}->>'player_name'`,
     })
     .from(recommendationSessions)
+    .innerJoin(playerProfiles, eq(playerProfiles.id, recommendationSessions.playerProfileId))
     .where(eq(recommendationSessions.userId, userId))
     .orderBy(desc(recommendationSessions.createdAt));
 
@@ -212,5 +242,6 @@ export async function analysesForUser(userId: string): Promise<OwnedAnalysis[]> 
     publicId: s.publicId,
     createdAt: s.createdAt,
     paidCents: paid.filter((p) => p.recId === s.id).reduce((sum, p) => sum + p.cents, 0),
+    playerName: s.playerName?.trim() || null,
   }));
 }
