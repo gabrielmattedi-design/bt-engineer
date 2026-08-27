@@ -139,12 +139,24 @@ async function fetchPayment(paymentId: string): Promise<MercadoPagoPayment | nul
  * corpo aqui produz uma comparação que nunca bate, e o sintoma é um webhook que rejeita 100% das
  * notificações legítimas silenciosamente.
  */
+/**
+ * Por que a assinatura não conferiu — as quatro causas, que exigem consertos diferentes.
+ *
+ * Sem separá-las, "assinatura inválida" cobre desde "o cabeçalho nem veio" até "o segredo está
+ * errado", e as duas se investigam em lugares opostos. Isto é o que o log precisa dizer.
+ */
+type FalhaDeAssinatura =
+  | 'sem-cabecalho'
+  | 'cabecalho-ilegivel'
+  | 'hash-nao-confere'
+  | null;
+
 function assinaturaConfere(
   signature: string | null,
   requestId: string | null,
   dataId: string,
-): boolean {
-  if (!signature) return false;
+): FalhaDeAssinatura {
+  if (!signature) return 'sem-cabecalho';
 
   let ts: string | null = null;
   let v1: string | null = null;
@@ -154,7 +166,7 @@ function assinaturaConfere(
     if (chave.trim() === 'ts') ts = valor.trim();
     if (chave.trim() === 'v1') v1 = valor.trim();
   }
-  if (!ts || !v1) return false;
+  if (!ts || !v1) return 'cabecalho-ilegivel';
 
   /*
     Os campos ausentes SAEM do manifesto — não entram vazios.
@@ -171,7 +183,21 @@ function assinaturaConfere(
   // Comparação em tempo constante: comparar hash com `===` vaza o prefixo correto pelo tempo.
   const a = Buffer.from(esperado);
   const b = Buffer.from(v1);
-  return a.length === b.length && timingSafeEqual(a, b);
+  if (a.length === b.length && timingSafeEqual(a, b)) return null;
+
+  /*
+    O manifesto vai para o log; o segredo e os hashes NÃO.
+
+    Ele contém só o id do pagamento, o id da requisição e o timestamp — os três já visíveis no
+    painel do Mercado Pago, e nenhum deles secreto. É o que permite ver, de fora, se o que estamos
+    assinando tem a forma certa: um `id:` diferente do que o painel mostra aponta um problema de
+    leitura do corpo, e um manifesto idêntico ao esperado deixa uma causa só de pé, o segredo.
+
+    Publicar o hash esperado seria outra história: ele é derivado do segredo, e um oráculo que
+    devolve o hash correto para qualquer manifesto dispensa conhecer o segredo para forjar.
+  */
+  console.error(`[mercadopago] assinatura não confere para o manifesto "${manifesto}"`);
+  return 'hash-nao-confere';
 }
 
 export const mercadoPagoProvider: PaymentProvider = {
@@ -310,13 +336,22 @@ export const mercadoPagoProvider: PaymentProvider = {
     const dataId = payload.data?.id;
     if (dataId === undefined || dataId === null) return null;
 
-    if (
-      !assinaturaConfere(
-        request.headers.get('x-signature'),
-        request.headers.get('x-request-id'),
-        String(dataId),
-      )
-    ) {
+    const falha = assinaturaConfere(
+      request.headers.get('x-signature'),
+      request.headers.get('x-request-id'),
+      String(dataId),
+    );
+    if (falha) {
+      /*
+        Cada causa se conserta num lugar diferente, e o log precisa dizer em qual:
+
+          sem-cabecalho ....... o Mercado Pago não assinou. Acontece quando a URL foi definida só na
+                                preferência e não existe notificação configurada no painel — ali é
+                                que a assinatura secreta é criada.
+          cabecalho-ilegivel .. veio um `x-signature` sem `ts` ou sem `v1`. Formato mudou.
+          hash-nao-confere .... o segredo configurado não é o da aplicação que enviou.
+      */
+      console.error(`[mercadopago] notificação recusada: ${falha} (pagamento ${String(dataId)})`);
       return null;
     }
 
