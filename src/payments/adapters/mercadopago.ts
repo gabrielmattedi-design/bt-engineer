@@ -218,9 +218,26 @@ function assinaturaConfere(
     O tamanho não revela o segredo: ele já é público na prática (64 é o formato documentado), e
     saber que um segredo tem 64 caracteres não ajuda ninguém a adivinhá-lo.
   */
+  /*
+    ═══ O QUE VAI PARA O LOG, E POR QUE ESTA COMBINAÇÃO ═════════════════════════════════════════
+
+    Manifesto, tamanho do segredo e o `v1` RECEBIDO. Com os três — mais o segredo, que quem
+    investiga já tem — dá para reproduzir o cálculo fora do servidor e descobrir qual variante do
+    algoritmo o gateway usou: chave como texto ou como hexadecimal decodificado, com ou sem o ponto
+    e vírgula final, `ts` em segundos ou milissegundos. Sem o `v1` não há o que comparar, e a
+    investigação fica em "não confere" para sempre.
+
+    O `v1` recebido é seguro de registrar porque não é NOSSO: é o valor que o remetente mandou.
+    Publicá-lo não conta nada sobre o segredo — ele já veio pela rede.
+
+    O hash ESPERADO continua fora daqui, e a diferença é toda. Ele é derivado do segredo, e um log
+    que devolve o hash correto para qualquer manifesto é um oráculo: dispensa conhecer o segredo
+    para forjar uma assinatura válida.
+  */
   console.error(
     `[mercadopago] assinatura não confere para o manifesto "${manifesto}" ` +
-      `(o segredo configurado tem ${webhookSecret().length} caracteres; o do painel tem 64)`,
+      `(o segredo configurado tem ${webhookSecret().length} caracteres; o do painel tem 64) ` +
+      `— v1 recebido: ${v1}`,
   );
   return 'hash-nao-confere';
 }
