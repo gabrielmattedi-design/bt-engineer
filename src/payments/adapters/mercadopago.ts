@@ -2,9 +2,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type {
   CheckoutSession,
   CreateCheckoutInput,
-  PaymentEvent,
   PaymentProvider,
   PaymentStatus,
+  WebhookOutcome,
 } from '../provider';
 
 /**
@@ -319,20 +319,17 @@ export const mercadoPagoProvider: PaymentProvider = {
     return { providerPaymentId: pref.id, redirectUrl };
   },
 
-  async parseWebhook(request: Request): Promise<PaymentEvent | null> {
+  async parseWebhook(request: Request): Promise<WebhookOutcome> {
     /*
-      ═══ TODA SAÍDA POR `null` DIZ O MOTIVO ══════════════════════════════════════════════════
+      ═══ CADA SAÍDA DIZ O QUE É, E O CÓDIGO DE STATUS SEGUE DISSO ════════════════════════════
 
-      Esta função devolve `null` por seis razões diferentes, e a rota traduz TODAS elas para a mesma
-      resposta: `400 assinatura inválida`. Isso é uma mentira em cinco dos seis casos.
+      Sete caminhos saem daqui sem evento, e antes todos viravam a mesma resposta: `400 assinatura
+      inválida`. Era mentira em seis deles, e cara caro em um: as notificações de `merchant_order`,
+      que o Mercado Pago manda junto de CADA pagamento, recebiam 400 e eram reenviadas para sempre.
+      Daí o `0% de notificações entregues` no painel — com o webhook funcionando.
 
-      O custo apareceu na primeira investigação real: o painel do Mercado Pago mostrava `400` nas
-      notificações, e a leitura óbvia — que o problema era a assinatura — podia estar errada desde o
-      começo, porque uma falha ao consultar a API do gateway produz exatamente a mesma resposta. Não
-      havia como distinguir "recusamos por segurança" de "não conseguimos confirmar", e as duas
-      exigem consertos que não se parecem em nada.
-
-      Uma linha por caminho custa nada e transforma um palpite em leitura.
+      E a leitura óbvia de `400` em tudo é "minha assinatura está errada". A investigação inteira foi
+      por esse caminho por causa de um código de status mal escolhido.
     */
     const body = await request.text();
 
@@ -341,7 +338,7 @@ export const mercadoPagoProvider: PaymentProvider = {
       payload = JSON.parse(body) as typeof payload;
     } catch {
       console.error('[mercadopago] notificação recusada: corpo não é JSON');
-      return null;
+      return { kind: 'invalid', reason: 'corpo não é JSON' };
     }
 
     /*
@@ -352,8 +349,9 @@ export const mercadoPagoProvider: PaymentProvider = {
     */
     const tipo = payload.type ?? payload.action?.split('.')[0];
     if (tipo !== 'payment') {
-      console.info(`[mercadopago] notificação ignorada: tipo "${tipo ?? 'ausente'}" não é pagamento`);
-      return null;
+      const motivo = `tipo "${tipo ?? 'ausente'}" não é pagamento`;
+      console.info(`[mercadopago] notificação ignorada: ${motivo}`);
+      return { kind: 'ignored', reason: motivo };
     }
 
     /*
@@ -379,7 +377,7 @@ export const mercadoPagoProvider: PaymentProvider = {
     const dataId = payload.data?.id ?? idDaUrl;
     if (dataId === undefined || dataId === null) {
       console.error('[mercadopago] notificação recusada: sem data.id no corpo nem na URL');
-      return null;
+      return { kind: 'invalid', reason: 'sem data.id' };
     }
 
     const idAssinado = (idDaUrl ?? String(dataId)).toLowerCase();
@@ -400,7 +398,7 @@ export const mercadoPagoProvider: PaymentProvider = {
           hash-nao-confere .... o segredo configurado não é o da aplicação que enviou.
       */
       console.error(`[mercadopago] notificação recusada: ${falha} (pagamento ${String(dataId)})`);
-      return null;
+      return { kind: 'invalid', reason: falha };
     }
 
     /*
@@ -419,7 +417,7 @@ export const mercadoPagoProvider: PaymentProvider = {
         `[mercadopago] assinatura ok, mas a API não devolveu o pagamento ${String(dataId)} — ` +
           'confira o MERCADOPAGO_ACCESS_TOKEN da mesma aplicação',
       );
-      return null;
+      return { kind: 'invalid', reason: 'a API não devolveu o pagamento' };
     }
 
     const orderId = payment.external_reference;
@@ -427,31 +425,34 @@ export const mercadoPagoProvider: PaymentProvider = {
       console.error(
         `[mercadopago] pagamento ${payment.id} sem external_reference — não dá para saber o pedido`,
       );
-      return null;
+      return { kind: 'ignored', reason: 'pagamento sem external_reference' };
     }
 
     const status = STATUS[payment.status];
     if (!status) {
       console.error(`[mercadopago] estado desconhecido "${payment.status}" — nada concedido`);
-      return null;
+      return { kind: 'ignored', reason: `estado desconhecido "${payment.status}"` };
     }
 
     return {
-      /*
-        Idempotência por PAGAMENTO + ESTADO, não por notificação.
+      kind: 'event',
+      event: {
+        /*
+          Idempotência por PAGAMENTO + ESTADO, não por notificação.
 
-        O Mercado Pago reenvia a mesma notificação quando não recebe 200, e manda várias ao longo
-        da vida de um pagamento (pendente → aprovado). Usar o id da notificação deixaria os
-        reenvios passarem como eventos novos; usar só o id do pagamento bloquearia a transição
-        legítima de pendente para aprovado. O par resolve os dois.
-      */
-      providerEventId: `mp:${payment.id}:${payment.status}`,
-      eventType: payload.action ?? `payment.${payment.status}`,
-      providerPaymentId: String(payment.id),
-      orderId,
-      status,
-      method: payment.payment_method_id ?? null,
-      raw: payment,
+          O Mercado Pago reenvia a mesma notificação quando não recebe 200, e manda várias ao longo
+          da vida de um pagamento (pendente → aprovado). Usar o id da notificação deixaria os
+          reenvios passarem como eventos novos; usar só o id do pagamento bloquearia a transição
+          legítima de pendente para aprovado. O par resolve os dois.
+        */
+        providerEventId: `mp:${payment.id}:${payment.status}`,
+        eventType: payload.action ?? `payment.${payment.status}`,
+        providerPaymentId: String(payment.id),
+        orderId,
+        status,
+        method: payment.payment_method_id ?? null,
+        raw: payment,
+      },
     };
   },
 

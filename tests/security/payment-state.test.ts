@@ -52,23 +52,35 @@ describe('webhook rejeita quem não é o gateway', () => {
   }
 
   it('aceita payload com assinatura válida', async () => {
-    const event = await fakeProvider.parseWebhook(request(signFakePayload(body)));
+    const outcome = await fakeProvider.parseWebhook(request(signFakePayload(body)));
+    expect(outcome.kind).toBe('event');
+    const event = outcome.kind === 'event' ? outcome.event : null;
     expect(event?.status).toBe('paid');
     expect(event?.orderId).toBe('ord_1');
   });
 
+  /*
+    `invalid`, e não `ignored`.
+
+    A diferença decide o código de status que o gateway recebe, e aqui ela é o ponto: uma assinatura
+    forjada PRECISA sair como falha. Se saísse como "ignorada", responderíamos 200 a uma tentativa
+    de fraude — dizendo a quem tentou que está tudo bem, e apagando o rastro que denunciaria o
+    ataque.
+  */
   it('REJEITA assinatura forjada', async () => {
-    expect(await fakeProvider.parseWebhook(request('forjada'))).toBeNull();
+    expect((await fakeProvider.parseWebhook(request('forjada'))).kind).toBe('invalid');
   });
 
   it('REJEITA assinatura ausente', async () => {
-    expect(await fakeProvider.parseWebhook(request(''))).toBeNull();
+    expect((await fakeProvider.parseWebhook(request(''))).kind).toBe('invalid');
   });
 
   it('REJEITA payload adulterado depois de assinado', async () => {
     // Assinatura legítima de OUTRO corpo: é o ataque de trocar o valor mantendo a assinatura.
     const outro = JSON.stringify({ event_id: 'evt_1', order_id: 'ord_1', status: 'pending' });
-    expect(await fakeProvider.parseWebhook(request(signFakePayload(outro)))).toBeNull();
+    expect(
+      (await fakeProvider.parseWebhook(request(signFakePayload(outro)))).kind,
+    ).toBe('invalid');
   });
 });
 

@@ -45,6 +45,31 @@ export type CheckoutSession = {
   readonly redirectUrl: string;
 };
 
+/**
+ * O que uma notificação recebida é — e por que três casos, e não dois.
+ *
+ * ═══ O DEFEITO QUE ISTO CONSERTA ═════════════════════════════════════════════════════════════
+ *
+ * `parseWebhook` devolvia `PaymentEvent | null`, e a rota traduzia todo `null` para `400`. Isso
+ * junta duas coisas opostas: "esta notificação não é para mim" e "esta notificação é inválida".
+ *
+ * O Mercado Pago manda `merchant_order` junto de cada pagamento — é o comportamento normal dele,
+ * não um erro. Ignorá-la é certo; responder `400` a ela não é. Para o gateway, resposta fora da
+ * faixa 2xx significa "falhei, tente de novo": ele reenfileira, reenvia, marca a entrega como
+ * falha e, se persistir, desativa a notificação. Foi o que produziu `0% de notificações entregues`
+ * no painel — com o webhook funcionando.
+ *
+ * Pior: o painel mostrava `400` em tudo, e a leitura óbvia disso é "minha assinatura está errada".
+ * A investigação inteira foi por esse caminho por causa de um código de status mal escolhido.
+ *
+ * `ignored` responde 200 — recebi, decidi, não me mande de novo. `invalid` responde 400, e aí o
+ * alarme é verdadeiro.
+ */
+export type WebhookOutcome =
+  | { readonly kind: 'event'; readonly event: PaymentEvent }
+  | { readonly kind: 'ignored'; readonly reason: string }
+  | { readonly kind: 'invalid'; readonly reason: string };
+
 export type PaymentEvent = {
   readonly providerEventId: string;
   readonly eventType: string;
@@ -59,7 +84,7 @@ export interface PaymentProvider {
   readonly id: string;
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession>;
   /** Valida a assinatura e devolve o evento. `null` = assinatura inválida ou payload desconhecido. */
-  parseWebhook(request: Request): Promise<PaymentEvent | null>;
+  parseWebhook(request: Request): Promise<WebhookOutcome>;
   getPaymentStatus(providerPaymentId: string): Promise<PaymentStatus>;
 }
 

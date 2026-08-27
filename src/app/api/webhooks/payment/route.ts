@@ -33,8 +33,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'provedor inválido para produção' }, { status: 500 });
   }
 
-  const event = await provider.parseWebhook(request);
-  if (!event) {
+  const parsed = await provider.parseWebhook(request);
+
+  /*
+    ═══ IGNORAR NÃO É FALHAR ══════════════════════════════════════════════════════════════════
+
+    O Mercado Pago manda uma notificação de `merchant_order` junto de CADA pagamento. Ela não nos
+    interessa, e descartá-la é o comportamento certo — mas descartar com `400` diz ao gateway
+    "falhei, tente de novo". Ele reenfileira, reenvia, marca a entrega como falha, e se persistir
+    desativa a notificação.
+
+    Foi o que produziu `0% de notificações entregues` no painel, com o webhook funcionando. E,
+    porque o painel mostrava `400` em tudo, a leitura óbvia foi "a assinatura está errada" — a
+    investigação inteira foi por esse caminho por causa de um código de status mal escolhido.
+
+    200 aqui significa "recebi, decidi, não precisa reenviar".
+  */
+  if (parsed.kind === 'ignored') {
+    return NextResponse.json({ ok: true, ignored: parsed.reason });
+  }
+
+  if (parsed.kind === 'invalid') {
     /*
       ═══ POR QUE ESTA LINHA DE LOG EXISTE ══════════════════════════════════════════════════════
 
@@ -49,13 +68,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       comprador.
     */
     console.error(
-      `[webhook] notificação recusada — provedor ${provider.id}, ` +
-        `assinatura ${request.headers.get('x-signature') ? 'presente' : 'ausente'}. ` +
-        'Confira MERCADOPAGO_WEBHOOK_SECRET contra a assinatura secreta da aplicação.',
+      `[webhook] notificação recusada — provedor ${provider.id}, motivo: ${parsed.reason}, ` +
+        `assinatura ${request.headers.get('x-signature') ? 'presente' : 'ausente'}.`,
     );
-    return NextResponse.json({ error: 'assinatura inválida' }, { status: 400 });
+    // 400 só aqui, onde é verdade: a notificação chegou e não pôde ser aceita.
+    return NextResponse.json({ error: parsed.reason }, { status: 400 });
   }
 
+  const event = parsed.event;
   const outcome = await processPaymentEvent(provider.id, event);
   // O caminho feliz também deixa rastro: sem ele, "chegou e foi ignorado" some do log tão
   // silenciosamente quanto a recusa, e a diferença entre os dois é o diagnóstico inteiro.

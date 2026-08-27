@@ -3,9 +3,9 @@ import { simulatedPaymentsAllowed, SIMULATED_PAYMENTS_BLOCKED } from '../mode';
 import type {
   CheckoutSession,
   CreateCheckoutInput,
-  PaymentEvent,
   PaymentProvider,
   PaymentStatus,
+  WebhookOutcome,
 } from '../provider';
 
 /**
@@ -45,7 +45,7 @@ export const fakeProvider: PaymentProvider = {
     };
   },
 
-  async parseWebhook(request: Request): Promise<PaymentEvent | null> {
+  async parseWebhook(request: Request): Promise<WebhookOutcome> {
     await assertAllowed();
 
     const body = await request.text();
@@ -55,7 +55,9 @@ export const fakeProvider: PaymentProvider = {
     // URL do webhook concederia entitlements a si mesma com um curl.
     const expected = Buffer.from(signFakePayload(body));
     const given = Buffer.from(signature);
-    if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+    if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
+      return { kind: 'invalid', reason: 'assinatura não confere' };
+    }
 
     try {
       const parsed = JSON.parse(body) as {
@@ -64,19 +66,24 @@ export const fakeProvider: PaymentProvider = {
         status?: PaymentStatus;
         method?: string;
       };
-      if (!parsed.event_id || !parsed.order_id || !parsed.status) return null;
+      if (!parsed.event_id || !parsed.order_id || !parsed.status) {
+        return { kind: 'invalid', reason: 'campos obrigatórios ausentes' };
+      }
 
       return {
-        providerEventId: parsed.event_id,
-        eventType: `payment.${parsed.status}`,
-        providerPaymentId: `fake_${parsed.order_id}`,
-        orderId: parsed.order_id,
-        status: parsed.status,
-        method: parsed.method ?? 'pix',
-        raw: parsed,
+        kind: 'event',
+        event: {
+          providerEventId: parsed.event_id,
+          eventType: `payment.${parsed.status}`,
+          providerPaymentId: `fake_${parsed.order_id}`,
+          orderId: parsed.order_id,
+          status: parsed.status,
+          method: parsed.method ?? 'pix',
+          raw: parsed,
+        },
       };
     } catch {
-      return null;
+      return { kind: 'invalid', reason: 'corpo não é JSON' };
     }
   },
 

@@ -18,6 +18,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { mercadoPagoProvider } from '@/payments/adapters/mercadopago';
+import type { PaymentEvent } from '@/payments/provider';
 
 const SECRET = 'segredo-de-teste-do-webhook';
 const TOKEN = 'TEST-access-token';
@@ -69,10 +70,24 @@ function apiDevolve(payment: Record<string, unknown> | null, ok = true): void {
   );
 }
 
+
+/**
+ * Desembrulha o resultado para as asserções que só olham o evento.
+ *
+ * `parseWebhook` devolve um `WebhookOutcome` de três casos — evento, ignorada, inválida — porque a
+ * rota precisa dar códigos de status diferentes para cada um. Os testes abaixo, escritos antes
+ * dessa distinção, só perguntam "virou evento ou não", e continuam sendo a pergunta certa para eles.
+ * Os testes que separam `ignored` de `invalid` ficam no bloco próprio, mais abaixo.
+ */
+async function parse(request: Request): Promise<PaymentEvent | null> {
+  const r = await mercadoPagoProvider.parseWebhook(request);
+  return r.kind === 'event' ? r.event : null;
+}
+
 describe('assinatura do webhook', () => {
   it('aceita uma notificação legítima', async () => {
     apiDevolve({ id: 123, status: 'approved', external_reference: 'ord_1', payment_method_id: 'pix' });
-    const evento = await mercadoPagoProvider.parseWebhook(notificacao('123'));
+    const evento = await parse(notificacao('123'));
 
     expect(evento).not.toBeNull();
     expect(evento!.orderId).toBe('ord_1');
@@ -81,7 +96,7 @@ describe('assinatura do webhook', () => {
 
   it('recusa assinatura ausente', async () => {
     apiDevolve({ id: 123, status: 'approved', external_reference: 'ord_1' });
-    expect(await mercadoPagoProvider.parseWebhook(notificacao('123', { signature: null }))).toBeNull();
+    expect(await parse(notificacao('123', { signature: null }))).toBeNull();
   });
 
   it('recusa assinatura de outro segredo', async () => {
@@ -90,7 +105,7 @@ describe('assinatura do webhook', () => {
       .update('id:123;request-id:req-1;ts:1742505638683;')
       .digest('hex')}`;
     expect(
-      await mercadoPagoProvider.parseWebhook(notificacao('123', { signature: forjada })),
+      await parse(notificacao('123', { signature: forjada })),
     ).toBeNull();
   });
 
@@ -98,7 +113,7 @@ describe('assinatura do webhook', () => {
     apiDevolve({ id: 999, status: 'approved', external_reference: 'ord_1' });
     // Assinatura válida para o pagamento 123, corpo falando do 999.
     const outra = assinar('123', 'req-1');
-    expect(await mercadoPagoProvider.parseWebhook(notificacao('999', { signature: outra }))).toBeNull();
+    expect(await parse(notificacao('999', { signature: outra }))).toBeNull();
   });
 
   /**
@@ -108,7 +123,7 @@ describe('assinatura do webhook', () => {
    */
   it('aceita notificação sem x-request-id, com o campo fora do manifesto', async () => {
     apiDevolve({ id: 55, status: 'approved', external_reference: 'ord_9' });
-    const evento = await mercadoPagoProvider.parseWebhook(
+    const evento = await parse(
       notificacao('55', { requestId: null, signature: assinar('55', null) }),
     );
     expect(evento).not.toBeNull();
@@ -120,19 +135,19 @@ describe('o estado vem da API, não do corpo', () => {
   it('ignora o que a notificação afirma e usa o que a API responde', async () => {
     // A API diz `rejected`; nenhum campo do corpo poderia sobrepor isso.
     apiDevolve({ id: 7, status: 'rejected', external_reference: 'ord_7' });
-    const evento = await mercadoPagoProvider.parseWebhook(notificacao('7'));
+    const evento = await parse(notificacao('7'));
     expect(evento!.status).toBe('failed');
   });
 
   it('sem resposta da API, não há evento — e portanto não há acesso', async () => {
     apiDevolve(null, false);
-    expect(await mercadoPagoProvider.parseWebhook(notificacao('7'))).toBeNull();
+    expect(await parse(notificacao('7'))).toBeNull();
   });
 
   it('pagamento sem external_reference é descartado', async () => {
     // Sem ele não há como saber QUAL pedido foi pago; conceder no palpite seria pior que ignorar.
     apiDevolve({ id: 7, status: 'approved', external_reference: null });
-    expect(await mercadoPagoProvider.parseWebhook(notificacao('7'))).toBeNull();
+    expect(await parse(notificacao('7'))).toBeNull();
   });
 });
 
@@ -151,7 +166,7 @@ describe('tradução de estados', () => {
   for (const [mp, nosso] of casos) {
     it(`${mp} → ${nosso}`, async () => {
       apiDevolve({ id: 1, status: mp, external_reference: 'ord_1' });
-      const evento = await mercadoPagoProvider.parseWebhook(notificacao('1'));
+      const evento = await parse(notificacao('1'));
       expect(evento!.status).toBe(nosso);
     });
   }
@@ -162,7 +177,7 @@ describe('tradução de estados', () => {
    */
   it('estado desconhecido não concede acesso', async () => {
     apiDevolve({ id: 1, status: 'estado_que_nao_existe_ainda', external_reference: 'ord_1' });
-    expect(await mercadoPagoProvider.parseWebhook(notificacao('1'))).toBeNull();
+    expect(await parse(notificacao('1'))).toBeNull();
 
     apiDevolve({ id: 1, status: 'outra_coisa', external_reference: 'ord_1' });
     expect(await mercadoPagoProvider.getPaymentStatus('1')).toBe('pending');
@@ -172,8 +187,8 @@ describe('tradução de estados', () => {
 describe('idempotência', () => {
   it('o mesmo pagamento no mesmo estado gera sempre o mesmo id de evento', async () => {
     apiDevolve({ id: 42, status: 'approved', external_reference: 'ord_1' });
-    const a = await mercadoPagoProvider.parseWebhook(notificacao('42'));
-    const b = await mercadoPagoProvider.parseWebhook(
+    const a = await parse(notificacao('42'));
+    const b = await parse(
       notificacao('42', { requestId: 'req-DIFERENTE', signature: assinar('42', 'req-DIFERENTE') }),
     );
     // Reenvio com outro request-id é o MESMO fato — não pode conceder duas vezes.
@@ -182,9 +197,9 @@ describe('idempotência', () => {
 
   it('a transição de pendente para aprovado é um evento novo', async () => {
     apiDevolve({ id: 42, status: 'pending', external_reference: 'ord_1' });
-    const pendente = await mercadoPagoProvider.parseWebhook(notificacao('42'));
+    const pendente = await parse(notificacao('42'));
     apiDevolve({ id: 42, status: 'approved', external_reference: 'ord_1' });
-    const aprovado = await mercadoPagoProvider.parseWebhook(notificacao('42'));
+    const aprovado = await parse(notificacao('42'));
 
     expect(pendente!.providerEventId).not.toBe(aprovado!.providerEventId);
   });
@@ -194,7 +209,7 @@ describe('notificações que não são de pagamento', () => {
   it('merchant_order é ignorada sem erro', async () => {
     apiDevolve({ id: 1, status: 'approved', external_reference: 'ord_1' });
     expect(
-      await mercadoPagoProvider.parseWebhook(notificacao('1', { type: 'merchant_order' })),
+      await parse(notificacao('1', { type: 'merchant_order' })),
     ).toBeNull();
   });
 });
@@ -321,5 +336,77 @@ describe('criação do checkout', () => {
         notificationUrl: 'https://exemplo.com/api/webhooks/payment',
       }),
     ).rejects.toThrow(/401/);
+  });
+});
+
+/**
+ * Ignorar não é falhar — e a diferença custou uma investigação inteira.
+ *
+ * ═══ O CASO REAL (ago/2026) ══════════════════════════════════════════════════════════════════
+ *
+ * O Mercado Pago manda uma notificação de `merchant_order` junto de CADA pagamento. Nós
+ * descartávamos, corretamente — mas respondendo `400`. Para o gateway, resposta fora da faixa 2xx
+ * significa "falhei, tente de novo": ele reenfileira, reenvia, marca a entrega como falha e, se
+ * persistir, desativa a notificação.
+ *
+ * O painel mostrava `0% de notificações entregues` e `400 - Com erro` em tudo, com o webhook
+ * funcionando. E a leitura óbvia de `400` é "minha assinatura está errada" — a investigação foi
+ * inteira por esse caminho, por causa de um código de status mal escolhido.
+ *
+ * Estes testes trancam a distinção nos dois sentidos, porque errar para o outro lado é pior:
+ * responder 200 a uma assinatura forjada diria a quem tentou que está tudo bem.
+ */
+describe('o que é ignorado e o que é recusado', () => {
+  function comTopico(topic: string, body: unknown): Request {
+    return new Request(`https://exemplo.com/api/webhooks/payment?id=1&topic=${topic}`, {
+      method: 'POST',
+      headers: { 'x-signature': assinar('1', 'req-1'), 'x-request-id': 'req-1' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it('merchant_order é IGNORADA, não recusada', async () => {
+    // Era este o caso que devolvia 400 e fazia o Mercado Pago reenviar para sempre.
+    const r = await mercadoPagoProvider.parseWebhook(
+      comTopico('merchant_order', { resource: 'https://api.mercadopago.com/merchant_orders/1' }),
+    );
+    expect(r.kind, 'merchant_order não pode responder erro ao gateway').toBe('ignored');
+  });
+
+  it('notificação de outro tipo também é ignorada', async () => {
+    const r = await mercadoPagoProvider.parseWebhook(
+      comTopico('payment', { type: 'fraud_alert', data: { id: '1' } }),
+    );
+    expect(r.kind).toBe('ignored');
+  });
+
+  /**
+   * O outro lado da moeda, e o mais importante dos dois: assinatura ruim continua sendo FALHA.
+   *
+   * Se ela saísse como "ignorada", responderíamos 200 a uma tentativa de fraude — confirmando a
+   * quem tentou que o caminho está aberto e apagando o rastro no painel do gateway.
+   */
+  it('assinatura inválida continua sendo recusa, não algo a ignorar', async () => {
+    apiDevolve({ id: 1, status: 'approved', external_reference: 'ord_1' });
+    const r = await mercadoPagoProvider.parseWebhook(notificacao('1', { signature: 'ts=1,v1=abc' }));
+    expect(r.kind).toBe('invalid');
+  });
+
+  it('estado desconhecido é ignorado — o gateway não tem o que reenviar', async () => {
+    // Reenviar não muda um estado que não sabemos traduzir; pedir reenvio seria loop sem saída.
+    apiDevolve({ id: 1, status: 'estado_novo_do_mercado_pago', external_reference: 'ord_1' });
+    const r = await mercadoPagoProvider.parseWebhook(notificacao('1'));
+    expect(r.kind).toBe('ignored');
+  });
+
+  /**
+   * Falha ao CONSULTAR a API é recusa, e não "ignorar" — porque aí o reenvio é justamente o que
+   * queremos. Uma indisponibilidade momentânea da API do gateway não pode consumir o pagamento em
+   * silêncio: o cliente pagou, e a próxima tentativa é a chance de liberar o acesso dele.
+   */
+  it('API indisponível pede reenvio em vez de descartar o pagamento', async () => {
+    apiDevolve(null, false);
+    const r = await mercadoPagoProvider.parseWebhook(notificacao('1'));
+    expect(r.kind).toBe('invalid');
   });
 });
