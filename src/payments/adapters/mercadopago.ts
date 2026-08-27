@@ -86,6 +86,32 @@ const STATUS: Readonly<Record<string, PaymentStatus>> = {
   charged_back: 'refunded',
 };
 
+/**
+ * Faz a falha de REDE se identificar como sendo do Mercado Pago.
+ *
+ * ─── O DEFEITO QUE ISTO FECHA ──────────────────────────────────────────────────────────────
+ *
+ * Quando o `fetch` não chega ao destino — DNS, firewall de saída, gateway fora do ar — o erro que
+ * o Node lança tem a mensagem `fetch failed`, e mais nada. Duas palavras sem sujeito.
+ *
+ * Esse erro sobe até `describeCheckoutFailure`, que não tem como saber de onde veio e cai no texto
+ * genérico: "confira DATABASE_URL e PAYMENT_PROVIDER". Aí está o prejuízo — a frase manda procurar
+ * exatamente onde o problema NÃO está, e quem for atrás vai conferir duas variáveis corretas antes
+ * de suspeitar do gateway.
+ *
+ * Foi um caso real, não hipótese: a primeira tentativa de falar com a API a partir do ambiente de
+ * desenvolvimento morreu no proxy com 403, e o que apareceu foi `fetch failed`.
+ *
+ * O `cause` preserva o erro original inteiro para o log do servidor, que é onde ele serve.
+ */
+async function comGateway(chamada: () => Promise<Response>): Promise<Response> {
+  try {
+    return await chamada();
+  } catch (causa) {
+    throw new Error('Mercado Pago inacessível a partir do servidor.', { cause: causa });
+  }
+}
+
 type MercadoPagoPayment = {
   readonly id: number | string;
   readonly status: string;
@@ -152,10 +178,20 @@ export const mercadoPagoProvider: PaymentProvider = {
   id: 'mercadopago',
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession> {
-    const response = await fetch(`${API}/checkout/preferences`, {
+    /*
+      O token é lido AQUI, fora de `comGateway`, e não lá dentro no cabeçalho.
+
+      Dentro, a exceção de "variável não configurada" seria capturada pelo `catch` do wrapper e
+      sairia rotulada como falha de rede — mandando conferir o gateway quando o que falta é uma
+      variável de ambiente. Foi exatamente o que aconteceu na primeira versão disto, e quem apontou
+      foi o teste "sem access token, o checkout não é criado em silêncio".
+    */
+    const token = accessToken();
+
+    const response = await comGateway(() => fetch(`${API}/checkout/preferences`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken()}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -192,7 +228,7 @@ export const mercadoPagoProvider: PaymentProvider = {
         notification_url: input.notificationUrl,
         statement_descriptor: 'TENNISENGINEER',
       }),
-    });
+    }));
 
     if (!response.ok) {
       const detalhe = await response.text();

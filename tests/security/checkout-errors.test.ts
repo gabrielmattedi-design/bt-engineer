@@ -59,3 +59,62 @@ describe('mensagens de falha do checkout', () => {
     expect(msg).toContain('log do servidor');
   });
 });
+
+/**
+ * As falhas do Mercado Pago não podem cair no genérico.
+ *
+ * O genérico manda conferir `DATABASE_URL` e `PAYMENT_PROVIDER`. Em toda falha do gateway essas
+ * duas variáveis estão CERTAS — a frase manda procurar onde o problema não está, e quem for atrás
+ * vai conferir duas configurações corretas com o funil de pagamento parado.
+ */
+describe('falhas do Mercado Pago', () => {
+  const generico = /DATABASE_URL/;
+
+  it('rede inacessível não vira "confira suas variáveis"', () => {
+    const msg = describeCheckoutFailure(
+      new Error('Mercado Pago inacessível a partir do servidor.', { cause: new Error('fetch failed') }),
+    );
+    expect(msg).not.toMatch(generico);
+    expect(msg).toMatch(/fora do ar|bloqueada/);
+  });
+
+  it('credencial recusada aponta a conta, não a configuração do site', () => {
+    const msg = describeCheckoutFailure(
+      new Error('O Mercado Pago recusou a criação do checkout (HTTP 401). {"message":"invalid_token"}'),
+    );
+    expect(msg).not.toMatch(generico);
+    expect(msg).toMatch(/Access Token/);
+    // A pista que resolve o caso mais comum: os tokens de teste e de produção são idênticos de olhar.
+    expect(msg).toMatch(/mesma aparência/);
+  });
+
+  it('403 recebe o mesmo diagnóstico de 401', () => {
+    const um = describeCheckoutFailure(new Error('O Mercado Pago recusou (HTTP 401).'));
+    const outro = describeCheckoutFailure(new Error('O Mercado Pago recusou (HTTP 403).'));
+    expect(outro).toBe(um);
+  });
+
+  it('variável ausente diz QUAL falta e que o deploy precisa ser refeito', () => {
+    const msg = describeCheckoutFailure(new Error('MERCADOPAGO_ACCESS_TOKEN não configurado. …'));
+    expect(msg).toContain('MERCADOPAGO_ACCESS_TOKEN');
+    expect(msg).toContain('deploy');
+    expect(msg).not.toContain('MERCADOPAGO_WEBHOOK_SECRET');
+  });
+
+  it('a recusa genérica do gateway não devolve o corpo da resposta ao navegador', () => {
+    /*
+      O corpo de erro do Mercado Pago traz `cause`, `caller_id` e mensagens em inglês. Nada disso
+      ajuda quem está lendo a tela, e o `caller_id` identifica a conta que vende — informação que
+      não tem por que aparecer no navegador de um visitante.
+    */
+    const msg = describeCheckoutFailure(
+      new Error(
+        'O Mercado Pago recusou a criação do checkout (HTTP 400). ' +
+          '{"caller_id":3646483422,"message":"invalid_items"}',
+      ),
+    );
+    expect(msg).not.toContain('3646483422');
+    expect(msg).not.toContain('invalid_items');
+    expect(msg).toMatch(/log do servidor/);
+  });
+});
