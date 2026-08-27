@@ -13,8 +13,19 @@ export type CreateCheckoutInput = {
   readonly productName: string;
   readonly amountCents: number;
   readonly currency: string;
-  /** Para onde o gateway devolve o usuário depois de pagar. */
+  /** Para onde o gateway devolve o usuário depois de pagar, ou com o pagamento em análise. */
   readonly returnUrl: string;
+  /**
+   * Para onde devolver quando o pagamento foi RECUSADO.
+   *
+   * Separado de `returnUrl` porque as duas telas dizem coisas opostas, e usar a mesma para os dois
+   * casos garante que uma delas minta. O retorno de sucesso diz "pagamento recebido, estamos
+   * liberando" — é a última frase que alguém com o cartão recusado deveria ler, e ela transformaria
+   * uma recusa banal (limite, banco) numa reclamação de dinheiro sumido.
+   *
+   * A recusa volta para os planos, onde a pessoa pode tentar de novo por outro meio.
+   */
+  readonly failureUrl: string;
   /**
    * Para onde o gateway envia a confirmação, servidor a servidor.
    *

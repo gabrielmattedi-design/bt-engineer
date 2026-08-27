@@ -148,7 +148,18 @@ export async function startCheckout(
       productName: order.product.name,
       amountCents: order.product.priceCents,
       currency: order.product.currency,
-      returnUrl: `${scheme}://${host}/resultado/${publicId}`,
+      /*
+        A volta é para `/retorno`, e NÃO direto para `/resultado`.
+
+        Apontar para o relatório parece o destino óbvio e é o errado: quando o comprador volta pelo
+        navegador antes de a confirmação do gateway chegar ao nosso servidor — e não há ordem
+        garantida entre as duas coisas —, `/resultado` não acha entitlement e devolve a pessoa à
+        página de planos, oferecendo com preço e botão exatamente o que ela acabou de comprar.
+
+        `/retorno` espera a confirmação e só então encaminha. Ver `src/app/retorno/[sessionId]`.
+      */
+      returnUrl: `${scheme}://${host}/retorno/${publicId}`,
+      failureUrl: `${scheme}://${host}/planos/${publicId}`,
       notificationUrl: `${scheme}://${host}/api/webhooks/payment`,
     });
 

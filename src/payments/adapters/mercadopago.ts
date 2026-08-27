@@ -214,8 +214,15 @@ export const mercadoPagoProvider: PaymentProvider = {
         external_reference: input.orderId,
         back_urls: {
           success: input.returnUrl,
+          /*
+            `pending` vai para a MESMA tela de espera do sucesso, de propósito.
+
+            Em PIX e boleto o pagamento fica pendente por minutos ou dias, e a tela de espera já diz
+            a coisa certa para esse caso: que a confirmação pode demorar e que o link chega por
+            e-mail sozinho. Mandar para os planos aqui sugeriria que a compra não aconteceu.
+          */
           pending: input.returnUrl,
-          failure: input.returnUrl,
+          failure: input.failureUrl,
         },
         /*
           Volta sozinho só quando aprovado.

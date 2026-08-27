@@ -210,6 +210,7 @@ describe('credenciais ausentes falham alto', () => {
         amountCents: 1999,
         currency: 'BRL',
         returnUrl: 'https://exemplo.com/resultado/x',
+      failureUrl: 'https://exemplo.com/planos/x',
         notificationUrl: 'https://exemplo.com/api/webhooks/payment',
       }),
     ).rejects.toThrow(/MERCADOPAGO_ACCESS_TOKEN/);
@@ -233,6 +234,7 @@ describe('criação do checkout', () => {
       amountCents: 4999,
       currency: 'BRL',
       returnUrl: 'https://exemplo.com/resultado/x',
+      failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
     });
 
@@ -269,6 +271,7 @@ describe('criação do checkout', () => {
       amountCents: 1999,
       currency: 'BRL',
       returnUrl: 'https://exemplo.com/resultado/x',
+      failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
     });
 
@@ -297,6 +300,7 @@ describe('criação do checkout', () => {
       amountCents: 1999,
       currency: 'BRL',
       returnUrl: 'https://exemplo.com/resultado/x',
+      failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
     });
 
@@ -313,6 +317,7 @@ describe('criação do checkout', () => {
         amountCents: 1999,
         currency: 'BRL',
         returnUrl: 'https://exemplo.com/resultado/x',
+      failureUrl: 'https://exemplo.com/planos/x',
         notificationUrl: 'https://exemplo.com/api/webhooks/payment',
       }),
     ).rejects.toThrow(/401/);

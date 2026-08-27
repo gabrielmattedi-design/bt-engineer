@@ -88,6 +88,7 @@ describe('o provedor simulado em produção', () => {
       amountCents: 1999,
       currency: 'BRL',
       returnUrl: 'https://exemplo.com',
+      failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
     });
   }
