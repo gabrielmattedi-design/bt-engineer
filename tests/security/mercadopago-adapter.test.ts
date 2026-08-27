@@ -244,7 +244,42 @@ describe('criação do checkout', () => {
     expect(corpo.notification_url).toContain('/api/webhooks/payment');
   });
 
-  it('usa o sandbox_init_point quando a credencial é de teste', async () => {
+  /**
+   * O comprador paga sem criar conta.
+   *
+   * O que garante isso é a AUSÊNCIA de `purpose` no corpo da preferência. Com
+   * `purpose: 'wallet_purchase'`, o Mercado Pago exige login antes de pagar — e uma tela de
+   * cadastro entre a vontade e o pagamento, num produto de R$ 19,99 comprado por impulso, é o
+   * atrito mais caro que existe.
+   *
+   * O teste existe porque o defeito seria mudo: a linha extra não quebra nada, não gera erro, e o
+   * sintoma é uma conversão menor que ninguém liga à causa meses depois.
+   */
+  it('não exige login do comprador', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'pref_3', init_point: 'https://mp/c' }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await mercadoPagoProvider.createCheckout({
+      orderId: 'ord_1',
+      sku: 'racket_report',
+      productName: 'Relatório',
+      amountCents: 1999,
+      currency: 'BRL',
+      returnUrl: 'https://exemplo.com/resultado/x',
+      notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, unknown>;
+    expect(
+      corpo,
+      'purpose: wallet_purchase obrigaria o comprador a fazer login antes de pagar',
+    ).not.toHaveProperty('purpose');
+  });
+
+  it('usa o sandbox_init_point quando é a única URL devolvida', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(

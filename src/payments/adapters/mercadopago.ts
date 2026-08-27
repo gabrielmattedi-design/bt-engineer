@@ -227,6 +227,21 @@ export const mercadoPagoProvider: PaymentProvider = {
         auto_return: 'approved',
         notification_url: input.notificationUrl,
         statement_descriptor: 'TENNISENGINEER',
+        /*
+          ═══ O CAMPO QUE NÃO ESTÁ AQUI: `purpose` ══════════════════════════════════════════════
+
+          A AUSÊNCIA dele é a decisão. Sem `purpose`, o Checkout Pro aceita pagamento de VISITANTE:
+          a pessoa paga com cartão, PIX ou boleto sem criar conta e sem fazer login em lugar nenhum.
+
+          Com `purpose: 'wallet_purchase'`, o Mercado Pago passa a exigir que o comprador entre
+          numa conta antes de pagar. Para um produto de R$ 19,99 comprado por impulso logo depois
+          de ver a prévia da análise, isso é uma tela de cadastro entre a vontade e o pagamento —
+          o lugar mais caro possível para colocar atrito.
+
+          Está escrito aqui porque o defeito seria SILENCIOSO: acrescentar uma linha que parece
+          inofensiva não quebra teste nenhum, não gera erro, e o sintoma é uma queda de conversão
+          que ninguém liga à causa. O teste "não exige login do comprador" tranca isto.
+        */
       }),
     }));
 
