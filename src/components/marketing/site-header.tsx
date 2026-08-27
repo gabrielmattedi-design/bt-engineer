@@ -112,24 +112,37 @@ export async function SiteHeader({
  * Quem comprou, fechou o e-mail e voltou pelo endereço do site não tinha como reabrir o relatório.
  * A única forma seria adivinhar `/resultado/<id>`, e ninguém adivinha um id.
  */
-export async function AccountLink({ tone }: { tone: 'light' | 'dark' }) {
+export async function AccountLink() {
   if (!authConfigured()) return null;
   const user = await currentUser();
-  return <AccountNav logged={user !== null} tone={tone} />;
+  return <AccountNav logged={user !== null} comoBotao />;
 }
 
-function AccountNav({ logged, tone }: { logged: boolean; tone?: 'light' | 'dark' }) {
+function AccountNav({ logged, comoBotao = false }: { logged: boolean; comoBotao?: boolean }) {
   return (
-    <nav
-      aria-label="Sua conta"
-      className={cn('shrink-0 text-sm', tone === 'dark' && 'text-paper')}
-    >
+    <nav aria-label="Sua conta" className="shrink-0 text-sm">
       <Link
         href={logged ? '/minhas-analises' : '/entrar'}
-        className="rounded px-1 font-medium underline underline-offset-4 opacity-90
-                   transition-opacity hover:opacity-100
-                   focus-visible:outline focus-visible:outline-2
-                   focus-visible:outline-offset-4 focus-visible:outline-current"
+        className={cn(
+          'rounded transition-opacity hover:opacity-90 focus-visible:outline' +
+            ' focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current',
+          comoBotao
+            ? /*
+                Na home ele é BOTÃO, e no mesmo molde dos dois do herói: mesma altura de 56px,
+                mesmo raio, mesmo peso de fonte. Como link sublinhado ele sumia sobre o verde — e
+                sumir é o defeito exato que a gente estava tentando consertar ao trazê-lo para a
+                home.
+
+                A cor é o Court Yellow, o terceiro papel da paleta ("performance e energia"). O
+                laranja continua sendo a ação principal, o papel é o secundário do herói; o amarelo
+                distingue este dos dois sem competir com o laranja, que é quem manda na tela.
+
+                Texto em `ink` porque amarelo sobre branco não tem contraste para leitura.
+              */
+              'inline-flex min-h-[56px] items-center justify-center bg-ball px-8 font-semibold' +
+              ' text-ink'
+            : 'px-1 font-medium underline underline-offset-4 opacity-90 hover:opacity-100',
+        )}
       >
         {/*
           O rótulo muda com o estado, e os dois casos são diferentes de propósito.

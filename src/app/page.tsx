@@ -45,12 +45,14 @@ export default function HomePage() {
           mundo entra, era a ÚNICA tela sem nenhum caminho para as análises já pagas: quem fechasse
           o e-mail do relatório só voltaria adivinhando `/resultado/<id>`.
 
-          Fica alinhado à direita, acima do herói, em corpo pequeno: é a ação de uma minoria dos
-          visitantes, e competir com "Descobrir meu setup" seria trocar a conversão pela
-          conveniência de quem já converteu.
+          Fica alinhado à direita, acima do herói. A primeira versão era um link sublinhado
+          discreto, e ele sumia sobre o verde — recriando, em outra forma, o mesmo problema que a
+          gente estava consertando. Agora é botão, no molde dos dois do herói, em Court Yellow: o
+          laranja segue sendo a ação principal, e a cor distinta impede que os três se leiam como
+          uma fileira de opções equivalentes.
         */}
         <div className="relative mx-auto flex max-w-5xl justify-end px-6 pt-6">
-          <AccountLink tone="dark" />
+          <AccountLink />
         </div>
 
         <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-10 sm:pb-28 sm:pt-14">

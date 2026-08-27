@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
 import { funnelReport, quizDropoff } from '@/database/repositories/funnel-repo';
+import { withAutoBootstrap } from '@/database/setup';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,20 @@ export default async function FunilPage({
   const dias = periodo === 'tudo' ? null : Number(periodo ?? 30);
   const janela = Number.isFinite(dias) ? (dias as number | null) : 30;
 
-  const [funil, etapas] = await Promise.all([funnelReport(janela), quizDropoff(janela)]);
+  /*
+    `withAutoBootstrap` aqui pelo mesmo motivo de todo o resto do sistema — e a ausência dele foi um
+    defeito real: a tela do funil quebrava com "Application error" porque a tabela `funnel_markers`
+    é nova e ainda não existia no banco de produção.
+
+    O erro era duplamente ruim. Primeiro porque a tela morria inteira, sem dizer o que fazer.
+    Segundo porque a gravação dos marcos NUNCA lança de propósito (medição não pode derrubar o
+    produto) — então nada avisava que a tabela faltava, e a única forma de descobrir era abrir a
+    tela e ver o erro. Bootstrap sob demanda cria a estrutura e a tela passa a funcionar sozinha, no
+    primeiro acesso.
+  */
+  const [funil, etapas] = await withAutoBootstrap(() =>
+    Promise.all([funnelReport(janela), quizDropoff(janela)]),
+  );
 
   const topo = funil[0]?.visitors ?? 0;
   const pagaram = funil.find((f) => f.marker === 'paid')?.visitors ?? 0;
