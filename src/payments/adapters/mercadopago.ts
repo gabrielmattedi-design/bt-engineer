@@ -208,11 +208,24 @@ export const mercadoPagoProvider: PaymentProvider = {
     };
 
     /*
-      Credencial de TESTE devolve `sandbox_init_point`; a de produção, `init_point`.
+      Qual das duas URLs usar — e por que a escolha é pelo que veio, não por variável de ambiente.
 
-      Escolher pelo que veio, e não por uma variável separada de ambiente, elimina a combinação
-      que dói: credencial de teste com URL de produção manda o cliente para uma tela que recusa o
-      pagamento dele sem explicar por quê.
+      A preferência pode devolver `init_point`, `sandbox_init_point` ou as duas. Ler o que chegou
+      elimina a combinação que dói: apontar para a URL do ambiente errado manda o cliente para uma
+      tela que recusa o pagamento dele sem explicar por quê.
+
+      ─── O QUE APRENDEMOS COM O SUPORTE (chamado WCS-47938, ago/2026) ────────────────────────
+      O par TEST-/sandbox NÃO é como se testa Checkout Pro. A resposta oficial: "se a sua
+      integração for Checkout Pro ou Assinaturas, o teste deve ser feito com a conta vendedora de
+      teste e as credenciais APP_USR desse usuário de teste". Ou seja, o ambiente de teste é uma
+      CONTA inteira de mentira — vendedor de teste e comprador de teste, com dinheiro de mentira —
+      e não uma credencial especial dentro da conta real. As credenciais dessa conta têm o mesmo
+      prefixo `APP_USR-` da produção, e a preferência criada com elas devolve `init_point`.
+
+      Consequência para este código: nenhuma. Ele não olha o prefixo do token nem decide por
+      ambiente — usa a URL que a resposta trouxe, e por isso funciona igual nos dois casos. Está
+      escrito aqui porque a leitura ingênua do `??` sugere um "se for teste" que não existe, e
+      alguém iria acrescentar a variável de ambiente que este comentário torna desnecessária.
     */
     const redirectUrl = pref.init_point ?? pref.sandbox_init_point;
     if (!redirectUrl) {
