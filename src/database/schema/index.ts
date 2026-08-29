@@ -7,3 +7,4 @@ export * from './coupons';
 export * from './support';
 export * from './funnel';
 export * from './campaigns';
+export * from './throttle';

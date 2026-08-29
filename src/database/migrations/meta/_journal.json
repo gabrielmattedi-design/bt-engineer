@@ -43,6 +43,13 @@
       "when": 1787859959109,
       "tag": "0005_legal_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788005985514,
+      "tag": "0006_powerful_supernaut",
+      "breakpoints": true
     }
   ]
 }

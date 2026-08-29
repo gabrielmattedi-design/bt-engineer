@@ -770,6 +770,31 @@ function Explainer({ title, lines }: { title: string; lines: readonly string[] }
 }
 
 /** Converte **negrito** dos textos determinísticos. Entrada é nossa, não do usuário. */
+/**
+ * Converte `**assim**` em negrito — e escapa tudo o mais antes.
+ *
+ * ═══ POR QUE O ESCAPE, SE HOJE A ENTRADA É SEGURA ════════════════════════════════════════════
+ *
+ * O retorno vai para `dangerouslySetInnerHTML`, que é a única porta do React por onde HTML cru
+ * entra sem passar pela proteção automática contra injeção.
+ *
+ * Auditado em ago/2026: as linhas que chegam aqui vêm de `explainExpectations`, que interpola
+ * apenas rótulos de eixo definidos como constantes no próprio código. Nada digitado por ninguém
+ * chega até aqui. Não é explorável hoje.
+ *
+ * O escape entra porque "hoje" é a palavra frágil dessa frase. O questionário guarda texto livre —
+ * o nome do jogador e a descrição da raquete atual — e basta alguém decidir que a expectativa fica
+ * melhor citando um dos dois para que o relatório passe a executar o que a pessoa digitou, no
+ * navegador de quem abrir o link. Uma linha de escape fecha a classe inteira, para sempre, e não
+ * custa nada.
+ *
+ * A ordem importa: escapar DEPOIS de converter transformaria o `<strong>` recém-criado em texto.
+ */
 function boldify(text: string): string {
-  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const seguro = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  return seguro.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }

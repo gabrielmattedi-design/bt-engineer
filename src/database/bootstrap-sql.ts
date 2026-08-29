@@ -268,4 +268,12 @@ END $$`,
 	CONSTRAINT "visitor_campaigns_visitor_key" UNIQUE("visitor_hash")
 )`,
   `CREATE INDEX IF NOT EXISTS "visitor_campaigns_source_idx" ON "visitor_campaigns" USING btree ("source","created_at")`,
+  `CREATE TABLE IF NOT EXISTS "attempt_counters" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"scope" text NOT NULL,
+	"window_start" timestamp with time zone DEFAULT now() NOT NULL,
+	"attempts" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "attempt_counters_scope_window_key" UNIQUE("scope","window_start")
+)`,
+  `CREATE INDEX IF NOT EXISTS "attempt_counters_scope_idx" ON "attempt_counters" USING btree ("scope","window_start")`,
 ];

@@ -7,10 +7,68 @@ import { z } from 'zod';
 import { ADMIN_COOKIE, isAuthenticated, sessionToken, verifyPassword } from './auth';
 import { canMarkVerified, writeRacketVerification } from '@/data/write-verification';
 import { loadRacketCatalog, type RacketVerification } from '@/data/load';
+import {
+  contarTentativa,
+  limparTentativas,
+  LIMITE_JANELA_MINUTOS,
+} from '@/database/repositories/throttle-repo';
+import { withAutoBootstrap } from '@/database/setup';
+
+/**
+ * Quantos palpites de senha cabem numa janela de 15 minutos.
+ *
+ * ═══ POR QUE ESTE NÚMERO ═════════════════════════════════════════════════════════════════════
+ *
+ * Dez é generoso para quem esqueceu a senha e sovina para quem está adivinhando. A conta que
+ * importa não é o conforto: sem limite nenhum, uma lista de senhas comuns roda inteira em minutos,
+ * e acertar aqui não dá "uma conta" — dá o painel, que cria cupom de acesso total, mexe no modo de
+ * pagamento e roda migração no banco. É o caminho mais curto entre um desconhecido e o controle do
+ * produto.
+ *
+ * Com dez por 15 minutos, a mesma lista levaria anos.
+ *
+ * ─── O TETO É GLOBAL, E O CUSTO DISSO É CONHECIDO ────────────────────────────────────────────
+ *
+ * A chave é a porta, não quem bate: este produto não guarda IP, e passar a guardar só para contar
+ * tentativa contradiria a política de privacidade. A consequência aceita é que uma rajada de
+ * ataque tranca o dono junto, por até 15 minutos. Para um painel usado algumas vezes por semana,
+ * esse é o lado barato da troca.
+ */
+const MAX_TENTATIVAS_LOGIN = 10;
+const ESCOPO_LOGIN = 'admin-login';
 
 export async function login(_prev: unknown, formData: FormData): Promise<{ error: string } | void> {
   const password = String(formData.get('password') ?? '');
-  if (!verifyPassword(password)) return { error: 'Senha incorreta.' };
+
+  /*
+    A contagem vem ANTES da verificação, de propósito.
+
+    Contar só os erros abriria um caminho: quem conhecesse a senha certa poderia intercalá-la entre
+    palpites para zerar a conta. E medir antes também evita que o tempo de resposta diferencie
+    "senha errada" de "bloqueado" — os dois caminhos custam a mesma ida ao banco.
+  */
+  const veredito = await withAutoBootstrap(() =>
+    contarTentativa(ESCOPO_LOGIN, MAX_TENTATIVAS_LOGIN),
+  );
+
+  if (!veredito.permitido) {
+    return {
+      error: `Muitas tentativas. Aguarde ${LIMITE_JANELA_MINUTOS} minutos e tente de novo.`,
+    };
+  }
+
+  if (!verifyPassword(password)) {
+    /*
+      A mensagem não diz quantas tentativas sobraram.
+
+      Um contador visível é informação para quem está atacando — ele aprende o tamanho da janela e
+      o ritmo exato que passa despercebido. Quem errou a própria senha tenta de novo e pronto.
+    */
+    return { error: 'Senha incorreta.' };
+  }
+
+  // Acertou: a janela é liberada, para que um engano honesto de manhã não atrapalhe à tarde.
+  await limparTentativas(ESCOPO_LOGIN);
 
   const jar = await cookies();
   jar.set(ADMIN_COOKIE, sessionToken(), {

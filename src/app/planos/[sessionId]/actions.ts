@@ -1,11 +1,13 @@
 'use server';
 
+import { createHash } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createOrder, attachPayment } from '@/database/repositories/commerce-repo';
 import { ensureAnonymousSession } from '@/database/repositories/session-repo';
 import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
+import { contarTentativa, LIMITE_JANELA_MINUTOS } from '@/database/repositories/throttle-repo';
 import { markFunnel } from '@/database/repositories/funnel-repo';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
@@ -206,6 +208,20 @@ export async function startCheckout(
  * O que continua PROIBIDO é o que sempre foi: o cliente pedir um entitlement. O código é validado
  * no servidor contra a tabela, e um código inexistente não concede nada.
  */
+/** Palpites de código por visitante, em 15 minutos. Ver a nota dentro da função. */
+const MAX_TENTATIVAS_CUPOM = 12;
+
+/**
+ * O token do visitante NÃO entra no contador em claro.
+ *
+ * O escopo é uma coluna de texto que qualquer consulta ao banco lê. Guardar ali o valor que dá
+ * acesso à sessão de alguém seria criar uma segunda cópia do segredo, num lugar em que ninguém
+ * espera encontrá-lo — o mesmo motivo pelo qual `anonymous_sessions` guarda só o hash.
+ */
+function hashVisitante(token: string): string {
+  return createHash('sha256').update(token).digest('hex').slice(0, 32);
+}
+
 export async function redeemAccessCode(
   _prev: unknown,
   formData: FormData,
@@ -235,6 +251,31 @@ export async function redeemAccessCode(
     const jar = await cookies();
     const token = jar.get('te_visitor')?.value;
     if (!token) return { error: 'Sessão expirada. Refaça o questionário para continuar.' };
+
+    /*
+      ═══ O CAMPO DE CÓDIGO ACEITAVA PALPITES INFINITOS ═════════════════════════════════════════
+
+      Errar um código não custava nada, e acertar dá um relatório pago. Pior: os códigos são
+      PALAVRAS, não cadeias aleatórias — um dicionário de nomes próprios e termos de tênis chega
+      lá em minutos, e cada acerto é uma venda que não acontece.
+
+      Nem rastro ficava. Sem contador, nem depois daria para saber que alguém tentou.
+
+      Doze por 15 minutos: quem recebeu um convite digita uma vez, no máximo erra e corrige. Doze
+      cobre o dedo gordo com folga e derruba a viabilidade de varredura.
+
+      A chave é o VISITANTE, e não a porta como no painel: aqui o tráfego legítimo é de muitas
+      pessoas ao mesmo tempo, e um teto global transformaria um ataque num bloqueio de todos os
+      clientes reais — que é o objetivo do atacante, não o nosso.
+    */
+    const veredito = await withAutoBootstrap(() =>
+      contarTentativa(`coupon:${hashVisitante(token)}`, MAX_TENTATIVAS_CUPOM),
+    );
+    if (!veredito.permitido) {
+      return {
+        error: `Muitas tentativas. Aguarde ${LIMITE_JANELA_MINUTOS} minutos e tente de novo.`,
+      };
+    }
 
     const outcome = await withAutoBootstrap(async () => {
       const sessionId = await ensureAnonymousSession(token);
