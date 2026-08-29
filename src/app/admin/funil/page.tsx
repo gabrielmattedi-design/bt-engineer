@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
-import { funnelReport, quizDropoff } from '@/database/repositories/funnel-repo';
+import { funnelReport, funnelStartedAt, quizDropoff } from '@/database/repositories/funnel-repo';
+import { dataCurta } from '@/lib/datas';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { withAutoBootstrap } from '@/database/setup';
 
@@ -43,9 +44,27 @@ export default async function FunilPage({
     tela e ver o erro. Bootstrap sob demanda cria a estrutura e a tela passa a funcionar sozinha, no
     primeiro acesso.
   */
-  const [funil, etapas, origens] = await withAutoBootstrap(() =>
-    Promise.all([funnelReport(janela), quizDropoff(janela), campaignReport(janela)]),
+  const [funil, etapas, origens, medindoDesde] = await withAutoBootstrap(() =>
+    Promise.all([
+      funnelReport(janela),
+      quizDropoff(janela),
+      campaignReport(janela),
+      funnelStartedAt(),
+    ]),
   );
+
+  /*
+    Alguma etapa recebeu MAIS gente que a anterior?
+
+    Acontece de verdade e por motivos legítimos — quem entra por convite pula o pagamento, quem
+    reabre um link antigo conta no fim sem ter contado no começo, e, sobretudo, quem passou pelo
+    funil antes de a medição existir carrega só a metade final do percurso.
+
+    O número acima de 100% é a informação, e escondê-lo seria pior. O que faltava era a explicação
+    ao lado dele: sem ela, quem lê conclui que o cálculo está errado e para de confiar na tela
+    inteira — inclusive nas linhas que estão certas.
+  */
+  const temEtapaMaiorQueAnterior = funil.some((l, i) => i > 0 && l.ofPrevious > 100);
 
   const topo = funil[0]?.visitors ?? 0;
   const pagaram = funil.find((f) => f.marker === 'paid')?.visitors ?? 0;
@@ -146,6 +165,16 @@ export default async function FunilPage({
                 </tbody>
               </table>
             </div>
+
+            {temEtapaMaiorQueAnterior && (
+              <p className="mt-4 rounded border border-line bg-white p-4 text-sm text-graphite">
+                <strong className="text-ink">Uma etapa aparece acima de 100% da anterior.</strong>{' '}
+                Não é erro de cálculo. As causas possíveis, em ordem de probabilidade: alguém passou
+                por essa etapa antes de a medição existir e só as seguintes foram gravadas; alguém
+                entrou por código de convite e pulou o pagamento; ou alguém reabriu um link antigo e
+                contou no fim sem ter contado no começo.
+              </p>
+            )}
 
             <p className="mt-4 text-sm text-graphite">
               <strong className="text-ink">
@@ -279,6 +308,20 @@ export default async function FunilPage({
               Quem entrou por código de convite não passa por pagamento, então aparece no topo e
               não em &quot;Pagou&quot;.
             </li>
+            {medindoDesde && (
+              /*
+                A data do primeiro marco, dita na tela.
+
+                É o dado que separa "o produto tem um problema" de "a medição ainda não existia".
+                Sem ele, o primeiro período sempre lê como defeito — e o mesmo vai acontecer toda
+                vez que um marco novo entrar, com as etapas ao redor carregando meses de histórico.
+              */
+              <li>
+                Nada antes de <strong className="text-ink">{dataCurta(medindoDesde)}</strong>, que é
+                quando o primeiro marco foi gravado. Quem passou pelo funil antes disso aparece só
+                nas etapas que alcançou depois.
+              </li>
+            )}
           </ul>
         </div>
       </div>

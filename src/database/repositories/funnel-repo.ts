@@ -163,6 +163,36 @@ export async function funnelReport(sinceDays: number | null = null): Promise<Fun
   return computeFunnel(new Map(rows.map((r) => [r.marker, Number(r.visitors)])));
 }
 
+/**
+ * Quando a medição de fato começou — a data do marco mais antigo que existe.
+ *
+ * ═══ POR QUE ISTO PRECISOU EXISTIR ═══════════════════════════════════════════════════════════
+ *
+ * A tabela deste funil nasceu DEPOIS do código que a alimenta. Entre um e outro, `markFunnel`
+ * engoliu todos os erros — como deve, porque medição não pode derrubar o produto — e cada marco
+ * daquele período foi descartado em silêncio.
+ *
+ * O efeito no painel é uma leitura que parece defeito de cálculo: quem abriu o questionário antes
+ * da tabela existir não tem `quiz:start`, mas chegou aos planos e pagou depois, e ESSES marcos
+ * foram gravados. O resultado é uma etapa do meio com mais gente que o topo.
+ *
+ * O mesmo acontece toda vez que a instrumentação mudar: um marco novo começa a contar hoje, e as
+ * etapas ao redor dele carregam meses de histórico. Sem a data na tela, a única saída de quem lê é
+ * desconfiar do número — e um painel em que não se confia é um painel que não se usa.
+ */
+export async function funnelStartedAt(): Promise<Date | null> {
+  if (!isDatabaseConfigured()) return null;
+
+  try {
+    const rows = await db()
+      .select({ primeiro: sql<Date | null>`min(${funnelMarkers.createdAt})` })
+      .from(funnelMarkers);
+    return rows[0]?.primeiro ? new Date(rows[0].primeiro) : null;
+  } catch {
+    return null;
+  }
+}
+
 export type QuizDropoff = {
   readonly step: number;
   readonly reached: number;
