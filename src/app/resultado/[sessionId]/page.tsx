@@ -8,6 +8,7 @@ import { AttributeReadout } from '@/components/result/attribute-readout';
 import { CompatibilityRadar } from '@/components/result/radar';
 import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
+import { BaixarPdf } from '@/components/result/baixar-pdf';
 import { getReport } from '@/app/questionario/actions';
 import { selectSetupRacket } from './actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
@@ -733,6 +734,25 @@ export default async function ResultadoPage({
             </div>
           </section>
         )}
+
+        {/*
+          O download fica no FIM, e não junto do card compartilhável no início.
+
+          São gestos diferentes: o card é impulso — a pessoa acabou de descobrir a raquete e quer
+          contar. Salvar o relatório inteiro é o gesto de quem terminou de ler e quer guardar, ou
+          levar ao encordoador. Oferecer no começo interromperia a leitura para propor arquivar algo
+          que ainda não foi lido.
+        */}
+        <div className="te-sem-impressao border-t border-line pt-8">
+          <h2 className="font-display text-lg font-semibold">Guardar este relatório</h2>
+          <p className="mt-2 max-w-prose text-sm text-graphite">
+            Sai em página única, sem cortes entre folhas — do jeito que você lê aqui. Útil para levar
+            ao encordoador.
+          </p>
+          <div className="mt-4">
+            <BaixarPdf />
+          </div>
+        </div>
 
         <footer className="court-line pt-8 text-xs text-graphite">
           <BrandSignature className="mb-4" />

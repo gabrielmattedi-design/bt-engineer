@@ -232,3 +232,90 @@
   font-weight: 600;
   color: #0B0F14;
 }
+
+/*
+  ═══ IMPRESSÃO ════════════════════════════════════════════════════════════════════════════════
+
+  O relatório é o único documento deste produto que sai da tela: o cliente salva em PDF e leva ao
+  encordoador. Sem estas regras ele saía com botões que não clicam, caixas vazias onde havia um
+  controle, e a URL de acesso impressa no rodapé de cada folha.
+
+  Elas valem junto com a página única (ver `baixar-pdf.tsx`), e continuam valendo se alguém imprimir
+  pelo Ctrl+P direto — o que é bom: o conserto não depende de a pessoa achar o botão certo.
+*/
+@media print {
+  /*
+    Fora do papel: tudo que só existe para ser clicado.
+
+    Um botão impresso é pior que a ausência dele — ele promete uma ação que o papel não tem, e no
+    caso dos seletores de raquete imprimia uma caixa vazia com um título solto em cima.
+  */
+  .te-sem-impressao,
+  header,
+  nav,
+  form,
+  button {
+    display: none !important;
+  }
+
+  /*
+    A âncora vira texto comum.
+
+    Link sublinhado em azul num documento impresso é ruído: ele parece destaque e não leva a lugar
+    nenhum. O que era chamada de compra (`Desbloquear`, `Completar meu setup`) some junto com os
+    botões acima; o que sobra é referência dentro do próprio texto.
+  */
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /*
+    NADA se parte ao meio.
+
+    É o defeito que motivou tudo isto: título de seção no fim de uma folha e o conteúdo dele na
+    seguinte, tabela cortada, quadro que começa e termina vazio. Com página única não existe
+    fronteira onde cortar — a regra fica porque ela protege quem imprime pelo Ctrl+P.
+  */
+  section,
+  table,
+  tr,
+  li,
+  figure,
+  h1, h2, h3 {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /*
+    As cores de fundo precisam ser IMPRESSAS, não descartadas.
+
+    Por padrão o navegador remove fundos para economizar tinta. Neste relatório o fundo carrega
+    informação: o card compartilhável é verde com texto branco, e sem o verde ele sai branco sobre
+    branco — literalmente invisível.
+  */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /*
+    O corpo NÃO ganha padding na impressão — e essa é a peça que faz a página única funcionar.
+
+    A altura da folha é medida na tela, antes de imprimir. Qualquer margem que só exista no modo de
+    impressão cresce DEPOIS da medição, o conteúdo estoura a folha calculada e nasce uma segunda
+    página quase vazia — exatamente o que a página única existe para evitar. Medido: com 12mm em
+    cima e embaixo, um relatório de 1.093mm saía em 2 páginas em vez de 1.
+
+    O respiro não faz falta porque já existe: o container do relatório tem padding próprio, ele está
+    na tela e portanto já entra na medida.
+  */
+  body {
+    background: #FFFFFF !important;
+  }
+}
