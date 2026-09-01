@@ -70,9 +70,27 @@ export default async function CodigosPage() {
 
                   <p className="mt-2 text-sm tabular-nums text-graphite">
                     {c.maxUses === null
-                      ? `${c.usedCount} usos · ilimitado`
+                      ? `${c.usedCount} usos · sem limite total`
                       : `${c.usedCount} de ${c.maxUses} usos · restam ${remaining}`}
                   </p>
+
+                  {/*
+                    O contador das últimas 24 h — o número que denuncia vazamento em curso.
+
+                    O total acumulado não serve para isso: um código com 300 usos em seis meses e um
+                    com 300 usos em duas horas mostram o mesmo número, e só o segundo é problema.
+                    O destaque acende no teto porque é exatamente quando vale olhar.
+                  */}
+                  {c.dailyLimit !== null && (
+                    <p
+                      className={`mt-1 text-sm tabular-nums ${
+                        c.usedToday >= c.dailyLimit ? 'font-semibold text-warn' : 'text-graphite'
+                      }`}
+                    >
+                      {c.usedToday} de {c.dailyLimit} nas últimas 24 h
+                      {c.usedToday >= c.dailyLimit && ' · teto do dia atingido'}
+                    </p>
+                  )}
 
                   {c.note && <p className="mt-1 text-sm text-graphite">{c.note}</p>}
 

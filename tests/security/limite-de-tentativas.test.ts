@@ -168,3 +168,82 @@ function varrer(dir: string): string[] {
   }
   return saida;
 }
+
+/**
+ * O teto diário do cupom, e por que ele existe além do total.
+ *
+ * `max_uses` limita o estrago ACUMULADO; o teto diário limita a VELOCIDADE dele — e é a segunda
+ * que dá tempo de reagir. Um código de convite que vaza é consumido por script em minutos: com
+ * teto só total, quando o dono percebe já acabou.
+ *
+ * O código `MAITE` é o caso concreto. É uma palavra — nome próprio comum — e por isso o alvo mais
+ * fácil do sistema. Ilimitado, um vazamento renderia relatórios de graça para sempre.
+ */
+describe('teto diário dos códigos de convite', () => {
+  const repo = fonte('src', 'database', 'repositories', 'coupon-repo.ts');
+
+  it('MAITE tem teto diário, mesmo sem teto total', () => {
+    const bloco = /code: 'MAITE'[\s\S]*?\},/.exec(repo)?.[0] ?? '';
+    expect(bloco, 'a semente do MAITE sumiu ou mudou de forma').not.toBe('');
+    expect(bloco, 'sem teto diário, um vazamento é permanente').toMatch(/dailyLimit:\s*20/);
+  });
+
+  /**
+   * A janela é MÓVEL (últimas 24 h), e não "desde a meia-noite".
+   *
+   * Meia-noite criaria um instante em que o teto zera, e um script paciente pegaria o fim de um dia
+   * e o começo do outro — dois tetos cheios em poucos minutos, que é o oposto do que o limite serve.
+   */
+  it('a contagem usa janela móvel de 24 horas', () => {
+    expect(repo).toMatch(/24 \* 60 \* 60 \* 1000/);
+    expect(repo, 'a contagem sai dos resgates reais, não de um contador que precisa zerar').toContain(
+      'couponRedemptions.redeemedAt',
+    );
+  });
+
+  /**
+   * Recusar por teto diário NÃO pode gastar um uso nem deixar a marca de resgate.
+   *
+   * Sem o desfazer, a análise da pessoa ficaria com um resgate registrado e sem acesso — o beco
+   * permanente que o próprio arquivo documenta ter fechado uma vez.
+   */
+  it('a recusa por teto diário desfaz o registro do resgate', () => {
+    const trecho = /if \(\(hoje\[0\]\?\.n \?\? 0\) > teto\) \{[\s\S]*?\}/.exec(repo)?.[0] ?? '';
+    expect(trecho).toContain('delete(couponRedemptions)');
+  });
+
+  it('o teto diário é um desfecho próprio, distinto de esgotado', () => {
+    /*
+      A ação de quem lê é oposta: esgotado pede um código novo; teto diário passa sozinho. Juntar os
+      dois faria o convidado gastar o tempo dele e o do dono por algo que se resolve amanhã.
+    */
+    expect(repo).toMatch(/kind: 'daily_limit'/);
+    const planos = fonte('src', 'app', 'planos', '[sessionId]', 'actions.ts');
+    expect(planos).toMatch(/case 'daily_limit'/);
+    expect(planos).toMatch(/amanhã/);
+  });
+});
+
+describe('teto global de tentativas de cupom', () => {
+  const planos = fonte('src', 'app', 'planos', '[sessionId]', 'actions.ts');
+
+  /**
+   * O teto por visitante sozinho não barra um script.
+   *
+   * O visitante é um cookie que o atacante controla: limpar o cookie devolve as doze tentativas.
+   * Ele protege contra distração, não contra intenção — e o global é o que fecha isso.
+   */
+  it('existe um teto global além do por visitante', () => {
+    expect(planos).toContain('coupon-global');
+    expect(planos).toMatch(/MAX_TENTATIVAS_CUPOM_GLOBAL/);
+  });
+
+  it('o global é conferido ANTES do por visitante', () => {
+    // Ao contrário, um script gastaria uma linha no contador por visitante a cada tentativa,
+    // enchendo a tabela sem nunca esbarrar no teto que de fato o barra.
+    const g = planos.indexOf("contarTentativa('coupon-global'");
+    const v = planos.indexOf('contarTentativa(`coupon:${');
+    expect(g).toBeGreaterThan(-1);
+    expect(g).toBeLessThan(v);
+  });
+});

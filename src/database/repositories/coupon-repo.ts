@@ -1,4 +1,4 @@
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, or, sql, gte} from 'drizzle-orm';
 import { db } from '@/database/client';
 import { accessCoupons, couponRedemptions, entitlements, recommendationSessions } from '@/database/schema';
 import { ALL_ENTITLEMENTS, type Entitlement } from '@/payments/entitlements';
@@ -17,11 +17,23 @@ export type CouponSummary = {
   readonly usedCount: number;
   readonly active: boolean;
   readonly note: string | null;
+  /** Teto de resgates nas últimas 24 h. `null` = sem teto diário. */
+  readonly dailyLimit: number | null;
+  /** Quantos resgates nas últimas 24 h — o número que denuncia um vazamento em curso. */
+  readonly usedToday: number;
 };
 
 export type RedeemOutcome =
   | { kind: 'granted'; entitlements: readonly Entitlement[] }
   | { kind: 'exhausted' }
+  /**
+   * O código existe e ainda tem usos, mas já bateu o teto DAS ÚLTIMAS 24 HORAS.
+   *
+   * Separado de `exhausted` porque a ação de quem lê é oposta: esgotado pede um código novo,
+   * enquanto o teto diário passa sozinho — e mandar alguém pedir outro código quando bastaria
+   * voltar amanhã é fazer o convidado gastar o seu tempo e o dele.
+   */
+  | { kind: 'daily_limit'; limit: number }
   /** O código não existe. */
   | { kind: 'unknown_code' }
   /** A análise não existe no banco — link velho, ou banco trocado desde que ela foi gerada. */
@@ -34,7 +46,25 @@ export function normalizeCode(raw: string): string {
 }
 
 export async function listCoupons(): Promise<CouponSummary[]> {
-  const rows = await db().select().from(accessCoupons).orderBy(accessCoupons.createdAt);
+  const conn = db();
+  const rows = await conn.select().from(accessCoupons).orderBy(accessCoupons.createdAt);
+
+  /*
+    Os resgates das últimas 24 h, contados de uma vez para todos os códigos.
+
+    Uma consulta por código faria o painel crescer em ida ao banco a cada convite criado — e é a
+    tela que o dono abre justamente quando desconfia de alguma coisa, ou seja, quando ela precisa
+    responder rápido.
+  */
+  const desde = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const hoje = await conn
+    .select({ code: couponRedemptions.code, n: sql<number>`count(*)::int` })
+    .from(couponRedemptions)
+    .where(gte(couponRedemptions.redeemedAt, desde))
+    .groupBy(couponRedemptions.code);
+
+  const porCodigo = new Map(hoje.map((h) => [h.code, Number(h.n)]));
+
   return rows.map((r) => ({
     code: r.code,
     grants: r.grants,
@@ -42,6 +72,8 @@ export async function listCoupons(): Promise<CouponSummary[]> {
     usedCount: r.usedCount,
     active: r.active,
     note: r.note,
+    dailyLimit: r.dailyLimit,
+    usedToday: porCodigo.get(r.code) ?? 0,
   }));
 }
 
@@ -113,7 +145,7 @@ export async function redeemCoupon(input: {
   if (!recommendationSessionId) return { kind: 'unknown_analysis' };
 
   const existing = await conn
-    .select({ grants: accessCoupons.grants })
+    .select({ grants: accessCoupons.grants, dailyLimit: accessCoupons.dailyLimit })
     .from(accessCoupons)
     .where(eq(accessCoupons.code, code))
     .limit(1);
@@ -150,6 +182,36 @@ export async function redeemCoupon(input: {
       existing[0].grants,
     );
     return { kind: 'granted', entitlements: granted };
+  }
+
+  /*
+    ═══ O TETO DIÁRIO, CONFERIDO CONTRA OS RESGATES REAIS ═════════════════════════════════════
+
+    A contagem sai de `coupon_redemptions` nas últimas 24 horas, e não de um contador guardado na
+    própria linha do cupom. Um contador diário exigiria zerar em algum instante — e o instante do
+    zeramento é uma brecha: um script paciente pega o fim de um dia e o começo do outro, e leva dois
+    tetos cheios em poucos minutos.
+
+    A janela móvel não tem esse instante. O custo é uma consulta a mais por resgate, num caminho que
+    acontece algumas vezes por dia.
+
+    A conferência vem DEPOIS do registro do resgate e ANTES do consumo, no mesmo lugar em que o teto
+    total é conferido — assim uma reaplicação do mesmo código na mesma análise (a ramificação acima)
+    continua não gastando nada, nem do total nem do dia.
+  */
+  const teto = existing[0].dailyLimit;
+  if (teto !== null && teto !== undefined) {
+    const desde = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const hoje = await conn
+      .select({ n: sql<number>`count(*)::int` })
+      .from(couponRedemptions)
+      .where(and(eq(couponRedemptions.code, code), gte(couponRedemptions.redeemedAt, desde)));
+
+    // `> teto` e não `>=`: o registro DESTA tentativa já está gravado e conta na soma.
+    if ((hoje[0]?.n ?? 0) > teto) {
+      await conn.delete(couponRedemptions).where(eq(couponRedemptions.id, claimed[0].id));
+      return { kind: 'daily_limit', limit: teto };
+    }
   }
 
   const consumed = await conn
@@ -235,6 +297,15 @@ export async function addCouponUses(code: string, amount: number): Promise<Coupo
     usedCount: r.usedCount,
     active: r.active,
     note: r.note,
+    dailyLimit: r.dailyLimit,
+    /*
+      Zero, e não uma consulta.
+
+      Este retorno descreve o cupom logo após a recarga, e quem chama redesenha a lista inteira em
+      seguida — onde o número real é calculado. Uma consulta aqui seria uma ida ao banco cujo
+      resultado é descartado no mesmo instante.
+    */
+    usedToday: 0,
   };
 }
 
@@ -253,7 +324,19 @@ export async function seedInviteCoupons(): Promise<void> {
         code: 'MAITE',
         grants: [...ALL_ENTITLEMENTS],
         maxUses: null,
-        note: 'Convite ilimitado.',
+        /*
+          Sem teto total, com teto DIÁRIO de 20.
+
+          O código é uma palavra — um nome próprio comum — e por isso é o alvo mais fácil do
+          sistema. Mantê-lo ilimitado deixava um vazamento render relatórios de graça para sempre,
+          e o dono só descobriria pelo faturamento que não veio.
+
+          Vinte por dia cobre o uso real de convite com folga e transforma o pior caso em algo
+          visível e reversível: o vazamento gasta um dia, o contador do painel dispara, e sobra a
+          chance de desativar antes do segundo.
+        */
+        dailyLimit: 20,
+        note: 'Convite sem limite total, até 20 resgates por dia.',
         active: true,
       },
       {

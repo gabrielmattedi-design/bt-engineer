@@ -211,6 +211,9 @@ export async function startCheckout(
 /** Palpites de código por visitante, em 15 minutos. Ver a nota dentro da função. */
 const MAX_TENTATIVAS_CUPOM = 12;
 
+/** Teto do SITE INTEIRO por janela. Ver a nota dentro da função. */
+const MAX_TENTATIVAS_CUPOM_GLOBAL = 200;
+
 /**
  * O token do visitante NÃO entra no contador em claro.
  *
@@ -268,9 +271,26 @@ export async function redeemAccessCode(
       pessoas ao mesmo tempo, e um teto global transformaria um ataque num bloqueio de todos os
       clientes reais — que é o objetivo do atacante, não o nosso.
     */
-    const veredito = await withAutoBootstrap(() =>
-      contarTentativa(`coupon:${hashVisitante(token)}`, MAX_TENTATIVAS_CUPOM),
-    );
+    /*
+      DOIS tetos, e cada um cobre o furo do outro.
+
+      O por visitante barra quem chuta no formulário. Ele NÃO barra um script: o visitante é um
+      cookie que o atacante controla, e limpar o cookie devolve doze tentativas. Sozinho, ele
+      protege contra distração, não contra intenção.
+
+      O teto global fecha isso. Duzentas tentativas em 15 minutos é muito acima de qualquer tráfego
+      real — quem recebeu um convite digita uma vez — e muito abaixo do que uma varredura de
+      dicionário precisa. Um script chega lá no primeiro minuto e para.
+
+      O preço é conhecido e aceito: durante um ataque, clientes legítimos com código na mão ficam
+      sem resgatar por até 15 minutos. É um incômodo raro contra um vazamento permanente, e a
+      mensagem manda tentar de novo em vez de dizer que o código não vale.
+    */
+    const veredito = await withAutoBootstrap(async () => {
+      const global = await contarTentativa('coupon-global', MAX_TENTATIVAS_CUPOM_GLOBAL);
+      if (!global.permitido) return global;
+      return contarTentativa(`coupon:${hashVisitante(token)}`, MAX_TENTATIVAS_CUPOM);
+    });
     if (!veredito.permitido) {
       return {
         error: `Muitas tentativas. Aguarde ${LIMITE_JANELA_MINUTOS} minutos e tente de novo.`,
@@ -313,6 +333,18 @@ export async function redeemAccessCode(
         break;
       case 'exhausted':
         return { error: 'Este código já atingiu o limite de usos.' };
+      case 'daily_limit':
+        /*
+          A frase diz que PASSA, e é a diferença que importa.
+
+          "Limite atingido" faria o convidado concluir que o código morreu e pedir outro — gastando
+          o tempo dele e o do dono por algo que se resolve sozinho em algumas horas.
+        */
+        return {
+          error:
+            `Este código já foi usado ${outcome.limit} vezes nas últimas 24 horas, que é o limite ` +
+            'diário dele. Tente de novo amanhã, ou peça um código novo a quem te convidou.',
+        };
       case 'unknown_code':
         return { error: 'Não encontramos este código. Confira se digitou exatamente como recebeu.' };
       case 'unknown_analysis':

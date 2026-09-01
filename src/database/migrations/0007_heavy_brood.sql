@@ -1,0 +1,1 @@
+ALTER TABLE "access_coupons" ADD COLUMN "daily_limit" integer;

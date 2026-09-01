@@ -36,6 +36,22 @@ export const accessCoupons = pgTable('access_coupons', {
   grants: text('grants').array().notNull(),
   /** `null` = ilimitado. Qualquer número = quantos resgates ainda cabem no total. */
   maxUses: integer('max_uses'),
+  /**
+   * Teto de resgates por DIA. `null` = sem limite diário.
+   *
+   * ═══ POR QUE UM LIMITE DIÁRIO, ALÉM DO TOTAL ═══════════════════════════════════════════════
+   *
+   * `max_uses` limita o estrago acumulado; este limita a VELOCIDADE dele. São coisas diferentes, e
+   * a segunda é a que dá tempo de reagir.
+   *
+   * Um código de convite que vaza é consumido por script em minutos: com teto só total, quando o
+   * dono percebe já acabou. Com teto diário, o vazamento gasta o dia e para — o contador no painel
+   * dispara, e sobra a chance de desativar antes do segundo dia.
+   *
+   * A janela é móvel (últimas 24 horas), e não "desde a meia-noite". Meia-noite criaria um horário
+   * em que o teto zera e um script paciente teria duas rajadas cheias em poucos minutos.
+   */
+  dailyLimit: integer('daily_limit'),
   usedCount: integer('used_count').notNull().default(0),
   active: boolean('active').notNull().default(true),
   /** Para o dono lembrar a quem ele mandou o código. */

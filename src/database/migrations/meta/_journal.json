@@ -50,6 +50,13 @@
       "when": 1788005985514,
       "tag": "0006_powerful_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788296171004,
+      "tag": "0007_heavy_brood",
+      "breakpoints": true
     }
   ]
 }

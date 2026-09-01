@@ -276,4 +276,5 @@ END $$`,
 	CONSTRAINT "attempt_counters_scope_window_key" UNIQUE("scope","window_start")
 )`,
   `CREATE INDEX IF NOT EXISTS "attempt_counters_scope_idx" ON "attempt_counters" USING btree ("scope","window_start")`,
+  `ALTER TABLE "access_coupons" ADD COLUMN IF NOT EXISTS "daily_limit" integer`,
 ];
