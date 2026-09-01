@@ -535,8 +535,16 @@ export default async function ResultadoPage({
               Corda e tensão dependem do frame — trocar de raquete muda a recomendação.
             </p>
 
+            {/*
+              Fora do PDF: o quadro inteiro, e não só os botões.
+
+              A impressão esconde `form` e `button`, mas a MOLDURA e o título ficavam — no papel
+              saía uma caixa vazia com "Calcular o setup para outra do pódio" em cima e nada
+              embaixo. É o mesmo defeito que o seletor de raquete já tinha, num lugar novo: quem
+              esconde só o controle esquece que a legenda dele existe por causa do controle.
+            */}
             {setupChoices.length > 1 && (
-              <div className="mt-4 rounded border border-line bg-white p-5">
+              <div className="te-sem-impressao mt-4 rounded border border-line bg-white p-5">
                 <p className="text-sm font-medium">Calcular o setup para outra do pódio</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {setupChoices.map((entry) => {

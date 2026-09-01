@@ -12,6 +12,13 @@
  * página só e não há fronteira onde cortar. Verificado em três rotas (medido, ago/2026):
  * home 5 páginas → 1, catálogo 7 → 1, termos 2 → 1.
  *
+ * ═══ E O DEFEITO QUE ESSA VERIFICAÇÃO NÃO PEGOU ══════════════════════════════════════════════
+ *
+ * As três rotas acima não incluíam a que importa. Na PÁGINA DO RELATÓRIO, com entitlements, o PDF
+ * continuava saindo em 2 páginas — e a causa não estava na medição nem no `@page`, mas em
+ * `min-h-screen` (ver o teste "altura de viewport não vale no papel"). Medir a rota parecida com a
+ * de verdade não é medir a de verdade.
+ *
  * ═══ POR QUE ESTES TESTES SÃO DE FONTE ═══════════════════════════════════════════════════════
  *
  * Gerar um PDF de verdade exige subir o site e abrir um navegador — fora do caminho rápido, e um
@@ -57,6 +64,28 @@ describe('regras de impressão', () => {
       corpo,
       'margem que só existe ao imprimir cresce depois da medição e cria uma segunda página',
     ).not.toMatch(/padding|margin/);
+  });
+
+  /**
+   * A armadilha circular: `100vh` na impressão é a altura da FOLHA que acabamos de calcular.
+   *
+   * O relatório abre com `<main class="min-h-screen">`. Na tela isso não faz nada — `100vh` é a
+   * janela, e o conteúdo é muito mais alto. Na impressão, `100vh` vira a folha, o `main` estica até
+   * enchê-la, e o que estava fora dele é empurrado para além da borda: nasce a segunda página.
+   *
+   * É a armadilha porque fixar a altura da folha é o próprio ato que cria o excesso. Medido no
+   * relatório real, com entitlements (01/set/2026): conteúdo de 7.833px → folha de 2.083mm; o `main`
+   * ia de 7.801px para 7.872px e os 32px restantes do `body` estouravam. 2 páginas → 1 com a regra.
+   *
+   * A primeira verificação da página única não pegou isto porque rodou em `/`, `/catálogo` e
+   * `/termos`, onde a diferença entre `body` e `main` é zero e o estouro não aparece.
+   */
+  it('altura de viewport não vale no papel', () => {
+    const regra = /\.min-h-screen[^{]*\{[^}]*\}/.exec(blocoPrint)?.[0] ?? '';
+    expect(regra, 'sem neutralizar min-h-screen o relatório volta a sair em 2 páginas').not.toBe(
+      '',
+    );
+    expect(regra).toMatch(/min-height:\s*0/);
   });
 
   it('o que só serve para clicar não vai para o papel', () => {

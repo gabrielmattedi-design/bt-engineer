@@ -34,7 +34,23 @@ import { useState } from 'react';
  * viaja junto em qualquer cópia que circule. O respiro volta como padding no próprio conteúdo.
  */
 
-/** Largura da folha. 210mm é A4 — mantém a medida de linha que o relatório já tem na tela. */
+/**
+ * Largura da folha. 210mm é A4 — mantém a medida de linha que o relatório já tem na tela.
+ *
+ * ─── O QUE ISTO PRESSUPÕE ────────────────────────────────────────────────────────────────────
+ *
+ * A altura é medida na tela, com a largura da JANELA; a impressão acontece com a largura da FOLHA
+ * (210mm = 794px). Se o relatório mudasse de altura ao mudar de largura, a medida não serviria e o
+ * conteúdo estouraria a folha.
+ *
+ * Ele não muda: a coluna é `max-w-3xl` (768px), estreita o bastante para caber em 794px sem
+ * refluir. Medido em 794, 1024, 1280 e 1600px de janela — 7.743px de altura nos quatro.
+ *
+ * Isso é uma PROPRIEDADE do relatório, não do mecanismo. Uma seção nova em duas colunas a partir
+ * de `lg:` quebraria a premissa, e o sintoma seria uma segunda página só em telas largas. Não dá
+ * para medir na largura da folha por JavaScript: as media queries do Tailwind respondem à janela,
+ * e nenhuma mudança no documento as engana.
+ */
 const LARGURA_MM = 210;
 
 /**

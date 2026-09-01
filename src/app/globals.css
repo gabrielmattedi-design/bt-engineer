@@ -318,4 +318,30 @@
   body {
     background: #FFFFFF !important;
   }
+
+  /*
+    ALTURA DE VIEWPORT NÃO EXISTE NO PAPEL — e ignorar isso era o defeito da página única.
+
+    O relatório abre com `<main class="min-h-screen">`. Na tela, `100vh` é a janela do navegador —
+    umas 900px — e não tem efeito nenhum, porque o conteúdo é muito mais alto que isso.
+
+    Na impressão, `100vh` passa a ser a altura da FOLHA. E a folha é a que acabamos de calcular: a
+    altura do próprio conteúdo. O resultado é uma armadilha circular — o `main` estica até encher a
+    página inteira, e tudo que estava fora dele (a diferença entre `body` e `main`) é empurrado para
+    além da borda. Nasce uma segunda página com um pedaço solto do fim do relatório.
+
+    Medido no relatório real, com entitlements, em 01/set/2026: conteúdo de 7.833px → folha de
+    2.083mm (7.872px). O `main` media 7.801px e esticou para 7.872px; os 32px que sobravam no `body`
+    passaram a estourar. Saíam 2 páginas. Com esta regra, 1.
+
+    O sintoma enganava: a medição estava certa, o `@page` estava certo, e mesmo assim vinham duas
+    páginas — porque o ato de fixar a altura da folha era o que criava o excesso.
+
+    Vale para qualquer largura de tela: 794, 1024, 1280 e 1600px davam a mesma altura e as mesmas
+    2 páginas, o que descartou reflow como causa antes de chegar aqui.
+  */
+  .min-h-screen,
+  main {
+    min-height: 0 !important;
+  }
 }
