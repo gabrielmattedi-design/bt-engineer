@@ -8,17 +8,30 @@ Status: `v1` · Mercado: Brasil · Moeda: BRL
 
 | SKU | Nome comercial | Preço | Entitlements |
 |---|---|---|---|
-| `racket_report` | Descubra sua raquete ideal | R$ 19,99 | `racket_report_access` |
-| `full_setup` | Descubra seu setup completo | R$ 49,99 | `racket_report_access` + `full_setup_access` |
-| `top3_unlock` | Desbloquear Top 3 | R$ 9,99 | `top3_access` |
+| `racket_report` | Descubra sua raquete ideal | R$ 29,99 | `racket_report_access` |
+| `full_setup` | Descubra seu setup completo | R$ 49,99 | `racket_report_access` + `full_setup_access` + `rank2_access` + `rank3_access` |
+| `unlock_rank_2` | Desbloquear a 2ª colocada | R$ 9,99 | `rank2_access` |
+| `unlock_rank_3` | Desbloquear a 3ª colocada | R$ 9,99 | `rank3_access` |
+| `setup_upgrade` | Completar com corda e tensão | R$ 29,99 | `full_setup_access` + `rank2_access` + `rank3_access` |
 
-Preços vivem na tabela `products` e são editáveis em `/admin/precos`. **Zero preço hardcoded** (§34).
+`top3_unlock` é **legado**: continua reconhecido para quem já comprou, e não é mais vendido.
+
+### Onde mora o preço
+
+A fonte é `src/payments/catalogo.ts`. A tabela `products` é uma **projeção** dela: `seedProducts()`
+reconcilia as duas, e `/admin/setup` executa isso num clique, mostrando antes o que está diferente.
+
+O `/admin/precos` previsto pelo §34 nunca foi construído — e enquanto o seed era
+`onConflictDoNothing`, isso significava que **não havia nenhuma forma de mudar um preço em
+produção**: trocar o número no código deixava o site anunciando um valor e a loja cobrando outro.
+Hoje o seed atualiza, e a divergência aparece na tela do painel.
+
 O valor é copiado para `orders.amount_cents` no momento da compra — mudar o preço nunca reescreve o
 histórico.
 
 ### Conteúdo por produto
 
-**`racket_report` — R$ 19,99**
+**`racket_report` — R$ 29,99**
 - Análise completa do jogador (perfil técnico traduzido em linguagem simples)
 - Melhor raquete recomendada: marca, modelo, variante, geração
 - Fit Score + índices Tennis Engineer (controle/spin/potência/conforto/estabilidade)
@@ -29,13 +42,30 @@ histórico.
 
 **`full_setup` — R$ 49,99** · exibido como **ANÁLISE COMPLETA**
 - Tudo do `racket_report`
+- **A 2ª e a 3ª colocadas**, com marca, modelo e leitura técnica, e o comparativo entre as três
+  — precisa estar dito em TODA descrição do plano (home, comparativo de `/analise` e texto do
+  banco). Ficou de fora das três até set/2026: o plano concedia `rank2_access` e `rank3_access`
+  desde sempre e não anunciava nenhum dos dois, então metade da entrega só aparecia depois de
+  pagar. Trancado por `tests/security/preco-anunciado.test.ts`.
 - Corda: marca, modelo, tipo · Gauge (variante real) · Tensão inicial em lbs e kg · Faixa sugerida
 - Por que essa raquete / essa corda / essa tensão / por que a combinação funciona
 - O que você deve sentir em quadra
 - Como ajustar no próximo encordoamento
 - Análise de conforto
 
-**`top3_unlock` — R$ 9,99** (upsell pós-resultado, §30)
+**`unlock_rank_2` / `unlock_rank_3` — R$ 9,99 cada** (upsell pós-resultado, §30)
+- Liberam uma posição por vez: nome, modelo, Fit Score, justificativa, trade-offs
+
+**`setup_upgrade` — R$ 29,99** (upsell pós-resultado, para quem entrou pela raquete avulsa)
+- Corda, gauge e tensão para a raquete escolhida entre as do pódio, e **a 2ª e a 3ª colocadas**
+- O preço é o que faz `racket_report` + `setup_upgrade` custar R$ 59,98 contra R$ 49,99 do pacote:
+  a diferença é R$ 9,99, o preço de decidir em duas vezes, e nada além disso. Ele desceu de
+  R$ 39,99 no mesmo dia em que a raquete avulsa subiu de R$ 19,99, para manter essa conta —
+  este upgrade **não é visível na hora da primeira escolha**, e cobrar prêmio por uma decisão
+  tomada sem essa informação seria punir alguém por algo que não lhe foi dito. Trancado por
+  `tests/security/product-tiers.test.ts`.
+
+**`top3_unlock` — R$ 9,99** · LEGADO, não mais vendido (§30)
 - Libera 2º e 3º: nomes, fotos, Fit Scores, justificativas, trade-offs
 - Tabela comparativa completa das três (§31)
 - Rótulos por critério real: "Melhor escolha geral" / "Melhor se você priorizar controle" /
@@ -73,7 +103,7 @@ Avaliamos 47 raquetes e 31 variantes de corda disponíveis no Brasil.
 Encontramos 3 raquetes com alta compatibilidade com seu jogo.
 Confiança da análise: Alta
 
-[ Ver minha raquete — R$ 19,99 ]   [ Ver meu setup completo — R$ 49,99 ]
+[ Ver minha raquete — R$ 29,99 ]   [ Ver meu setup completo — R$ 49,99 ]
 ```
 
 Os números são **contagens reais da sessão**, lidas de `recommendation_sessions.candidates_evaluated`.

@@ -9,6 +9,7 @@ import { CompatibilityRadar } from '@/components/result/radar';
 import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
 import { BaixarPdf } from '@/components/result/baixar-pdf';
+import { preco } from '@/payments/catalogo';
 import { getReport } from '@/app/questionario/actions';
 import { selectSetupRacket } from './actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
@@ -508,7 +509,7 @@ export default async function ResultadoPage({
                   className="flex min-h-[56px] items-center justify-center gap-3 rounded bg-court
                              px-6 font-semibold text-white transition-opacity hover:opacity-90"
                 >
-                  <span className="display-number text-lg">R$ 39,99</span>
+                  <span className="display-number text-lg">{preco('setup_upgrade')}</span>
                   <span>Completar meu setup</span>
                 </Link>
               </div>
@@ -527,7 +528,7 @@ export default async function ResultadoPage({
               Com o pódio desbloqueado, corda e tensão flutuando ao lado de três nomes seriam
               ambíguas — e a escolha da corda depende do frame: padrão, cabeça e rigidez mudam a
               tensão recomendada. Dizer a raquete é obrigatório; poder trocar é o que o upgrade de
-              R$ 39,99 comprou.
+              setup comprou.
             */}
             <p className="mt-2 max-w-prose text-sm text-graphite">
               Calculado para a{' '}
@@ -680,7 +681,17 @@ export default async function ResultadoPage({
                                    rounded bg-ink px-6 font-semibold text-paper
                                    transition-opacity hover:opacity-90"
                       >
-                        <span className="display-number text-lg">R$ 9,99</span>
+                        {/*
+                          O preço acompanha a POSIÇÃO, e não uma SKU escolhida à mão.
+
+                          Este bloco se repete para a 2ª e para a 3ª, e o valor estava escrito
+                          direto no JSX — as duas mostravam o mesmo número porque hoje elas custam
+                          o mesmo. No dia em que deixarem de custar, uma das duas passaria a
+                          anunciar o preço da outra, e o cliente só descobriria no checkout.
+                        */}
+                        <span className="display-number text-lg">
+                          {preco(entry.rank === 2 ? 'unlock_rank_2' : 'unlock_rank_3')}
+                        </span>
                         <span>Desbloquear</span>
                       </Link>
                     </div>

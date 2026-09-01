@@ -3,6 +3,7 @@ import { markPageFunnel } from '@/app/funnel-mark';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { getTeaser } from '@/app/questionario/actions';
+import { preco } from '@/payments/catalogo';
 
 /**
  * Fora do índice dos buscadores.
@@ -43,6 +44,15 @@ const RACKET_PLAN = [
 
 const SETUP_PLAN = [
   'Tudo do plano anterior',
+  /*
+    Esta linha faltava, e a ausência dela era o defeito comercial mais caro desta tela.
+
+    `full_setup` concede `rank2_access` e `rank3_access` desde sempre. A lista não dizia, então o
+    comparativo mostrava o plano completo como "o de raquete + corda e tensão" — duas das quatro
+    entregas ficavam invisíveis exatamente no momento em que a pessoa escolhe entre os dois planos.
+    Ela só descobria depois de pagar, que é quando a informação não vale mais nada.
+  */
+  'A 2ª e a 3ª colocadas, com marca, modelo e leitura técnica',
   'Corda e espessura recomendadas, com disponibilidade no Brasil',
   'Tensão inicial em libras e quilos, com faixa sugerida',
   'Por que essa raquete, essa corda e essa tensão funcionam juntas',
@@ -50,7 +60,7 @@ const SETUP_PLAN = [
   'Análise de conforto',
 ] as const;
 
-/** Uma linha por entrega. `racket` diz se o plano de R$ 19,99 a inclui — o de R$ 49,99 inclui tudo. */
+/** Uma linha por entrega. `racket` diz se o plano de raquete a inclui — o completo inclui tudo. */
 const COMPARISON: readonly { item: string; racket: boolean }[] = [
   ...RACKET_PLAN.map((item) => ({ item, racket: true })),
   ...SETUP_PLAN.filter((item) => item !== 'Tudo do plano anterior').map((item) => ({
@@ -195,7 +205,7 @@ export default async function AnalisePage({
             <h3 className="mt-2 font-display text-base font-semibold sm:text-lg">
               Descubra sua raquete ideal
             </h3>
-            <p className="display-number mt-1 text-2xl sm:text-3xl">R$ 19,99</p>
+            <p className="display-number mt-1 text-2xl sm:text-3xl">{preco('racket_report')}</p>
 
             {/* A lista completa vive no comparativo abaixo no celular; aqui ela é só do desktop. */}
             <ul className="mt-4 hidden space-y-1.5 text-sm text-graphite sm:block">
@@ -233,7 +243,7 @@ export default async function AnalisePage({
             <h3 className="mt-2 font-display text-base font-semibold sm:text-lg">
               Descubra seu setup completo
             </h3>
-            <p className="display-number mt-1 text-2xl sm:text-3xl">R$ 49,99</p>
+            <p className="display-number mt-1 text-2xl sm:text-3xl">{preco('full_setup')}</p>
 
             <ul className="mt-4 hidden space-y-1.5 text-sm text-graphite sm:block">
               {SETUP_PLAN.map((item) => (

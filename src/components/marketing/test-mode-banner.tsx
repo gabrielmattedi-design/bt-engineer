@@ -12,7 +12,7 @@ import { inSimulatedPaymentMode } from '@/payments/mode';
  * quem chegue saiba exatamente o que está vendo.
  *
  * O aviso de pagamento é ainda mais importante que o de catálogo: alguém que chegue por um link e
- * encontre "R$ 19,99" numa loja que não cobra nada precisa saber disso ANTES de clicar, não
+ * encontre "R$ 29,99" numa loja que não cobra nada precisa saber disso ANTES de clicar, não
  * depois. As duas condições são independentes e a frase se ajusta para dizer só o que é verdade.
  */
 export async function TestModeBanner() {

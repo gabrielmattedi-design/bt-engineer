@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from './client';
 import { products } from './schema';
 import { BOOTSTRAP_STATEMENTS } from './bootstrap-sql';
+import { PRODUCT_SEED as CATALOGO } from '@/payments/catalogo';
 
 /**
  * Preparação do banco executável pelo painel — sem terminal.
@@ -10,65 +11,22 @@ import { BOOTSTRAP_STATEMENTS } from './bootstrap-sql';
  * um dono não-técnico, e exigir terminal para colocá-lo no ar seria transformar uma etapa de 30
  * segundos numa barreira real.
  *
- * As duas operações abaixo são IDEMPOTENTES por construção: `migrate()` consulta a tabela de
- * controle do Drizzle e aplica apenas o que falta; o seed usa `onConflictDoNothing` na SKU. Clicar
- * duas vezes não duplica nada e não desfaz preço já ajustado.
+ * As duas operações abaixo são IDEMPOTENTES por construção: a DDL é toda `IF NOT EXISTS`, e o seed
+ * casa por SKU. Clicar duas vezes não duplica nada.
  */
 
-export const PRODUCT_SEED = [
-  {
-    sku: 'racket_report',
-    name: 'Descubra sua raquete ideal',
-    description:
-      'A raquete com maior compatibilidade com o seu perfil, com a explicação técnica de por que ' +
-      'ela foi escolhida e o que você deve sentir em quadra.',
-    priceCents: 1999,
-    grantsEntitlements: ['racket_report_access'],
-  },
-  {
-    sku: 'full_setup',
-    name: 'Descubra seu setup completo',
-    description:
-      'Raquete + corda + espessura + tensão inicial, com a faixa de ajuste e o motivo de cada escolha.',
-    priceCents: 4999,
-    grantsEntitlements: [
-      'racket_report_access',
-      'full_setup_access',
-      'rank2_access',
-      'rank3_access',
-    ],
-  },
-  {
-    sku: 'unlock_rank_2',
-    name: 'Desbloquear a 2ª colocada',
-    description:
-      'A segunda raquete com maior compatibilidade, com marca, modelo e a leitura técnica completa.',
-    priceCents: 999,
-    grantsEntitlements: ['rank2_access'],
-  },
-  {
-    sku: 'unlock_rank_3',
-    name: 'Desbloquear a 3ª colocada',
-    description:
-      'A terceira raquete com maior compatibilidade, com marca, modelo e a leitura técnica completa.',
-    priceCents: 999,
-    grantsEntitlements: ['rank3_access'],
-  },
-  {
-    sku: 'setup_upgrade',
-    name: 'Completar com corda e tensão',
-    description:
-      'Corda, espessura e tensão inicial para a raquete que você escolher entre as do pódio, ' +
-      'com a faixa de ajuste e o motivo de cada escolha. Inclui a 2ª e a 3ª colocadas.',
-    priceCents: 3999,
-    grantsEntitlements: ['full_setup_access', 'rank2_access', 'rank3_access'],
-  },
-] as const;
+/*
+  A lista vive em `payments/catalogo.ts`, sem dependência de banco, para que uma tela possa ler o
+  preço sem importar o Postgres. Re-exportada aqui porque este módulo era o endereço dela.
+*/
+export { PRODUCT_SEED } from '@/payments/catalogo';
 
 export type SetupStatus = {
   readonly databaseConfigured: boolean;
   readonly tablesReady: boolean;
   readonly productCount: number;
+  /** Produtos cujo preço no banco não é o do código. Vazio = a loja cobra o que o site anuncia. */
+  readonly precosDesatualizados: readonly PrecoDivergente[];
   readonly error: string | null;
 };
 
@@ -78,6 +36,7 @@ export async function setupStatus(): Promise<SetupStatus> {
       databaseConfigured: false,
       tablesReady: false,
       productCount: 0,
+      precosDesatualizados: [],
       error: 'DATABASE_URL não configurada.',
     };
   }
@@ -88,6 +47,7 @@ export async function setupStatus(): Promise<SetupStatus> {
       databaseConfigured: true,
       tablesReady: true,
       productCount: rows.length,
+      precosDesatualizados: await precosDivergentes(),
       error: null,
     };
   } catch (error) {
@@ -103,6 +63,7 @@ export async function setupStatus(): Promise<SetupStatus> {
       databaseConfigured: true,
       tablesReady: false,
       productCount: 0,
+      precosDesatualizados: [],
       error: isMissingTable(error) ? null : describe(error),
     };
   }
@@ -121,8 +82,29 @@ export async function runMigrations(): Promise<void> {
   }
 }
 
+/**
+ * Sincroniza a tabela `products` com o catálogo do código.
+ *
+ * ═══ POR QUE ELE ATUALIZA, E NÃO SÓ INSERE ═══════════════════════════════════════════════════
+ *
+ * Era `onConflictDoNothing`: uma SKU já existente ficava intocada para sempre. A intenção original
+ * era proteger um preço ajustado à mão no banco — só que NÃO EXISTE onde ajustar preço à mão. O
+ * `/admin/precos` previsto pelo §34 nunca foi construído.
+ *
+ * Na prática, então, o que aquela linha protegia era o preço ANTIGO. Trocar o número no código e
+ * publicar não mudava nada em produção: a loja continuava cobrando o valor semeado no primeiro dia,
+ * enquanto as telas passavam a anunciar o novo. Anunciar um preço e cobrar outro é a falha mais cara
+ * que este arquivo poderia produzir, e ela seria silenciosa.
+ *
+ * Com o catálogo do código como única fonte (ver `payments/catalogo.ts`), reconciliar é o
+ * comportamento correto — e continua idempotente: rodar de novo sem mudar o código não escreve nada
+ * diferente.
+ *
+ * `active` fica DE FORA do update de propósito: aposentar um produto é uma decisão operacional, não
+ * uma consequência de rodar o seed. Um produto desativado à mão precisa continuar desativado.
+ */
 export async function seedProducts(): Promise<number> {
-  for (const product of PRODUCT_SEED) {
+  for (const product of CATALOGO) {
     await db()
       .insert(products)
       .values({
@@ -134,10 +116,46 @@ export async function seedProducts(): Promise<number> {
         currency: 'BRL',
         active: true,
       })
-      .onConflictDoNothing({ target: products.sku });
+      .onConflictDoUpdate({
+        target: products.sku,
+        set: {
+          name: product.name,
+          description: product.description,
+          priceCents: product.priceCents,
+          grantsEntitlements: [...product.grantsEntitlements],
+        },
+      });
   }
   const rows = await db().select({ sku: products.sku }).from(products);
   return rows.length;
+}
+
+/**
+ * Onde o banco diverge do catálogo do código — para o painel poder MOSTRAR isso.
+ *
+ * Sem esta leitura, "os preços já foram aplicados?" só se responde comprando. Com ela, `/admin/setup`
+ * exibe "no banco: R$ 19,99 · no código: R$ 29,99" e o botão de sincronizar deixa de ser um ato de fé.
+ */
+export type PrecoDivergente = {
+  readonly sku: string;
+  readonly noBanco: number | null;
+  readonly noCodigo: number;
+};
+
+export async function precosDivergentes(): Promise<readonly PrecoDivergente[]> {
+  const rows = await db()
+    .select({ sku: products.sku, priceCents: products.priceCents })
+    .from(products);
+  const banco = new Map(rows.map((r) => [r.sku, r.priceCents]));
+
+  const fora: PrecoDivergente[] = [];
+  for (const product of CATALOGO) {
+    const atual = banco.get(product.sku) ?? null;
+    if (atual !== product.priceCents) {
+      fora.push({ sku: product.sku, noBanco: atual, noCodigo: product.priceCents });
+    }
+  }
+  return fora;
 }
 
 /**

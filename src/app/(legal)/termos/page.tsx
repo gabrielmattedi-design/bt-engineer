@@ -18,7 +18,7 @@ export const metadata = {
  * Primeiro: o conteúdo é acessado em SEGUNDOS. A ressalva anularia o direito na prática para todo
  * mundo, o que é exatamente o tipo de cláusula que não se sustenta quando questionada.
  *
- * Segundo: ela custa mais do que economiza. O produto custa entre R$ 19,99 e R$ 49,99. Devolver
+ * Segundo: ela custa mais do que economiza. O produto custa entre R$ 9,99 e R$ 49,99. Devolver
  * sem discutir é mais barato que uma disputa no gateway — que leva a taxa junto e deixa marca na
  * conta que recebe. Recusa gera contestação; devolução gera uma linha no extrato.
  *

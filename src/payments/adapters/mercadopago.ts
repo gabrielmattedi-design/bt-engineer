@@ -17,7 +17,7 @@ import type {
  * entre uma integração que uma pessoa mantém e um projeto de conformidade.
  *
  * Ele também entrega PIX, cartão e boleto na mesma tela sem nenhum código a mais, e é a tela que o
- * comprador brasileiro reconhece. Para um produto de R$ 19,99 a R$ 49,99, reconhecimento na hora
+ * comprador brasileiro reconhece. Para um produto de R$ 29,99 a R$ 49,99, reconhecimento na hora
  * de pagar vale mais do que qualquer customização de checkout.
  *
  * ═══ AS TRÊS COISAS QUE ESTE ARQUIVO PRECISA ACERTAR ═════════════════════════════════════════
@@ -320,7 +320,7 @@ export const mercadoPagoProvider: PaymentProvider = {
           a pessoa paga com cartão, PIX ou boleto sem criar conta e sem fazer login em lugar nenhum.
 
           Com `purpose: 'wallet_purchase'`, o Mercado Pago passa a exigir que o comprador entre
-          numa conta antes de pagar. Para um produto de R$ 19,99 comprado por impulso logo depois
+          numa conta antes de pagar. Para um produto de R$ 29,99 comprado por impulso logo depois
           de ver a prévia da análise, isso é uma tela de cadastro entre a vontade e o pagamento —
           o lugar mais caro possível para colocar atrito.
 

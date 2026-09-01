@@ -5,6 +5,7 @@ import { Logo } from '@/components/marketing/logo';
 import { Pillars } from '@/components/marketing/pillars';
 import { BrandWall } from '@/components/marketing/brand-wall';
 import { catalogStats } from '@/data/load';
+import { preco } from '@/payments/catalogo';
 import { CONTATO_EMAIL } from '@/lib/contato';
 
 /**
@@ -345,7 +346,7 @@ export default function HomePage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded border border-line bg-white p-6">
             <h3 className="font-display text-lg font-semibold">Descubra sua raquete ideal</h3>
-            <p className="display-number mt-2 text-2xl">R$ 19,99</p>
+            <p className="display-number mt-2 text-2xl">{preco('racket_report')}</p>
             <ul className="mt-4 space-y-2 text-sm text-graphite">
               <li>Análise completa do seu perfil</li>
               <li>Raquete recomendada e Fit Score</li>
@@ -363,9 +364,19 @@ export default function HomePage() {
             <h3 className="mt-2 font-display text-lg font-semibold text-ink">
               Descubra seu setup completo
             </h3>
-            <p className="display-number mt-2 text-3xl text-ink">R$ 49,99</p>
+            <p className="display-number mt-2 text-3xl text-ink">{preco('full_setup')}</p>
             <ul className="mt-4 space-y-2 text-sm text-graphite">
               <li>Tudo do plano anterior</li>
+              {/*
+                A 2ª e a 3ª estavam no que o plano CONCEDE e não no que ele ANUNCIA.
+
+                `full_setup` sempre deu `rank2_access` e `rank3_access` (ver `PRODUCT_ENTITLEMENTS`),
+                mas nenhuma das três descrições do plano dizia isso — nem aqui, nem no comparativo
+                de `/analise`, nem no texto do banco. Duas das quatro entregas só apareciam depois de
+                pagar. Enquanto isso o upgrade de R$ 29,99 anunciava exatamente esse benefício: o
+                produto mais barato vendia melhor o que o carro-chefe entregava calado.
+              */}
+              <li>A 2ª e a 3ª colocadas, com marca e modelo</li>
               <li>Corda e espessura recomendadas</li>
               <li>Tensão inicial e faixa sugerida</li>
               <li>Por que essa combinação funciona</li>

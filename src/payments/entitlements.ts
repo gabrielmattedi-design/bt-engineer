@@ -88,6 +88,17 @@ export const PRODUCT_ENTITLEMENTS: Readonly<Record<string, readonly Entitlement[
    *
    * Com a 2ª e a 3ª incluídas, os dois caminhos chegam ao mesmo conteúdo e a diferença de R$ 9,99
    * fica sendo o que ela sempre deveria ter sido: o preço de decidir em duas vezes.
+   *
+   * ═══ A DIFERENÇA DE R$ 9,99 SOBREVIVEU À MUDANÇA DE PREÇO ════════════════════════════════
+   *
+   * Set/2026, a raquete avulsa subiu de R$ 19,99 para R$ 29,99 e o upgrade desceu de R$ 39,99 para
+   * R$ 29,99. Os R$ 10 saíram de um e entraram no outro, então TODO caminho que passa pelos dois
+   * custa exatamente o que custava: R$ 59,98 para o conteúdo do plano completo, R$ 79,96 para o
+   * caminho mais fatiado de todos. O que subiu foi só quem para na raquete avulsa.
+   *
+   * A razão de descer o upgrade é que ele NÃO está visível na hora da primeira escolha — a pessoa
+   * descobre que ele existe depois de já ter pago. Cobrar prêmio por uma decisão tomada sem essa
+   * informação é punir alguém por algo que não lhe foi dito.
    */
   setup_upgrade: ['full_setup_access', 'rank2_access', 'rank3_access'],
   /** Produto legado: uma compra só que abria as duas posições. */

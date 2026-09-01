@@ -12,17 +12,17 @@
  * clicou.
  *
  * O sintoma era falso alarme; a ausência de teste não era. Nada garantia que a matriz de produtos
- * continuasse certa: bastava alguém acrescentar `full_setup_access` ao produto de R$ 19,99 — por
+ * continuasse certa: bastava alguém acrescentar `full_setup_access` à raquete avulsa — por
  * engano, ou "para facilitar um teste" — e o vazamento entraria em produção sem nenhuma falha
  * visível. Os testes existentes verificam o que cada ENTITLEMENT libera; nenhum verificava quais
  * entitlements cada PREÇO concede.
  *
  * ═══ A ESCADA ════════════════════════════════════════════════════════════════════════════════
  *
- *     R$ 19,99  raquete            só a 1ª colocada, sem corda e sem tensão
+ *     R$ 29,99  raquete            só a 1ª colocada, sem corda e sem tensão
  *     R$  9,99  2ª colocada        cada uma separadamente
  *     R$  9,99  3ª colocada
- *     R$ 39,99  completar setup    corda, espessura e tensão + a 2ª e a 3ª
+ *     R$ 29,99  completar setup    corda, espessura e tensão + a 2ª e a 3ª
  *     R$ 49,99  setup completo     tudo acima, de uma vez
  *
  * ═══ POR QUE O UPGRADE PASSOU A INCLUIR A 2ª E A 3ª ══════════════════════════════════════════
@@ -48,10 +48,10 @@ import { PRODUCT_ENTITLEMENTS, type Entitlement } from '@/payments/entitlements'
 
 /** A escada, escrita à mão. Se o código divergir daqui, um dos dois está errado — e o teste falha. */
 const ESPERADO: Readonly<Record<string, { cents: number; grants: readonly Entitlement[] }>> = {
-  racket_report: { cents: 1999, grants: ['racket_report_access'] },
+  racket_report: { cents: 2999, grants: ['racket_report_access'] },
   unlock_rank_2: { cents: 999, grants: ['rank2_access'] },
   unlock_rank_3: { cents: 999, grants: ['rank3_access'] },
-  setup_upgrade: { cents: 3999, grants: ['full_setup_access', 'rank2_access', 'rank3_access'] },
+  setup_upgrade: { cents: 2999, grants: ['full_setup_access', 'rank2_access', 'rank3_access'] },
   full_setup: {
     cents: 4999,
     grants: ['racket_report_access', 'full_setup_access', 'rank2_access', 'rank3_access'],
@@ -85,21 +85,21 @@ describe('escada de produtos', () => {
   });
 
   /**
-   * O produto de R$ 19,99 é o que mais importa aqui: é o barato, é o que mais gente compra, e é o
+   * A raquete avulsa é o que mais importa aqui: é a barata, é a que mais gente compra, e é a
    * único cuja contaminação seria invisível — quem pagou pouco e recebeu muito não reclama.
    */
   it('a raquete avulsa não abre corda, tensão nem as outras colocadas', () => {
     const grants = bySku.get('racket_report')!.grantsEntitlements as readonly string[];
 
     for (const proibido of ['full_setup_access', 'rank2_access', 'rank3_access', 'top3_access']) {
-      expect(grants, `R$ 19,99 concedendo ${proibido}`).not.toContain(proibido);
+      expect(grants, `a raquete avulsa concedendo ${proibido}`).not.toContain(proibido);
     }
   });
 
   /**
    * A promessa comercial de que a compra fatiada CHEGA ao mesmo lugar.
    *
-   * Quem entra por R$ 19,99 e depois compra a 2ª, a 3ª e o setup precisa terminar com exatamente o
+   * Quem entra pela raquete avulsa e depois compra a 2ª, a 3ª e o setup precisa terminar com o
    * mesmo acesso de quem pagou R$ 49,99 de uma vez. Um único entitlement de diferença criaria um
    * cliente que gastou mais e recebeu menos — e ele descobriria isso sozinho, comparando com um
    * amigo.
@@ -114,6 +114,23 @@ describe('escada de produtos', () => {
     const completo = new Set<string>(bySku.get('full_setup')!.grantsEntitlements);
 
     expect([...fatiado].sort()).toEqual([...completo].sort());
+  });
+
+  /**
+   * O preço de decidir em duas vezes é R$ 9,99 — e continua sendo depois do reajuste.
+   *
+   * Set/2026: a raquete avulsa subiu R$ 10 e o upgrade desceu R$ 10, de propósito. O upgrade não
+   * está visível na hora da primeira escolha (a pessoa descobre que ele existe depois de pagar),
+   * então cobrar prêmio por ele seria punir alguém por uma informação que não foi dada.
+   *
+   * Este teste é o que trava essa intenção: qualquer mexida futura em UM dos dois preços sem a
+   * contrapartida no outro alarga a diferença em silêncio.
+   */
+  it('decidir em duas etapas custa exatamente R$ 9,99 a mais', () => {
+    const duasEtapas =
+      bySku.get('racket_report')!.priceCents + bySku.get('setup_upgrade')!.priceCents;
+
+    expect(duasEtapas - bySku.get('full_setup')!.priceCents).toBe(999);
   });
 
   /** A soma das partes é mais cara que o pacote — senão o pacote não é pacote. */

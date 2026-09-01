@@ -63,9 +63,13 @@ export async function productBySku(sku: string): Promise<Product | null> {
 /**
  * Cria o pedido com o preço COPIADO do catálogo no instante da compra.
  *
- * A cópia é deliberadamente redundante: se amanhã o preço do relatório subir, o histórico de quem
- * pagou R$ 19,99 continua dizendo R$ 19,99. Ler o preço de `products` na hora de emitir a nota
+ * A cópia é deliberadamente redundante: quando o preço do relatório sobe, o histórico de quem pagou
+ * o valor antigo continua dizendo o valor antigo. Ler o preço de `products` na hora de emitir a nota
  * reescreveria o passado.
+ *
+ * Deixou de ser hipótese em set/2026: a raquete avulsa foi de R$ 19,99 para R$ 29,99. Os pedidos
+ * anteriores continuam registrando R$ 19,99 porque o valor foi copiado no instante da compra — é
+ * exatamente para isso que esta coluna existe.
  */
 export async function createOrder(input: {
   sessionId: string;

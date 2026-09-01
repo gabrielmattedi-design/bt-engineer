@@ -57,7 +57,7 @@ ranking. Isto é verificado por teste de propriedade.
 ```
 Landing  →  Questionário (7 etapas)  →  Processamento  →  Análise concluída (teaser)
                                                                     │
-                                                              Planos R$19,99 / R$49,99
+                                                              Planos R$29,99 / R$49,99
                                                                     │
                                                             Pagamento (PIX/cartão)
                                                                     │
@@ -94,13 +94,19 @@ Sem cronômetro falso, sem escassez (§58).
 
 | SKU | Nome | Preço | Entitlements concedidos |
 |---|---|---|---|
-| `racket_report` | Descubra sua raquete ideal | R$ 19,99 | `racket_report_access` |
-| `full_setup` | Descubra seu setup completo | R$ 49,99 | `racket_report_access`, `full_setup_access` |
-| `top3_unlock` | Desbloquear Top 3 | R$ 9,99 | `top3_access` |
+| `racket_report` | Descubra sua raquete ideal | R$ 29,99 | `racket_report_access` |
+| `full_setup` | Descubra seu setup completo | R$ 49,99 | `racket_report_access`, `full_setup_access`, `rank2_access`, `rank3_access` |
+| `unlock_rank_2` | Desbloquear a 2ª colocada | R$ 9,99 | `rank2_access` |
+| `unlock_rank_3` | Desbloquear a 3ª colocada | R$ 9,99 | `rank3_access` |
+| `setup_upgrade` | Completar com corda e tensão | R$ 29,99 | `full_setup_access`, `rank2_access`, `rank3_access` |
 
-Preços vivem em `products` (banco) — nunca hardcoded (§34). Editáveis pelo admin.
+`top3_unlock` é legado — reconhecido para quem comprou, não mais vendido.
 
-**`racket_report` (R$ 19,99)** — análise completa do jogador, melhor raquete, Fit Score, justificativa,
+A fonte do preço é `src/payments/catalogo.ts`; `products` é a projeção dela, aplicada em
+`/admin/setup`. Nenhuma tela escreve valor em reais (§34) — ver
+`tests/security/preco-anunciado.test.ts`.
+
+**`racket_report` (R$ 29,99)** — análise completa do jogador, melhor raquete, Fit Score, justificativa,
 benefícios, pontos de atenção, análise de transição. **Não inclui** corda, gauge nem tensão.
 
 **`full_setup` (R$ 49,99)** — tudo acima + corda + gauge + tensão + faixa + explicação da combinação

@@ -8,6 +8,7 @@ import { SiteHeader } from '@/components/marketing/site-header';
 import { CheckoutButton } from './checkout-button';
 import { CouponForm } from './coupon-form';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
+import { brl } from '@/payments/catalogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,8 +70,14 @@ export default async function PlanosPage({
 
   const inviteOnly = !(await checkoutOpen());
 
-  const brl = (cents: number): string =>
-    `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+  /*
+    O preço continua vindo do BANCO nesta tela, e não do catálogo do código.
+
+    É a tela que antecede o checkout: o número aqui precisa ser o mesmo que `createOrder` vai copiar
+    para o pedido. Ler do catálogo faria a página anunciar o preço novo enquanto a loja ainda cobra o
+    antigo, no exato lugar onde essa diferença custa mais caro. Quem reconcilia os dois é
+    `seedProducts`, e `/admin/setup` mostra quando eles estão fora de sincronia.
+  */
 
   return (
     <main className="min-h-screen bg-paper">
