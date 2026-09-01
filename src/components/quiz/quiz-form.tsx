@@ -153,8 +153,25 @@ export function QuizForm({
           saída E assina a página, que era a outra ausência (§64, a assinatura acompanha a leitura).
           Fica na linha do rótulo da etapa, sem ganhar peso: o foco continua sendo a pergunta.
         */}
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-baseline gap-3">
+        {/*
+          ═══ O RÓTULO DA ETAPA SAIU DE PERTO DA MARCA ══════════════════════════════════════════
+
+          Ele ficava na mesma linha do logo, em corpo mínimo, alinhado pela BASE do texto da marca.
+          O efeito era de sobra: um texto pequeno encostado no logo, começando num ponto que não
+          coincide com nada — nem com a marca à esquerda, nem com as perguntas abaixo.
+
+          E o que ele diz não é sobra. "Estilo de jogo", "Seu físico", "Sua raquete atual" são a
+          única pista de que o questionário tem ESTRUTURA — de que alguém decidiu o que perguntar e
+          agrupou por assunto. Quem responde percebe que está sendo analisado por partes, e não
+          preenchendo um formulário comprido. Escondido em 12px ao lado do logo, esse sinal não
+          chegava a existir.
+
+          Agora ele ocupa a própria linha, começando na MESMA coluna das perguntas do corpo —
+          `max-w-2xl px-6` nos dois, então a borda esquerda é literalmente a mesma. Ler de cima para
+          baixo passa a ser: marca, assunto desta etapa, primeira pergunta.
+        */}
+        <div className="mx-auto max-w-2xl px-6 pb-4 pt-4">
+          <div className="flex items-center justify-between gap-4">
             <Link
               href="/"
               aria-label="Tennis Engineer — voltar ao início"
@@ -164,13 +181,26 @@ export function QuizForm({
             >
               <Wordmark size="sm" withTagline={false} />
             </Link>
-            <span className="text-xs font-semibold uppercase tracking-wider text-court">
-              {step.label}
+            <span className="shrink-0 text-xs tabular-nums text-graphite">
+              {stepIndex + 1} / {steps.length}
             </span>
           </div>
-          <span className="shrink-0 text-xs tabular-nums text-graphite">
-            {stepIndex + 1} / {steps.length}
-          </span>
+
+          {/*
+            Sem traço, sem ícone, sem nada à esquerda — e é uma decisão, não economia.
+
+            A primeira versão tinha um traço vertical antes do texto. Ele marcava bem o rótulo como
+            cabeçalho, e empurrava o TEXTO uns 11px para dentro: o rótulo deixava de começar na
+            mesma coluna da pergunta logo abaixo. Alinhamento quebrado por 11px é pior que
+            alinhamento nenhum, porque o olho registra o desencontro sem saber nomear o motivo.
+
+            O destaque vem do que não desloca a margem: corpo maior que antes, caixa alta, entreletra
+            aberta e o verde institucional. Sobra sinal suficiente para ler como cabeçalho de seção,
+            e a coluna esquerda continua sendo uma linha reta do topo ao fim da página.
+          */}
+          <h2 className="mt-3 text-sm font-semibold uppercase tracking-[0.14em] text-court">
+            {step.label}
+          </h2>
         </div>
       </div>
 
