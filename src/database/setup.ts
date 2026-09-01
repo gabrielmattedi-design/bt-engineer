@@ -140,15 +140,42 @@ export async function seedProducts(): Promise<number> {
   return rows.length;
 }
 
-/** Percorre a cadeia de `cause` — o Drizzle embrulha o erro original do driver. */
+/**
+ * O banco está atrás do código? Percorre a cadeia de `cause` — o Drizzle embrulha o erro do driver.
+ *
+ * ═══ POR QUE COLUNA CONTA, E NÃO SÓ TABELA ═══════════════════════════════════════════════════
+ *
+ * Esta função só reconhecia TABELA ausente, e o buraco derrubou o resgate de código de convite em
+ * produção (ago/2026).
+ *
+ * O que aconteceu: uma coluna nova entrou em `access_coupons`. O SQL de bootstrap já trazia o
+ * `ALTER TABLE … ADD COLUMN IF NOT EXISTS` correspondente — mas ele nunca rodou, porque quem o
+ * dispara é `withAutoBootstrap`, e `withAutoBootstrap` só chama o bootstrap quando ESTA função diz
+ * que sim. Faltando coluna, ela dizia não.
+ *
+ * O resultado era o pior formato de falha: o conserto existia, estava escrito, era idempotente, e
+ * ficava a uma condição de distância de acontecer.
+ *
+ * A generalização certa não é "tabela" — é **o banco está desatualizado em relação ao código**.
+ * Tabela ausente e coluna ausente são a mesma situação vista de dois ângulos, e as duas se
+ * resolvem rodando o mesmo bootstrap.
+ *
+ * Índice ausente não entra na lista de propósito: ele não gera erro, só deixa a consulta lenta —
+ * e disparar migração por lentidão seria confundir desempenho com estrutura.
+ */
 export function isMissingTable(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 5 && current; depth += 1) {
     if (typeof current === 'object' && current !== null) {
-      // 42P01 = undefined_table, o código do Postgres para "relação não existe".
-      if ((current as { code?: string }).code === '42P01') return true;
+      const code = (current as { code?: string }).code;
+      // 42P01 = undefined_table · 42703 = undefined_column. Os dois significam a mesma coisa aqui:
+      // o esquema em produção é mais antigo que o código que está tentando usá-lo.
+      if (code === '42P01' || code === '42703') return true;
+
       const message = (current as { message?: string }).message ?? '';
       if (/relation .* does not exist/i.test(message)) return true;
+      if (/column .* does not exist/i.test(message)) return true;
+
       current = (current as { cause?: unknown }).cause;
     } else {
       break;

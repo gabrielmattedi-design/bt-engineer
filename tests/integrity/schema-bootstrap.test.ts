@@ -148,3 +148,60 @@ describe('a idempotência de que o resgate de cupom depende', () => {
     );
   });
 });
+
+/**
+ * O banco atrás do código se conserta sozinho — inclusive quando falta uma COLUNA.
+ *
+ * ═══ O DEFEITO QUE ISTO TRANCA ═══════════════════════════════════════════════════════════════
+ *
+ * `withAutoBootstrap` roda o SQL de bootstrap quando o banco está desatualizado, e quem decide
+ * "está desatualizado" é `isMissingTable`. Ela só reconhecia TABELA ausente.
+ *
+ * Uma coluna nova em `access_coupons` derrubou o resgate de código de convite em produção
+ * (ago/2026): o `ALTER TABLE … ADD COLUMN IF NOT EXISTS` existia no bootstrap, era idempotente, e
+ * nunca rodava — porque a condição que o dispara respondia "não" para coluna faltando.
+ *
+ * É o pior formato de falha que existe: o conserto pronto, escrito, a uma condição de distância.
+ */
+
+import { isMissingTable } from '@/database/setup';
+
+describe('reconhecer um banco desatualizado', () => {
+  /** O formato real do erro do driver, embrulhado pelo Drizzle como acontece em produção. */
+  function erroDoDriver(code: string, message: string): Error {
+    const driver = Object.assign(new Error(message), { code });
+    return Object.assign(new Error('Failed query'), { cause: driver });
+  }
+
+  it('tabela ausente conta', () => {
+    expect(isMissingTable(erroDoDriver('42P01', 'relation "funnel_markers" does not exist'))).toBe(
+      true,
+    );
+  });
+
+  it('COLUNA ausente conta — foi o que quebrou o cupom', () => {
+    expect(
+      isMissingTable(erroDoDriver('42703', 'column "daily_limit" does not exist')),
+      'sem isto, uma coluna nova nunca chega à produção',
+    ).toBe(true);
+  });
+
+  it('reconhece pela mensagem quando o código do driver não vem', () => {
+    // Nem todo caminho preserva `code` — o texto é a segunda rede.
+    expect(isMissingTable(new Error('column "x" does not exist'))).toBe(true);
+    expect(isMissingTable(new Error('relation "y" does not exist'))).toBe(true);
+  });
+
+  /**
+   * O oposto importa tanto quanto: erro comum NÃO pode disparar migração.
+   *
+   * Rodar o bootstrap a cada falha transitória transformaria uma indisponibilidade momentânea numa
+   * enxurrada de DDL contra um banco que já está sofrendo.
+   */
+  it('falha comum não dispara migração', () => {
+    expect(isMissingTable(new Error('connection timeout'))).toBe(false);
+    expect(isMissingTable(erroDoDriver('23505', 'duplicate key value'))).toBe(false);
+    expect(isMissingTable(null)).toBe(false);
+    expect(isMissingTable('texto solto')).toBe(false);
+  });
+});
