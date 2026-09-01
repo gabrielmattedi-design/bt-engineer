@@ -5,7 +5,8 @@ import { Logo } from '@/components/marketing/logo';
 import { Pillars } from '@/components/marketing/pillars';
 import { BrandWall } from '@/components/marketing/brand-wall';
 import { catalogStats } from '@/data/load';
-import { preco } from '@/payments/catalogo';
+import { brl } from '@/payments/catalogo';
+import { precosPublicados } from '@/payments/precos';
 import { CONTATO_EMAIL } from '@/lib/contato';
 
 /**
@@ -26,8 +27,33 @@ import { CONTATO_EMAIL } from '@/lib/contato';
  *   Wimbledon Green   gráficos e análises      AO Blue       dados e tecnologia
  *   Court Yellow      performance e energia
  */
-export default function HomePage() {
+/**
+ * Teto de validade do cache da home, em segundos.
+ *
+ * A home é pré-renderizada: sem isto, o preço embutido na build vale até alguém invalidá-la. O
+ * caminho normal já invalida — `salvarPrecos` chama `revalidatePath('/', 'layout')` e a mudança
+ * aparece na hora.
+ *
+ * Isto cobre o caminho ANORMAL: uma build feita com o banco fora do ar embute o preço inicial do
+ * catálogo, que pode não ser o que a loja cobra, e nada dispararia a correção. Dez minutos é o
+ * bastante para a página se curar sozinha e pouco o suficiente para não consultar o banco a cada
+ * visita — na página de entrada, que é a mais visitada de todas.
+ */
+export const revalidate = 600;
+
+/*
+  A home lê o preço do BANCO, e por isso é `async`.
+
+  Ela era estática — servida do cache, sem nenhuma consulta. Ler daqui a torna dinâmica, e vale a
+  troca: os preços apareciam em quatro telas e só uma delas lia do banco, o que permitia o site
+  anunciar um valor e a loja cobrar outro. Uma consulta na página de entrada é barata; um preço
+  errado na página de entrada, não.
+
+  A ação que salva os preços chama `revalidatePath('/', 'layout')`, então a mudança aparece na hora.
+*/
+export default async function HomePage() {
   const stats = catalogStats();
+  const precos = await precosPublicados();
 
   return (
     <main className="min-h-screen">
@@ -346,7 +372,7 @@ export default function HomePage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded border border-line bg-white p-6">
             <h3 className="font-display text-lg font-semibold">Descubra sua raquete ideal</h3>
-            <p className="display-number mt-2 text-2xl">{preco('racket_report')}</p>
+            <p className="display-number mt-2 text-2xl">{brl(precos.racket_report)}</p>
             <ul className="mt-4 space-y-2 text-sm text-graphite">
               <li>Análise completa do seu perfil</li>
               <li>Raquete recomendada e Fit Score</li>
@@ -364,7 +390,7 @@ export default function HomePage() {
             <h3 className="mt-2 font-display text-lg font-semibold text-ink">
               Descubra seu setup completo
             </h3>
-            <p className="display-number mt-2 text-3xl text-ink">{preco('full_setup')}</p>
+            <p className="display-number mt-2 text-3xl text-ink">{brl(precos.full_setup)}</p>
             <ul className="mt-4 space-y-2 text-sm text-graphite">
               <li>Tudo do plano anterior</li>
               {/*

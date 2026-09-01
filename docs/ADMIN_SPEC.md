@@ -108,10 +108,22 @@ entrou.
 
 ---
 
-## 6. `/admin/precos` (§34)
+## 6. Preços (§34) — implementado dentro de `/admin/setup`
 
-CRUD de `products`: nome, descrição, `price_cents`, `active`, `grants_entitlements`. Alteração de preço
-gera log e **não afeta pedidos existentes** (`orders.amount_cents` é snapshot).
+Editor das cinco SKUs: só `price_cents`. Alteração **não afeta pedidos existentes**
+(`orders.amount_cents` é snapshot do instante da compra).
+
+Ficou dentro de `/admin/setup`, e não numa rota própria, porque é para lá que o dono vai quando
+precisa mexer em como o sistema está configurado — uma sexta entrada no menu para cinco campos
+seria mais navegação que conteúdo.
+
+**Nome, descrição e `grants_entitlements` NÃO são editáveis pelo painel.** Eles descrevem o que o
+motor entrega; mudá-los sem mudar o produto seria vender outra coisa. Vêm de
+`src/payments/catalogo.ts` e são reconciliados a cada `seedProducts()`. `active` também não tem tela
+ainda — aposentar produto segue sendo operação de banco.
+
+O editor recusa combinações que produzam "pagar mais e receber menos" (ver `conferirEscada`), grava
+os cinco preços numa transação só, e invalida as telas que exibem preço.
 
 Sem campo de "preço anterior" ou "desconto" — por decisão de produto, dark patterns são impossíveis de
 representar no schema (§58).

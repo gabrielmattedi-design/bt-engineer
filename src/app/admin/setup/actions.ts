@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
 import { runMigrations, seedProducts, withAutoBootstrap } from '@/database/setup';
+import { atualizarPrecos } from '@/database/repositories/commerce-repo';
+import { conferirEscada, PRODUCT_SEED } from '@/payments/catalogo';
 import { writeSetting } from '@/database/repositories/settings-repo';
 import { SETTING_KEYS } from '@/database/schema';
 import { seedInviteCoupons } from '@/database/repositories/coupon-repo';
@@ -36,6 +38,73 @@ export async function createProducts(_prev: unknown): Promise<SetupResult> {
       error: error instanceof Error ? error.message : 'Falha ao criar os produtos.',
     };
   }
+}
+
+/**
+ * Salva os preços dos cinco produtos, de uma vez.
+ *
+ * ═══ POR QUE TUDO JUNTO, E NÃO UM CAMPO POR VEZ ══════════════════════════════════════════════
+ *
+ * Porque a coerência da escada é uma propriedade do CONJUNTO, não de cada preço. Subir a raquete
+ * avulsa sozinha pode deixá-la mais cara que o pacote; salvar campo a campo obrigaria o dono a
+ * passar por um estado inválido para chegar ao válido, e a validação teria de recusar exatamente o
+ * caminho que ele precisa percorrer.
+ *
+ * Com um envio só, ele descreve a tabela inteira que quer, e ela é aceita ou recusada como um todo.
+ *
+ * ═══ E POR QUE NADA É GRAVADO ANTES DE TUDO SER CONFERIDO ════════════════════════════════════
+ *
+ * Gravar enquanto valida deixaria a loja num estado misto se a quarta linha fosse recusada: dois
+ * preços novos, três antigos, e uma escada que ninguém desenhou. A conferência acontece inteira
+ * sobre os números lidos, e só depois a transação escreve.
+ */
+export async function salvarPrecos(_prev: unknown, formData: FormData): Promise<SetupResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const lidos: Record<string, number> = {};
+  for (const produto of PRODUCT_SEED) {
+    const bruto = String(formData.get(produto.sku) ?? '').trim();
+    const cents = emCentavos(bruto);
+    if (cents === null) {
+      return { error: `${produto.name}: "${bruto}" não é um valor em reais válido.` };
+    }
+    lidos[produto.sku] = cents;
+  }
+
+  const incoerencia = conferirEscada(lidos as never);
+  if (incoerencia) return { error: incoerencia };
+
+  try {
+    await withAutoBootstrap(() => atualizarPrecos(lidos));
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Falha ao salvar os preços.' };
+  }
+
+  /*
+    Toda tela que exibe preço precisa ser invalidada, não só esta.
+
+    A home é estática: sem isto, ela continuaria servindo o valor antigo do cache até a próxima
+    revalidação — o site anunciando um preço e a loja já cobrando outro, que é precisamente o
+    estado que ler tudo do banco existe para tornar impossível.
+  */
+  revalidatePath('/', 'layout');
+  revalidatePath('/admin/setup');
+  return { ok: 'Preços atualizados. O site já está mostrando os novos valores.' };
+}
+
+/**
+ * "29,99", "29.99", "R$ 29,99" e "30" viram centavos. Qualquer outra coisa vira `null`.
+ *
+ * A tolerância é deliberada: quem digita preço escreve do jeito que fala, e recusar "R$ 29,99" por
+ * causa do prefixo seria transformar um acerto em erro. O que NÃO é tolerado é ambiguidade — texto
+ * que não descreve um valor sai como recusa, nunca como um número inventado.
+ */
+function emCentavos(bruto: string): number | null {
+  const limpo = bruto.replace(/^R\$\s*/i, '').replace(/\s/g, '').replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(limpo)) return null;
+
+  // `Math.round` e não `Math.floor`: 29.99 * 100 dá 2998.9999… em ponto flutuante.
+  return Math.round(Number(limpo) * 100);
 }
 
 /**

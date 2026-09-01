@@ -9,7 +9,8 @@ import { CompatibilityRadar } from '@/components/result/radar';
 import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
 import { BaixarPdf } from '@/components/result/baixar-pdf';
-import { preco } from '@/payments/catalogo';
+import { brl } from '@/payments/catalogo';
+import { precosPublicados } from '@/payments/precos';
 import { getReport } from '@/app/questionario/actions';
 import { selectSetupRacket } from './actions';
 import { grantedEntitlements } from '@/database/repositories/session-repo';
@@ -91,6 +92,8 @@ export default async function ResultadoPage({
     setupChoices.find((entry) => entry.variant_id === report.setup_for_variant_id) ??
     setupChoices[0] ??
     null;
+
+  const precos = await precosPublicados();
 
   return (
     <main className="min-h-screen pb-20">
@@ -509,7 +512,7 @@ export default async function ResultadoPage({
                   className="flex min-h-[56px] items-center justify-center gap-3 rounded bg-court
                              px-6 font-semibold text-white transition-opacity hover:opacity-90"
                 >
-                  <span className="display-number text-lg">{preco('setup_upgrade')}</span>
+                  <span className="display-number text-lg">{brl(precos.setup_upgrade)}</span>
                   <span>Completar meu setup</span>
                 </Link>
               </div>
@@ -690,7 +693,7 @@ export default async function ResultadoPage({
                           anunciar o preço da outra, e o cliente só descobriria no checkout.
                         */}
                         <span className="display-number text-lg">
-                          {preco(entry.rank === 2 ? 'unlock_rank_2' : 'unlock_rank_3')}
+                          {brl(entry.rank === 2 ? precos.unlock_rank_2 : precos.unlock_rank_3)}
                         </span>
                         <span>Desbloquear</span>
                       </Link>

@@ -3,7 +3,8 @@ import { markPageFunnel } from '@/app/funnel-mark';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { getTeaser } from '@/app/questionario/actions';
-import { preco } from '@/payments/catalogo';
+import { brl } from '@/payments/catalogo';
+import { precosPublicados } from '@/payments/precos';
 
 /**
  * Fora do índice dos buscadores.
@@ -77,6 +78,8 @@ export default async function AnalisePage({
   const { sessionId } = await params;
   const teaser = await getTeaser(sessionId);
   if (!teaser) notFound();
+
+  const precos = await precosPublicados();
 
   // Depois do `notFound`: um id inexistente não é uma visita à prévia.
   await markPageFunnel('analysis');
@@ -205,7 +208,7 @@ export default async function AnalisePage({
             <h3 className="mt-2 font-display text-base font-semibold sm:text-lg">
               Descubra sua raquete ideal
             </h3>
-            <p className="display-number mt-1 text-2xl sm:text-3xl">{preco('racket_report')}</p>
+            <p className="display-number mt-1 text-2xl sm:text-3xl">{brl(precos.racket_report)}</p>
 
             {/* A lista completa vive no comparativo abaixo no celular; aqui ela é só do desktop. */}
             <ul className="mt-4 hidden space-y-1.5 text-sm text-graphite sm:block">
@@ -243,7 +246,7 @@ export default async function AnalisePage({
             <h3 className="mt-2 font-display text-base font-semibold sm:text-lg">
               Descubra seu setup completo
             </h3>
-            <p className="display-number mt-1 text-2xl sm:text-3xl">{preco('full_setup')}</p>
+            <p className="display-number mt-1 text-2xl sm:text-3xl">{brl(precos.full_setup)}</p>
 
             <ul className="mt-4 hidden space-y-1.5 text-sm text-graphite sm:block">
               {SETUP_PLAN.map((item) => (

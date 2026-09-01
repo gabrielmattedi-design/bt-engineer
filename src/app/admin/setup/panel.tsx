@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { createProducts, prepareDatabase, type SetupResult } from './actions';
 import type { SetupStatus } from '@/database/setup';
-import { brl } from '@/payments/catalogo';
+import { PrecosForm } from './precos-form';
 import { cn } from '@/lib/cn';
 
 /**
@@ -94,54 +94,46 @@ export function SetupPanel({
         }
       />
 
-      {/*
-        ═══ POR QUE ESTE PASSO NUNCA FICA "PRONTO PARA SEMPRE" ═══════════════════════════════════
-
-        Antes o botão só existia com ZERO produtos, e o texto dizia que os preços podiam ser
-        alterados depois — sem que houvesse onde. Um preço trocado no código não chegava ao banco, e
-        o site passava a anunciar um valor enquanto a loja cobrava outro, sem nada na tela indicando
-        isso.
-
-        Agora o passo mostra a diferença quando ela existe e oferece o botão que a resolve. É a
-        mesma ideia do resto do painel: o estado do sistema fica VISÍVEL, em vez de depender de o
-        dono lembrar o que fez.
-      */}
       <Step
         n={3}
-        title="Criar os produtos e preços"
-        done={status.productCount > 0 && status.precosDesatualizados.length === 0}
+        title="Criar os produtos"
+        done={status.productCount > 0}
         blocked={!status.tablesReady}
         description={
-          status.productCount === 0
-            ? 'Cadastra os planos com os preços do catálogo.'
-            : status.precosDesatualizados.length === 0
-              ? `${status.productCount} produtos cadastrados, com os preços do catálogo.`
-              : 'Os preços do site mudaram e a loja ainda cobra os antigos. Aplique antes de divulgar os novos valores.'
+          status.productCount > 0
+            ? `${status.productCount} produtos cadastrados. Os preços ficam logo abaixo.`
+            : 'Cadastra os planos. Os preços podem ser ajustados depois, aqui mesmo.'
         }
         action={
-          status.tablesReady ? (
+          status.tablesReady && status.productCount === 0 ? (
             <ActionButton
               action={createProducts}
-              label={status.productCount === 0 ? 'Criar produtos' : 'Aplicar os preços'}
-              pendingLabel="Aplicando…"
+              label="Criar produtos"
+              pendingLabel="Criando…"
               onResult={setResult}
             />
           ) : null
         }
       />
 
-      {status.precosDesatualizados.length > 0 && (
-        <ul className="ml-11 space-y-1 text-sm">
-          {status.precosDesatualizados.map((p) => (
-            <li key={p.sku} className="text-graphite">
-              <code className="text-ink">{p.sku}</code> — cobrando{' '}
-              <strong className="text-warn">
-                {p.noBanco === null ? 'não cadastrado' : brl(p.noBanco)}
-              </strong>
-              , anunciando <strong className="text-ink">{brl(p.noCodigo)}</strong>
-            </li>
-          ))}
-        </ul>
+      {/*
+        ═══ O PREÇO MORA AQUI, E NÃO NO CÓDIGO (§34) ════════════════════════════════════════════
+
+        Este bloco é o `/admin/precos` que a especificação previa e que nunca tinha sido construído.
+        Enquanto ele não existiu, mudar um preço exigia editar código e publicar — o que, para o
+        dono deste produto, significa não mudar.
+
+        Fica DENTRO do preparo, e não numa página à parte, porque é aqui que ele já vem quando
+        precisa mexer em como o sistema está configurado.
+      */}
+      {status.tablesReady && (
+        <section className="rounded border border-line bg-white p-5">
+          <h2 className="font-display text-lg font-semibold">Preços</h2>
+          <p className="mt-1 max-w-prose text-sm text-graphite">
+            O que a loja cobra hoje. Salvar aqui muda o site na hora — não precisa publicar nada.
+          </p>
+          <PrecosForm precos={status.precos} />
+        </section>
       )}
 
       {result && 'error' in result && (

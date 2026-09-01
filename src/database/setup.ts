@@ -25,10 +25,38 @@ export type SetupStatus = {
   readonly databaseConfigured: boolean;
   readonly tablesReady: boolean;
   readonly productCount: number;
-  /** Produtos cujo preço no banco não é o do código. Vazio = a loja cobra o que o site anuncia. */
-  readonly precosDesatualizados: readonly PrecoDivergente[];
+  /** O que o painel edita: cada produto com o preço que a loja está cobrando hoje. */
+  readonly precos: readonly PrecoEditavel[];
   readonly error: string | null;
 };
+
+/**
+ * Um produto como o painel precisa vê-lo: o que ele é e quanto está sendo cobrado por ele.
+ *
+ * Vem do BANCO, e não do catálogo, porque é o banco que manda no preço (§34) — mostrar o valor do
+ * código faria a tela de edição exibir um número que ninguém está pagando.
+ */
+export type PrecoEditavel = {
+  readonly sku: string;
+  readonly name: string;
+  readonly priceCents: number;
+};
+
+export async function precosAtuais(): Promise<readonly PrecoEditavel[]> {
+  const rows = await db()
+    .select({ sku: products.sku, name: products.name, priceCents: products.priceCents })
+    .from(products);
+
+  /*
+    A ORDEM vem do catálogo, não do banco nem do preço.
+
+    Ordenar por preço faria as linhas trocarem de lugar enquanto o dono digita — ele salva, a tela
+    recarrega, e o campo que ele acabou de editar está em outra posição. A ordem do catálogo é a
+    ordem da escada, que é como ele pensa nos produtos.
+  */
+  const porSku = new Map(rows.map((r) => [r.sku, r]));
+  return CATALOGO.map((p) => porSku.get(p.sku)).filter((r): r is PrecoEditavel => r !== undefined);
+}
 
 export async function setupStatus(): Promise<SetupStatus> {
   if (!isDatabaseConfigured()) {
@@ -36,7 +64,7 @@ export async function setupStatus(): Promise<SetupStatus> {
       databaseConfigured: false,
       tablesReady: false,
       productCount: 0,
-      precosDesatualizados: [],
+      precos: [],
       error: 'DATABASE_URL não configurada.',
     };
   }
@@ -47,7 +75,7 @@ export async function setupStatus(): Promise<SetupStatus> {
       databaseConfigured: true,
       tablesReady: true,
       productCount: rows.length,
-      precosDesatualizados: await precosDivergentes(),
+      precos: await precosAtuais(),
       error: null,
     };
   } catch (error) {
@@ -63,7 +91,7 @@ export async function setupStatus(): Promise<SetupStatus> {
       databaseConfigured: true,
       tablesReady: false,
       productCount: 0,
-      precosDesatualizados: [],
+      precos: [],
       error: isMissingTable(error) ? null : describe(error),
     };
   }
@@ -83,25 +111,24 @@ export async function runMigrations(): Promise<void> {
 }
 
 /**
- * Sincroniza a tabela `products` com o catálogo do código.
+ * Cria as linhas que faltam e mantém a DESCRIÇÃO dos produtos igual à do código.
  *
- * ═══ POR QUE ELE ATUALIZA, E NÃO SÓ INSERE ═══════════════════════════════════════════════════
+ * ═══ O QUE ELE ESCREVE, E O QUE ELE NÃO TOCA ═════════════════════════════════════════════════
  *
- * Era `onConflictDoNothing`: uma SKU já existente ficava intocada para sempre. A intenção original
- * era proteger um preço ajustado à mão no banco — só que NÃO EXISTE onde ajustar preço à mão. O
- * `/admin/precos` previsto pelo §34 nunca foi construído.
+ * Escreve nome, descrição e entitlements: são a definição do produto, presa ao que o motor entrega.
+ * Um deploy que muda o que o relatório contém precisa mudar o texto que o vende junto.
  *
- * Na prática, então, o que aquela linha protegia era o preço ANTIGO. Trocar o número no código e
- * publicar não mudava nada em produção: a loja continuava cobrando o valor semeado no primeiro dia,
- * enquanto as telas passavam a anunciar o novo. Anunciar um preço e cobrar outro é a falha mais cara
- * que este arquivo poderia produzir, e ela seria silenciosa.
+ * NÃO toca em `priceCents` nem em `active` de linha que já existe. Os dois são operacionais e vivem
+ * no painel (§34) — o dono ajusta preço em `/admin/setup` sem publicar nada.
  *
- * Com o catálogo do código como única fonte (ver `payments/catalogo.ts`), reconciliar é o
- * comportamento correto — e continua idempotente: rodar de novo sem mudar o código não escreve nada
- * diferente.
+ * ─── E ISSO É UMA CORREÇÃO, NÃO UMA PREFERÊNCIA ──────────────────────────────────────────────
  *
- * `active` fica DE FORA do update de propósito: aposentar um produto é uma decisão operacional, não
- * uma consequência de rodar o seed. Um produto desativado à mão precisa continuar desativado.
+ * Por um dia esta função reconciliou o preço também, e a consequência passou perto: quem chama esta
+ * função com mais frequência não é o painel, é `withAutoBootstrap` — automaticamente, sempre que
+ * falta uma tabela ou uma coluna. Qualquer migração futura teria revertido em silêncio todo preço
+ * ajustado à mão, e o sintoma seria "o preço voltou sozinho", que é dos piores de diagnosticar.
+ *
+ * Idempotente dos dois jeitos: rodar de novo não duplica linha nem mexe em preço.
  */
 export async function seedProducts(): Promise<number> {
   for (const product of CATALOGO) {
@@ -121,41 +148,12 @@ export async function seedProducts(): Promise<number> {
         set: {
           name: product.name,
           description: product.description,
-          priceCents: product.priceCents,
           grantsEntitlements: [...product.grantsEntitlements],
         },
       });
   }
   const rows = await db().select({ sku: products.sku }).from(products);
   return rows.length;
-}
-
-/**
- * Onde o banco diverge do catálogo do código — para o painel poder MOSTRAR isso.
- *
- * Sem esta leitura, "os preços já foram aplicados?" só se responde comprando. Com ela, `/admin/setup`
- * exibe "no banco: R$ 19,99 · no código: R$ 29,99" e o botão de sincronizar deixa de ser um ato de fé.
- */
-export type PrecoDivergente = {
-  readonly sku: string;
-  readonly noBanco: number | null;
-  readonly noCodigo: number;
-};
-
-export async function precosDivergentes(): Promise<readonly PrecoDivergente[]> {
-  const rows = await db()
-    .select({ sku: products.sku, priceCents: products.priceCents })
-    .from(products);
-  const banco = new Map(rows.map((r) => [r.sku, r.priceCents]));
-
-  const fora: PrecoDivergente[] = [];
-  for (const product of CATALOGO) {
-    const atual = banco.get(product.sku) ?? null;
-    if (atual !== product.priceCents) {
-      fora.push({ sku: product.sku, noBanco: atual, noCodigo: product.priceCents });
-    }
-  }
-  return fora;
 }
 
 /**

@@ -102,8 +102,8 @@ Sem cronômetro falso, sem escassez (§58).
 
 `top3_unlock` é legado — reconhecido para quem comprou, não mais vendido.
 
-A fonte do preço é `src/payments/catalogo.ts`; `products` é a projeção dela, aplicada em
-`/admin/setup`. Nenhuma tela escreve valor em reais (§34) — ver
+O preço vive em `products` e é editado em `/admin/setup` → Preços (§34). O catálogo do código só
+fornece o valor inicial. Nenhuma tela escreve valor em reais — ver
 `tests/security/preco-anunciado.test.ts`.
 
 **`racket_report` (R$ 29,99)** — análise completa do jogador, melhor raquete, Fit Score, justificativa,

@@ -10,15 +10,26 @@
  *
  * Aqui não há dependência de banco, então a tela pode ler o preço da mesma lista que o alimenta.
  *
- * ═══ QUEM MANDA NO PREÇO ═════════════════════════════════════════════════════════════════════
+ * ═══ QUEM MANDA NO PREÇO: O BANCO ════════════════════════════════════════════════════════════
  *
- * Esta lista. O banco é uma PROJEÇÃO dela: `seedProducts()` reconcilia a tabela `products` com o
- * que está escrito aqui, e é isso que `/admin/setup` executa. Antes o seed era `onConflictDoNothing`
- * e a tabela nunca mudava — trocar o preço no código não trocava nada em produção, e o site passava
- * a anunciar um valor e cobrar outro.
+ * O `priceCents` daqui é o valor INICIAL — o que a linha recebe quando é criada, e nada além disso.
+ * A partir daí quem manda é a tabela `products`, editável em `/admin/setup`, e é de lá que TODA
+ * tela lê (ver `payments/precos.ts`). É o §34 como sempre esteve escrito.
  *
- * O pedido continua guardando o preço COPIADO no instante da compra (ver `createOrder`), então
- * mexer aqui não reescreve o histórico de quem já pagou.
+ * A inversão é recente e vale registrar por quê. Por um dia o código foi a fonte e o banco a
+ * projeção, com `seedProducts` reconciliando os dois. Aquilo consertava o problema imediato — o
+ * preço em produção estava congelado no valor do primeiro dia — mas trocava por dois piores:
+ *
+ *   • mudar um preço passava a exigir um deploy, num produto de dono não-técnico;
+ *   • `withAutoBootstrap` chama `seedProducts` sozinho quando falta uma coluna, então qualquer
+ *     migração futura reverteria silenciosamente todo preço ajustado à mão.
+ *
+ * `active` também é do banco pelo mesmo motivo: aposentar um produto é decisão operacional.
+ * NOME, DESCRIÇÃO e ENTITLEMENTS continuam sendo do código — eles descrevem o que o motor entrega,
+ * e mudá-los sem mudar o produto seria vender outra coisa.
+ *
+ * O pedido guarda o preço COPIADO no instante da compra (ver `createOrder`), então mexer no preço
+ * nunca reescreve o histórico de quem já pagou.
  */
 
 export const PRODUCT_SEED = [
@@ -83,13 +94,74 @@ export function brl(cents: number): string {
   return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
 }
 
+/** O valor com que a linha nasce, quando ela ainda não existe no banco. */
+export function precoInicial(sku: Sku): number {
+  return PORINDICE.get(sku)!.priceCents;
+}
+
+/** Piso e teto do que o painel aceita digitar. Ver `conferirEscada`. */
+export const PRECO_MIN_CENTS = 100;
+export const PRECO_MAX_CENTS = 99_999;
+
 /**
- * O preço de uma SKU, já formatado, para escrever na tela.
+ * A escada faz sentido? Devolve a primeira incoerência, em português, ou `null`.
  *
- * O tipo `Sku` é o que dá a garantia: uma SKU que não existe não compila, então uma tela não pode
- * anunciar um produto aposentado. Por isso ele não devolve `null` nem lança — não há caso de erro
- * possível em tempo de execução.
+ * ═══ POR QUE O EDITOR VALIDA, EM VEZ DE SÓ SALVAR ════════════════════════════════════════════
+ *
+ * Um campo de preço solto permite escrever, sem esforço e sem aviso, o estado que este produto
+ * inteiro foi construído para evitar: alguém pagando MAIS e recebendo MENOS. Não é hipótese — já
+ * aconteceu aqui uma vez, com o upgrade que não abria a 2ª e a 3ª, e a correção está documentada em
+ * `PRODUCT_ENTITLEMENTS`. Um digito a mais numa caixa de texto recria aquilo em dois segundos.
+ *
+ * As regras abaixo não são de negócio, são de COERÊNCIA: nenhuma delas opina sobre quanto cobrar,
+ * todas verificam que quem paga mais recebe pelo menos tanto quanto quem paga menos. Qualquer
+ * tabela de preços que as respeite é aceita.
+ *
+ * O que fica DELIBERADAMENTE de fora: margem, desconto mínimo do pacote, proporção entre planos.
+ * São decisões do dono, e um sistema que as trava vira um sistema que ele contorna.
  */
-export function preco(sku: Sku): string {
-  return brl(PORINDICE.get(sku)!.priceCents);
+export function conferirEscada(precos: Readonly<Record<Sku, number>>): string | null {
+  for (const [sku, cents] of Object.entries(precos) as [Sku, number][]) {
+    if (!Number.isInteger(cents) || cents < PRECO_MIN_CENTS || cents > PRECO_MAX_CENTS) {
+      return `${sku}: o preço precisa ficar entre ${brl(PRECO_MIN_CENTS)} e ${brl(PRECO_MAX_CENTS)}.`;
+    }
+  }
+
+  /*
+    O pacote contém tudo o que a raquete avulsa contém, e mais. Mais barato que ela, ele
+    transformaria a compra da avulsa num prejuízo puro para quem a escolheu.
+  */
+  if (precos.full_setup < precos.racket_report) {
+    return (
+      'O setup completo não pode custar menos que a raquete avulsa — ele entrega tudo o que ela ' +
+      'entrega, e mais. Quem comprasse a avulsa teria pago mais por menos.'
+    );
+  }
+
+  /*
+    Decidir em duas etapas pode custar mais que decidir de uma vez; é o preço do parcelamento da
+    decisão. O que não pode é custar MENOS, porque aí o pacote deixa de ter razão de existir e quem
+    o comprou pagou a mais sem receber nada em troca.
+  */
+  if (precos.racket_report + precos.setup_upgrade < precos.full_setup) {
+    return (
+      'Comprar a raquete e depois o upgrade ficaria mais barato que o setup completo. ' +
+      'Quem comprou o pacote de uma vez teria pago a mais pelo mesmo conteúdo.'
+    );
+  }
+
+  /*
+    ─── E A REGRA QUE NÃO PRECISA SER ESCRITA ─────────────────────────────────────────────────
+
+    "O caminho mais fatiado de todos (raquete + 2ª + 3ª + upgrade) precisa custar mais que o
+    pacote" parece a terceira regra necessária, e chegou a ser escrita aqui. Ela é INALCANÇÁVEL:
+    a regra acima já garante que raquete + upgrade ≥ pacote, e as duas posições avulsas custam no
+    mínimo `PRECO_MIN_CENTS` cada — a soma maior nunca fica abaixo da menor.
+
+    Foi um teste tentando reprovar essa condição que mostrou isso: toda tabela construída para
+    violá-la esbarrava antes na regra anterior. Validação que não tem como disparar é pior que
+    validação ausente, porque alguém confia nela. A propriedade continua conferida onde ela de fato
+    vale — sobre o catálogo em vigor, em tests/security/product-tiers.test.ts.
+  */
+  return null;
 }

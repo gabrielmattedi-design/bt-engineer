@@ -41,6 +41,33 @@ export async function activeProducts(): Promise<Product[]> {
   }));
 }
 
+/**
+ * Grava a tabela de preços inteira, numa transação só.
+ *
+ * ═══ POR QUE TRANSAÇÃO ═══════════════════════════════════════════════════════════════════════
+ *
+ * Cinco `UPDATE` soltos têm quatro instantes entre eles em que a escada está meio velha e meio
+ * nova — e é justamente nesses instantes que ela pode estar incoerente: a raquete já a R$ 29,99 e o
+ * pacote ainda a R$ 24,99, por exemplo. Uma visita que caia ali vê, e pode comprar, uma combinação
+ * que ninguém aprovou.
+ *
+ * A janela é de milissegundos, o que a torna rara e não a torna aceitável: o produto inteiro é
+ * escrito em torno de nunca cobrar mais por menos, e "quase nunca" é outra coisa.
+ *
+ * O preço COBRADO de quem já comprou não muda — `orders.amount_cents` guarda a cópia do instante da
+ * compra. Isto reprecifica a vitrine, não o passado.
+ */
+export async function atualizarPrecos(precos: Readonly<Record<string, number>>): Promise<void> {
+  await db().transaction(async (tx) => {
+    for (const [sku, priceCents] of Object.entries(precos)) {
+      await tx
+        .update(products)
+        .set({ priceCents, updatedAt: new Date() })
+        .where(eq(products.sku, sku));
+    }
+  });
+}
+
 export async function productBySku(sku: string): Promise<Product | null> {
   const rows = await db()
     .select()

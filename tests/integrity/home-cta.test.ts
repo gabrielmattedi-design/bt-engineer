@@ -41,13 +41,13 @@ describe('caminhos para o questionário na home', () => {
    */
   it('a última chamada vem depois dos preços', () => {
     /*
-      A âncora é a CHAMADA ao catálogo, não o número.
+      A âncora é a LEITURA do preço, não o número.
 
-      O preço saiu do JSX (§34) e passou a vir de `payments/catalogo.ts`, então procurar "R$ 49,99"
-      no arquivo não encontra mais nada — e o teste falharia dizendo "o preço sumiu da home", que é
-      falso e mandaria alguém procurar o problema no lugar errado.
+      O valor saiu do JSX (§34) e passou a vir do banco, via `precosPublicados()`. Procurar
+      "R$ 49,99" no arquivo não encontra mais nada — e o teste falharia dizendo "o preço sumiu da
+      home", que é falso e mandaria alguém procurar o problema no lugar errado.
     */
-    const ultimoPreco = HOME.lastIndexOf("preco('full_setup')");
+    const ultimoPreco = HOME.lastIndexOf('precos.full_setup');
     const ultimaChamada = chamadas[chamadas.length - 1]!.index;
 
     expect(ultimoPreco, 'o preço sumiu da home').toBeGreaterThan(-1);
@@ -63,7 +63,7 @@ describe('caminhos para o questionário na home', () => {
    * e precisa existir de novo ao lado do botão que ela está prestes a clicar.
    */
   it('a chamada final responde se é pago', () => {
-    const depoisDoPreco = HOME.slice(HOME.lastIndexOf("preco('full_setup')"));
+    const depoisDoPreco = HOME.slice(HOME.lastIndexOf('precos.full_setup'));
     expect(depoisDoPreco).toMatch(/gratuito/i);
     expect(depoisDoPreco).toMatch(/sem cadastro/i);
   });

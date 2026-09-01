@@ -18,13 +18,28 @@ Status: `v1` · Mercado: Brasil · Moeda: BRL
 
 ### Onde mora o preço
 
-A fonte é `src/payments/catalogo.ts`. A tabela `products` é uma **projeção** dela: `seedProducts()`
-reconcilia as duas, e `/admin/setup` executa isso num clique, mostrando antes o que está diferente.
+Na tabela `products`, e só nela (§34). Editável em **`/admin/setup` → Preços**, sem publicar nada:
+salvar grava e invalida as telas, e o site muda na hora.
 
-O `/admin/precos` previsto pelo §34 nunca foi construído — e enquanto o seed era
-`onConflictDoNothing`, isso significava que **não havia nenhuma forma de mudar um preço em
-produção**: trocar o número no código deixava o site anunciando um valor e a loja cobrando outro.
-Hoje o seed atualiza, e a divergência aparece na tela do painel.
+`src/payments/catalogo.ts` fornece apenas o valor **inicial** — o que a linha recebe quando é
+criada. `seedProducts()` nunca sobrescreve preço de linha existente, porque quem mais o chama é
+`withAutoBootstrap`, sozinho, quando falta uma tabela ou coluna: reconciliar ali reverteria em
+silêncio todo ajuste feito no painel. Nome, descrição e entitlements continuam vindo do código —
+descrevem o que o motor entrega.
+
+Todas as telas que exibem preço leem de `precosPublicados()`, que lê `products`. É o que torna
+impossível o site anunciar um valor e a loja cobrar outro: `/planos` mostra exatamente o que
+`createOrder` copia para o pedido, e as outras três mostram o mesmo número.
+
+**O editor recusa duas combinações**, ambas por criarem alguém que paga mais e recebe menos:
+
+1. o setup completo custar menos que a raquete avulsa;
+2. raquete + upgrade somarem menos que o setup completo.
+
+Não há terceira regra: "o caminho fatiado precisa custar mais que o pacote" é consequência
+aritmética da segunda, e uma validação inalcançável é pior que nenhuma. Nada além disso é travado —
+margem e desconto de pacote são decisão do dono. Trancado por
+`tests/security/escada-de-precos.test.ts`.
 
 O valor é copiado para `orders.amount_cents` no momento da compra — mudar o preço nunca reescreve o
 histórico.

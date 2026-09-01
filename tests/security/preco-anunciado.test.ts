@@ -12,6 +12,10 @@
  *    nenhum. O §34 ("zero preço hardcoded") existe exatamente por isso e estava sendo violado em
  *    três arquivos.
  *
+ *    A correção definitiva não foi sincronizar as duas fontes — foi eliminar uma. O banco manda no
+ *    preço, o painel o edita, e as quatro telas leem de lá. Divergir deixa de ser algo que se evita
+ *    com disciplina e passa a ser algo que não tem como acontecer.
+ *
  * 2. O PLANO COMPLETO NÃO ANUNCIAVA METADE DO QUE DÁ. `full_setup` concede `rank2_access` e
  *    `rank3_access` desde sempre, e nenhuma das três descrições dizia isso — nem a home, nem o
  *    comparativo (que é A tela de decisão), nem o texto do banco. Duas das quatro entregas só
@@ -58,34 +62,93 @@ describe('nenhum preço escrito à mão nas telas', () => {
     ).toEqual([]);
   });
 
-  it('as telas leem o preço do catálogo', () => {
+  /**
+   * Todas as telas leem da MESMA fonte, e essa fonte é o banco.
+   *
+   * É a propriedade que torna a divergência impossível por construção: `/planos` mostra o que
+   * `createOrder` vai copiar para o pedido, e as outras três mostram exatamente o mesmo número.
+   */
+  it('as telas leem o preço do banco', () => {
     for (const partes of TELAS) {
-      expect(fonte(...partes), `${partes.join('/')} não importa o catálogo`).toContain(
-        "from '@/payments/catalogo'",
+      expect(fonte(...partes), `${partes.join('/')} não lê o preço publicado`).toContain(
+        "from '@/payments/precos'",
       );
     }
   });
 });
 
-describe('o banco recebe o preço do catálogo', () => {
+describe('o preço mora no banco, e o painel é quem o muda', () => {
   const setup = fonte('src', 'database', 'setup.ts');
 
   /**
-   * `onConflictDoNothing` aqui significa "o preço em produção é o do primeiro dia, para sempre".
-   * Era o estado real até set/2026, e nada na tela denunciava.
+   * O seed NÃO pode escrever preço em linha que já existe — e isto é o oposto do que ele fazia.
+   *
+   * Quem mais chama `seedProducts` não é o painel, é `withAutoBootstrap`, sozinho, sempre que falta
+   * uma tabela ou uma coluna. Se ele reconciliasse o preço, a primeira migração futura reverteria
+   * em silêncio tudo o que o dono tivesse ajustado — e o sintoma seria "o preço voltou sozinho".
    */
-  it('o seed ATUALIZA a linha existente, não a ignora', () => {
-    const codigo = semComentarios(setup);
-    expect(codigo, 'o seed voltou a ignorar produtos já cadastrados').toContain(
-      'onConflictDoUpdate',
-    );
-    expect(codigo).not.toContain('onConflictDoNothing');
+  it('o seed não sobrescreve preço de produto já cadastrado', () => {
+    const corpo = /export async function seedProducts[\s\S]*?\n}/.exec(semComentarios(setup))?.[0] ?? '';
+    expect(corpo, 'seedProducts sumiu ou mudou de forma').not.toBe('');
+
+    const set = /onConflictDoUpdate\(\{[\s\S]*?\n      \}\)/.exec(corpo)?.[0] ?? '';
+    expect(set, 'o bloco de atualização sumiu').not.toBe('');
+    expect(set, 'o seed voltou a reescrever o preço ajustado no painel').not.toContain('priceCents');
+
+    // Nome, descrição e entitlements CONTINUAM vindo do código: descrevem o que o motor entrega.
+    expect(set).toContain('description');
+    expect(set).toContain('grantsEntitlements');
   });
 
-  it('o painel consegue mostrar quando a loja está atrasada', () => {
-    // Sem isso, "os preços já foram aplicados?" só se responde comprando.
-    expect(setup).toContain('precosDivergentes');
-    expect(fonte('src', 'app', 'admin', 'setup', 'panel.tsx')).toContain('precosDesatualizados');
+  it('existe uma tela para editar o preço', () => {
+    const acoes = fonte('src', 'app', 'admin', 'setup', 'actions.ts');
+    expect(acoes, 'a ação de salvar preços sumiu').toContain('salvarPrecos');
+    expect(fonte('src', 'app', 'admin', 'setup', 'panel.tsx')).toContain('PrecosForm');
+  });
+
+  /**
+   * Conferir DEPOIS de gravar deixaria a loja num estado misto quando a recusa acontecesse: alguns
+   * preços novos, outros antigos, e uma escada que ninguém desenhou.
+   */
+  it('a escada é conferida antes de qualquer gravação', () => {
+    /*
+      Só o CORPO da função. Buscar no arquivo inteiro faz a linha de `import` contar como uso, e
+      ela vem antes de tudo — o teste passaria a medir a ordem dos imports, não a da lógica.
+    */
+    const corpo =
+      /export async function salvarPrecos[\s\S]*?\n}/.exec(
+        semComentarios(fonte('src', 'app', 'admin', 'setup', 'actions.ts')),
+      )?.[0] ?? '';
+    expect(corpo, 'salvarPrecos sumiu ou mudou de forma').not.toBe('');
+
+    const posConfere = corpo.indexOf('conferirEscada');
+    const posGrava = corpo.indexOf('atualizarPrecos');
+
+    expect(posConfere, 'a ação salva sem conferir a escada').toBeGreaterThan(-1);
+    expect(posGrava, 'a ação não grava nada').toBeGreaterThan(-1);
+    expect(posConfere).toBeLessThan(posGrava);
+  });
+
+  /**
+   * Cinco `UPDATE` soltos têm quatro instantes entre eles em que metade da escada é nova e metade é
+   * velha — e uma visita que caia ali pode comprar uma combinação que ninguém aprovou.
+   */
+  it('a gravação dos preços é uma transação só', () => {
+    const repo = /export async function atualizarPrecos[\s\S]*?\n}/.exec(
+      fonte('src', 'database', 'repositories', 'commerce-repo.ts'),
+    )?.[0] ?? '';
+    expect(repo, 'atualizarPrecos sumiu').not.toBe('');
+    expect(repo, 'preços gravados um a um deixam a loja incoerente no meio').toContain(
+      'transaction',
+    );
+  });
+
+  /** Salvar precisa invalidar a home, que é servida de cache — senão ela anuncia o preço velho. */
+  it('salvar um preço invalida as telas que o exibem', () => {
+    const bloco = /export async function salvarPrecos[\s\S]*?\n}/.exec(
+      fonte('src', 'app', 'admin', 'setup', 'actions.ts'),
+    )?.[0] ?? '';
+    expect(bloco).toContain("revalidatePath('/', 'layout')");
   });
 });
 
