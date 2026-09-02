@@ -237,13 +237,44 @@
   ═══ IMPRESSÃO ════════════════════════════════════════════════════════════════════════════════
 
   O relatório é o único documento deste produto que sai da tela: o cliente salva em PDF e leva ao
-  encordoador. Sem estas regras ele saía com botões que não clicam, caixas vazias onde havia um
-  controle, e a URL de acesso impressa no rodapé de cada folha.
+  encordoador.
 
-  Elas valem junto com a página única (ver `baixar-pdf.tsx`), e continuam valendo se alguém imprimir
-  pelo Ctrl+P direto — o que é bom: o conserto não depende de a pessoa achar o botão certo.
+  ─── A IDA E VOLTA QUE PRODUZIU ESTAS REGRAS ─────────────────────────────────────────────────
+
+  O defeito de origem era paginação cega: título de seção no rodapé de uma folha e o conteúdo dele
+  na seguinte, tabela partida ao meio, card do pódio com a marca numa página e o modelo na outra.
+
+  A primeira resposta foi PÁGINA ÚNICA — medir a altura do documento e injetar `@page { size }` com
+  ela, para que não existisse fronteira onde cortar. Funcionava no sentido literal e falhava no que
+  importa: produzia uma folha de 210 × 2.070 mm, dez vezes mais alta que larga, e todo visualizador
+  de PDF ajusta a página à janela. O relatório virava uma coluna fininha e ilegível no meio da tela,
+  com margens enormes dos dois lados.
+
+  A resposta certa não era impedir o corte — era dizer ONDE ele pode acontecer. O navegador continua
+  paginando em A4; as regras abaixo o proíbem de cortar dentro de um bloco, e ele passa a escolher
+  as fronteiras entre eles.
+
+  Tudo isto vale também para quem imprime pelo Ctrl+P direto, sem passar pelo botão. É deliberado:
+  um conserto que depende de a pessoa achar o botão certo não é um conserto.
 */
 @media print {
+  /*
+    ═══ A FOLHA ══════════════════════════════════════════════════════════════════════════════
+
+    A4 com margem de verdade, e a margem vem do `@page` porque é o único lugar de onde ela vale em
+    TODA folha. `padding` no corpo aplicaria uma vez: a primeira página ganharia respiro em cima, a
+    última embaixo, e as do meio teriam texto encostado na borda do papel.
+
+    O custo é conhecido: com margem diferente de zero, o Chrome tem espaço para desenhar o próprio
+    cabeçalho e rodapé — o endereço da página e "Página X de Y". Isso é opção de quem imprime, não
+    há CSS que desligue, e o botão avisa como tirar. Entre um documento sem margem nenhuma e um
+    documento com uma linha a mais no pé, o segundo é melhor.
+  */
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
   /*
     Fora do papel: tudo que só existe para ser clicado.
 
@@ -262,8 +293,8 @@
     A âncora vira texto comum.
 
     Link sublinhado em azul num documento impresso é ruído: ele parece destaque e não leva a lugar
-    nenhum. O que era chamada de compra (`Desbloquear`, `Completar meu setup`) some junto com os
-    botões acima; o que sobra é referência dentro do próprio texto.
+    nenhum. O que era chamada de compra some junto com os botões acima; o que sobra é referência
+    dentro do próprio texto.
   */
   a {
     color: inherit !important;
@@ -271,43 +302,36 @@
   }
 
   /*
-    NADA se parte ao meio.
+    ═══ O QUE NÃO PODE SER PARTIDO ═══════════════════════════════════════════════════════════
 
-    É o defeito que motivou tudo isto: título de seção no fim de uma folha e o conteúdo dele na
-    seguinte, tabela cortada, quadro que começa e termina vazio. Com página única não existe
-    fronteira onde cortar — a regra fica porque ela protege quem imprime pelo Ctrl+P.
+    Em camadas, da maior para a menor. É assim de propósito: quando um bloco é mais alto que a
+    folha, o navegador IGNORA `break-inside: avoid` nele — não há para onde empurrar — e passa a
+    respeitar a camada de baixo. Uma seção comprida acaba partida, mas nunca no meio de um quadro;
+    um quadro comprido acaba partido, mas nunca no meio de uma linha de tabela.
   */
   section,
   table,
   tr,
   li,
   figure,
+  svg,
+  img,
   h1, h2, h3 {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
   /*
-    ═══ OS QUADROS TAMBÉM, E ELES ERAM A METADE QUE FALTAVA ═════════════════════════════════════
+    Os QUADROS, e eles eram a metade que faltava.
 
-    A lista acima cobre elementos SEMÂNTICOS, e o relatório quase não usa: o card da raquete
-    vencedora, os três do pódio, o quadro de confiança, o de setup — todos são `div`. Nenhum estava
-    protegido.
+    A lista acima cobre elementos semânticos, e o relatório quase não usa: o card da raquete
+    vencedora, os três do pódio, o quadro de confiança, os de setup — todos são `div`. Nenhum estava
+    protegido, e foi exatamente um deles que apareceu partido no PDF de um cliente: a página 8
+    terminava em "WILSON" e a 9 começava em "Wilson Clash 100 Pro v3", com a borda cortada no meio.
 
-    Foto de um PDF gerado no iPhone (set/2026): a página 8 terminava em "WILSON" e a 9 começava em
-    "Wilson Clash 100 Pro v3 (2025)" — a marca numa folha e o modelo na outra, dentro do MESMO
-    card, com a borda cortada no meio. É exatamente o defeito que a página única existe para evitar,
-    sobrevivendo onde a página única não chega.
-
-    ─── POR QUE SELETOR DE CLASSE, E NÃO UMA CLASSE NOVA EM CADA CARD ──────────────────────────
-
-    Marcar um por um exigiria tocar em oito componentes e lembrar de fazê-lo no nono. Este produto é
-    inteiramente Tailwind, e "caixa com borda arredondada" é literalmente `rounded` + `border-*` na
-    marcação — a regra descreve a mesma coisa que o olho vê, e vale para o card que ainda não foi
-    escrito.
-
-    Quadro mais alto que a folha não vira problema: o navegador ignora `break-inside: avoid` quando
-    não há para onde empurrar, e volta a quebrar como antes.
+    Seletor de classe, e não uma classe nova em cada card: este produto é inteiramente Tailwind, e
+    "caixa com borda arredondada" é literalmente `rounded` + `border-*` na marcação. A regra descreve
+    a mesma coisa que o olho vê, e vale para o card que ainda não foi escrito.
   */
   [class~='rounded'][class*='border'],
   [class~='rounded'][class*='bg-white'] {
@@ -315,9 +339,20 @@
     page-break-inside: avoid;
   }
 
+  /*
+    Título nunca fica sozinho no pé da folha, e parágrafo nunca deixa uma linha órfã.
+
+    São os dois defeitos que sobram depois que os blocos param de ser cortados — e são os que fazem
+    um documento parecer mal montado mesmo quando nada está tecnicamente errado.
+  */
   h1, h2, h3 {
     break-after: avoid;
     page-break-after: avoid;
+  }
+
+  p, li {
+    orphans: 3;
+    widows: 3;
   }
 
   /*
@@ -332,41 +367,21 @@
     print-color-adjust: exact !important;
   }
 
-  /*
-    O corpo NÃO ganha padding na impressão — e essa é a peça que faz a página única funcionar.
-
-    A altura da folha é medida na tela, antes de imprimir. Qualquer margem que só exista no modo de
-    impressão cresce DEPOIS da medição, o conteúdo estoura a folha calculada e nasce uma segunda
-    página quase vazia — exatamente o que a página única existe para evitar. Medido: com 12mm em
-    cima e embaixo, um relatório de 1.093mm saía em 2 páginas em vez de 1.
-
-    O respiro não faz falta porque já existe: o container do relatório tem padding próprio, ele está
-    na tela e portanto já entra na medida.
-  */
   body {
     background: #FFFFFF !important;
   }
 
   /*
-    ALTURA DE VIEWPORT NÃO EXISTE NO PAPEL — e ignorar isso era o defeito da página única.
+    ALTURA DE VIEWPORT NÃO EXISTE NO PAPEL.
 
-    O relatório abre com `<main class="min-h-screen">`. Na tela, `100vh` é a janela do navegador —
-    umas 900px — e não tem efeito nenhum, porque o conteúdo é muito mais alto que isso.
+    O relatório abre com `<main class="min-h-screen">`. Na tela, `100vh` é a janela do navegador e
+    não tem efeito nenhum, porque o conteúdo é muito mais alto. Na impressão, `100vh` vira a altura
+    da FOLHA — e um `main` esticado até encher a folha empurra para além da borda tudo o que estava
+    fora dele, criando uma página a mais com um pedaço solto do fim.
 
-    Na impressão, `100vh` passa a ser a altura da FOLHA. E a folha é a que acabamos de calcular: a
-    altura do próprio conteúdo. O resultado é uma armadilha circular — o `main` estica até encher a
-    página inteira, e tudo que estava fora dele (a diferença entre `body` e `main`) é empurrado para
-    além da borda. Nasce uma segunda página com um pedaço solto do fim do relatório.
-
-    Medido no relatório real, com entitlements, em 01/set/2026: conteúdo de 7.833px → folha de
-    2.083mm (7.872px). O `main` media 7.801px e esticou para 7.872px; os 32px que sobravam no `body`
-    passaram a estourar. Saíam 2 páginas. Com esta regra, 1.
-
-    O sintoma enganava: a medição estava certa, o `@page` estava certo, e mesmo assim vinham duas
-    páginas — porque o ato de fixar a altura da folha era o que criava o excesso.
-
-    Vale para qualquer largura de tela: 794, 1024, 1280 e 1600px davam a mesma altura e as mesmas
-    2 páginas, o que descartou reflow como causa antes de chegar aqui.
+    Medido em 01/set/2026, quando a folha ainda era única: conteúdo de 7.833px, `main` esticando de
+    7.801 para 7.872px, 32px estourando. Com A4 o efeito é menor e continua existindo — uma primeira
+    página quase vazia é o formato que ele assume aqui.
   */
   .min-h-screen,
   main {
