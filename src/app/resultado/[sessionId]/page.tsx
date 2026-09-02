@@ -666,13 +666,69 @@ export default async function ResultadoPage({
                 ? 'Antes de trocar de raquete'
                 : 'Sua raquete atual nesta análise'}
             </p>
-            <p className="mt-3 text-lg font-semibold text-court">
-              {report.current_racket_standing.product_name} — {report.current_racket_standing.rank}º
-              lugar, {report.current_racket_standing.fit_score}% de compatibilidade
-            </p>
+            {/* ── O TÍTULO MUDA QUANDO A SUA RAQUETE É IRMÃ DE UMA DO PÓDIO ──
+                Sem posição e sem percentual, e isso é o conserto de uma contradição.
+
+                A linha dizia "— 2º lugar, 80% de compatibilidade" enquanto o pódio, páginas
+                depois, trazia outra raquete no card "2" com 78%. São duas listas: o ranking
+                completo e o pódio, que mostra no máximo uma raquete por linha e RENUMERA de 1 a 3.
+                A mesma palavra, dois significados.
+
+                Entre duas raquetes da MESMA linha, o número também é a pior resposta possível: os
+                índices exibidos são nivelados para somar o mesmo em toda raquete, então as duas
+                trocam pontos entre eixos e chegam ao mesmo total. O agregado empata por
+                construção; o que separa as duas está nos eixos, e é isso que entra no lugar.
+            */}
+            {report.current_racket_standing.family_match ? (
+              <p className="mt-3 text-lg font-semibold text-court">
+                {report.current_racket_standing.product_name} — mesma linha da{' '}
+                {report.current_racket_standing.family_match.sibling_rank}ª colocada
+              </p>
+            ) : (
+              <p className="mt-3 text-lg font-semibold text-court">
+                {report.current_racket_standing.product_name} —{' '}
+                {report.current_racket_standing.rank}º lugar,{' '}
+                {report.current_racket_standing.fit_score}% de compatibilidade
+              </p>
+            )}
             <p className="mt-2 text-sm leading-relaxed text-graphite">
               {report.current_racket_standing.message}
             </p>
+
+            {/* ── O QUE SEPARA AS DUAS IRMÃS, EIXO A EIXO ───────────────────
+                É a informação que substitui o percentual, e ela precisa vir em duas colunas: a
+                leitura útil não é "a sua é pior", é "cada uma ganha em alguma coisa". Foi assim
+                que o pedido chegou: "virtudes de cada uma, o que menos se encaixa de cada uma".
+
+                Quando um dos lados está vazio, a coluna some em vez de imprimir "nenhum" — uma
+                lista vazia rotulada é pior que a ausência dela.
+            */}
+            {report.current_racket_standing.family_match &&
+              (report.current_racket_standing.family_match.your_edge.length > 0 ||
+                report.current_racket_standing.family_match.sibling_edge.length > 0) && (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {report.current_racket_standing.family_match.your_edge.length > 0 && (
+                    <div className="rounded border border-line bg-white p-5">
+                      <div className="text-[10px] uppercase tracking-widest text-graphite">
+                        A sua entrega mais
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed">
+                        {report.current_racket_standing.family_match.your_edge.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                  {report.current_racket_standing.family_match.sibling_edge.length > 0 && (
+                    <div className="rounded border border-line bg-white p-5">
+                      <div className="text-[10px] uppercase tracking-widest text-graphite">
+                        A {report.current_racket_standing.family_match.sibling_name} entrega mais
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed">
+                        {report.current_racket_standing.family_match.sibling_edge.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
             {/* ── E O QUE FAZER COM ELA HOJE ───────────────────────────────
                 Dentro do mesmo quadro, e não numa seção à parte.

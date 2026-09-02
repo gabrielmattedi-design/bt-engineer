@@ -18,6 +18,35 @@
  */
 
 /**
+ * 2.36.0 — quando a sua raquete é irmã de linha de uma do pódio, a comparação entra no lugar do
+ * número.
+ *
+ * A 2.35.0 fez o relatório EXPLICAR por que a raquete do jogador some do pódio quando a regra de
+ * uma-raquete-por-linha (§29) age. Explicar era o mínimo, e não era o suficiente: o parágrafo ainda
+ * abria com "ficou em 2º com 80%", que é justamente o número que colide com o pódio exibido logo
+ * abaixo — onde o card "2" traz outra raquete, com outro percentual.
+ *
+ * Agora, nesse caso específico, a posição e o percentual da raquete do jogador SAEM da tela. No
+ * lugar entra o que de fato responde a pergunta: qual é a irmã que está no pódio, e o que separa as
+ * duas, eixo a eixo — o que a sua entrega mais, o que a dela entrega mais.
+ *
+ * ─── POR QUE O NÚMERO É A PIOR RESPOSTA JUSTAMENTE AQUI ────────────────────────────────────
+ *
+ * Porque entre duas variantes da mesma linha ele tende a empatar POR CONSTRUÇÃO. Os índices
+ * exibidos são nivelados para somar o mesmo em toda raquete (`levelizeDisplay`), então as duas
+ * trocam pontos entre eixos e chegam ao mesmo total. O agregado esconde exatamente a diferença que
+ * interessa; os eixos a mostram. Dito pelo dono do produto antes de a conta ser conferida: "onde
+ * uma tem mais valências e a outra tem mais dificuldade, e vice-versa, no fim isso pode se
+ * equilibrar por questão matemática".
+ *
+ * A regra de família NÃO muda, e continua certa: ela existe para o pódio não virar três variações
+ * do mesmo quadro. O ranking também não muda. Muda o que a seção da raquete atual exibe — e por
+ * isso a versão sobe.
+ *
+ * O que NÃO sai é a conclusão. "Vale trocar?" continua respondida, com os mesmos limiares de
+ * sempre, dita em palavras em vez de em pontos: esconder o número não pode virar esconder a
+ * recomendação (§58).
+ *
  * 2.35.0 — a linha da raquete desempata o que as especificações não separam.
  *
  * Babolat Pure Drive e Pure Aero publicam as MESMAS seis especificações neste catálogo: 300 g,
@@ -556,7 +585,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.35.0';
+export const METHODOLOGY_VERSION = '2.36.0';
 
 export type Range = readonly [lo: number, hi: number];
 

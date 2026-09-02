@@ -77,11 +77,25 @@ describe('a posição citada e o pódio exibido', () => {
         if (noPodio || standing.rank > 3) continue;
 
         casos++;
-        expect(
-          standing.message,
-          `${persona.id} + ${racket.variant.product_name}: ${standing.rank}º no ranking, fora do ` +
-            'pódio, e o texto não avisa',
-        ).toMatch(/não aparece nele|uma raquete por linha/);
+        /*
+          Duas saídas aceitáveis, e nenhuma delas é o silêncio.
+
+          Quem foi PULADA pela regra de família entra em modo família: sem posição, sem percentual,
+          com a comparação entre as duas irmãs. Quem apenas ficou abaixo do corte mantém posição e
+          percentual — ali não há contradição com o pódio — mas o texto precisa dizer que a regra
+          de uma raquete por linha existe, senão a ausência dela continua sem explicação.
+        */
+        if (standing.family_match) {
+          expect(standing.message, `${persona.id} + ${racket.variant.product_name}`).toMatch(
+            /mesma linha da \d+ª colocada/,
+          );
+        } else {
+          expect(
+            standing.message,
+            `${persona.id} + ${racket.variant.product_name}: ${standing.rank}º no ranking, fora do ` +
+              'pódio, e o texto não avisa',
+          ).toMatch(/uma raquete por linha/);
+        }
       }
     }
 
@@ -141,5 +155,112 @@ describe('a contagem de empatadas', () => {
     const sep = buildSeparation(ranking(8, 1))!;
     expect(sep.tied_with_first).toBe(1);
     expect(sep.message).toMatch(/nenhuma outra/);
+  });
+});
+
+/**
+ * ═══ MODO FAMÍLIA: A COMPARAÇÃO ENTRA NO LUGAR DO NÚMERO ═════════════════════════════════════
+ *
+ * Decisão do dono do produto, depois de ver a contradição impressa: quando a raquete do jogador é
+ * irmã de linha de uma que está no pódio, o relatório não mostra posição nem percentual dela —
+ * mostra o que separa as duas.
+ *
+ * O raciocínio dele, que é o mesmo que a implementação segue: "onde uma tem mais valências e a
+ * outra tem mais dificuldade, e vice-versa, no fim isso pode se equilibrar por questão
+ * matemática". É literalmente o que acontece — os índices exibidos são nivelados para somar o
+ * mesmo em toda raquete, então duas variantes da mesma linha trocam pontos entre eixos e chegam ao
+ * mesmo total. O agregado empata por construção; os eixos mostram a diferença.
+ */
+describe('quando a sua raquete é irmã de linha de uma do pódio', () => {
+  /** Todas as combinações que entram em modo família, na varredura persona × raquete atual. */
+  const casos = PERSONAS.flatMap((persona) =>
+    RACKETS.map((racket) => {
+      const { result, payload } = analisar({
+        ...persona.answers,
+        current_racket_id: racket.variant.id,
+        no_current_racket: false,
+      });
+      return { id: `${persona.id}+${racket.variant.product_name}`, result, payload };
+    }).filter((c) => c.payload.current_racket_standing?.family_match),
+  );
+
+  it('a varredura encontra o caso', () => {
+    expect(casos.length, 'nenhuma combinação entra em modo família — os testes abaixo não provam nada')
+      .toBeGreaterThan(0);
+  });
+
+  /** É o conserto inteiro: o número que colidia com o pódio não vai mais para a tela. */
+  it('o texto não cita a posição nem o percentual da raquete do jogador', () => {
+    for (const { id, payload } of casos) {
+      const msg = payload.current_racket_standing!.message;
+      expect(msg, `${id}: voltou a citar a posição`).not.toMatch(/ficou em \d+º/);
+      expect(msg, `${id}: voltou a citar o percentual`).not.toMatch(/\d+\s?%/);
+      expect(msg, `${id}: voltou a citar distância em pontos`).not.toMatch(/\d+ pontos? da primeira/);
+    }
+  });
+
+  /**
+   * E a irmã citada é MESMO a que está no pódio, na posição em que o pódio a mostra.
+   *
+   * Citar "1ª colocada" e o pódio exibir aquela raquete em outro card seria trocar uma contradição
+   * por outra.
+   */
+  it('aponta a irmã pela posição que ela ocupa no pódio', () => {
+    for (const { id, result, payload } of casos) {
+      const fm = payload.current_racket_standing!.family_match!;
+      const noPodio = result.podium.find((e) => e.racket.variant.product_name === fm.sibling_name);
+      expect(noPodio, `${id}: a irmã citada não está no pódio`).toBeDefined();
+      expect(noPodio!.rank, `${id}: posição da irmã não bate com o pódio`).toBe(fm.sibling_rank);
+      expect(fm.family, `${id}: linha citada não é a da raquete do jogador`).toBe(
+        result.full_ranking.find((r) => r.racket.variant.product_name.includes(fm.family))?.racket
+          .variant.family ?? fm.family,
+      );
+    }
+  });
+
+  /**
+   * Esconder o número não pode virar esconder a conclusão.
+   *
+   * A seção existe para responder "vale trocar?". Uma versão discreta que também deixasse de
+   * responder isso seria omissão, não discrição — §58 vale nas duas direções.
+   */
+  it('continua dizendo se vale trocar', () => {
+    for (const { id, payload } of casos) {
+      const st = payload.current_racket_standing!;
+      expect(st.verdict, id).toMatch(/keep|marginal|upgrade/);
+      expect(st.message, `${id}: não conclui nada sobre a troca`).toMatch(
+        /lado a lado|vantagem moderada|vantagem clara/,
+      );
+    }
+  });
+
+  /**
+   * As duas colunas de eixos são o que substitui o percentual — e elas não podem se repetir.
+   *
+   * Um eixo em que as duas empatam não entra em lado nenhum; um eixo listado dos dois lados seria
+   * contradição pura.
+   */
+  it('nenhum eixo aparece dos dois lados', () => {
+    for (const { id, payload } of casos) {
+      const fm = payload.current_racket_standing!.family_match!;
+      for (const eixo of fm.your_edge) {
+        expect(fm.sibling_edge, `${id}: "${eixo}" aparece dos dois lados`).not.toContain(eixo);
+      }
+    }
+  });
+
+  /** Fora do modo família, nada muda: posição e percentual continuam na tela. */
+  it('não vaza para quem não é irmã de linha', () => {
+    for (const persona of PERSONAS) {
+      const { result, payload } = analisar(persona.answers);
+      const st = payload.current_racket_standing;
+      if (!st) continue;
+      const noPodio = result.podium.some(
+        (e) => e.racket.variant.id === persona.answers.current_racket_id,
+      );
+      if (!noPodio) continue;
+      expect(st.family_match, `${persona.id}: está no pódio e mesmo assim entrou em modo família`)
+        .toBeNull();
+    }
   });
 });

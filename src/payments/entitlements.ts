@@ -374,6 +374,36 @@ export type CurrentRacketStanding = {
   /** `keep` = trocar não se justifica; `marginal` = ganho pequeno; `upgrade` = ganho real. */
   readonly verdict: 'keep' | 'marginal' | 'upgrade';
   readonly message: string;
+  /**
+   * Presente quando a raquete do jogador é IRMÃ DE LINHA de uma que está no pódio, e por isso foi
+   * pulada na montagem dele.
+   *
+   * ═══ QUANDO ISTO EXISTE, A TELA NÃO MOSTRA POSIÇÃO NEM PERCENTUAL ══════════════════════════
+   *
+   * É a única exceção, e ela conserta uma contradição real: o relatório dizia "ficou em 2º com 80%"
+   * e o pódio, na página seguinte, trazia outra raquete em 2º com 78%. São duas listas — o ranking
+   * completo e o pódio, que renumera de 1 a 3 — e o mesmo número de posição significava coisas
+   * diferentes nas duas.
+   *
+   * A troca não é esconder informação, é trocá-la por informação melhor. Percentual e posição
+   * existem para responder "vale trocar?"; entre duas raquetes da MESMA linha, quem responde isso é
+   * o que separa as duas, eixo a eixo — não um agregado que, por construção, tende a empatar: os
+   * índices exibidos são nivelados para somar o mesmo em toda raquete, então duas variantes da
+   * mesma família trocam pontos entre eixos e chegam ao mesmo total.
+   *
+   * `rank` e `fit_score` continuam preenchidos aqui — são o registro da análise e alimentam o
+   * veredicto e a auditoria do admin. O que muda é a página não os exibir neste caso.
+   */
+  readonly family_match: {
+    readonly family: string;
+    readonly sibling_name: string;
+    /** Posição dela NO PÓDIO (1 a 3), que é a lista em que ela de fato aparece. */
+    readonly sibling_rank: number;
+    /** Eixos em que a raquete do jogador entrega mais, já na escala exibida. */
+    readonly your_edge: readonly string[];
+    /** Eixos em que a irmã do pódio entrega mais. */
+    readonly sibling_edge: readonly string[];
+  } | null;
 };
 
 /**
@@ -472,35 +502,181 @@ export function buildCurrentStanding(
    * A regra de diversidade não muda aqui: ela existe para o pódio não virar três variações do mesmo
    * quadro. O que muda é o relatório parar de esconder que ela agiu.
    */
-  const noPodio = result.podium.some(
-    (e) => e.racket.variant.id === profile.current_racket?.variant_id,
-  );
-  if (noPodio || base.rank > 3) return base;
+  const atualId = profile.current_racket?.variant_id;
+  const noPodio = result.podium.some((e) => e.racket.variant.id === atualId);
+  if (noPodio) return base;
 
-  const primeira = result.podium[0];
-  const mesmaLinha =
-    primeira != null &&
-    primeira.racket.variant.brand === result.full_ranking.find(
-      (r) => r.racket.variant.id === profile.current_racket?.variant_id,
-    )?.racket.variant.brand &&
-    primeira.racket.variant.family === result.full_ranking.find(
-      (r) => r.racket.variant.id === profile.current_racket?.variant_id,
-    )?.racket.variant.family;
+  /**
+   * A raquete foi PULADA pela regra de família, ou só ficou abaixo do corte?
+   *
+   * A distinção importa: uma raquete em 7º não foi pulada, ficou atrás mesmo — e para ela a posição
+   * e o percentual são a resposta certa, sem contradição nenhuma com o pódio. Modo família é só
+   * para quem TERIA entrado se a regra não existisse.
+   *
+   * ─── POR QUE SIMULAR O LAÇO, E NÃO COMPARAR COM A ÚLTIMA DO PÓDIO ─────────────────────────
+   *
+   * A primeira versão perguntava "a sua está acima da pior colocada do pódio?". Parece equivalente
+   * e não é, e o caso que derrubou foi este: p14 com a Wilson Blade 98 18×20 em 3º, num pódio de
+   * DUAS raquetes — a 1ª é Blade, a 2ª é Pure Strike, e a 3ª colocada do ranking foi pulada por ser
+   * Blade também. Ali a "pior do pódio" estava em 2º no ranking, então a comparação dizia que a de
+   * 3º não tinha sido pulada. Tinha.
+   *
+   * Percorrer o ranking na mesma ordem que `selectPodium` percorre elimina a aproximação. A
+   * pertinência ao pódio é lida do resultado real, então esta leitura não pode divergir dele — nem
+   * mesmo quando a regra de família está desligada (`wantsWeightChange`), caso em que ninguém é
+   * pulado e o laço simplesmente não encontra o caso.
+   */
+  const atual = result.full_ranking.find((r) => r.racket.variant.id === atualId);
+  if (!atual) return base;
+
+  const idsPodio = new Set(result.podium.map((e) => e.racket.variant.id));
+  const linhasUsadas = new Set<string>();
+  let adicionadas = 0;
+  let foiPulada = false;
+
+  for (const entry of result.full_ranking) {
+    if (adicionadas >= 3) break;
+    const linha = `${entry.racket.variant.brand}::${entry.racket.variant.family}`;
+
+    if (idsPodio.has(entry.racket.variant.id)) {
+      linhasUsadas.add(linha);
+      adicionadas++;
+      continue;
+    }
+    if (entry.racket.variant.id === atualId) {
+      foiPulada = linhasUsadas.has(linha);
+      break;
+    }
+  }
+
+  if (!foiPulada) return base;
+
+  const irma = result.podium.find(
+    (e) =>
+      e.racket.variant.brand === atual.racket.variant.brand &&
+      e.racket.variant.family === atual.racket.variant.family,
+  );
+  if (!irma) return base;
 
   return {
     ...base,
-    message:
-      `${base.message} Uma observação sobre o pódio abaixo: a sua raquete não aparece nele, apesar ` +
-      `da boa colocação. O pódio mostra no máximo uma raquete por linha de produto, para não virar ` +
-      `três variações do mesmo quadro` +
-      (mesmaLinha
-        ? `, e a 1ª colocada (${primeira!.racket.variant.product_name}) é da mesma linha que a sua. ` +
-          `São quadros diferentes — pesos e medidas não batem —, mas para essa regra contam como a ` +
-          `mesma família.`
-        : '.') +
-      ` A posição citada acima é a do ranking completo, que é a comparação real; o pódio é uma ` +
-      `seleção feita a partir dele.`,
+    family_match: buildFamilyMatch(atual, irma, result),
+    /*
+      A mensagem é reescrita por inteiro, e não acrescida.
+
+      Os textos de `standingCore` giram em torno de "ficou em Nº, a X pontos da primeira" — que é
+      exatamente o que este modo remove da tela. Emendar uma explicação no fim deixaria a
+      contradição no começo do parágrafo.
+    */
+    message: familyMessage(atual, irma, result),
   };
+}
+
+/**
+ * ═══ MODO FAMÍLIA: A COMPARAÇÃO SUBSTITUI A POSIÇÃO ══════════════════════════════════════════
+ *
+ * Decisão do dono do produto, e ela está certa. Nas palavras dele: "nesses casos de quando a
+ * família estiver no pódio, não falar qual é o percentual nem a posição, mas acertar um pouco sobre
+ * a família, qual é a diferença entre a sua e a que está no pódio, virtudes de cada uma".
+ *
+ * O raciocínio que sustenta isso: o percentual e a posição existem para responder UMA pergunta —
+ * "vale trocar?". Quando a raquete do jogador é irmã de linha de uma que está no pódio, quem
+ * responde melhor a essa pergunta não é o número: é o que separa as duas irmãs. E o número, ali,
+ * ainda por cima colide com o pódio, porque a lista exibida renumera de 1 a 3.
+ *
+ * Ele também acertou o diagnóstico de por que os números se parecem tanto: "onde uma tem mais
+ * valências e a outra tem mais dificuldade, e vice-versa, no fim isso pode se equilibrar por
+ * questão matemática". É literalmente o que acontece — os atributos exibidos são nivelados para
+ * somar o mesmo em toda raquete (ver `levelizeDisplay`), então duas variantes da mesma linha
+ * trocam pontos entre eixos e chegam ao mesmo total. O agregado esconde a diferença; os eixos a
+ * mostram.
+ *
+ * ─── O QUE NÃO SE PERDE ────────────────────────────────────────────────────────────────────
+ *
+ * A recomendação de trocar ou não. Ela continua, dita em palavras em vez de em pontos, com os
+ * mesmos limiares de sempre (`KEEP_CURRENT_GAP` e `REAL_UPGRADE_GAP`). Esconder o número não pode
+ * virar esconder a conclusão — §58 vale nas duas direções.
+ *
+ * `rank` e `fit_score` continuam no payload: eles são o registro da análise, servem à auditoria do
+ * admin e alimentam o veredicto. O que muda é a tela não os exibir neste caso.
+ */
+function buildFamilyMatch(
+  atual: RankedRacket,
+  irma: RankedRacket,
+  result: RecommendationResult,
+): NonNullable<CurrentRacketStanding['family_match']> {
+  const meus = buildIndices(atual, result.attribute_bands);
+  const dela = buildIndices(irma, result.attribute_bands);
+
+  const LABEL: Readonly<Record<string, string>> = {
+    potencia: 'potência',
+    controle: 'controle',
+    spin: 'spin',
+    conforto: 'conforto',
+    estabilidade: 'estabilidade',
+    manobrabilidade: 'manobrabilidade',
+  };
+
+  /*
+    Um degrau da escala exibida é o mínimo para virar frase.
+
+    Os índices andam de 5 em 5 — o passo existe para não sugerir precisão que o modelo não tem
+    (R-04). Abaixo disso a diferença não é visível na tela nem afirmável fora dela.
+  */
+  const DEGRAU = 5;
+  const meuForte: string[] = [];
+  const dela_forte: string[] = [];
+
+  for (const eixo of Object.keys(LABEL)) {
+    const delta = (meus[eixo] ?? 0) - (dela[eixo] ?? 0);
+    if (delta >= DEGRAU) meuForte.push(LABEL[eixo]!);
+    else if (delta <= -DEGRAU) dela_forte.push(LABEL[eixo]!);
+  }
+
+  return {
+    family: atual.racket.variant.family,
+    sibling_name: irma.racket.variant.product_name,
+    sibling_rank: irma.rank,
+    your_edge: meuForte,
+    sibling_edge: dela_forte,
+  };
+}
+
+/** O texto do modo família. Sem posição, sem percentual — e sem deixar de concluir. */
+function familyMessage(
+  atual: RankedRacket,
+  irma: RankedRacket,
+  result: RecommendationResult,
+): string {
+  const nome = currentRacketLabel(atual.racket.variant);
+  const gap = Math.round(result.full_ranking[0]?.fit_score ?? 0) - Math.round(atual.fit_score);
+
+  const abertura =
+    `A sua ${nome} é da mesma linha da ${irma.rank}ª colocada, a ` +
+    `${irma.racket.variant.product_name}. É por isso que ela não aparece no pódio: mostramos no ` +
+    `máximo uma raquete por linha de produto, para o pódio não virar três variações do mesmo ` +
+    `quadro. São quadros diferentes de verdade — peso e medidas não batem —, e é justamente a ` +
+    `diferença entre os dois que interessa aqui.`;
+
+  /*
+    A conclusão sobre trocar, em palavras.
+
+    Os limiares são os mesmos que os outros ramos usam; o que muda é não imprimir o número. Uma
+    seção que esconde a posição e também esconde a recomendação não seria discrição, seria omissão.
+  */
+  const conclusao =
+    gap < KEEP_CURRENT_GAP
+      ? `As duas ficaram praticamente lado a lado nesta análise. Não espere um salto ao trocar de ` +
+        `uma para a outra dentro da mesma linha: o caminho de maior retorno para você é a corda e ` +
+        `a tensão, que custam uma fração de um quadro.`
+      : gap < REAL_UPGRADE_GAP
+        ? `A do pódio abriu uma vantagem moderada sobre a sua — do tipo que dá para sentir em ` +
+          `quadra, sobretudo nos eixos em que o vão é maior. Se você já pensava em trocar, ` +
+          `experimentar a irmã antes de decidir faz sentido.`
+        : `A do pódio abriu uma vantagem clara sobre a sua, mesmo sendo da mesma linha — em geral ` +
+          `é diferença de peso e de balanço dentro da família. Aqui a troca deve ser sentida.`;
+
+  return `${abertura} ${conclusao}`;
 }
 
 function standingCore(
@@ -573,6 +749,7 @@ function standingCore(
       fit_score: Math.round(current.fit_score),
       gap_to_first: 0,
       verdict: 'keep',
+      family_match: null,
       message:
         `A raquete que você já tem é a melhor opção para o seu jogo entre as ` +
         `${result.full_ranking.length} deste ranking — nenhuma outra que avaliamos te levaria ` +
@@ -590,6 +767,7 @@ function standingCore(
       fit_score: Math.round(current.fit_score),
       gap_to_first: 0,
       verdict: 'keep',
+      family_match: null,
       message:
         `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ` +
         `ranking, com os mesmos ${Math.round(current.fit_score)}% de compatibilidade da primeira — ` +
@@ -609,6 +787,7 @@ function standingCore(
       fit_score: Math.round(current.fit_score),
       gap_to_first: gap,
       verdict: 'keep',
+      family_match: null,
       message:
         `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ranking, ` +
         `a ${gap} ${gap === 1 ? 'ponto' : 'pontos'} da primeira. É uma diferença pequena, e nessa ` +
@@ -627,6 +806,7 @@ function standingCore(
       fit_score: Math.round(current.fit_score),
       gap_to_first: gap,
       verdict: 'marginal',
+      family_match: null,
       message:
         `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Aqui já existe ganho ` +
         `real, ainda que moderado — é o tipo de diferença que pode ser sentida em quadra, sobretudo ` +
@@ -642,6 +822,7 @@ function standingCore(
     fit_score: Math.round(current.fit_score),
     gap_to_first: gap,
     verdict: 'upgrade',
+    family_match: null,
     message:
       `Sua ${name} ficou em ${current.rank}º, a ${gap} pontos da primeira. Aqui a diferença não é ` +
       `questão de gosto: a recomendada atende o seu perfil num nível que a sua atual não alcança, ` +
