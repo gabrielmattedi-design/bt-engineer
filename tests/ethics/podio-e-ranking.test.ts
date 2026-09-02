@@ -1,0 +1,145 @@
+/**
+ * O PÓDIO E O RANKING SÃO DUAS LISTAS, E O RELATÓRIO PRECISA DIZER ISSO.
+ *
+ * ═══ O DEFEITO, LIDO NUM PDF DE CLIENTE ══════════════════════════════════════════════════════
+ *
+ * Página 9: "Sua Yonex EZONE 100 · 300 g ficou em 2º entre as 8 deste ranking, com os mesmos 80%
+ * de compatibilidade da primeira — a diferença entre as duas é menor que um ponto."
+ *
+ * Página 10: "A 1ª colocada se destacou: das 8 raquetes avaliadas, nenhuma outra chegou perto o
+ * bastante para ser considerada equivalente."
+ *
+ * Página 11, o pódio: 1º Yonex EZONE 100L · 80%, 2º Wilson Ultra 100L · 78%, 3º Babolat Pure Aero
+ * Team · 77%. A raquete do jogador não aparece.
+ *
+ * Três afirmações no mesmo documento, duas delas se contradizendo e a terceira escondendo a razão.
+ * Nenhuma delas era erro de conta:
+ *
+ *   • `full_ranking` é a ordem pura por encaixe. É de onde sai o "2º".
+ *   • `podium` é uma seleção de três, com no máximo uma raquete por linha de produto (§29) e
+ *     RENUMERADA de 1 a 3. EZONE 100L e EZONE 100 são a mesma linha `Yonex::EZONE`, então a do
+ *     jogador é pulada — e some da única lista que ele vê.
+ *   • `tied` em `buildSeparation` INCLUI a própria primeira, e o corte era `tied <= 2`. Com uma
+ *     outra empatada, o texto de zero empatadas era impresso.
+ *
+ * Estes testes trancam as três coisas.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { recommend, enrichProfileWithCatalog } from '@/recommendation';
+import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
+import { serializeRecommendation, type Entitlement } from '@/payments/entitlements';
+import { buildSeparation } from '@/payments/podium-tie';
+import { PERSONAS } from '@/data/personas';
+import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
+import type { RankedRacket } from '@/domain/recommendation';
+
+const RACKETS = testRackets();
+const STRINGS = testStrings();
+const TUDO: Entitlement[] = ['racket_report_access', 'full_setup_access', 'rank2_access', 'rank3_access'];
+
+function analisar(answers: (typeof PERSONAS)[number]['answers']) {
+  const profile = enrichProfileWithCatalog(buildPlayerProfile(answers), RACKETS, STRINGS);
+  const result = recommend({
+    profile,
+    rackets: RACKETS,
+    strings: STRINGS,
+    datasetVersion: TEST_DATASET_VERSION,
+    mode: TEST_MODE,
+    includeSetup: true,
+  });
+  return { profile, result, payload: serializeRecommendation(result, profile, TUDO) };
+}
+
+describe('a posição citada e o pódio exibido', () => {
+  /**
+   * A varredura que achou o caso: cada persona × cada raquete do catálogo como atual.
+   *
+   * Medido antes do conserto: 10 das 1.034 combinações colocavam a raquete do jogador no top 3 do
+   * ranking e fora do pódio, e em TODAS a 1ª colocada era da mesma linha. É raro — e chegou a um
+   * cliente, que foi como apareceu.
+   */
+  it('quando a raquete do jogador some do pódio, o texto explica por quê', () => {
+    let casos = 0;
+
+    for (const persona of PERSONAS) {
+      for (const racket of RACKETS) {
+        const { result, payload } = analisar({
+          ...persona.answers,
+          current_racket_id: racket.variant.id,
+          no_current_racket: false,
+        });
+
+        const standing = payload.current_racket_standing;
+        if (!standing) continue;
+
+        const noPodio = result.podium.some((e) => e.racket.variant.id === racket.variant.id);
+        if (noPodio || standing.rank > 3) continue;
+
+        casos++;
+        expect(
+          standing.message,
+          `${persona.id} + ${racket.variant.product_name}: ${standing.rank}º no ranking, fora do ` +
+            'pódio, e o texto não avisa',
+        ).toMatch(/não aparece nele|uma raquete por linha/);
+      }
+    }
+
+    expect(casos, 'a varredura não encontrou o caso — o teste não prova nada').toBeGreaterThan(0);
+  });
+
+  /**
+   * E o texto nunca pode afirmar uma posição de PÓDIO a partir da posição de ranking.
+   *
+   * O pódio renumera de 1 a 3. Dizer "ficou em 2º" e mostrar outra raquete no card "2" é a mesma
+   * palavra para duas listas diferentes, e foi o que produziu a leitura de erro grave.
+   */
+  it('a posição citada é sempre a do ranking completo, e o texto diz de onde ela vem', () => {
+    for (const persona of PERSONAS) {
+      const { result, payload } = analisar(persona.answers);
+      const standing = payload.current_racket_standing;
+      if (!standing) continue;
+
+      const noRanking = result.full_ranking.find(
+        (r) => r.racket.variant.id === persona.answers.current_racket_id,
+      );
+      expect(standing.rank, persona.id).toBe(noRanking?.rank);
+    }
+  });
+});
+
+describe('a contagem de empatadas', () => {
+  /** Monta um ranking com `quantasEmpatadas` raquetes dentro do limiar da primeira. */
+  function ranking(total: number, quantasEmpatadas: number): RankedRacket[] {
+    return RACKETS.slice(0, total).map((racket, i) => ({
+      rank: i + 1,
+      racket,
+      // Empatadas ficam a 0,1 ponto; as demais, a 20.
+      fit_score: i < quantasEmpatadas ? 90 - i * 0.1 : 70,
+      breakdown: {
+        final_score: 0, components: [], penalties: [], data_completeness: 1, gained: [], lost: [],
+      },
+      technical_tie_with_previous: false,
+    }));
+  }
+
+  /**
+   * `tied` conta a própria primeira. Um significa "nenhuma outra"; dois significa "uma outra".
+   *
+   * O corte era `tied <= 2` com o texto de zero empatadas — e foi assim que o relatório afirmou que
+   * nenhuma outra havia chegado perto, duas páginas depois de dizer que a diferença para a raquete
+   * do jogador era menor que um ponto.
+   */
+  it('com uma única empatada, o texto não diz que nenhuma chegou perto', () => {
+    const sep = buildSeparation(ranking(8, 2))!;
+    expect(sep.tied_with_first).toBe(2);
+    expect(sep.message, 'ainda afirma que ninguém chegou perto').not.toMatch(/nenhuma outra/);
+    expect(sep.message).toMatch(/apenas uma outra/);
+  });
+
+  it('sem nenhuma outra empatada, o texto continua o de sempre', () => {
+    const sep = buildSeparation(ranking(8, 1))!;
+    expect(sep.tied_with_first).toBe(1);
+    expect(sep.message).toMatch(/nenhuma outra/);
+  });
+});

@@ -42,6 +42,7 @@
  */
 
 import type { ComponentKey, RankedRacket } from '@/domain/recommendation';
+import { lineOrientation, ORIENTATION_LABEL_PT } from '@/domain/racket-lines';
 import { TECHNICAL_TIE_THRESHOLD } from '@/domain/reference-ranges';
 
 /**
@@ -81,10 +82,25 @@ const COMPONENT_PT: Record<
   ComponentKey,
   { readonly best: string; readonly worst: string; readonly more: string; readonly less: string }
 > = {
+  /**
+   * ─── ESTE EIXO NÃO DIZ "SEU PESO", E A RAZÃO NÃO É EUFEMISMO ────────────────────────────────
+   *
+   * A frase era "encaixa melhor no seu peso e condicionamento". Ela estava tecnicamente correta —
+   * `physicalFit` lê peso e altura — e chegava como comentário sobre o corpo de quem lê, num
+   * relatório que a pessoa comprou para falar de raquete. Apontado a partir de um teste com perfil
+   * feminino, e vale para qualquer pessoa que não goste de ver o próprio peso comentado.
+   *
+   * "Físico" carrega a mesma informação e não singulariza uma medida. Os outros três textos deste
+   * eixo já diziam "físico" — só o comparativo destoava, o que é sinal de descuido e não de escolha.
+   *
+   * A régua continua sendo a mesma: quem quiser saber o que entra na conta encontra em
+   * `physicalFit` e no eixo "Seu físico" do radar. O que muda é não devolver o dado ao leitor como
+   * adjetivo.
+   */
   physical_fit: {
     best: 'a que melhor encaixa no seu físico',
     worst: 'a que mais exige do seu físico',
-    more: 'encaixa melhor no seu peso e condicionamento',
+    more: 'encaixa melhor no seu físico e condicionamento',
     less: 'exige um pouco mais do braço ao longo do jogo',
   },
   skill_fit: {
@@ -368,11 +384,45 @@ export function buildDistinction(
    */
   const twin = others.find((o) => sameAttributeVector(entry, o));
   if (twin) {
+    /**
+     * ═══ "ESCOLHA POR PREFERÊNCIA DE MARCA" ERA UM ABSURDO EM METADE DOS CASOS ════════════════
+     *
+     * A frase antiga terminava em "escolha por preço, disponibilidade ou preferência de marca" — e
+     * o par que mais dispara esta regra é Babolat Pure Drive × Babolat Pure Aero. Duas Babolat.
+     * Preferência de marca não separa nada ali.
+     *
+     * Pior que inútil, era falso por omissão: as duas publicam as mesmas seis especificações, mas
+     * uma é a linha de POTÊNCIA da marca e a outra é a de SPIN. Qualquer pessoa que joga sabe
+     * disso, e o relatório dizia que dava no mesmo.
+     *
+     * Quando as duas linhas têm posicionamento declarado e ele DIFERE, o card diz qual é qual e
+     * qual delas puxa para o lado que o jogador pediu. O empate técnico continua sendo dito — ele é
+     * verdade, e é o limite honesto do que seis especificações permitem afirmar. O que muda é não
+     * fingir que, além dos dados, também não existe diferença.
+     *
+     * Quando o posicionamento não existe ou é o mesmo nas duas, o texto antigo continua valendo:
+     * ali a escolha realmente é por preço, disponibilidade ou gosto.
+     */
+    const minha = lineOrientation(entry.racket.variant.family);
+    const dela = lineOrientation(twin.racket.variant.family);
+    const base =
+      `Tecnicamente idêntica à ${twin.rank}ª (${twin.racket.variant.product_name}): mesmas ` +
+      'especificações publicadas, mesmo resultado na análise.';
+
+    if (minha !== null && dela !== null && minha !== dela) {
+      const meuEixo = ORIENTATION_LABEL_PT[minha] ?? minha;
+      const outroEixo = ORIENTATION_LABEL_PT[dela] ?? dela;
+      return {
+        headline:
+          `${base} O que as separa não está nas medidas: esta é a linha de ${meuEixo} da marca e a ` +
+          `outra é a de ${outroEixo}. Se o que você quer é ${meuEixo}, é esta; se for ${outroEixo}, ` +
+          `vá na outra sem receio — a análise não vê diferença entre as duas.`,
+        identical_twin: true,
+      };
+    }
+
     return {
-      headline:
-        `Tecnicamente idêntica à ${twin.rank}ª (${twin.racket.variant.product_name}): mesmas ` +
-        'especificações publicadas, mesmo resultado na análise. Escolha por preço, ' +
-        'disponibilidade ou preferência de marca.',
+      headline: `${base} Escolha por preço, disponibilidade ou preferência de marca.`,
       identical_twin: true,
     };
   }
@@ -521,7 +571,23 @@ export function buildSeparation(
   const evaluated = fullRanking.length;
   const share = tied / evaluated;
 
-  if (tied <= 2) {
+  /**
+   * ═══ `tied` INCLUI A PRÓPRIA PRIMEIRA — E ISSO JÁ PRODUZIU UMA CONTRADIÇÃO IMPRESSA ══════════
+   *
+   * `empatadas` é filtrada por `first.fit_score - r.fit_score < LIMIAR`, e a primeira contra ela
+   * mesma dá zero. Ela sempre entra. Então `tied === 1` significa "nenhuma outra empatou" e
+   * `tied === 2` significa "exatamente uma outra empatou".
+   *
+   * O corte era `tied <= 2` com o texto "nenhuma outra chegou perto o bastante". Com `tied === 2`
+   * isso é falso, e o próprio relatório desmentia a frase algumas páginas antes: num PDF real, o
+   * bloco da raquete atual dizia "com os mesmos 80% da primeira — a diferença entre as duas é menor
+   * que um ponto", e a seção do pódio dizia que nenhuma outra havia chegado perto. As duas frases,
+   * sobre as mesmas duas raquetes, no mesmo documento.
+   *
+   * Separar os dois casos custa uma frase e devolve a coerência. O `verdict` continua `aberto` nos
+   * dois: uma única empatada não torna a escolha disputada — ela só precisa ser dita.
+   */
+  if (tied <= 1) {
     return {
       tied_with_first: tied,
       evaluated,
@@ -531,6 +597,20 @@ export function buildSeparation(
         `A 1ª colocada se destacou: das ${evaluated} raquetes avaliadas, nenhuma outra chegou perto ` +
         'o bastante para ser considerada equivalente. Aqui a escolha do quadro faz diferença real, ' +
         'e vale seguir a recomendação.',
+    };
+  }
+
+  if (tied === 2) {
+    return {
+      tied_with_first: tied,
+      evaluated,
+      brands_tied: brands,
+      verdict: 'aberto',
+      message:
+        `Das ${evaluated} raquetes avaliadas, apenas uma outra ficou tecnicamente empatada com a 1ª ` +
+        '— as demais ficaram claramente atrás. A escolha do quadro faz diferença real aqui, e entre ' +
+        'essas duas o que decide deixa de ser o número: entram preço, disponibilidade e o que você ' +
+        'sentir na mão.',
     };
   }
 

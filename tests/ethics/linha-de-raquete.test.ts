@@ -1,0 +1,181 @@
+/**
+ * PURE DRIVE E PURE AERO NÃO SÃO A MESMA RAQUETE.
+ *
+ * ═══ O QUE O RELATÓRIO DIZIA ═════════════════════════════════════════════════════════════════
+ *
+ * "Tecnicamente idêntica à 3ª (Babolat Pure Aero): mesmas especificações publicadas, mesmo
+ * resultado na análise. Escolha por preço, disponibilidade ou preferência de marca."
+ *
+ * As duas primeiras frases são verdadeiras — neste catálogo as duas publicam 300 g, balanço 320 mm,
+ * 100 pol², 16×19 e viga 23/26/23, campo a campo. A terceira era um absurdo: as duas são Babolat,
+ * então "preferência de marca" não separa nada, e o conselho contrariava o que qualquer pessoa que
+ * joga sabe. Uma é a linha de POTÊNCIA da marca; a outra é a de SPIN.
+ *
+ * ═══ O QUE NÃO PODIA SER A SOLUÇÃO ═══════════════════════════════════════════════════════════
+ *
+ * Inventar uma largura de viga, uma rigidez ou um índice qualquer para "separar" as duas. Seria
+ * fabricar dado — §69 — e contaminaria todos os scores com um número que ninguém publicou.
+ *
+ * A saída foi declarar o POSICIONAMENTO da linha (`domain/racket-lines.ts`): informação pública do
+ * fabricante, sem unidade, que não entra em nenhuma média e não altera score nenhum. Ela só faz
+ * duas coisas, e estes testes trancam as duas.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { recommend, enrichProfileWithCatalog } from '@/recommendation';
+import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
+import { serializeRecommendation, type Entitlement } from '@/payments/entitlements';
+import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
+import { LINE_ORIENTATION, lineOrientation } from '@/domain/racket-lines';
+import { PERSONAS } from '@/data/personas';
+import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
+
+const RACKETS = testRackets();
+const STRINGS = testStrings();
+const TUDO: Entitlement[] = ['racket_report_access', 'full_setup_access', 'rank2_access', 'rank3_access'];
+
+/** Jogador com swing formado, para que as duas Babolat de 300 g fiquem no páreo. */
+function jogador(pedido: readonly string[]): QuestionnaireAnswers {
+  return {
+    ...emptyAnswers(),
+    age: 30, height_cm: 180, weight_kg: 80, sex: 'masculino',
+    perceived_strength: 'acima', fitness_level: 'bom', dominant_hand: 'destro',
+    experience_duration: 'mais_5a', frequency_per_week: 3, has_lessons: 'ja_fiz',
+    plays_matches: 'sim', tournament_experience: 'amadores',
+    perceived_level: 'intermediario_avancado',
+    can_sustain_rally: 'sim', can_direct_ball: 'sim', can_generate_spin: 'as_vezes',
+    can_vary_depth: 'as_vezes', reliable_second_serve: 'as_vezes',
+    swing_length: 'longo', swing_speed: 'rapida', depth_control: 'as_vezes',
+    no_current_racket: true, discomfort_areas: ['nenhum'],
+    missing_attributes: [...pedido],
+    objective: [pedido[0] === 'spin' ? 'more_spin' : 'more_power'],
+  } as QuestionnaireAnswers;
+}
+
+function posicaoDe(answers: QuestionnaireAnswers, family: string): number {
+  const profile = enrichProfileWithCatalog(buildPlayerProfile(answers), RACKETS, STRINGS);
+  const r = recommend({
+    profile, rackets: RACKETS, strings: STRINGS,
+    datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
+  });
+  return r.full_ranking.findIndex((x) => x.racket.variant.family === family) + 1;
+}
+
+describe('a tabela de linhas', () => {
+  /** Ela descreve posicionamento, não medida — e por isso não pode virar um score. */
+  it('todo eixo declarado é um eixo de necessidade do jogador', () => {
+    const validos = ['power', 'spin', 'control', 'comfort'];
+    for (const [linha, eixo] of Object.entries(LINE_ORIENTATION)) {
+      expect(validos, `${linha} declara um eixo que o questionário não conhece`).toContain(eixo);
+    }
+  });
+
+  /**
+   * As linhas all-round ficam FORA de propósito.
+   *
+   * HEAD Speed, Radical e Boom são vendidas pelo fabricante como polivalentes. Atribuir um eixo a
+   * elas seria decidir por ele — e uma orientação errada é pior que orientação nenhuma, porque
+   * ordena com falsa confiança.
+   */
+  it('não inventa posicionamento para linha all-round', () => {
+    for (const linha of ['Speed', 'Radical', 'Boom']) {
+      expect(lineOrientation(linha), `${linha} ganhou um eixo que o fabricante não declara`).toBeNull();
+    }
+  });
+
+  it('linha desconhecida não quebra nada', () => {
+    expect(lineOrientation(null)).toBeNull();
+    expect(lineOrientation('Linha Que Não Existe')).toBeNull();
+  });
+});
+
+describe('o desempate segue o eixo que o jogador pediu', () => {
+  /**
+   * O par que originou a regra. As duas empatam ponto a ponto — o que muda é o que a pessoa pediu.
+   */
+  it('spin em 1º põe a Pure Aero na frente; potência em 1º, a Pure Drive', () => {
+    const comSpin = jogador(['spin', 'power']);
+    const comPotencia = jogador(['power', 'spin']);
+
+    expect(posicaoDe(comSpin, 'Pure Aero')).toBeLessThan(posicaoDe(comSpin, 'Pure Drive'));
+    expect(posicaoDe(comPotencia, 'Pure Drive')).toBeLessThan(posicaoDe(comPotencia, 'Pure Aero'));
+  });
+
+  /**
+   * E ele NÃO reordena nada que não esteja exatamente empatado.
+   *
+   * O posicionamento é um critério de desempate, não um peso. Se ele passasse por cima de diferença
+   * real de encaixe, teria virado o que a tabela promete não ser: uma nota inventada.
+   */
+  it('nunca inverte duas raquetes com fit diferente', () => {
+    for (const persona of PERSONAS) {
+      const profile = enrichProfileWithCatalog(buildPlayerProfile(persona.answers), RACKETS, STRINGS);
+      const r = recommend({
+        profile, rackets: RACKETS, strings: STRINGS,
+        datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
+      });
+      for (let i = 1; i < r.full_ranking.length; i++) {
+        expect(
+          r.full_ranking[i - 1]!.fit_score,
+          `${persona.id}: ranking deixou de ser monotônico em ${i}`,
+        ).toBeGreaterThanOrEqual(r.full_ranking[i]!.fit_score);
+      }
+    }
+  });
+});
+
+describe('o texto do card gêmeo', () => {
+  /**
+   * Duas Babolat não se escolhem "por preferência de marca". Quando as duas linhas têm
+   * posicionamento declarado e ele difere, o card diz qual é qual.
+   */
+  it('explica o que separa as linhas em vez de mandar escolher por marca', () => {
+    const profile = enrichProfileWithCatalog(
+      buildPlayerProfile(jogador(['power', 'spin'])), RACKETS, STRINGS,
+    );
+    const r = recommend({
+      profile, rackets: RACKETS, strings: STRINGS,
+      datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
+    });
+    const payload = serializeRecommendation(r, profile, TUDO);
+
+    const gemeas = payload.podium.filter(
+      (e): e is Extract<typeof e, { distinction?: unknown }> =>
+        'distinction' in e && Boolean((e as { distinction?: { identical_twin?: boolean } }).distinction?.identical_twin),
+    );
+    expect(gemeas.length, 'nenhum card gêmeo no cenário — o teste não prova nada').toBeGreaterThan(0);
+
+    const babolats = gemeas.filter((e) => {
+      const d = (e as { distinction?: { headline: string } }).distinction;
+      return d?.headline.includes('Babolat');
+    });
+
+    for (const card of babolats) {
+      const texto = (card as { distinction?: { headline: string } }).distinction!.headline;
+      expect(texto, 'duas Babolat não se separam por preferência de marca').toMatch(
+        /linha de (potência|spin|controle|conforto)/,
+      );
+    }
+  });
+
+  /**
+   * O empate técnico continua sendo DITO. Ele é verdade e é o limite honesto de seis
+   * especificações — o conserto foi parar de fingir que, além dos dados, também não há diferença.
+   */
+  it('continua declarando o empate técnico', () => {
+    const profile = enrichProfileWithCatalog(
+      buildPlayerProfile(jogador(['power', 'spin'])), RACKETS, STRINGS,
+    );
+    const r = recommend({
+      profile, rackets: RACKETS, strings: STRINGS,
+      datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
+    });
+    const payload = serializeRecommendation(r, profile, TUDO);
+
+    for (const e of payload.podium) {
+      const d = (e as { distinction?: { identical_twin?: boolean; headline: string } }).distinction;
+      if (!d?.identical_twin) continue;
+      expect(d.headline).toMatch(/mesmas especificações publicadas/);
+    }
+  });
+});

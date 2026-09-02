@@ -18,6 +18,45 @@
  */
 
 /**
+ * 2.35.0 — a linha da raquete desempata o que as especificações não separam.
+ *
+ * Babolat Pure Drive e Pure Aero publicam as MESMAS seis especificações neste catálogo: 300 g,
+ * balanço 320 mm, 100 pol², 16×19, viga 23/26/23. O motor produzia o mesmo vetor para as duas — o
+ * que está certo, é o limite honesto do dado publicado — e o relatório concluía: "tecnicamente
+ * idêntica, escolha por preço, disponibilidade ou preferência de marca".
+ *
+ * As duas são Babolat, então metade do conselho não separava nada. E a outra metade contrariava o
+ * que qualquer pessoa que joga sabe: uma é a linha de POTÊNCIA da marca, a outra é a de SPIN.
+ *
+ * A partir daqui existe `domain/racket-lines.ts`, com o posicionamento declarado de cada linha. Não
+ * é especificação, não tem unidade, não entra em média e não altera score nenhum — inventar uma
+ * viga ou uma rigidez para separá-las seria fabricar dado (§69). Ele age em dois lugares estreitos:
+ * desempata raquetes de `fit_score` EXATAMENTE igual, na direção do eixo que o jogador pôs em
+ * primeiro, e escreve no card o que de fato as separa. Linhas all-round (HEAD Speed, Radical, Boom)
+ * ficam fora da tabela de propósito: atribuir um eixo a elas seria decidir pelo fabricante.
+ *
+ * Medido: com spin em 1º, a Pure Aero passa à frente da Pure Drive; com potência em 1º, o inverso.
+ * É a primeira mudança de ordem desde a 2.34.0, e vale só onde o empate é exato.
+ *
+ * ─── E DUAS CONTRADIÇÕES DE TEXTO, NO MESMO RELATÓRIO IMPRESSO ─────────────────────────────
+ *
+ * 1. "Sua raquete ficou em 2º" e o pódio mostrando outra em 2º. São duas listas: `full_ranking`, a
+ *    ordem pura, e `podium`, uma seleção de três com no máximo uma raquete por linha (§29) e
+ *    RENUMERADA. Quando a 1ª é da mesma linha que a do jogador — EZONE 100L e EZONE 100 —, a dele é
+ *    pulada e some da única lista exibida. Medido em 1.034 combinações: 10 caem nesse caso. O
+ *    ranking não muda; o relatório passa a dizer que a regra agiu, em vez de escondê-la.
+ *
+ * 2. "Nenhuma outra chegou perto o bastante" com uma outra tecnicamente empatada. `tied` inclui a
+ *    própria primeira, e o corte era `tied <= 2` — então `tied === 2`, que significa "uma outra
+ *    empatou", imprimia a frase de zero empatadas. No mesmo PDF, duas páginas antes, o bloco da
+ *    raquete atual dizia "a diferença entre as duas é menor que um ponto".
+ *
+ * ─── E O EIXO FÍSICO PAROU DE COMENTAR O PESO DE QUEM LÊ ───────────────────────────────────
+ *
+ * "Encaixa melhor no seu peso e condicionamento" virou "no seu físico e condicionamento". Mesma
+ * informação, sem devolver a medida ao leitor como adjetivo. Os outros três textos do eixo já
+ * diziam "físico" — só o comparativo destoava.
+ *
  * 2.34.0 — existe um teto de peso estático do quadro, por porte, sexo e faixa etária.
  *
  * Até aqui o motor só tinha PONTUAÇÃO de encaixe físico, e ela ordena por inércia de swing (peso ×
@@ -517,7 +556,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.34.0';
+export const METHODOLOGY_VERSION = '2.35.0';
 
 export type Range = readonly [lo: number, hi: number];
 

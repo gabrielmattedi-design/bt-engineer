@@ -444,6 +444,70 @@ export function buildCurrentStanding(
   profile: PlayerProfile,
   first: RankedRacket,
 ): CurrentRacketStanding | null {
+  const base = standingCore(result, profile, first);
+  if (!base) return base;
+
+  /**
+   * ═══ "2º LUGAR" E O PÓDIO PRECISAM FALAR DA MESMA LISTA ══════════════════════════════════════
+   *
+   * Defeito grave, pego num relatório impresso: o bloco dizia "Sua Yonex EZONE 100 · 300 g ficou em
+   * 2º entre as 8 deste ranking", e o pódio, duas páginas depois, trazia outra raquete em 2º com
+   * 78%. A raquete do jogador não aparecia em lugar nenhum do pódio.
+   *
+   * Não havia confusão de nomes nem erro de conta. São DUAS listas, e o relatório usava a palavra
+   * "posição" para as duas sem avisar:
+   *
+   *   `full_ranking` — a ordem pura por encaixe. É de onde sai o "2º".
+   *   `podium`       — uma seleção de três, com no máximo uma raquete por linha de produto (§29),
+   *                    RENUMERADA de 1 a 3. É o que a pessoa vê.
+   *
+   * Quando a 1ª colocada é da mesma linha que a raquete do jogador — EZONE 100L e EZONE 100 são
+   * ambas `Yonex::EZONE` —, a dele é pulada na montagem do pódio. Ela continua em 2º no ranking, e
+   * some da única lista que o relatório exibe.
+   *
+   * Medido em 1.034 combinações de persona × raquete atual: 10 caem exatamente nesse caso, e em
+   * todas elas a 1ª colocada é da mesma família. É ~1% — raro o bastante para ter passado, comum o
+   * bastante para chegar a um cliente, como chegou.
+   *
+   * A regra de diversidade não muda aqui: ela existe para o pódio não virar três variações do mesmo
+   * quadro. O que muda é o relatório parar de esconder que ela agiu.
+   */
+  const noPodio = result.podium.some(
+    (e) => e.racket.variant.id === profile.current_racket?.variant_id,
+  );
+  if (noPodio || base.rank > 3) return base;
+
+  const primeira = result.podium[0];
+  const mesmaLinha =
+    primeira != null &&
+    primeira.racket.variant.brand === result.full_ranking.find(
+      (r) => r.racket.variant.id === profile.current_racket?.variant_id,
+    )?.racket.variant.brand &&
+    primeira.racket.variant.family === result.full_ranking.find(
+      (r) => r.racket.variant.id === profile.current_racket?.variant_id,
+    )?.racket.variant.family;
+
+  return {
+    ...base,
+    message:
+      `${base.message} Uma observação sobre o pódio abaixo: a sua raquete não aparece nele, apesar ` +
+      `da boa colocação. O pódio mostra no máximo uma raquete por linha de produto, para não virar ` +
+      `três variações do mesmo quadro` +
+      (mesmaLinha
+        ? `, e a 1ª colocada (${primeira!.racket.variant.product_name}) é da mesma linha que a sua. ` +
+          `São quadros diferentes — pesos e medidas não batem —, mas para essa regra contam como a ` +
+          `mesma família.`
+        : '.') +
+      ` A posição citada acima é a do ranking completo, que é a comparação real; o pódio é uma ` +
+      `seleção feita a partir dele.`,
+  };
+}
+
+function standingCore(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+  first: RankedRacket,
+): CurrentRacketStanding | null {
   const variantId = profile.current_racket?.variant_id;
   if (!variantId || profile.current_racket?.unrecognized) return null;
 

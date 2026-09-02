@@ -68,14 +68,32 @@ export function Podium({
         era um pódio em que o degrau mais alto ficava na ponta, e a leitura saía ao contrário do
         ranking.
 
-        Agora as três vêm na ordem do ranking, alinhadas pela BASE, com altura mínima decrescente.
-        O degrau passa a ser desenho, não coincidência de texto — e quem lê da esquerda para a
-        direita lê 1, 2, 3, que é a mesma ordem em que os números aparecem.
+        Agora as três vêm na ordem do ranking, com o TOPO escalonado por um recuo fixo e altura
+        mínima decrescente. Quem lê da esquerda para a direita lê 1, 2, 3, que é a mesma ordem em
+        que os números aparecem.
 
-        Abaixo de `sm` as alturas mínimas somem: empilhadas, elas produziriam três caixas com
-        sobras diferentes de espaço vazio, sem nenhum degrau para justificar.
+        ─── POR QUE O RECUO É FIXO, E NÃO SÓ ALTURA MÍNIMA ──────────────────────────────────────
+
+        A versão anterior alinhava as três pela BASE e confiava só nas alturas mínimas para produzir
+        o degrau. Isso funciona enquanto o conteúdo couber nelas — e some no instante em que não
+        cabe: quando os três cards têm texto longo, os três crescem além do próprio mínimo, ficam da
+        mesma altura e o pódio sai reto.
+
+        Foi assim que apareceu, em dois testes lado a lado com o mesmo empate de 88%: num deles o
+        degrau existia, no outro os três cards viravam uma faixa plana. O que mudava era só o
+        comprimento do texto de cada card, e comprimento de texto não pode decidir hierarquia.
+
+        E a hierarquia é real, mesmo quando os percentuais exibidos empatam: se uma raquete está em
+        1º, foi porque venceu por alguma margem — nem que seja na casa decimal que o arredondamento
+        esconde. O pódio precisa mostrar isso sempre.
+
+        Os números foram escolhidos para casar: 23 + 0, 20 + 3 e 17 + 6 dão 23rem nos três. Com
+        texto curto as bases se alinham como antes; com texto longo os topos continuam escalonados.
+
+        Abaixo de `sm` tudo isso some: empilhadas, as caixas produziriam sobras diferentes de espaço
+        vazio, sem nenhum degrau para justificar.
       */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-end">
+      <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-start">
         <PodiumCard entry={first} step="tall" />
         {rest[0] && <PodiumCard entry={rest[0]} step="mid" />}
         {rest[1] && <PodiumCard entry={rest[1]} step="short" />}
@@ -86,11 +104,17 @@ export function Podium({
   );
 }
 
-/** Altura mínima de cada degrau. Só a partir de `sm`, onde os três ficam lado a lado. */
+/**
+ * Cada degrau: recuo fixo no topo + altura mínima. Só a partir de `sm`, onde os três ficam lado a
+ * lado.
+ *
+ * O recuo é o que garante o degrau quando o texto é longo; a altura mínima é o que alinha as bases
+ * quando o texto é curto. Recuo + altura somam 23rem nos três, então as duas coisas convivem.
+ */
 const STEPS = {
-  tall: 'sm:min-h-[23rem]',
-  mid: 'sm:min-h-[20rem]',
-  short: 'sm:min-h-[17rem]',
+  tall: 'sm:mt-0 sm:min-h-[23rem]',
+  mid: 'sm:mt-12 sm:min-h-[20rem]',
+  short: 'sm:mt-24 sm:min-h-[17rem]',
 } as const;
 
 function PodiumCard({ entry, step }: { entry: PodiumEntry; step: keyof typeof STEPS }) {

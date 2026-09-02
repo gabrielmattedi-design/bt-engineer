@@ -66,7 +66,18 @@ function cenario(primeiroFit: number, atualFit: number, atualRank: number) {
   }));
   const atual = ranking[atualRank - 1]!;
 
-  const result = { full_ranking: ranking } as unknown as RecommendationResult;
+  /*
+    O pódio faz parte do cenário, e não é enfeite do fixture.
+
+    `buildCurrentStanding` consulta `result.podium` para saber se a raquete do jogador aparece na
+    lista que ele de fato vê — quando não aparece, o texto precisa explicar por quê. Um fixture sem
+    pódio mentia sobre o tipo e escondia esse ramo. Aqui o pódio é o topo do ranking, sem regra de
+    família: é o caso em que a atual APARECE, que é o que estes testes medem.
+  */
+  const result = {
+    full_ranking: ranking,
+    podium: ranking.slice(0, 3),
+  } as unknown as RecommendationResult;
   const profile = {
     current_racket: { variant_id: atual.racket.variant.id, unrecognized: false },
   } as unknown as PlayerProfile;

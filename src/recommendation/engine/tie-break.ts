@@ -99,11 +99,31 @@ export function tieBreakKey(candidateId: string, signature: string): number {
  * que o pódio marca o empate técnico e mostra ao lado o que separa as opções empatadas: a resposta
  * para "a diferença é minúscula" é DIZER que é minúscula, não desordenar o ranking.
  */
+/**
+ * ═══ A AFINIDADE DE LINHA ENTRA ENTRE O SCORE E O HASH ═══════════════════════════════════════
+ *
+ * O texto acima diz que, entre coisas de fato equivalentes, escolher pelo alfabeto "não é mais
+ * rigoroso do que escolher por qualquer outro critério". Continua verdade — e não vale quando
+ * EXISTE um critério.
+ *
+ * Pure Drive e Pure Aero publicam as mesmas seis especificações e empatam ponto a ponto, mas uma é
+ * a linha de potência da marca e a outra é a de spin. Para quem pediu spin em primeiro lugar, elas
+ * não são equivalentes; o que é equivalente é o que os dados publicados conseguem medir. Mandar
+ * essa pessoa "escolher por preferência de marca" entre duas Babolat era o sintoma.
+ *
+ * `lineAffinity` é 0 ou 1 e vem de `domain/racket-lines.ts`, que carrega posicionamento de
+ * fabricante — não especificação, não score. Onde ele não existe, os dois lados valem 0, a
+ * comparação empata e o hash decide como antes. O desempate segue 100% determinístico.
+ */
 export function compareByScoreThenTieBreak(
-  a: { score: number; id: string },
-  b: { score: number; id: string },
+  a: { score: number; id: string; lineAffinity?: number },
+  b: { score: number; id: string; lineAffinity?: number },
   signature: string,
 ): number {
   if (b.score !== a.score) return b.score - a.score;
+
+  const afinidade = (b.lineAffinity ?? 0) - (a.lineAffinity ?? 0);
+  if (afinidade !== 0) return afinidade;
+
   return tieBreakKey(a.id, signature) - tieBreakKey(b.id, signature);
 }

@@ -40,6 +40,7 @@ import {
   swingFit,
   transitionFit,
 } from './fit-components';
+import { lineOrientation } from '@/domain/racket-lines';
 import { buildCatalogScale, type CatalogScale, type ScaleKey } from './catalog-scale';
 import { applyHardFilters, type FilterMode } from './hard-filters';
 import { computePenalties } from './penalties';
@@ -842,10 +843,46 @@ export function rankRackets(
     ...NEED_KEYS.map((k) => profile.needs[k]),
   ]);
 
+  /**
+   * ═══ O EIXO QUE O JOGADOR PÔS EM PRIMEIRO ══════════════════════════════════════════════════
+   *
+   * Entra ANTES do hash de perfil, e só entre raquetes com `fit_score` exatamente igual.
+   *
+   * A Pure Drive e a Pure Aero publicam as mesmas seis especificações, então recebem o mesmo vetor
+   * e empatam ponto a ponto. Até aqui o desempate era o hash — determinístico e arbitrário, o
+   * melhor possível enquanto não houvesse critério. Só que existe um: uma é a linha de POTÊNCIA da
+   * marca e a outra é a linha de SPIN, e quem pediu spin em primeiro lugar tem uma razão real para
+   * receber a segunda.
+   *
+   * O posicionamento não é especificação e não mexe em score nenhum — ver `racket-lines.ts` para o
+   * que a tabela é, o que ela não é, e por que as linhas all-round ficam fora dela. Para todo par
+   * em que uma das duas não tem posicionamento declarado, o comportamento é o de antes.
+   */
+  const eixoPrincipal =
+    profile.declared_priorities[0] ??
+    (() => {
+      const forte = NEED_KEYS.reduce((melhor, k) =>
+        profile.desired_change_vector[k] > profile.desired_change_vector[melhor] ? k : melhor,
+      );
+      return profile.desired_change_vector[forte] > 0 ? forte : null;
+    })();
+
+  /** 1 quando a linha da raquete é construída em torno do que o jogador pediu; 0 caso contrário. */
+  const afinidadeDeLinha = (r: ScoredRacket): number =>
+    eixoPrincipal !== null && lineOrientation(r.variant.family) === eixoPrincipal ? 1 : 0;
+
   scored.sort((a, b) =>
     compareByScoreThenTieBreak(
-      { score: a.fit_score, id: a.racket.variant.id },
-      { score: b.fit_score, id: b.racket.variant.id },
+      {
+        score: a.fit_score,
+        id: a.racket.variant.id,
+        lineAffinity: afinidadeDeLinha(a.racket),
+      },
+      {
+        score: b.fit_score,
+        id: b.racket.variant.id,
+        lineAffinity: afinidadeDeLinha(b.racket),
+      },
       signature,
     ),
   );
