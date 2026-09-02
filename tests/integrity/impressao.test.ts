@@ -143,6 +143,46 @@ describe('o botão que gera a página única', () => {
   });
 
   /**
+   * `print()` roda DENTRO do clique — sem `requestAnimationFrame` no meio.
+   *
+   * ═══ O DEFEITO QUE ISTO TRANCA: O BOTÃO QUE NÃO RESPONDE ═════════════════════════════════
+   *
+   * A versão anterior esperava dois quadros antes de imprimir, e isso quebrava de duas formas que
+   * chegam ao usuário como "cliquei e não aconteceu nada":
+   *
+   *   • fora do gesto do usuário, a impressão pode ser recusada pelo navegador — o Safari é o
+   *     rigoroso aqui, e o Chrome não, e é por isso que o teste de desktop não pegava;
+   *   • `requestAnimationFrame` não dispara com a página em segundo plano ou com o quadro
+   *     estrangulado, e o estado "preparando" ficava ligado para sempre, deixando o botão
+   *     desabilitado — morto, sem erro nenhum no console.
+   *
+   * A espera não comprava nada: o que mudava no render era o rótulo do botão, dentro de uma caixa
+   * de altura fixa, e as regras de impressão só valem durante a impressão.
+   */
+  it('imprime dentro do clique, sem esperar quadro', () => {
+    /*
+      Só o CÓDIGO. O comentário do arquivo cita `requestAnimationFrame` para explicar por que ele
+      saiu — e um teste que acusasse a própria explicação obrigaria a apagar a explicação para
+      passar, que é o oposto do que este repositório faz.
+    */
+    const codigo = botao.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(
+      codigo,
+      'a impressão voltou a acontecer fora do gesto do usuário',
+    ).not.toContain('requestAnimationFrame');
+  });
+
+  /**
+   * Sem `disabled`, um clique que falhe em silêncio não deixa o botão inutilizável.
+   *
+   * Era o `disabled={preparando}` que transformava uma falha invisível num botão permanentemente
+   * morto — e "não responde mais" é indistinguível de "o site quebrou" para quem está do outro lado.
+   */
+  it('o botão não fica desabilitado', () => {
+    expect(botao).not.toMatch(/disabled=\{/);
+  });
+
+  /**
    * A regra injetada precisa sair depois de imprimir.
    *
    * Deixá-la faria a próxima impressão — de qualquer página do site — herdar a altura deste

@@ -361,11 +361,15 @@ export async function redeemAccessCode(
           pessoa continuaria olhando o preço cheio, o que lê como "não funcionou".
         */
         revalidatePath(`/planos/${publicId}`);
-        return {
-          ok:
-            `Cupom aplicado: ${outcome.percent}% de desconto. Os valores abaixo já estão ` +
-            'atualizados.',
-        };
+        /*
+          A frase não diz onde os valores estão.
+
+          Ela dizia "os valores abaixo", e no celular os cards ficam ACIMA do formulário — fora da
+          tela no instante em que a mensagem aparece. Quem lia "abaixo" olhava para baixo, não via
+          preço nenhum e concluía que o cupom não tinha pegado. Quem leva o olho até os preços é a
+          rolagem que o formulário dispara, não a palavra.
+        */
+        return { ok: `Cupom aplicado: ${outcome.percent}% de desconto nos preços.` };
       }
       case 'exhausted':
         return { error: 'Este código já atingiu o limite de usos.' };

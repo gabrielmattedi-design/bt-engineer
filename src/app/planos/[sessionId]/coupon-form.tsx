@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { redeemAccessCode } from './actions';
 
 /**
@@ -18,6 +18,29 @@ import { redeemAccessCode } from './actions';
 export function CouponForm({ sessionId }: { sessionId: string }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(redeemAccessCode, undefined);
+
+  /**
+   * Aplicado o desconto, a tela vai até os preços.
+   *
+   * ═══ POR QUE ISTO É NECESSÁRIO, E NÃO ENFEITE ════════════════════════════════════════════════
+   *
+   * No celular, os cards de preço ficam acima deste formulário e saem da tela quando a pessoa rola
+   * até aqui para digitar o código. Aplicado o cupom, tudo o que ela vê é a mensagem de sucesso —
+   * os valores novos, que são a única prova de que funcionou, estão fora do campo de visão.
+   *
+   * Relatado assim: "deu a mensagem, mas o valor fica acima e não abaixo". A pessoa não estava
+   * confusa com a palavra; ela estava olhando para um lugar sem preço.
+   *
+   * Só vale para o cupom de DESCONTO. O de acesso redireciona para o relatório, e aí não há para
+   * onde rolar — por isso a condição é `ok`, e não "a ação terminou".
+   */
+  useEffect(() => {
+    if (!state || !('ok' in state)) return;
+    document
+      .getElementById('planos-lista')
+      // `smooth` de propósito: o salto seco faria a pessoa perder de vista o que mudou de lugar.
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [state]);
 
   if (!open) {
     return (

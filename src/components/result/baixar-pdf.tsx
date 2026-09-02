@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 /**
  * Gera o PDF do relatório em UMA página contínua.
  *
@@ -68,58 +66,78 @@ const ALTURA_MAX_MM = 4800;
 const ESTILO_ID = 'te-pagina-unica';
 
 export function BaixarPdf() {
-  const [preparando, setPreparando] = useState(false);
-
+  /**
+   * Tudo acontece DENTRO do clique, sem esperar quadro nenhum.
+   *
+   * ═══ O QUE ISTO CONSERTOU: O BOTÃO QUE NÃO RESPONDIA ═════════════════════════════════════════
+   *
+   * A versão anterior marcava um estado "preparando", esperava dois `requestAnimationFrame` e só
+   * então chamava `window.print()`. Duas coisas ruins saíam disso, e as duas aparecem como "cliquei
+   * e não aconteceu nada":
+   *
+   *   • `print()` deixava de rodar dentro do gesto do usuário. Navegadores — o Safari em especial —
+   *     tratam a impressão como ação privilegiada e podem recusá-la fora do clique. O Chrome
+   *     aceitava, e por isso o defeito não aparecia em teste de desktop.
+   *
+   *   • `requestAnimationFrame` NÃO dispara com a página em segundo plano ou com o quadro
+   *     estrangulado (economia de bateria, aba oculta). Quando o callback não vinha, o estado
+   *     "preparando" ficava ligado para sempre — e o botão, que fica desabilitado nesse estado,
+   *     virava um botão morto. Sem erro no console, sem nada.
+   *
+   * A espera não comprava nada. Ela existia para "deixar o render acontecer antes de medir", só que
+   * o que mudava no render era o RÓTULO do botão, dentro de uma caixa de altura fixa — a altura do
+   * documento é a mesma antes e depois. E as regras de impressão que escondem elementos só valem
+   * DURANTE a impressão, então nunca entraram na medida de qualquer forma.
+   *
+   * Lendo `scrollHeight` de forma síncrona, o próprio navegador resolve o layout pendente antes de
+   * responder. A medida é a mesma, e `print()` continua no gesto.
+   */
   function imprimir() {
-    setPreparando(true);
+    try {
+      const alturaPx = Math.ceil(document.documentElement.scrollHeight);
+      // 96 px por polegada é a referência de CSS; 25.4 mm por polegada, a de medida.
+      const alturaMm = Math.min(ALTURA_MAX_MM, Math.ceil((alturaPx / 96) * 25.4) + 10);
 
-    /*
-      O `requestAnimationFrame` duplo não é superstição.
+      document.getElementById(ESTILO_ID)?.remove();
+      const estilo = document.createElement('style');
+      estilo.id = ESTILO_ID;
+      estilo.textContent = `@page { size: ${LARGURA_MM}mm ${alturaMm}mm; margin: 0; }`;
+      document.head.appendChild(estilo);
 
-      Entre marcar o estado e medir a página existe um render: o botão troca de texto, e no modo de
-      impressão vários elementos somem. Medir antes de o navegador aplicar isso daria a altura da
-      página ANTIGA — mais alta que a real — e o PDF sairia com uma faixa vazia no fim.
-    */
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        try {
-          const alturaPx = Math.ceil(document.documentElement.scrollHeight);
-          // 96 px por polegada é a referência de CSS; 25.4 mm por polegada, a de medida.
-          const alturaMm = Math.min(ALTURA_MAX_MM, Math.ceil((alturaPx / 96) * 25.4) + 10);
+      window.print();
+    } finally {
+      /*
+        A limpeza acontece SEMPRE.
 
-          document.getElementById(ESTILO_ID)?.remove();
-          const estilo = document.createElement('style');
-          estilo.id = ESTILO_ID;
-          estilo.textContent = `@page { size: ${LARGURA_MM}mm ${alturaMm}mm; margin: 0; }`;
-          document.head.appendChild(estilo);
+        No Chrome, `print()` bloqueia até a caixa fechar e isto roda depois. No Safari ela retorna
+        na hora e a regra sai antes de a folha ser gerada — o que não é problema: a altura já foi
+        aplicada quando a impressão começou.
 
-          window.print();
-        } finally {
-          /*
-            A limpeza acontece SEMPRE, e depois de `print()` retornar.
-
-            `window.print()` bloqueia até a caixa de diálogo fechar, tanto no salvar quanto no
-            cancelar. Deixar a regra de página injetada faria a próxima impressão — de qualquer
-            página do site — herdar a altura deste relatório.
-          */
-          document.getElementById(ESTILO_ID)?.remove();
-          setPreparando(false);
-        }
-      });
-    });
+        Deixar a regra injetada faria a próxima impressão, de qualquer página do site, herdar a
+        altura deste relatório.
+      */
+      document.getElementById(ESTILO_ID)?.remove();
+    }
   }
 
   return (
     <div className="te-sem-impressao">
+      {/*
+        Sem estado de "preparando", e isso é uma decisão.
+
+        Não há espera para sinalizar: entre o clique e a caixa de impressão não existe trabalho
+        assíncrono nenhum. Um rótulo que muda e volta no mesmo instante não informa nada — e o
+        `disabled` que vinha junto era justamente o que transformava uma falha silenciosa num botão
+        permanentemente morto.
+      */}
       <button
         type="button"
         onClick={imprimir}
-        disabled={preparando}
         className="flex min-h-[56px] w-full items-center justify-center rounded border-2
                    border-court px-6 font-semibold text-court transition-colors
-                   hover:bg-court hover:text-paper disabled:opacity-60 sm:w-auto"
+                   hover:bg-court hover:text-paper sm:w-auto"
       >
-        {preparando ? 'Preparando…' : 'Baixar em PDF'}
+        Baixar em PDF
       </button>
 
       {/*

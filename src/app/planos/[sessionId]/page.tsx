@@ -119,7 +119,14 @@ export default async function PlanosPage({
           </div>
         )}
 
-        <div className="mt-8 space-y-4">
+        {/*
+          O `id` existe para o formulário de cupom achar esta lista.
+
+          Aplicado o desconto, o preço muda AQUI — e no celular o formulário fica bem abaixo dos
+          cards, fora da tela. A mensagem de sucesso dizia "os valores abaixo" e eles estavam acima,
+          o que faz a pessoa concluir que não pegou. Ver `coupon-form.tsx`.
+        */}
+        <div id="planos-lista" className="mt-8 space-y-4">
           {visible.map((product) => (
             <div key={product.sku} className="rounded border border-line bg-white p-6">
               <h2 className="font-display text-lg font-semibold">{product.name}</h2>
