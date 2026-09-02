@@ -18,10 +18,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCatalogScale,
+  computeTension,
   enrichProfileWithCatalog,
   recommend,
   selectStringVariant,
 } from '@/recommendation';
+import type { PlayerProfile } from '@/domain/player-profile';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { serializeRecommendation, type Entitlement } from '@/payments/entitlements';
 import { PERSONAS } from '@/data/personas';
@@ -284,5 +286,123 @@ describe('a mesma raquete nunca recebe duas cordas', () => {
       expect(payload.current_racket_setup, persona.id).toBeNull();
       expect(payload.current_racket_setup_note, persona.id).toBeNull();
     }
+  });
+});
+
+/**
+ * ═══ A MATRIZ INTEIRA: NUNCA UM SILÊNCIO ═════════════════════════════════════════════════════
+ *
+ * A pergunta que originou este bloco foi feita assim: "se minha raquete ficar em primeiro; se ficar
+ * em segundo ou terceiro; se ela não aparecer; se quem preencher não disser qual raquete usa — o
+ * sistema está preparado para todas essas situações e outras que eu possa não ter pensado?".
+ *
+ * Estava para quatro delas. A varredura achou duas que não:
+ *
+ *   • raquete em 1º E o seletor de setup movido para outra posição do pódio — o bloco nunca tinha
+ *     sido calculado (porque ela era a vencedora) e o aviso caía num `return null` final;
+ *   • análise gravada antes desta seção existir — mesmo `return null`.
+ *
+ * Nos dois a página não mostrava nem o bloco nem o motivo. A invariante abaixo é o que impede que
+ * um terceiro caso desses nasça sem ninguém ver: quem comprou o setup recebe SEMPRE uma das duas
+ * coisas.
+ */
+describe('todas as situações da raquete atual', () => {
+  const escala = buildCatalogScale(RACKETS);
+
+  /** Reproduz o que `withSetupFor` faz quando o jogador aponta o seletor para outra posição. */
+  function comSetupEm(result: ReturnType<typeof analisar>['result'], profile: PlayerProfile, id: string | null) {
+    if (!id) return result;
+    const alvo = result.podium.find((e) => e.racket.variant.id === id);
+    if (!alvo || alvo.rank === 1) return result;
+    const corda = selectStringVariant(profile, alvo.racket, STRINGS, escala, TEST_MODE);
+    if (!corda) return result;
+    return {
+      ...result,
+      string_recommendation: corda,
+      tension: computeTension(alvo.racket, corda.variant, profile),
+      setup_for_variant_id: id,
+    };
+  }
+
+  /**
+   * Cada raquete do catálogo declarada como atual, com o seletor em cada posição do pódio — mais o
+   * caso sem raquete e o de relatório antigo. É a varredura que achou os dois buracos.
+   */
+  it('bloco OU explicação, em toda combinação', () => {
+    const perfilBase = PERSONAS.find((p) => p.answers.current_racket_id)!;
+    let combinacoes = 0;
+
+    for (const racket of RACKETS.slice(0, 12)) {
+      const answers = { ...perfilBase.answers, current_racket_id: racket.variant.id };
+      const profile = enrichProfileWithCatalog(buildPlayerProfile(answers), RACKETS, STRINGS);
+      const base = recommend({
+        profile,
+        rackets: RACKETS,
+        strings: STRINGS,
+        datasetVersion: TEST_DATASET_VERSION,
+        mode: TEST_MODE,
+        includeSetup: true,
+      });
+
+      // O seletor pode estar no padrão ou em qualquer posição do pódio.
+      const alvos = [null, ...base.podium.map((e) => e.racket.variant.id)];
+      for (const alvo of alvos) {
+        const payload = serializeRecommendation(comSetupEm(base, profile, alvo), profile, TUDO);
+        combinacoes++;
+        expect(
+          payload.current_racket_setup !== null || payload.current_racket_setup_note !== null,
+          `${racket.variant.id} com setup em ${alvo ?? 'padrão'}: nem bloco nem motivo`,
+        ).toBe(true);
+      }
+
+      /*
+        Relatório ANTIGO: a chave não existe no resultado gravado.
+
+        `undefined` e `null` precisam continuar significando coisas diferentes — é o que separa
+        "análise anterior a esta seção" de "não houve o que calcular".
+      */
+      const antigo = { ...base, current_racket_setup: undefined };
+      const doAntigo = serializeRecommendation(antigo, profile, TUDO);
+      expect(doAntigo.current_racket_setup, `${racket.variant.id}: bloco fabricado sobre análise antiga`).toBeNull();
+      expect(doAntigo.current_racket_setup_note, `${racket.variant.id}: análise antiga em silêncio`).not.toBeNull();
+    }
+
+    expect(combinacoes, 'a varredura não cobriu nada').toBeGreaterThan(30);
+  });
+
+  /**
+   * Com a raquete em 1º e o seletor movido, o bloco APARECE — e não vira um aviso.
+   *
+   * Este era o caso silencioso, e a correção certa não era escrever mais um texto: era calcular o
+   * setup da raquete atual sempre, e deixar a decisão de exibir com o relatório. Quem move o
+   * seletor para explorar outro quadro continua vendo o que fazer com o próprio.
+   */
+  it('raquete em 1º com o seletor movido recebe o bloco, não um aviso', () => {
+    const perfilBase = PERSONAS.find((p) => p.answers.current_racket_id)!;
+    let testados = 0;
+
+    for (const racket of RACKETS) {
+      const answers = { ...perfilBase.answers, current_racket_id: racket.variant.id };
+      const profile = enrichProfileWithCatalog(buildPlayerProfile(answers), RACKETS, STRINGS);
+      const base = recommend({
+        profile,
+        rackets: RACKETS,
+        strings: STRINGS,
+        datasetVersion: TEST_DATASET_VERSION,
+        mode: TEST_MODE,
+        includeSetup: true,
+      });
+      if (base.podium[0]?.racket.variant.id !== racket.variant.id) continue;
+
+      const segunda = base.podium[1]?.racket.variant.id;
+      if (!segunda) continue;
+
+      const payload = serializeRecommendation(comSetupEm(base, profile, segunda), profile, TUDO);
+      expect(payload.current_racket_setup, `${racket.variant.id}: sumiu ao mover o seletor`).not.toBeNull();
+      testados++;
+      if (testados >= 3) break;
+    }
+
+    expect(testados, 'nenhuma raquete venceu o próprio ranking — o teste não prova nada').toBeGreaterThan(0);
   });
 });

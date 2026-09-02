@@ -261,9 +261,21 @@ export type RecommendationResult = {
    * que aponta uma raquete de mil reais e cala sobre os trinta reais que melhorariam a de hoje é
    * exatamente o desenho que o produto se proíbe.
    *
-   * `null` ou ausente quando: a pessoa não tem raquete reconhecida, o setup não foi comprado, ou a
-   * raquete atual É a recomendada — nesse último caso o setup principal já é o dela, e repetir a
-   * mesma corda em dois blocos diria que são duas respostas quando é uma.
+   * ═══ `null` E AUSENTE NÃO SÃO A MESMA COISA ══════════════════════════════════════════════════
+   *
+   * `null` — a análise foi calculada com esta seção existindo, e não houve o que calcular: sem
+   * raquete atual reconhecida, ou nenhuma corda compatível com as restrições do jogador.
+   *
+   * AUSENTE (a chave não existe) — a análise é anterior a este campo. `JSON.stringify` preserva
+   * `null` e descarta chaves ausentes, então a distinção sobrevive ao banco, e o relatório diz
+   * coisas diferentes nos dois casos: no primeiro explica que não havia o que calcular, no segundo
+   * que a análise é antiga e que refazer o questionário traz a seção.
+   *
+   * ─── E POR QUE ELE É CALCULADO ATÉ QUANDO A RAQUETE ATUAL VENCE ────────────────────────────
+   *
+   * Porque quem decide se ele APARECE é o relatório, não o motor. O seletor de setup pode ser
+   * movido depois do cálculo, e quem tem a própria raquete em 1º e aponta o setup para a 2ª deixaria
+   * de ver o setup dela em lugar nenhum. Ver a nota em `recommend` (recommendation/index.ts).
    */
   readonly current_racket_setup?: {
     readonly string_recommendation: StringRecommendation;

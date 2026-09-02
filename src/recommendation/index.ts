@@ -168,10 +168,24 @@ export function recommend(input: RecommendInput): RecommendationResult {
    * mesma função sobre outro quadro, e é isso que permite dizer "com a sua raquete, esta corda" com
    * o mesmo rigor com que o relatório diz a outra.
    *
-   * ─── QUANDO ELE NÃO É CALCULADO ───────────────────────────────────────────────────────────
+   * ─── ELE É CALCULADO SEMPRE QUE HÁ RAQUETE ATUAL, INCLUSIVE QUANDO ELA VENCE ──────────────
    *
-   * Quando a raquete atual É a recomendada. Aí o setup principal já é o dela, e mostrar dois blocos
-   * com a mesma corda faria a pessoa procurar a diferença entre duas coisas idênticas.
+   * A primeira versão pulava o cálculo quando a raquete atual era a vencedora, com o argumento de
+   * que o setup principal já seria o dela. O argumento vale para a EXIBIÇÃO e não valia aqui — e a
+   * diferença apareceu como um silêncio na tela.
+   *
+   * O relatório tem um seletor que aponta o setup para outra posição do pódio. Quem tem a própria
+   * raquete em 1º e move o seletor para a 2ª deixa de ver o setup dela em qualquer lugar da página:
+   * o principal passou a ser de outro quadro, e o bloco da atual nunca tinha sido calculado. Medido
+   * na matriz de cenários — era o único caso que não produzia nem bloco nem explicação.
+   *
+   * O motor não pode decidir isso, porque ele calcula UMA vez e o seletor se move depois. Calcular
+   * sempre custa uma seleção de corda e resolve o caso inteiro; quem decide se mostra é
+   * `buildCurrentRacketSetup`, que compara com o alvo vigente do setup.
+   *
+   * `null` quando não há raquete atual reconhecida ou quando nenhuma corda serve. A distinção entre
+   * `null` e AUSENTE importa: ausente significa análise gravada antes deste campo existir, e o
+   * relatório diz coisas diferentes nos dois casos.
    *
    * A comparação com a corda que ela usa HOJE não é feita aqui: ela é texto de relatório, e mora em
    * `entitlements.ts` junto do resto da apresentação. Aqui fica só o número.
@@ -181,7 +195,7 @@ export function recommend(input: RecommendInput): RecommendationResult {
     tension: NonNullable<typeof tension>;
   } | null = null;
 
-  if (input.includeSetup && input.strings && currentRacket && currentRacket.variant.id !== top?.racket.variant.id) {
+  if (input.includeSetup && input.strings && currentRacket) {
     const corda = selectStringVariant(profile, currentRacket, input.strings, ranked.scale, mode);
     if (corda) {
       currentRacketSetup = {

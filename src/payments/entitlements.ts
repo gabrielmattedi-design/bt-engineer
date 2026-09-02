@@ -761,12 +761,9 @@ function buildCurrentRacketSetupNote(
   if (temBloco) return null;
 
   const atualId = profile.current_racket?.variant_id;
-  const reconhecida =
-    atualId != null &&
-    !profile.current_racket?.unrecognized &&
-    result.full_ranking.some((r) => r.racket.variant.id === atualId);
 
-  if (!reconhecida) {
+  // ── 1. Não há raquete para calcular ────────────────────────────────────────────────────────
+  if (atualId == null || profile.current_racket?.unrecognized) {
     return (
       'O setup completo também traz a corda e a tensão ideais para a raquete que você já tem — mas ' +
       'para isso precisamos saber qual é ela. Você não informou uma raquete atual, ou o modelo que ' +
@@ -776,18 +773,77 @@ function buildCurrentRacketSetupNote(
     );
   }
 
-  if (atualId === setupAlvoId) {
-    const nome = result.full_ranking.find((r) => r.racket.variant.id === atualId);
+  const noRanking = result.full_ranking.find((r) => r.racket.variant.id === atualId);
+
+  /**
+   * ── 2. Reconhecida, mas fora da análise ──────────────────────────────────────────────────
+   *
+   * Antes este caso caía na mensagem de cima, que diz "você não informou, ou não está no catálogo".
+   * As duas metades seriam falsas: a pessoa informou, e a raquete está no catálogo — nós é que a
+   * tiramos, por um filtro duro (specs faltando, dados insuficientes, quadro fora do padrão
+   * adulto). Culpar a resposta dela por uma decisão nossa é o tipo de mentira pequena que corrói a
+   * confiança no resto do relatório.
+   *
+   * Com o catálogo de hoje isto não acontece — varrido: 47 de 47 raquetes permanecem no ranking
+   * quando declaradas como atuais, inclusive para perfis com histórico de dor no braço. O ramo
+   * existe porque o catálogo cresce e os filtros continuam valendo.
+   */
+  if (!noRanking) {
     return (
-      `Você não vai encontrar um bloco separado de "corda e tensão para a sua raquete atual" nesta ` +
-      `página, e o motivo é bom: o setup acima JÁ É o dela. ` +
-      `${nome ? `A ${currentRacketLabel(nome.racket.variant)} que você já tem é ` : 'Sua raquete é '}` +
-      `a raquete para a qual esse setup foi calculado, então a corda, a espessura e a tensão que ` +
-      `você leu ali são exatamente o que fazer no próximo encordoamento — sem trocar de quadro.`
+      'Reconhecemos a raquete que você informou, mas ela ficou de fora desta análise: faltam dados ' +
+      'publicados que consideramos obrigatórios para uma recomendação paga, ou ela está fora do ' +
+      'padrão de quadro adulto que avaliamos. Como não a avaliamos, não seria honesto sugerir uma ' +
+      'corda e uma tensão para ela — a lista de exclusões e o motivo de cada uma ficam registrados ' +
+      'na análise. A recomendação de quadro acima não é afetada por isso.'
     );
   }
 
-  return null;
+  // ── 3. O setup acima JÁ É o dela ───────────────────────────────────────────────────────────
+  if (atualId === setupAlvoId) {
+    return (
+      `Você não vai encontrar um bloco separado de "corda e tensão para a sua raquete atual" nesta ` +
+      `página, e o motivo é bom: o setup acima JÁ É o dela. A ` +
+      `${currentRacketLabel(noRanking.racket.variant)} que você já tem é a raquete para a qual esse ` +
+      `setup foi calculado, então a corda, a espessura e a tensão que você leu ali são exatamente o ` +
+      `que fazer no próximo encordoamento — sem trocar de quadro.`
+    );
+  }
+
+  /**
+   * ── 4. A análise é anterior a esta seção ─────────────────────────────────────────────────
+   *
+   * `undefined` e `null` significam coisas diferentes aqui, e a distinção sobrevive ao banco:
+   * `JSON.stringify` preserva `null` e descarta chaves ausentes. Uma análise calculada depois desta
+   * seção existir sempre grava a chave — com o objeto ou com `null`. Ausente, então, só pode ser
+   * uma análise antiga.
+   *
+   * Recalcular hoje, sobre um resultado de ontem, produziria uma seção que descreve uma análise que
+   * nunca aconteceu — §69, e a mesma razão pela qual `analysis_outdated` existe em vez de refazer a
+   * conta em silêncio.
+   */
+  if (result.current_racket_setup === undefined) {
+    return (
+      `Esta análise foi calculada antes de existir a seção de corda e tensão para a raquete que ` +
+      `você já tem, e por isso ela não aparece aqui. Não recalculamos um relatório já entregue: o ` +
+      `que você comprou continua sendo exatamente o que foi calculado na época. Para receber essa ` +
+      `parte, refaça o questionário — a análise nova sai com ela, e este link continua acessível ` +
+      `como está.`
+    );
+  }
+
+  /**
+   * ── 5. Nenhuma corda serve para aquele quadro ────────────────────────────────────────────
+   *
+   * Sobra do caso em que a seleção de corda devolveu `null` — todo o catálogo excluído para aquele
+   * jogador, por tipo proibido somado a disponibilidade. Não deve acontecer com o catálogo atual, e
+   * ainda assim precisa de resposta: um silêncio aqui seria indistinguível de um defeito.
+   */
+  return (
+    'Não conseguimos fechar uma recomendação de corda para a raquete que você já tem sem contrariar ' +
+    'alguma das restrições do seu perfil — em geral é o histórico de desconforto no braço, que ' +
+    'proíbe os tipos mais duros, combinado com o que está disponível no Brasil. Preferimos não ' +
+    'sugerir nada a sugerir algo que a própria análise desaconselha.'
+  );
 }
 
 /**
