@@ -249,6 +249,51 @@ describe('quando a sua raquete é irmã de linha de uma do pódio', () => {
     }
   });
 
+  /**
+   * ═══ A FRASE DE SALDO SÓ AFIRMA EQUILÍBRIO ONDE ELE EXISTE ═══════════════════════════════
+   *
+   * Pedida assim: "eu acho legal concluir que pro seu perfil no fim ela se equilibra, onde uma é
+   * melhor a outra é pior". A observação é boa — e medida, ela é verdadeira em 12 de 12 casos no
+   * que diz respeito à TROCA: nunca existe uma irmã que ganhe em todos os eixos.
+   *
+   * O que varia é o SALDO. Os gaps observados vão de 0 a 13 pontos. Com gap 0 as duas são de fato
+   * equivalentes; com gap 13 a troca de eixos continua existindo e mesmo assim a do pódio ficou
+   * claramente à frente. Usar a mesma frase nos dois transformaria uma observação verdadeira em
+   * conforto falso — que é o oposto do que o §58 pede.
+   */
+  it('só diz "se equilibra" quando as duas estão de fato lado a lado', () => {
+    let equilibradas = 0;
+    let desequilibradas = 0;
+
+    for (const { id, result, payload } of casos) {
+      const st = payload.current_racket_standing!;
+      const nota = st.family_match!.balance_note;
+      if (!nota) continue;
+
+      const gap = Math.round(result.full_ranking[0]!.fit_score) - Math.round(st.fit_score);
+      if (st.verdict === 'keep') {
+        equilibradas++;
+        expect(nota, `${id}: gap ${gap} e não diz que se equilibra`).toMatch(/se equilibra/);
+      } else {
+        desequilibradas++;
+        expect(nota, `${id}: gap ${gap} e afirma equilíbrio mesmo assim`).not.toMatch(/se equilibra/);
+        expect(nota, `${id}: não diz para onde o saldo pende`).toMatch(/ficou à frente/);
+      }
+    }
+
+    expect(equilibradas, 'nenhum caso equilibrado na varredura').toBeGreaterThan(0);
+    expect(desequilibradas, 'nenhum caso desequilibrado na varredura').toBeGreaterThan(0);
+  });
+
+  /** Sem troca mútua não há saldo a concluir — e a frase some em vez de inventar uma. */
+  it('não conclui nada quando um dos lados não tem eixo nenhum', () => {
+    for (const { id, payload } of casos) {
+      const fm = payload.current_racket_standing!.family_match!;
+      if (fm.your_edge.length > 0 && fm.sibling_edge.length > 0) continue;
+      expect(fm.balance_note, `${id}: concluiu equilíbrio sem troca de eixos`).toBeNull();
+    }
+  });
+
   /** Fora do modo família, nada muda: posição e percentual continuam na tela. */
   it('não vaza para quem não é irmã de linha', () => {
     for (const persona of PERSONAS) {

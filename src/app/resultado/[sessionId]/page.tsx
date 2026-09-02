@@ -730,6 +730,20 @@ export default async function ResultadoPage({
                 </div>
               )}
 
+            {/* ── O SALDO DA TROCA ─────────────────────────────────────────
+                Depois das colunas, e não antes: a conclusão só faz sentido para quem já viu o que
+                cada uma ganha. Lida antes, ela seria uma afirmação sem lastro.
+
+                Ela não é sempre "se equilibra" — ver `balance_note`. Entre as combinações medidas o
+                gap para a primeira vai de 0 a 13 pontos, e afirmar equilíbrio no extremo de cima
+                transformaria uma observação verdadeira em conforto falso.
+            */}
+            {report.current_racket_standing.family_match?.balance_note && (
+              <p className="mt-4 max-w-prose text-sm leading-relaxed text-graphite">
+                {report.current_racket_standing.family_match.balance_note}
+              </p>
+            )}
+
             {/* ── E O QUE FAZER COM ELA HOJE ───────────────────────────────
                 Dentro do mesmo quadro, e não numa seção à parte.
 

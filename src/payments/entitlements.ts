@@ -403,6 +403,22 @@ export type CurrentRacketStanding = {
     readonly your_edge: readonly string[];
     /** Eixos em que a irmã do pódio entrega mais. */
     readonly sibling_edge: readonly string[];
+    /**
+     * A conclusão sobre a troca de eixos — lida DEPOIS das duas colunas.
+     *
+     * Pedida assim: "eu acho legal concluir que pro seu perfil no fim ela se equilibra, onde uma é
+     * melhor a outra é pior". A observação é boa e verdadeira na maior parte dos casos, mas não em
+     * todos, e por isso o texto é condicional.
+     *
+     * Medido nas 12 combinações que entram em modo família: em 12 de 12 a troca é MÚTUA — nunca
+     * existe uma irmã que ganhe em todos os eixos. O que varia é o saldo: os gaps observados vão de
+     * 0 a 13 pontos. Com gap 0 ou 1 as duas são de fato equivalentes e "se equilibra" é a leitura
+     * certa; com gap 13 dizer o mesmo seria falso, porque a troca de eixos existe e mesmo assim a
+     * do pódio ficou claramente à frente.
+     *
+     * `null` quando um dos lados não tem nenhum eixo — aí não há troca a concluir.
+     */
+    readonly balance_note: string | null;
   } | null;
 };
 
@@ -633,12 +649,43 @@ function buildFamilyMatch(
     else if (delta <= -DEGRAU) dela_forte.push(LABEL[eixo]!);
   }
 
+  /**
+   * ─── A CONCLUSÃO SÓ AFIRMA EQUILÍBRIO ONDE ELE EXISTE ───────────────────────────────────
+   *
+   * As duas colunas mostram que cada uma ganha em alguma coisa. A pergunta que sobra é o SALDO, e
+   * ele não é sempre o mesmo: entre as combinações que entram em modo família, o gap para a
+   * primeira colocada vai de 0 a 13 pontos.
+   *
+   * Com gap pequeno as duas são equivalentes e "se equilibra" é exatamente a leitura certa. Com gap
+   * grande a troca de eixos continua existindo — e a irmã do pódio ficou à frente mesmo assim. Usar
+   * a mesma frase nos dois casos transformaria uma observação verdadeira em conforto falso.
+   *
+   * E quando o saldo não fecha por estes seis eixos, o texto diz onde ele fecha: os eixos exibidos
+   * descrevem o COMPORTAMENTO DA BOLA, enquanto o ranking é dominado por encaixe físico, nível e
+   * swing — que aparecem no radar, não aqui. Apontar para lá é mais honesto do que deixar o leitor
+   * concluir que a conta não fecha.
+   */
+  const gap = Math.round(result.full_ranking[0]?.fit_score ?? 0) - Math.round(atual.fit_score);
+  const trocaMutua = meuForte.length > 0 && dela_forte.length > 0;
+
+  const balance_note = !trocaMutua
+    ? null
+    : gap < KEEP_CURRENT_GAP
+      ? 'Uma ganha exatamente onde a outra perde, e para o seu perfil isso se equilibra: no ' +
+        'conjunto, as duas entregam um desempenho semelhante. A escolha entre elas é sua — o que ' +
+        'muda é o tipo de vantagem, não o tamanho dela.'
+      : `Cada uma ganha em alguma coisa, mas o saldo não fica empatado: no conjunto a ` +
+        `${irma.racket.variant.product_name} ficou à frente. E o que decide isso vai além destes ` +
+        `seis eixos, que descrevem o comportamento da bola — pesam também o encaixe com o seu ` +
+        `físico, o seu nível técnico e a velocidade do seu swing, que estão no gráfico mais abaixo.`;
+
   return {
     family: atual.racket.variant.family,
     sibling_name: irma.racket.variant.product_name,
     sibling_rank: irma.rank,
     your_edge: meuForte,
     sibling_edge: dela_forte,
+    balance_note,
   };
 }
 
