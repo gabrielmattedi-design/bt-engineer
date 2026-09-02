@@ -16,7 +16,12 @@ import { cookies } from 'next/headers';
 import { isMissingTable } from '@/database/setup';
 import { extractFreeText } from '@/ai/extract-free-text';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
-import { computeTension, recommend, selectStringVariant } from '@/recommendation';
+import {
+  computeTension,
+  enrichProfileWithCatalog,
+  recommend,
+  selectStringVariant,
+} from '@/recommendation';
 import { scoreRackets } from '@/recommendation/normalize/racket-attributes';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import type { QuestionnaireAnswers } from '@/recommendation/profile/answers';
@@ -64,11 +69,24 @@ export async function analyzeAnswers(
     ? await extractFreeText(answers.free_text, { answeredFields: [] })
     : [];
 
-  // Camada 3: respostas + sinais → perfil. O merge nunca sobrescreve resposta objetiva (R-05).
-  const profile = buildPlayerProfile(answers, signals);
-
   // Camadas 2 e 4: normalização + ranking determinístico.
   const strings = loadStringCatalog();
+
+  /**
+   * Camada 3: respostas + sinais → perfil. O merge nunca sobrescreve resposta objetiva (R-05).
+   *
+   * O enriquecimento contra o catálogo acontece AQUI, e não só dentro de `recommend`, porque é
+   * este `profile` que vai para o banco. Antes, o registro gravado descrevia um jogador sem specs
+   * de raquete e sem tipo de corda conhecidos, enquanto a análise ao lado tinha sido calculada com
+   * todos esses dados — a entrada guardada não era a entrada do cálculo. Ver
+   * `enrichProfileWithCatalog`.
+   */
+  const profile = enrichProfileWithCatalog(
+    buildPlayerProfile(answers, signals),
+    catalog(),
+    strings,
+  );
+
   const result = recommend({
     profile,
     rackets: catalog(),

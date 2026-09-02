@@ -239,4 +239,34 @@ export type RecommendationResult = {
    * vale, em vez de deixar a corda solta ao lado de três nomes.
    */
   readonly setup_for_variant_id?: string | null;
+
+  /**
+   * O mesmo cálculo de corda e tensão, aplicado à raquete que a pessoa JÁ TEM.
+   *
+   * ═══ POR QUE ISTO EXISTE ═════════════════════════════════════════════════════════════════════
+   *
+   * O relatório sabia dizer onde a raquete atual ficou no ranking e a que distância da primeira, e
+   * parava aí. Para quem não vai trocar de quadro agora — que é a maioria, porque quadro custa
+   * caro — o produto terminava numa constatação: "a sua está em 12º". Verdadeiro e inútil.
+   *
+   * A pergunta que faltava é a que qualquer pessoa faz em seguida: "está bem, mas o que eu faço
+   * com a raquete que eu tenho?". E ela tem resposta técnica de verdade, porque corda e tensão
+   * movem eixos reais — potência, conforto, controle, spin — por uma fração do preço de um quadro,
+   * e são reversíveis no próximo encordoamento.
+   *
+   * ─── E POR QUE ISTO NÃO CANIBALIZA A RECOMENDAÇÃO DE QUADRO ────────────────────────────────
+   *
+   * Porque não substitui: o teto do que corda e tensão alcançam é menor que o de um quadro certo,
+   * e o relatório diz isso. O que muda é a honestidade da entrega — §62 e §58. Vender uma análise
+   * que aponta uma raquete de mil reais e cala sobre os trinta reais que melhorariam a de hoje é
+   * exatamente o desenho que o produto se proíbe.
+   *
+   * `null` ou ausente quando: a pessoa não tem raquete reconhecida, o setup não foi comprado, ou a
+   * raquete atual É a recomendada — nesse último caso o setup principal já é o dela, e repetir a
+   * mesma corda em dois blocos diria que são duas respostas quando é uma.
+   */
+  readonly current_racket_setup?: {
+    readonly string_recommendation: StringRecommendation;
+    readonly tension: TensionRecommendation;
+  } | null;
 };

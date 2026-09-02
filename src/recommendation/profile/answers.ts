@@ -67,6 +67,26 @@ export type QuestionnaireAnswers = {
 
   // Etapa 6 — corda atual e conforto
   current_string_id: string | null;
+  /**
+   * Categoria da corda que o jogador usa hoje. Opcional; `'nao_sei'` é resposta legítima.
+   *
+   * É a categoria, e não o modelo, porque é o que o cálculo usa e é o que a pessoa sabe:
+   * `computeTension` compara tipo com tipo para decidir quanto a tensão atual dela pesa. Ver a
+   * pergunta `current_string_type` em `quiz/steps.ts` para o defeito que a ausência disto causava.
+   *
+   * `current_string_id` continua existindo e continua vindo `null` do questionário: ele é o gancho
+   * para o dia em que houver como identificar o MODELO (catálogo na tela, ou o extrator de texto
+   * livre). Quando chegar preenchido, `enrichProfileWithCatalog` deriva a categoria dele e esta
+   * resposta vira redundante — nessa ordem de precedência, porque o modelo é o dado mais forte.
+   */
+  current_string_type:
+    | 'polyester'
+    | 'multifilament'
+    | 'synthetic_gut'
+    | 'natural_gut'
+    | 'hybrid'
+    | 'nao_sei'
+    | null;
   current_string_gauge: number | null;
   current_tension_lbs: number | null;
   current_tension_feeling:
@@ -147,6 +167,7 @@ export function emptyAnswers(): QuestionnaireAnswers {
     current_racket_likes: [],
     current_racket_dislikes: [],
     current_string_id: null,
+    current_string_type: null,
     current_string_gauge: null,
     current_tension_lbs: null,
     current_tension_feeling: null,
@@ -196,7 +217,10 @@ export function countUnknowns(a: QuestionnaireAnswers): { unknown: number; answe
   // Etapa de equipamento só é contabilizada se o jogador declarou ter raquete.
   if (!a.no_current_racket) {
     base.push(a.current_racket_id ?? a.current_racket_free_text);
-    base.push(a.current_string_id);
+    // `current_string_id` não é perguntado a ninguém — o que o questionário coleta é a CATEGORIA.
+    // Contar o id faria todo mundo somar um "não respondeu" por uma pergunta que nunca foi feita,
+    // derrubando a confiança de perfis completos.
+    base.push(a.current_string_type);
     base.push(a.current_tension_lbs);
     base.push(a.current_tension_feeling);
     base.push(a.string_breakage);

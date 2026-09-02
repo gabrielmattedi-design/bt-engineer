@@ -57,6 +57,14 @@ const SETUP_PLAN = [
   'Corda e espessura recomendadas, com disponibilidade no Brasil',
   'Tensão inicial em libras e quilos, com faixa sugerida',
   'Por que essa raquete, essa corda e essa tensão funcionam juntas',
+  /*
+    A entrega que mais gente vai usar de fato, e que a lista não anunciava.
+
+    Quadro custa caro e a maioria não troca no mês em que lê o relatório. O setup calculado para a
+    raquete ATUAL é o que essa pessoa aplica na semana seguinte — e ela não tinha como saber que
+    ele estava incluído, porque nenhuma linha desta tela dizia.
+  */
+  'Corda e tensão ideais para a raquete que você JÁ TEM, sem trocar de quadro',
   'Como ajustar no próximo encordoamento',
   'Análise de conforto',
 ] as const;

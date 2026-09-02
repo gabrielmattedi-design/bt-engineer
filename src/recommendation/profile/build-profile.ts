@@ -250,6 +250,99 @@ function bodyScore(a: QuestionnaireAnswers): number {
 }
 
 /**
+ * ═══ O TETO DE PESO ESTÁTICO ═════════════════════════════════════════════════════════════════
+ *
+ * O motor ordena por inércia de swing, e não por peso — ver `frame_weight_ceiling_g` em
+ * `domain/player-profile.ts` para o porquê disso estar certo e do porquê de mesmo assim faltar um
+ * limite absoluto acima da pontuação. Aqui está o limite.
+ *
+ * ─── A FÓRMULA ────────────────────────────────────────────────────────────────────────────────
+ *
+ *     teto = min(320, 240 + 1,03 × kg)   ·   × 0,98 se feminino   ·   e ≤ 300 se menor de 16
+ *
+ * O coeficiente de 1,03 g por quilo não saiu de uma tabela publicada — não existe uma. Ele foi
+ * ajustado contra alvos que o dono do produto fixou olhando perfil por perfil, e o teste é se a
+ * mesma reta atende todos eles ao mesmo tempo:
+ *
+ *     rapaz 16a · 68 kg · avançado ...... alvo 310 g   →   240 + 70,0 = 310 g   ✓
+ *     mulher 45a · 54 kg · fraca ........ alvo 290 g   →   295,6 × 0,98 = 289 g  ✓
+ *     mulher 35a · 63 kg · mediana ...... alvo 295 g   →   304,9 × 0,98 = 298 g  ✓ (*)
+ *
+ * (*) O catálogo é granular: os pesos existentes são 270, 275, 280, 285, 295, 300, 305, 310 e 315.
+ *     Não há nada entre 285 e 295, então um teto de 298 e um de 295 selecionam exatamente o mesmo
+ *     conjunto. A diferença entre a reta e o alvo desaparece na prática — e é por isso que não vale
+ *     a pena torturar a fórmula por três gramas.
+ *
+ * ─── OS DOIS EXTREMOS, E POR QUE ELES SE RESOLVEM SOZINHOS ────────────────────────────────────
+ *
+ * O questionário aceita de 35 a 150 kg (`quiz/steps.ts`), e a reta foi desenhada para que nenhuma
+ * das pontas precise de tratamento especial:
+ *
+ *   • 35 kg, feminino, o menor corpo possível: 276,05 × 0,98 = 270,5 g. O quadro mais leve do
+ *     catálogo pesa 270 g. O teto encosta no chão do catálogo sem passar por baixo dele — nunca
+ *     existe um perfil para o qual o teto sozinho zere as candidatas.
+ *
+ *   • 78 kg para cima: a reta passa de 320 g e o `min` a segura ali. Como o quadro mais pesado do
+ *     catálogo tem 315 g, o teto deixa de restringir qualquer coisa. É o comportamento certo — o
+ *     limite existe para proteger quem tem pouco corpo, não para dizer a quem tem muito que precisa
+ *     de mais peso. Um homem de 92 kg que joga por lazer continua recebendo o que o encaixe físico
+ *     e o pedido dele indicarem, que muitas vezes é um quadro de 300 g.
+ *
+ * ─── POR QUE O SEXO ENTRA, E POR QUE TÃO POUCO ────────────────────────────────────────────────
+ *
+ * Pedido explícito: "acho que o teto precisa ter um fator por sexo sim, mesmo que não tão alto". O
+ * 0,98 é a menor correção que ainda muda alguma coisa — dois por cento de 300 g são 6 g, e 6 g é
+ * menos que um degrau do catálogo na maior parte da faixa. Ele só age nas fronteiras, que é
+ * exatamente onde a diferença de composição corporal para o mesmo peso importa (ver
+ * `SEX_BODY_FACTOR`, algumas linhas acima, para o argumento longo).
+ *
+ * `prefiro_nao_dizer` recebe 0,99, o meio-termo — mesma lógica do 0,95 lá em cima: quem não quis
+ * responder não é penalizado como se tivesse respondido o menor valor.
+ *
+ * ─── E POR QUE OS MENORES DE 16 TÊM UM TETO PRÓPRIO, ALÉM DO PORTE ────────────────────────────
+ *
+ * Porque a reta lê o corpo de hoje e não lê o osso. Um garoto de 13 anos com 75 kg recebe pela reta
+ * um teto de 317 g, e ele é grande — mas ainda está com a placa de crescimento aberta, e ombro e
+ * cotovelo em desenvolvimento é a única parte desta conta que o peso na balança não descreve.
+ *
+ * O corte em 16 anos é o mesmo de `ageFactor`, algumas linhas acima, e é o mesmo que o mercado usa
+ * para separar o quadro juvenil do adulto. 300 g é o topo da faixa em que os fabricantes posicionam
+ * os modelos de transição. Para o menino de 52 kg do caso original a reta já é mais restritiva
+ * (293 g), então este teto só age em quem é grande e novo ao mesmo tempo.
+ */
+const CEILING_BASE_G = 240;
+const CEILING_PER_KG = 1.03;
+const CEILING_MAX_G = 320;
+const CEILING_UNDER_16_G = 300;
+const CEILING_SEX_FACTOR: Record<string, number> = {
+  feminino: 0.98,
+  masculino: 1.0,
+  prefiro_nao_dizer: 0.99,
+};
+
+export function frameWeightCeiling(a: Pick<QuestionnaireAnswers, 'age' | 'weight_kg' | 'sex'>): number | null {
+  // Sem peso não há reta. Inventar um corpo para poder limitar seria pior do que não limitar:
+  // o teto viraria uma restrição sobre uma pessoa imaginária.
+  if (a.weight_kg === null) return null;
+
+  const porPorte =
+    Math.min(CEILING_MAX_G, CEILING_BASE_G + CEILING_PER_KG * a.weight_kg) *
+    (CEILING_SEX_FACTOR[a.sex ?? ''] ?? 1.0);
+
+  const teto = a.age !== null && a.age < 16 ? Math.min(porPorte, CEILING_UNDER_16_G) : porPorte;
+
+  /*
+    Arredonda PARA BAIXO, e não para o inteiro mais próximo.
+
+    Um teto é uma afirmação de segurança, e afirmação de segurança arredonda contra si mesma. A
+    diferença é de menos de um grama e nunca muda qual quadro sobrevive — os pesos do catálogo são
+    inteiros de cinco em cinco —, mas o dia em que aparecer um quadro de 289,5 g o comportamento
+    já estará decidido, e decidido do lado certo.
+  */
+  return Math.floor(teto);
+}
+
+/**
  * Multiplicador de INTENSIDADE sobre a frequência — o que transforma sessões em carga.
  *
  * ═══ POR QUE A FREQUÊNCIA SOZINHA NÃO DESCREVE A CARGA ═══════════════════════════════════════
@@ -717,7 +810,15 @@ export function buildPlayerProfile(
     ? null
     : {
         string_variant_id: a.current_string_id,
-        string_type: null,
+        /*
+          A categoria vem da resposta; `'nao_sei'` vira `null`, que é o que o motor entende por
+          "não sabemos". Se um dia `current_string_id` chegar preenchido, `enrichProfileWithCatalog`
+          sobrescreve isto com a categoria do MODELO — o dado mais forte ganha.
+        */
+        string_type:
+          a.current_string_type === null || a.current_string_type === 'nao_sei'
+            ? null
+            : a.current_string_type,
         gauge_mm: a.current_string_gauge,
         tension_lbs: a.current_tension_lbs,
         tension_feeling: a.current_tension_feeling,
@@ -764,6 +865,7 @@ export function buildPlayerProfile(
     natural_power_score: round(naturalPower),
     physical_capacity_score: round(physicalCapacity),
     age: a.age,
+    frame_weight_ceiling_g: frameWeightCeiling(a),
     arm_sensitivity_score: armSensitivity,
     string_budget: a.string_budget,
     discomfort_areas: a.discomfort_areas.filter((x) => x !== 'nenhum'),

@@ -38,6 +38,14 @@ const OPCIONAIS_PERMITIDAS = [
   'current_racket_id',
   'current_racket_likes',
   'current_racket_dislikes',
+  /**
+   * Tipo da corda atual: quem encordoa é a loja, e muita gente nunca perguntou qual corda pôs.
+   *
+   * Ela oferece um "Não sei" explícito, então quem sabe que não sabe responde — o branco fica para
+   * quem prefere não parar nessa pergunta. Os dois casos chegam ao motor como ausência de dado, que
+   * é o estado que ele já tratava antes de a pergunta existir.
+   */
+  'current_string_type',
   'current_tension_lbs',
   'current_tension_feeling',
   // Nome: dado de apresentação, não de análise. Não entra em cálculo nenhum.

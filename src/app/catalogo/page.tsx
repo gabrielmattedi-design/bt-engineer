@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import { RACKET_BRANDS } from '@/domain/racket';
-import { STRING_BRANDS } from '@/domain/string';
+import { STRING_BRANDS, STRING_TYPE_PT } from '@/domain/string';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { Seal } from '@/components/marketing/seal';
@@ -72,14 +72,8 @@ export default function CatalogoPage() {
     square: 'Quadrada',
   };
 
-  const TYPE_PT: Record<string, string> = {
-    co_polyester: 'Poliéster',
-    polyester: 'Poliéster',
-    multifilament: 'Multifilamento',
-    synthetic_gut: 'Sintética',
-    natural_gut: 'Tripa natural',
-    hybrid: 'Híbrida',
-  };
+  /* Os rótulos vêm do domínio: o relatório pago usa os mesmos. Ver `STRING_TYPE_PT`. */
+  const TYPE_PT = STRING_TYPE_PT;
 
   return (
     <main className="min-h-screen bg-paper">

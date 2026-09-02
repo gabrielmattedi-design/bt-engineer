@@ -8,7 +8,17 @@
 import type { PlayStyle } from './racket';
 import type { Score } from './scores';
 
-export const PROFILE_VERSION = '1.0.0';
+/**
+ * 1.1.0 — duas mudanças de forma, na mesma versão.
+ *
+ * Entrou `frame_weight_ceiling_g`: o perfil passou a carregar um LIMITE, e não só scores.
+ *
+ * E `current_string.string_type` deixou de nascer sempre `null`. O campo existia desde a 1.0.0 e
+ * nada o preenchia — nem o questionário, que não perguntava a categoria da corda, nem o
+ * enriquecimento contra o catálogo, que não existia para cordas. Um perfil gravado a partir daqui
+ * carrega a resposta real; os anteriores continuam com `null`, que é o que sempre foi.
+ */
+export const PROFILE_VERSION = '1.1.0';
 
 export type SwingLength = 'short' | 'medium' | 'long' | 'unknown';
 
@@ -124,6 +134,37 @@ export type PlayerProfile = {
   readonly natural_power_score: Score;
   readonly physical_capacity_score: Score;
   readonly age: number | null;
+  /**
+   * Teto de peso ESTÁTICO do quadro, em gramas. `null` quando não há dado de porte para calculá-lo.
+   *
+   * ═══ POR QUE UM TETO EXISTE, SE O MOTOR JÁ PONTUA ENCAIXE FÍSICO ═════════════════════════════
+   *
+   * Porque o motor ordena por INÉRCIA DE SWING (peso × balanço), e não por peso na balança — e essa
+   * escolha está certa: é a inércia que a pessoa sente na quadra. Só que ela tem um efeito colateral
+   * que só aparece nos extremos. Medido no catálogo:
+   *
+   *     Wilson Clash 100 Pro   305 g · balanço 310 mm  →  índice 32,4
+   *     Pure Aero Lite         270 g · balanço 330 mm  →  índice 43,5
+   *
+   * O quadro 35 g mais pesado tem inércia MENOR, porque a massa dele está na mão. Para um adulto
+   * isso é informação útil. Para um menino de 12 anos com 52 kg, é uma raquete de 305 g na mão de
+   * quem ainda não tem ombro para sustentar 305 g em nenhum balanço — e o índice não vê isso, porque
+   * ele não mede quanto braço existe do outro lado.
+   *
+   * O caso que originou esta regra: 12 anos, 1,52 m, 52 kg, recebendo quadros de 295 a 305 g. O
+   * encaixe físico não reprovava (77 e 84 de 100, acima do piso de 70) — o defeito não estava na
+   * pontuação, estava na ausência de um limite absoluto acima dela.
+   *
+   * ═══ O QUE ESTE NÚMERO NÃO É ═════════════════════════════════════════════════════════════════
+   *
+   * Não é uma pontuação, não entra em média com nada e não desempata: é um limite, e limite não
+   * negocia com preferência declarada. Quem pede estabilidade e tem 52 kg recebe a raquete mais
+   * estável ABAIXO do teto, não a mais estável do catálogo.
+   *
+   * Ver `frameWeightCeiling` em `recommendation/profile/build-profile.ts` para a fórmula e as
+   * medições, e `applyWeightCeiling` em `engine/rank-rackets.ts` para como ele é aplicado.
+   */
+  readonly frame_weight_ceiling_g: number | null;
 
   // Conforto
   readonly arm_sensitivity_score: Score;

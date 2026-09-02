@@ -18,6 +18,7 @@ import {
 import { clamp, norm, round } from '@/domain/scores';
 import { lbsToKg } from '@/domain/units';
 import { averageBeam, type ScoredRacket } from '@/domain/racket';
+import { sameStringFamily } from '@/domain/string';
 import type { ScoredStringVariant, StringType } from '@/domain/string';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { TensionAdjustment, TensionRecommendation } from '@/domain/recommendation';
@@ -206,7 +207,16 @@ export function computeTension(
   ) {
     const delta = FEEDBACK_DELTA[current.tension_feeling] ?? 0;
     anchored = current.tension_lbs + delta;
-    const sameType = current.string_type === stringType;
+    /*
+      Comparação por FAMÍLIA, e não por igualdade estrita.
+
+      O questionário oferece "Poliéster"; o catálogo distingue `polyester` de `co_polyester`. Uma
+      comparação estrita marcaria como troca de tipo quem continua no mesmo material — e o texto
+      diria à pessoa que a referência dela perdeu validade sem que nada tivesse mudado.
+    */
+    const sameType =
+      current.string_type !== null &&
+      sameStringFamily(current.string_type as StringType, stringType);
     alpha = sameType ? 0.55 : 0.35;
 
     if (!sameType) {

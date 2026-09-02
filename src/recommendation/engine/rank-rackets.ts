@@ -407,6 +407,95 @@ const PREMISE_MIN_SURVIVORS = 2;
 type ScoredEntry = { racket: ScoredRacket; fit_score: number; breakdown: ScoreBreakdown };
 
 /**
+ * Mínimo de sobreviventes para o teto de peso valer.
+ *
+ * Mesmo número da tolerância, e pela mesma razão: abaixo de seis o teto estaria escolhendo o pódio
+ * inteiro. Na prática ele quase nunca é acionado — o teto mais restritivo que a fórmula produz
+ * (270 g, para o menor corpo que o questionário aceita) ainda deixa 15 quadros de pé no catálogo
+ * de 47. A válvula existe para o dia em que o catálogo mudar de forma, não para o caso comum.
+ */
+const CEILING_MIN_SURVIVORS = 6;
+
+/**
+ * Tira do ranking os quadros acima do teto de peso do jogador — §4.4.
+ *
+ * ═══ POR QUE AQUI, E NÃO JUNTO DOS FILTROS DUROS ═════════════════════════════════════════════
+ *
+ * Foi tentado antes de pontuar, que é onde os outros limites moram, e o resultado estava errado de
+ * um jeito que só apareceu ao medir perfil por perfil. A atleta de 30 anos e 68 kg tem teto de
+ * 303 g e recebia um quadro de 285 g — mais leve do que a de 54 kg, cujo teto é 289.
+ *
+ * A causa é que quase tudo que o motor calcula é RELATIVO ao conjunto: `catalogReference`,
+ * `objectiveRescaler`, `equalizers` e `componentMeans` saem de `kept`. Encolher `kept` não remove
+ * candidatas — ele reescreve o significado de todas as notas que sobram. Com o pool cortado em
+ * 303 g, um quadro de 285 g deixava de ser leve e passava a ser "o mais pesado disponível", e a
+ * pontuação o tratava como tal.
+ *
+ * Aplicado DEPOIS, sobre `scored`, nada disso se move: cada raquete conserva a nota que teria no
+ * catálogo inteiro, e o teto só decide quais dessas notas seguem para o ranking. É o mesmo
+ * mecanismo do piso de demanda declarada, pelo mesmo motivo, e a ordem entre os dois importa —
+ * ver a chamada em `rankRackets`.
+ *
+ * ═══ E POR QUE NÃO UMA PENALIZAÇÃO GRADUADA ══════════════════════════════════════════════════
+ *
+ * Porque penalização é negociável e isto não é. Uma penalização de peso deixa um quadro acima do
+ * teto vencer desde que ganhe o suficiente nos outros seis componentes — que foi exatamente o que
+ * aconteceu no caso que originou a regra: os dois quadros de 300 g que sobraram para o menino de
+ * 12 anos marcavam 77 e 84 em encaixe físico, notas boas, e venciam com folga. Nenhum coeficiente
+ * de penalização resolve isso sem quebrar o resto do ranking; o que faltava era um NÃO.
+ *
+ * A raquete ATUAL é isenta, como no piso de demanda: ela é referência do relatório, não candidata.
+ * Se a pessoa já joga com um quadro acima do teto, sumir com ele da análise seria esconder dela
+ * justamente a comparação que explica o teto.
+ *
+ * Devolve `null` quando não há teto, quando nada é excluído, ou quando sobrariam candidatas de
+ * menos para montar um pódio.
+ */
+function applyWeightCeiling(
+  scored: readonly ScoredEntry[],
+  profile: PlayerProfile,
+  currentRacket: ScoredRacket | null,
+): { kept: ScoredEntry[]; excluded: ExcludedRacket[] } | null {
+  const teto = profile.frame_weight_ceiling_g;
+  if (teto === null) return null;
+
+  /** Sem peso publicado a raquete passa: o filtro pune o dado que falta, não a raquete. */
+  const peso = (e: ScoredEntry): number | null => e.racket.variant.specs.unstrung_weight_g;
+
+  const dentro = (e: ScoredEntry): boolean => {
+    const g = peso(e);
+    return g === null || g <= teto || e.racket.variant.id === currentRacket?.variant.id;
+  };
+
+  const kept = scored.filter(dentro);
+  if (kept.length === scored.length) return null; // o teto não restringiu nada
+  if (kept.length < CEILING_MIN_SURVIVORS) return null;
+
+  const excluded: ExcludedRacket[] = scored
+    .filter((e) => !dentro(e))
+    .map((e) => ({
+      variant_id: e.racket.variant.id,
+      product_name: e.racket.variant.product_name,
+      filter: 'static_weight_ceiling',
+      /*
+        O motivo NÃO diz qual termo da fórmula travou.
+
+        Porte, idade e sexo entram todos no mesmo número, e qual deles é o que aperta muda de perfil
+        para perfil — no menino de 12 anos com 52 kg é o porte (293 g) e não a idade (300 g), o
+        contrário do que a intuição diria. Uma frase que apontasse a causa acertaria em uns casos e
+        mentiria em outros, e a exclusão fica registrada na auditoria do admin: um motivo errado ali
+        é pior do que um motivo genérico.
+      */
+      reason:
+        `Quadro de ${peso(e)} g, acima do limite de ${teto} g que esta análise calcula para o seu ` +
+        'perfil físico. Acima desse peso a raquete cansa antes do fim do jogo, e o que ela ganha ' +
+        'em estabilidade você perde em preparação de golpe.',
+    }));
+
+  return { kept, excluded };
+}
+
+/**
  * Tira do ranking as raquetes que não atendem o piso do que o jogador declarou querer.
  *
  * ─── O QUE ISTO CONSERTA ─────────────────────────────────────────────────────────────────────
@@ -761,9 +850,28 @@ export function rankRackets(
     ),
   );
 
-  const floorCut = applyDeclaredFloor(scored, profile, scale, options.currentRacket ?? null);
-  const finalists = floorCut === null ? scored : floorCut.kept;
-  const allExcluded = floorCut === null ? excluded : [...excluded, ...floorCut.excluded];
+  /**
+   * O TETO DE PESO VEM ANTES DO PISO DE DEMANDA, e a ordem é a regra inteira.
+   *
+   * O piso de demanda escolhe as melhores no eixo que a pessoa pediu, DENTRO do que sobrou. Rodando
+   * depois do teto, ele escolhe entre quadros que o corpo dela sustenta — que é o que "atender o
+   * cliente sem obedecê-lo" significa aqui.
+   *
+   * Na ordem inversa o teto viraria enfeite. Foi o defeito exato do caso que originou a regra: o
+   * menino de 12 anos declarou controle e precisão, o piso de demanda reduziu 47 raquetes a duas, e
+   * as duas pesavam 300 g. Um teto aplicado depois disso teria que escolher entre esvaziar a
+   * análise e desligar-se — e um limite que se desliga quando é acionado não é um limite.
+   */
+  const ceilingCut = applyWeightCeiling(scored, profile, options.currentRacket ?? null);
+  const withinCeiling = ceilingCut === null ? scored : ceilingCut.kept;
+
+  const floorCut = applyDeclaredFloor(withinCeiling, profile, scale, options.currentRacket ?? null);
+  const finalists = floorCut === null ? withinCeiling : floorCut.kept;
+  const allExcluded = [
+    ...excluded,
+    ...(ceilingCut?.excluded ?? []),
+    ...(floorCut?.excluded ?? []),
+  ];
 
   const limit = options.limit ?? finalists.length;
   const ranking: RankedRacket[] = finalists.slice(0, limit).map((entry, index) => {

@@ -124,6 +124,22 @@ export default async function ResultadoPage({
           </div>
         )}
 
+        {/* ── MIGRAÇÃO JUVENIL ───────────────────────────────────────
+            Antes do match, e não depois.
+
+            Este aviso muda como TODO o resto da página deve ser lido — inclusive o número grande
+            de compatibilidade. Colocado no fim, ele chegaria depois de a pessoa já ter concluído
+            o que ia concluir, que é o mesmo que não estar lá.
+        */}
+        {report.junior_transition && (
+          <div className="rounded border border-court/40 bg-court/5 p-6">
+            <p className="text-xs uppercase tracking-[0.2em] text-court">
+              Antes de tudo: uma ressalva importante
+            </p>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed">{report.junior_transition}</p>
+          </div>
+        )}
+
         {/* ── MATCH ──────────────────────────────────────────────── */}
         {winner && (
           <section>
@@ -156,6 +172,20 @@ export default async function ResultadoPage({
             </div>
 
             <p className="mt-4 text-sm text-graphite">{report.headline}</p>
+
+            {/* ── PESO NA BALANÇA × ESFORÇO NA MÃO ─────────────────────
+                Colada no card da raquete, porque é lá que o número de gramas aparece.
+
+                A objeção que esta nota responde — "por que estão me mandando uma raquete mais
+                pesada?" — nasce no instante em que a pessoa lê a especificação. Respondê-la três
+                seções abaixo é responder depois de a conclusão já estar formada.
+            */}
+            {report.weight_reading && (
+              <p className="mt-4 max-w-prose rounded border-l-2 border-court bg-white px-4 py-3
+                            text-sm leading-relaxed">
+                {report.weight_reading}
+              </p>
+            )}
 
             {/* Leitura técnica: quanto este frame entrega em cada aspecto, em largura cheia. */}
             {winner && (
@@ -643,6 +673,94 @@ export default async function ResultadoPage({
             <p className="mt-2 text-sm leading-relaxed text-graphite">
               {report.current_racket_standing.message}
             </p>
+
+            {/* ── E O QUE FAZER COM ELA HOJE ───────────────────────────────
+                Dentro do mesmo quadro, e não numa seção à parte.
+
+                A pergunta que este bloco responde nasce da frase acima — "a sua ficou em 12º" leva
+                direto a "e daí, o que eu faço com ela?". Separar as duas em seções distintas
+                obrigaria a pessoa a atravessar o pódio inteiro entre a pergunta e a resposta.
+            */}
+            {report.current_racket_setup && (
+              <div className="mt-6 border-t border-court/20 pt-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-graphite">
+                  Sem trocar de raquete
+                </p>
+                <h3 className="mt-2 font-display text-xl font-bold">
+                  O melhor setup para a sua {report.current_racket_setup.racket_name}
+                </h3>
+                <p className="mt-2 max-w-prose text-sm leading-relaxed text-graphite">
+                  Rodamos o mesmo cálculo de corda e tensão sobre o quadro que você já tem. É o que
+                  aproxima a sua raquete do ideal por uma fração do custo de trocá-la.
+                </p>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                  <div className="rounded border border-line bg-white p-5">
+                    <div className="text-[10px] uppercase tracking-widest text-graphite">Corda</div>
+                    <div className="mt-2 font-display text-lg font-semibold leading-tight">
+                      {report.current_racket_setup.string_brand}{' '}
+                      {report.current_racket_setup.string_model}
+                    </div>
+                    <div className="mt-1 text-xs text-graphite">
+                      {report.current_racket_setup.string_type}
+                    </div>
+                  </div>
+
+                  <div className="rounded border border-line bg-white p-5">
+                    <div className="text-[10px] uppercase tracking-widest text-graphite">
+                      Espessura
+                    </div>
+                    <div className="display-number mt-2 text-2xl">
+                      {report.current_racket_setup.gauge_mm.toFixed(2)}
+                    </div>
+                    <div className="mt-1 text-xs text-graphite">mm</div>
+                  </div>
+
+                  <div className="rounded border border-line bg-white p-5">
+                    <div className="text-[10px] uppercase tracking-widest text-graphite">Tensão</div>
+                    <div className="display-number mt-2 text-2xl">
+                      {report.current_racket_setup.tension_lbs} lbs
+                    </div>
+                    <div className="mt-1 text-xs text-graphite">
+                      {report.current_racket_setup.tension_kg.toFixed(1).replace('.', ',')} kg ·
+                      faixa {report.current_racket_setup.tension_range_lbs[0]}–
+                      {report.current_racket_setup.tension_range_lbs[1]} lbs
+                    </div>
+                  </div>
+                </div>
+
+                {report.current_racket_setup.availability_warning && (
+                  <p className="mt-4 rounded border-l-2 border-warn bg-white px-4 py-3 text-sm">
+                    {report.current_racket_setup.availability_warning}
+                  </p>
+                )}
+
+                <Explainer
+                  title="O que muda em relação ao que você usa hoje"
+                  lines={report.current_racket_setup.change_from_current}
+                />
+                <Explainer
+                  title="Por que essa corda para a sua raquete"
+                  lines={report.current_racket_setup.why_string}
+                />
+                <Explainer
+                  title="Por que essa tensão"
+                  lines={report.current_racket_setup.why_tension}
+                />
+
+                {/*
+                  O limite fecha o bloco, e não abre.
+
+                  Ele precisa ser lido DEPOIS dos números — quem lê a ressalva antes de saber o que
+                  está sendo proposto descarta a proposta. E precisa estar aqui: uma lista só de
+                  ganhos transformaria uma análise em argumento de venda (§58).
+                */}
+                <p className="mt-8 max-w-prose rounded border-l-2 border-court bg-white px-4 py-3
+                              text-sm leading-relaxed">
+                  {report.current_racket_setup.ceiling_note}
+                </p>
+              </div>
+            )}
           </section>
         )}
 

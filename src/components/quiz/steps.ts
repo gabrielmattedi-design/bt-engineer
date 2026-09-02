@@ -520,6 +520,61 @@ export const STEPS: readonly Step[] = [
         ],
       },
       {
+        kind: 'single',
+        key: 'current_string_type',
+        optional: true,
+        /**
+         * ═══ A PERGUNTA QUE FALTAVA, E O QUE A FALTA DELA QUEBRAVA ═════════════════════════════
+         *
+         * `computeTension` decide quanto a experiência do jogador pesa comparando o tipo de corda
+         * que ele usa com o tipo recomendado: mesma categoria, a referência dele vale 55%; categoria
+         * diferente, 35%. E o perfil nunca teve de onde tirar a categoria atual — o campo existia,
+         * vinha `null` para todo mundo, e a comparação portanto nunca dava igual.
+         *
+         * O efeito era duplo e visível. Todo mundo caía nos 35%, e o relatório imprimia "como o
+         * tipo de corda muda, sua referência de tensão anterior perde parte da validade" mesmo para
+         * quem continua no mesmo tipo — afirmando uma mudança que não estava acontecendo. A nota de
+         * "você indicou que a tensão atual está ideal, mantivemos o setup próximo dela" dependia da
+         * mesma comparação e nunca foi impressa.
+         *
+         * ─── POR QUE A CATEGORIA, E NÃO O MODELO ────────────────────────────────────────────
+         *
+         * Porque é o que o cálculo usa e é o que a pessoa sabe. Quase ninguém lembra o nome da corda
+         * que a loja pôs — mas quem joga com poliéster costuma saber que joga com poliéster, e quem
+         * nunca ouviu falar disso marca "não sei" sem prejuízo, que é o mesmo estado de hoje.
+         */
+        title: 'Que tipo de corda você usa hoje?',
+        help: 'Se não souber, siga adiante — a pergunta é opcional.',
+        choices: [
+          {
+            value: 'polyester',
+            label: 'Poliéster',
+            hint: 'Também chamada de "poly" ou "copoliéster". Dura mais, é mais dura no braço.',
+          },
+          {
+            value: 'multifilament',
+            label: 'Multifilamento',
+            hint: 'Macia e confortável, imita a tripa natural. Arrebenta mais rápido.',
+          },
+          {
+            value: 'synthetic_gut',
+            label: 'Sintética',
+            hint: 'A corda mais comum das lojas, de custo baixo — o padrão de quem nunca escolheu.',
+          },
+          {
+            value: 'natural_gut',
+            label: 'Tripa natural',
+            hint: 'Corda de origem animal, a mais macia e a mais cara.',
+          },
+          {
+            value: 'hybrid',
+            label: 'Híbrida',
+            hint: 'Dois tipos no mesmo quadro — em geral poliéster nas verticais.',
+          },
+          { value: 'nao_sei', label: 'Não sei', hint: 'Quem encordoa é a loja e você nunca perguntou.' },
+        ],
+      },
+      {
         kind: 'number',
         key: 'current_tension_lbs',
         // A maioria dos jogadores não sabe a própria tensão — quem encordoa é a loja.

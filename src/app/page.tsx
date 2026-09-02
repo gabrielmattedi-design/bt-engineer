@@ -405,6 +405,13 @@ export default async function HomePage() {
               <li>A 2ª e a 3ª colocadas, com marca e modelo</li>
               <li>Corda e espessura recomendadas</li>
               <li>Tensão inicial e faixa sugerida</li>
+              {/*
+                Anunciado aqui pelo mesmo motivo da linha acima: é uma entrega real que a página
+                calava. E é a que fala com a maior parte de quem lê — quadro custa caro, quase
+                ninguém troca no mês do relatório, e este é o ajuste que dá para fazer na semana
+                seguinte.
+              */}
+              <li>Corda e tensão para a raquete que você já tem</li>
               <li>Por que essa combinação funciona</li>
               <li>Como ajustar no próximo encordoamento</li>
             </ul>

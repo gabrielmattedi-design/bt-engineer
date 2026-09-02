@@ -12,6 +12,7 @@
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
 import { currentRacketLabel } from '@/domain/racket';
+import { STRING_TYPE_PT } from '@/domain/string';
 import { clamp, clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { RECOMMENDATION_ENGINE_VERSION } from '@/recommendation/config/version';
@@ -222,6 +223,49 @@ export type SetupPayload = {
   readonly availability_warning: string | null;
 };
 
+/**
+ * "Tá, mas e a raquete que eu já tenho?" — o setup calculado para o quadro ATUAL do jogador.
+ *
+ * ═══ A PERGUNTA QUE O RELATÓRIO NÃO RESPONDIA ════════════════════════════════════════════════
+ *
+ * O bloco da raquete atual dizia a posição dela no ranking e a distância para a primeira, e parava.
+ * Para quem não vai trocar de quadro agora — a maioria, porque quadro custa caro — o produto
+ * terminava numa constatação sem saída: "a sua ficou em 12º".
+ *
+ * Corda e tensão movem eixos de verdade, custam uma fração de um quadro e são reversíveis no
+ * encordoamento seguinte. Deixar isso de fora era vender o diagnóstico e sonegar o remédio barato.
+ *
+ * ═══ O QUE ESTE BLOCO NÃO PODE FAZER ═════════════════════════════════════════════════════════
+ *
+ * Prometer que corda e tensão substituem o quadro certo. Não substituem, e o teto é menor — por
+ * isso `ceiling_note` existe e é obrigatória, não opcional. Um bloco que só listasse os ganhos
+ * seria um argumento de venda disfarçado de análise, e §58 vale nas duas direções: nem empurrar a
+ * troca de quadro, nem fingir que ela é dispensável.
+ */
+export type CurrentRacketSetupPayload = {
+  /** A raquete do jogador, como ELE a declarou — modelo e peso, sem geração. */
+  readonly racket_name: string;
+  readonly string_brand: string;
+  readonly string_model: string;
+  readonly string_type: string;
+  readonly gauge_mm: number;
+  readonly tension_lbs: number;
+  readonly tension_kg: number;
+  readonly tension_range_lbs: readonly [number, number];
+  readonly why_string: readonly string[];
+  readonly why_tension: readonly string[];
+  /**
+   * O que muda em relação ao que ele usa HOJE. Vazio quando ele não declarou corda nem tensão.
+   *
+   * É a parte mais útil do bloco e a única que depende de dado que pode faltar: sem saber o ponto
+   * de partida, "suba 2 lbs" não é uma instrução, é um palpite.
+   */
+  readonly change_from_current: readonly string[];
+  /** Até onde isto leva, e onde só o quadro leva. Sempre presente. */
+  readonly ceiling_note: string;
+  readonly availability_warning: string | null;
+};
+
 export type ReportPayload = {
   readonly kind: 'report';
   readonly headline: string;
@@ -292,6 +336,26 @@ export type ReportPayload = {
    * `null` quando não há raquete atual reconhecida.
    */
   readonly current_racket_standing: CurrentRacketStanding | null;
+  /**
+   * O setup calculado para a raquete que a pessoa JÁ TEM. Exige `full_setup_access`.
+   *
+   * `null` quando o setup não foi comprado, quando não há raquete atual reconhecida, quando ela É a
+   * recomendada (o setup principal já é o dela) ou quando a análise foi gravada antes deste campo
+   * existir — relatórios antigos não ganham uma seção calculada hoje sobre números de ontem.
+   */
+  readonly current_racket_setup: CurrentRacketSetupPayload | null;
+  /**
+   * Por que a raquete mais pesada pode ser a mais fácil de girar. Ver `buildWeightReading`.
+   *
+   * `null` quando não há comparação concreta a fazer — a versão genérica da frase não informa nada.
+   */
+  readonly weight_reading: string | null;
+  /**
+   * Aviso de migração juvenil, para menores de 16 anos ainda pequenos para o catálogo adulto.
+   *
+   * Ver `buildJuniorTransitionNote`. `null` para todo o resto, que é a quase totalidade.
+   */
+  readonly junior_transition: string | null;
 };
 
 export type CurrentRacketStanding = {
@@ -511,6 +575,281 @@ export function buildCurrentStanding(
       `questão de gosto: a recomendada atende o seu perfil num nível que a sua atual não alcança, ` +
       `e a troca deve ser sentida em quadra. Se for para investir em uma coisa só, invista no ` +
       `quadro — e depois ajuste corda e tensão sobre ele.`,
+  };
+}
+
+/**
+ * "Por que a raquete mais pesada é a mais fácil de girar?" — a pergunta que o peso levanta.
+ *
+ * ═══ O QUE ESTAVA FALTANDO ═══════════════════════════════════════════════════════════════════
+ *
+ * O motor ordena por INÉRCIA DE SWING, que é peso combinado com a distribuição dele. Isso é o
+ * certo: é a inércia que a pessoa sente ao girar a raquete, não o número da balança. Só que o
+ * relatório mostrava só o peso — e o peso, sozinho, contradiz o resultado com frequência:
+ *
+ *     Wilson Clash 100 Pro   305 g · balanço 310 mm  →  índice 32,4
+ *     Babolat Pure Aero Lite 270 g · balanço 330 mm  →  índice 43,5
+ *
+ * Trinta e cinco gramas a mais e um terço menos de inércia. Quem lê "recomendamos 305 g" depois de
+ * jogar com 285 g conclui, com toda razão aparente, que a análise está pedindo mais esforço dele.
+ * Está pedindo menos, e não havia como saber pela página.
+ *
+ * ═══ POR QUE SÓ QUANDO HÁ COMPARAÇÃO CONCRETA ════════════════════════════════════════════════
+ *
+ * Porque a versão genérica da frase — "peso não é tudo, o que importa é o equilíbrio" — é um
+ * lugar-comum que não prova nada e não muda a leitura de ninguém. O que convence é a conta feita
+ * com os dois quadros que a pessoa tem na frente. Sem os dois números, não há nota.
+ *
+ * `null` quando não há raquete atual reconhecida nem diferença de peso relevante no pódio.
+ */
+function buildWeightReading(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+  first: RankedRacket,
+): string | null {
+  const vencedora = first.racket.variant.specs;
+  const pesoNovo = vencedora.unstrung_weight_g;
+  const inerciaNova = first.racket.attributes.swing_index;
+  if (pesoNovo === null || inerciaNova === null) return null;
+
+  /**
+   * A raquete ATUAL é a melhor referência que existe: é a que a pessoa já sentiu na mão.
+   *
+   * Ela é buscada no `full_ranking`, e não em `profile.current_racket`, porque os dois campos
+   * chamados `swing_index` NÃO são a mesma grandeza: o do perfil é o valor físico cru
+   * (massa × braço², na casa dos milhares) e o dos atributos é o índice de 0 a 100 do catálogo.
+   * Comparar um com o outro produziria uma frase com dois números incomparáveis lado a lado.
+   */
+  const atual = result.full_ranking.find(
+    (r) => r.racket.variant.id === profile.current_racket?.variant_id,
+  );
+  const pesoAtual = atual?.racket.variant.specs.unstrung_weight_g ?? null;
+  const inerciaAtual = atual?.racket.attributes.swing_index ?? null;
+
+  if (
+    pesoAtual !== null &&
+    inerciaAtual !== null &&
+    pesoNovo > pesoAtual &&
+    inerciaNova <= inerciaAtual
+  ) {
+    return (
+      `A recomendada pesa ${pesoNovo} g contra os ${pesoAtual} g da sua — e ainda assim ela gira ` +
+      `com MENOS esforço, não mais. O que o braço sente ao acelerar não é o peso na balança: é a ` +
+      `inércia, que combina o peso com o quanto dele está longe da mão. Um quadro mais pesado com ` +
+      `a massa concentrada perto do punho é mais fácil de preparar que um leve com a massa na ` +
+      `cabeça. No nosso índice de inércia (0–100), a sua marca ${Math.round(inerciaAtual)} e a ` +
+      `recomendada ${Math.round(inerciaNova)} — quanto menor, menos esforço para girar. É por isso ` +
+      `que a análise pode indicar mais gramas sem indicar mais cansaço.`
+    );
+  }
+
+  /**
+   * Sem raquete atual, o pódio serve de comparação — mas só quando ele próprio contradiz o peso.
+   *
+   * Se a mais pesada do pódio também é a de maior inércia, não há nada de contraintuitivo para
+   * explicar, e a nota viraria ruído numa página que já é longa.
+   */
+  const maisLeve = result.podium
+    .filter((e) => e.racket.variant.specs.unstrung_weight_g !== null)
+    .sort(
+      (a, b) =>
+        (a.racket.variant.specs.unstrung_weight_g ?? 0) -
+        (b.racket.variant.specs.unstrung_weight_g ?? 0),
+    )[0];
+
+  const pesoLeve = maisLeve?.racket.variant.specs.unstrung_weight_g ?? null;
+  const inerciaLeve = maisLeve?.racket.attributes.swing_index ?? null;
+  if (
+    maisLeve &&
+    pesoLeve !== null &&
+    inerciaLeve !== null &&
+    pesoNovo - pesoLeve >= 5 &&
+    inerciaNova < inerciaLeve
+  ) {
+    return (
+      `Uma leitura que costuma surpreender: a recomendada pesa ${pesoNovo} g e a mais leve do seu ` +
+      `pódio pesa ${pesoLeve} g — e é a mais PESADA que exige menos do braço para girar. O que se ` +
+      `sente ao acelerar não é o peso da balança, é a inércia: peso e distribuição juntos. Massa ` +
+      `perto da mão gira fácil; a mesma massa na cabeça, não. No nosso índice de inércia (0–100) a ` +
+      `recomendada marca ${Math.round(inerciaNova)} contra ${Math.round(inerciaLeve)} da mais ` +
+      `leve, e quanto menor, menos esforço. É essa conta que o ranking usa — não a da balança.`
+    );
+  }
+
+  return null;
+}
+
+/**
+ * O aviso de MIGRAÇÃO JUVENIL — §62 e §69.
+ *
+ * ═══ O QUE O CATÁLOGO NÃO TEM, E POR QUE ISSO PRECISA SER DITO ═══════════════════════════════
+ *
+ * Este catálogo é de quadros ADULTOS: 27 polegadas, 270 g para cima. É uma decisão de escopo, está
+ * documentada nos filtros duros, e para a esmagadora maioria de quem responde ela é irrelevante.
+ *
+ * Para um jovem em transição, não é. Um menino de 12 anos com 52 kg recebe a melhor resposta que
+ * existe DENTRO deste catálogo — e a melhor resposta dentro de um catálogo pode não ser a melhor
+ * resposta que existe. Quadros juvenis de 25 e 26 polegadas continuam sendo uma escolha legítima
+ * nessa faixa, e o relatório não os avalia.
+ *
+ * Calar sobre isso seria vender uma análise que não se sustenta para aquele jogador (§62) —
+ * apresentar como completo um universo que sabidamente não é o dele. Dizer é barato e é honesto: a
+ * recomendação continua válida como "a melhor entre as adultas", que é exatamente o que ela é.
+ *
+ * ─── QUANDO ELE APARECE ─────────────────────────────────────────────────────────────────────
+ *
+ * Menor de 16 anos E com o teto vindo do PORTE, não da idade. A distinção importa: um rapaz de 15
+ * anos com 70 kg tem o teto travado em 300 g pela regra etária e está inteiramente à vontade num
+ * quadro adulto — para ele o aviso seria alarme falso. Quem precisa dele é quem ainda é pequeno
+ * para a faixa que o catálogo cobre, e é isso que um teto abaixo de 300 g descreve.
+ */
+function buildJuniorTransitionNote(profile: PlayerProfile): string | null {
+  const teto = profile.frame_weight_ceiling_g;
+  if (profile.age === null || profile.age >= 16 || teto === null || teto >= 300) return null;
+
+  return (
+    `Você tem ${profile.age} anos, e isso muda como esta análise deve ser lida. Todas as raquetes ` +
+    `que avaliamos são de padrão adulto — 27 polegadas, a partir de 270 g —, e o que você recebe ` +
+    `abaixo é a melhor escolha DENTRO desse universo, com o peso já limitado ao que o seu corpo ` +
+    `sustenta hoje. O que a análise não avalia são os quadros juvenis, de 25 e 26 polegadas, que ` +
+    `nessa fase ainda podem fazer todo sentido: você está no meio da migração entre eles e os ` +
+    `adultos, e essa passagem é gradual, não uma data. Se a raquete indicada parecer grande ou ` +
+    `pesada na mão, isso não é um erro seu nem da análise — é o sinal de que a migração ainda ` +
+    `está acontecendo. Converse com seu professor sobre o momento certo, e leia esta recomendação ` +
+    `como o destino do caminho, não necessariamente como o passo de amanhã.`
+  );
+}
+
+/**
+ * Monta o bloco "e a raquete que eu já tenho?" — ver `CurrentRacketSetupPayload`.
+ *
+ * ═══ POR QUE ELE NÃO É RECALCULADO AQUI ══════════════════════════════════════════════════════
+ *
+ * Os números vêm de `result.current_racket_setup`, gravado junto com a análise. Recalcular a corda
+ * na hora de mostrar faria um relatório pago mudar de recomendação entre duas leituras — bastaria
+ * o catálogo de cordas ganhar um modelo. É a mesma razão de `attribute_bands` viajar no resultado.
+ *
+ * Relatórios gravados antes deste campo existir devolvem `null` e seguem como sempre foram. A
+ * alternativa — calcular hoje, sobre um perfil de ontem — produziria uma seção que descreve uma
+ * análise que nunca aconteceu, e é exatamente o que §69 proíbe.
+ */
+function buildCurrentRacketSetup(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+): CurrentRacketSetupPayload | null {
+  const dados = result.current_racket_setup;
+  if (!dados) return null;
+
+  const atual = result.full_ranking.find(
+    (r) => r.racket.variant.id === profile.current_racket?.variant_id,
+  );
+  if (!atual) return null;
+
+  const rec = dados.string_recommendation;
+  const t = dados.tension;
+  const tipoNovo = rec.variant.model.string_type;
+
+  /**
+   * O QUE MUDA — e por que cada linha só existe se houver de onde partir.
+   *
+   * "Suba 2 lbs" sem saber a tensão de hoje não é instrução, é palpite. Cada comparação abaixo é
+   * condicional ao dado correspondente ter sido declarado; quem respondeu "não sei" na etapa da
+   * corda recebe o bloco sem esta parte, e não uma comparação com um valor inventado.
+   */
+  const mudancas: string[] = [];
+  const usada = profile.current_string;
+
+  if (usada?.string_type) {
+    // Rótulo, e não enum: é a comparação por família que o jogador enxerga — `polyester` e
+    // `co_polyester` compartilham "Poliéster", e trocar de um para o outro não é trocar de tipo.
+    const tipoAtual = STRING_TYPE_PT[usada.string_type as keyof typeof STRING_TYPE_PT];
+    if (tipoAtual && tipoAtual !== STRING_TYPE_PT[tipoNovo]) {
+      mudancas.push(
+        `Tipo de corda: de ${tipoAtual} para ${STRING_TYPE_PT[tipoNovo]}. É a troca que mais ` +
+          `muda a resposta do quadro sem tocar nele — e a que menos custa para desfazer, porque ` +
+          `vale só até o próximo encordoamento.`,
+      );
+    } else if (tipoAtual) {
+      mudancas.push(
+        `Tipo de corda: ${tipoAtual}, o mesmo que você já usa. O ganho aqui não vem da categoria ` +
+          `— vem do modelo, da espessura e da tensão.`,
+      );
+    }
+  }
+
+  if (usada?.gauge_mm != null) {
+    const delta = rec.variant.variant.gauge_mm - usada.gauge_mm;
+    if (Math.abs(delta) >= 0.02) {
+      mudancas.push(
+        `Espessura: de ${usada.gauge_mm.toFixed(2)} mm para ` +
+          `${rec.variant.variant.gauge_mm.toFixed(2)} mm — ` +
+          (delta < 0
+            ? 'mais fina, o que devolve sensação e mordida na bola, ao custo de durar menos.'
+            : 'mais grossa, o que alonga a vida da corda e firma a resposta.'),
+      );
+    }
+  }
+
+  if (usada?.tension_lbs != null) {
+    const delta = Math.round(t.lbs - usada.tension_lbs);
+    if (delta === 0) {
+      mudancas.push(
+        `Tensão: ${t.lbs} lbs, praticamente a que você já usa. Nesse ponto o número está certo — ` +
+          `o ajuste que sobra está na corda, não na tensão.`,
+      );
+    } else {
+      mudancas.push(
+        `Tensão: de ${usada.tension_lbs} lbs para ${t.lbs} lbs (${delta > 0 ? '+' : ''}${delta}) — ` +
+          (delta < 0
+            ? 'mais solta devolve potência e absorve mais impacto no braço.'
+            : 'mais firme devolve controle e encurta a bola.'),
+      );
+    }
+  }
+
+  /**
+   * ═══ O TETO, E POR QUE ELE É OBRIGATÓRIO ═════════════════════════════════════════════════
+   *
+   * Sem esta frase o bloco vira promessa. Corda e tensão mexem em potência, conforto, controle e
+   * spin dentro de uma faixa que o QUADRO define — e não movem peso, balanço, tamanho de cabeça
+   * nem rigidez, que é onde a diferença para a recomendada mora.
+   *
+   * O texto muda conforme a distância: para quem está perto da primeira, o setup é de fato o
+   * caminho de maior retorno e a frase diz isso; para quem está longe, dizer o mesmo seria vender
+   * um remédio que não alcança o problema.
+   */
+  const gap = Math.round(result.podium[0]?.fit_score ?? 0) - Math.round(atual.fit_score);
+  const ceiling_note =
+    gap < 4
+      ? 'Como a sua raquete já está muito perto da primeira colocada, este é o ajuste de maior ' +
+        'retorno que existe para você hoje: ele custa uma fração de um quadro e é o que ainda ' +
+        'não foi feito. O que corda e tensão não alcançam é peso, balanço e rigidez do quadro — e ' +
+        'nesses eixos a sua já está bem posicionada.'
+      : gap < 9
+        ? 'Isto aproxima a sua raquete do que você precisa, mas não a transforma na recomendada: ' +
+          'corda e tensão movem potência, conforto, controle e spin dentro da faixa que o quadro ' +
+          'permite. Peso, balanço, tamanho de cabeça e rigidez continuam sendo os do seu quadro, e ' +
+          'é neles que está a maior parte da diferença. Comece por aqui — e reavalie depois de ' +
+          'jogar algumas semanas assim.'
+        : 'Este ajuste vale a pena e é barato, e ainda assim precisa ser dito com clareza: ele não ' +
+          'fecha a distância para a recomendada. A diferença entre as duas está principalmente em ' +
+          'peso, balanço e rigidez, que nenhuma corda muda. Trate isto como o melhor uso possível ' +
+          'da raquete que você já tem, não como substituto de uma troca.';
+
+  return {
+    racket_name: currentRacketLabel(atual.racket.variant),
+    string_brand: rec.variant.model.brand,
+    string_model: rec.variant.model.model,
+    string_type: STRING_TYPE_PT[tipoNovo],
+    gauge_mm: rec.variant.variant.gauge_mm,
+    tension_lbs: t.lbs,
+    tension_kg: t.kg,
+    tension_range_lbs: t.range_lbs,
+    why_string: explainString(rec),
+    why_tension: explainTension(t),
+    change_from_current: mudancas,
+    ceiling_note,
+    availability_warning: rec.variant.availability_warning,
   };
 }
 
@@ -850,7 +1189,8 @@ export function serializeRecommendation(
     setup = {
       string_brand: rec.variant.model.brand,
       string_model: rec.variant.model.model,
-      string_type: rec.variant.model.string_type,
+      // Rótulo em português, e não o valor do enum. O card exibia `co_polyester` para quem pagou.
+      string_type: STRING_TYPE_PT[rec.variant.model.string_type],
       gauge_mm: rec.variant.variant.gauge_mm,
       tension_lbs: t.lbs,
       tension_kg: t.kg,
@@ -915,6 +1255,18 @@ export function serializeRecommendation(
     indices_disclaimer: INDICES_DISCLAIMER,
     identity: { ...buildPlayerIdentity(profile), playerName: profile.player_name },
     current_racket_standing: buildCurrentStanding(result, profile, first),
+    // Faz parte do setup completo — sem `full_setup_access` o bloco não é CONSTRUÍDO, não é
+    // escondido por CSS. É a mesma garantia estrutural do §32 que vale para o resto do payload.
+    current_racket_setup: canSeeSetup ? buildCurrentRacketSetup(result, profile) : null,
+    /*
+      Estas duas NÃO são premium, e é deliberado.
+
+      Uma explica por que a recomendação que a pessoa acabou de comprar não é o que ela parece; a
+      outra avisa que o catálogo pode não cobrir o caso dela. Cobrar por qualquer uma seria vender
+      a análise e cobrar à parte pela ressalva que a torna honesta (§62).
+    */
+    weight_reading: buildWeightReading(result, profile, first),
+    junior_transition: buildJuniorTransitionNote(profile),
     radar: buildRadar(
       profile,
       first,

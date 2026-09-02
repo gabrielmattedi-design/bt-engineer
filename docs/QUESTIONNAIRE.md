@@ -116,15 +116,25 @@ concreto que o jogador consegue dar sobre o que o equipamento atual não entrega
 
 | Chave | Pergunta | Opções |
 |---|---|---|
-| `current_string_id` | Qual corda você usa? | autocomplete + "não sei" |
-| `current_string_gauge` | Espessura, se souber | 1.15–1.35 · não sei |
+| `current_string_type` | Que tipo de corda você usa hoje? | poliéster · multifilamento · sintética · tripa natural · híbrida · não sei |
 | `current_tension_lbs` | Tensão atual | número (35–70) · não sei |
 | `current_tension_feeling` | O que você acha da tensão atual? | muito solta · um pouco solta · ideal · um pouco dura · muito dura · não sei |
 | `string_breakage` | Com que frequência arrebenta cordas? | nunca · raramente · a cada 2–3 meses · mensalmente · semanalmente |
 | `discomfort_areas` | Você sente ou já sentiu desconforto recorrente em… *(múltipla)* | cotovelo · ombro · punho · nenhum |
 
 `current_tension_feeling` combinado com `current_tension_lbs` é a **âncora** do motor de tensão (§4.3
-do STRING_AND_TENSION_ENGINE) — mais informativo que qualquer fórmula.
+do STRING_AND_TENSION_ENGINE) — mais informativo que qualquer fórmula. E `current_string_type` é o
+que decide **quanto** essa âncora pesa: mesma família de corda, 55%; família diferente, 35%, porque
+uma tensão de referência em poliéster não descreve a mesma sensação em multifilamento.
+
+> **Por que a categoria e não o modelo.** Esta tabela já listou `current_string_id` (autocomplete de
+> catálogo) e `current_string_gauge`. Nenhuma das duas chegou a existir na tela, e o campo do tipo
+> ficou anos vindo `null` — o motor comparava esse `null` com o tipo recomendado, nunca dava igual, e
+> o relatório dizia a todo mundo que "o tipo de corda muda". A categoria é o que o cálculo usa e é o
+> que a pessoa sabe responder: quase ninguém lembra o nome da corda que a loja pôs. Os campos
+> `current_string_id` e `current_string_gauge` permanecem no tipo como gancho — quando o modelo for
+> identificável (catálogo na tela ou extração do texto livre), ele tem precedência sobre a categoria
+> declarada, porque é o dado mais forte.
 
 > **Aviso exibido na tela de conforto** (§17): *"Não fazemos diagnóstico. Equipamento adequado ajuda,
 > mas não substitui avaliação de um profissional de saúde."* — discreto, sem alarmismo, sem linguagem

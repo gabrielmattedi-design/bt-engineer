@@ -47,7 +47,8 @@ export const PRODUCT_SEED = [
     name: 'Descubra seu setup completo',
     description:
       'Raquete + corda + espessura + tensão inicial, com a faixa de ajuste e o motivo de cada ' +
-      'escolha. Inclui a 2ª e a 3ª colocadas, com marca, modelo e leitura técnica.',
+      'escolha. Inclui a 2ª e a 3ª colocadas, com marca, modelo e leitura técnica, e o setup ' +
+      'ideal para a raquete que você já tem — sem trocar de quadro.',
     priceCents: 4999,
     grantsEntitlements: [
       'racket_report_access',
@@ -76,8 +77,9 @@ export const PRODUCT_SEED = [
     sku: 'setup_upgrade',
     name: 'Completar com corda e tensão',
     description:
-      'Corda, espessura e tensão inicial para a raquete que você escolher entre as do pódio, ' +
-      'com a faixa de ajuste e o motivo de cada escolha. Inclui a 2ª e a 3ª colocadas.',
+      'Corda, espessura e tensão inicial para a raquete que você escolher entre as do pódio — e ' +
+      'também para a que você já tem —, com a faixa de ajuste e o motivo de cada escolha. ' +
+      'Inclui a 2ª e a 3ª colocadas.',
     priceCents: 2999,
     grantsEntitlements: ['full_setup_access', 'rank2_access', 'rank3_access'],
   },

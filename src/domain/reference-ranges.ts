@@ -18,6 +18,41 @@
  */
 
 /**
+ * 2.34.0 — existe um teto de peso estático do quadro, por porte, sexo e faixa etária.
+ *
+ * Até aqui o motor só tinha PONTUAÇÃO de encaixe físico, e ela ordena por inércia de swing (peso ×
+ * balanço) — o que é a grandeza certa: é ela que a pessoa sente. Só que a inércia não sabe quanto
+ * braço existe do outro lado, e nos extremos isso vira um erro visível: um menino de 12 anos com
+ * 52 kg recebia quadros de 295 a 305 g, com encaixe físico de 77 e 84 de 100. A pontuação não
+ * estava errada; faltava um limite absoluto acima dela.
+ *
+ * A partir daqui o perfil carrega `frame_weight_ceiling_g` e o ranking não oferece quadro acima
+ * dele. A recomendação para os perfis de porte menor muda — é a primeira vez desde a 2.12.0 que uma
+ * regra nova pode trocar a raquete indicada para um perfil inteiro, e não só reordenar empates.
+ *
+ * A fórmula, as medições e o que cada termo custa estão em `frameWeightCeiling`
+ * (recommendation/profile/build-profile.ts); a razão de o teto ser aplicado depois da pontuação, e
+ * não junto dos filtros duros, está em `applyWeightCeiling` (engine/rank-rackets.ts).
+ *
+ * ─── E MAIS TRÊS COISAS ENTRARAM NA MESMA VERSÃO, TODAS SOBRE O MESMO ASSUNTO ──────────────
+ *
+ * 1. O relatório passa a EXPLICAR o peso. A nota de inércia (`buildWeightReading`) responde à
+ *    objeção que o teto tornou inevitável: por que a raquete mais pesada é a que gira com menos
+ *    esforço. Ela só aparece quando existem dois quadros concretos para comparar.
+ *
+ * 2. Menores de 16 ainda pequenos para o catálogo adulto recebem o aviso de migração juvenil
+ *    (`buildJuniorTransitionNote`): a recomendação é a melhor DENTRE as adultas, e quadros de 25 e
+ *    26 polegadas seguem legítimos nessa fase — coisa que este catálogo não avalia.
+ *
+ * 3. A TENSÃO muda de número para parte do público, e por conserto de defeito.
+ *    `current_string.string_type` nunca era preenchido: o questionário não perguntava a categoria
+ *    da corda atual e nada a derivava. `computeTension` comparava esse `null` com o tipo
+ *    recomendado para decidir o peso da experiência do jogador — a comparação nunca dava igual,
+ *    todo mundo ficava nos 35% em vez de 55%, e o relatório afirmava "o tipo de corda muda" para
+ *    quem não estava mudando de tipo. Agora a pergunta existe, é opcional, e a comparação é por
+ *    família (`sameStringFamily`), porque poliéster e copoliéster são a mesma coisa para quem joga.
+ *    Junto veio o bloco de corda e tensão para a RAQUETE ATUAL (`current_racket_setup`).
+ *
  * 2.33.0 — a comparação com a variação de fábrica saiu do relatório inteiro.
  *
  * A 2.32.0 tirou a frase do card da raquete atual e a manteve no bloco de empate técnico do pódio,
@@ -482,7 +517,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.33.0';
+export const METHODOLOGY_VERSION = '2.34.0';
 
 export type Range = readonly [lo: number, hi: number];
 
