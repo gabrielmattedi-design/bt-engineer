@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createOrder, attachPayment } from '@/database/repositories/commerce-repo';
 import { ensureAnonymousSession } from '@/database/repositories/session-repo';
 import { redeemCoupon } from '@/database/repositories/coupon-repo';
@@ -148,7 +149,14 @@ export async function startCheckout(
       orderId: order.orderId,
       sku: order.product.sku,
       productName: order.product.name,
-      amountCents: order.product.priceCents,
+      /*
+        O valor vem do PEDIDO, não do produto.
+
+        Eram a mesma coisa até existir cupom de desconto; agora divergem, e mandar o preço do
+        produto ao gateway cobraria o cheio de quem viu o valor com desconto na tela. O pedido é a
+        única fonte que já passou pelo desconto e ficou gravada.
+      */
+      amountCents: order.amountCents,
       currency: order.product.currency,
       /*
         A volta é para `/retorno`, e NÃO direto para `/resultado`.
@@ -169,7 +177,7 @@ export async function startCheckout(
       orderId: order.orderId,
       provider: provider.id,
       providerPaymentId: checkout.providerPaymentId,
-      amountCents: order.product.priceCents,
+      amountCents: order.amountCents,
     });
 
     /*
@@ -225,10 +233,23 @@ function hashVisitante(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 32);
 }
 
+/**
+ * Aplica um código — de acesso ou de desconto.
+ *
+ * Os dois desfechos são opostos e a função precisa dos dois: o de ACESSO leva ao relatório, porque
+ * a entrega já aconteceu; o de DESCONTO fica nesta tela, porque o passo que falta é pagar.
+ */
 export async function redeemAccessCode(
   _prev: unknown,
   formData: FormData,
-): Promise<{ error: string } | void> {
+): Promise<{ error: string } | { ok: string } | undefined> {
+  /*
+    `undefined` no lugar de `void` no tipo de retorno.
+
+    `void` faz o React tipar o estado da ação como podendo ser `void`, e `void` não é renderizável —
+    a tela que mostra a mensagem deixa de compilar. O caminho de sucesso do código de acesso nunca
+    retorna de verdade: ele termina em `redirect`, que lança.
+  */
   const publicId = String(formData.get('session_id') ?? '');
   const code = String(formData.get('code') ?? '');
   const email = String(formData.get('email') ?? '').trim();
@@ -331,6 +352,21 @@ export async function redeemAccessCode(
           }
         }
         break;
+      case 'discount': {
+        /*
+          Nada foi entregue, então nada de e-mail e nada de redirecionar.
+
+          O código ficou guardado na análise; o que muda é o PREÇO desta tela. `revalidatePath`
+          existe para que ela remonte com os valores novos — sem isso o cupom seria aceito e a
+          pessoa continuaria olhando o preço cheio, o que lê como "não funcionou".
+        */
+        revalidatePath(`/planos/${publicId}`);
+        return {
+          ok:
+            `Cupom aplicado: ${outcome.percent}% de desconto. Os valores abaixo já estão ` +
+            'atualizados.',
+        };
+      }
       case 'exhausted':
         return { error: 'Este código já atingiu o limite de usos.' };
       case 'daily_limit':

@@ -68,7 +68,21 @@ export default async function CodigosPage() {
                     </span>
                   </div>
 
-                  <p className="mt-2 text-sm tabular-nums text-graphite">
+                  {/*
+                    O TIPO do código, dito na listagem.
+
+                    Os dois se parecem aqui — mesma linha, mesmo contador, mesmo botão de desativar —
+                    e fazem coisas opostas: um libera o relatório de graça, o outro só abate uma
+                    porcentagem. Sem esta linha, a única forma de saber qual é qual seria lembrar do
+                    que foi digitado no dia em que o código nasceu.
+                  */}
+                  <p className="mt-2 text-sm font-medium">
+                    {c.discountPercent === null
+                      ? 'Libera o acesso'
+                      : `Desconto de ${c.discountPercent}% no checkout`}
+                  </p>
+
+                  <p className="mt-1 text-sm tabular-nums text-graphite">
                     {c.maxUses === null
                       ? `${c.usedCount} usos · sem limite total`
                       : `${c.usedCount} de ${c.maxUses} usos · restam ${remaining}`}

@@ -106,6 +106,14 @@ export const recommendationSessions = pgTable(
      * identificação é um passo posterior e opcional.
      */
     userId: uuid('user_id'),
+    /**
+     * Cupom de desconto aplicado a esta análise. `null` = nenhum.
+     *
+     * Guarda só o CÓDIGO. A porcentagem é lida de `access_coupons` a cada uso, nunca daqui: um
+     * cupom desativado ou esgotado precisa parar de valer na hora, inclusive para quem já o tinha
+     * aplicado — e um percentual copiado para cá continuaria valendo para sempre.
+     */
+    couponCode: text('coupon_code'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('recommendation_sessions_session_idx').on(t.sessionId)],

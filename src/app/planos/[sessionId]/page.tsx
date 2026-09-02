@@ -9,6 +9,7 @@ import { CheckoutButton } from './checkout-button';
 import { CouponForm } from './coupon-form';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
 import { brl } from '@/payments/catalogo';
+import { comDesconto, descontoDaAnalise } from '@/database/repositories/coupon-repo';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,15 @@ export default async function PlanosPage({
   // principais. Em nenhum dos casos inventamos uma opção que não existe no catálogo.
   const visible = produto ? all.filter((p) => p.sku === produto) : all.filter((p) => p.sku !== 'top3_unlock');
 
+  /*
+    O desconto é relido AQUI, e não guardado de nenhuma visita anterior.
+
+    Ele pode ter deixado de valer desde a última vez — cupom desativado no painel, ou último uso
+    gasto por outra pessoa. Relendo, o preço volta ao cheio na hora e a pessoa vê isso antes de
+    pagar, em vez de descobrir no gateway.
+  */
+  const desconto = await withAutoBootstrap(() => descontoDaAnalise(sessionId));
+
   const inviteOnly = !(await checkoutOpen());
 
   /*
@@ -116,7 +126,31 @@ export default async function PlanosPage({
               {product.description && (
                 <p className="mt-2 max-w-prose text-sm text-graphite">{product.description}</p>
               )}
-              <p className="display-number mt-4 text-3xl">{brl(product.priceCents)}</p>
+              {/*
+                ═══ O PREÇO CHEIO CONTINUA VISÍVEL, RISCADO ═══════════════════════════════════
+
+                O §58 proíbe preço "de/por" — e proíbe o FICTÍCIO: inventar um valor anterior que
+                nunca foi cobrado para fabricar a sensação de desconto. Aqui o valor riscado é o que
+                a loja cobra de todo mundo neste instante, e o cupom é real.
+
+                Escondê-lo seria pior para o cliente: sem a referência, "R$ 20,99" não informa que
+                houve desconto nenhum, e a pessoa que digitou um cupom fica sem saber se ele pegou.
+              */}
+              {desconto ? (
+                <p className="mt-4 flex flex-wrap items-baseline gap-3">
+                  <span className="display-number text-3xl text-court">
+                    {brl(comDesconto(product.priceCents, desconto.percent))}
+                  </span>
+                  <span className="text-lg text-graphite line-through">
+                    {brl(product.priceCents)}
+                  </span>
+                  <span className="rounded bg-court/10 px-2 py-0.5 text-xs font-semibold text-court">
+                    {desconto.code} · −{desconto.percent}%
+                  </span>
+                </p>
+              ) : (
+                <p className="display-number mt-4 text-3xl">{brl(product.priceCents)}</p>
+              )}
               {inviteOnly ? (
                 /*
                   O preço continua visível de propósito.

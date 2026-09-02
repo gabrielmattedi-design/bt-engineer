@@ -218,6 +218,43 @@ com backoff e um fallback de reconciliação (`getPaymentStatus`) após 60 s, co
 
 ---
 
+## 5.1 Códigos: acesso e desconto
+
+Duas coisas diferentes na mesma tabela (`access_coupons`), distinguidas por `discount_percent`.
+Criadas em `/admin/codigos`.
+
+| | Código de **acesso** | Código de **desconto** |
+|---|---|---|
+| `discount_percent` | `null` | 1 a 90 |
+| `grants` | os entitlements do preset | **sempre vazio** |
+| o que faz | libera o relatório na hora, sem pagar | abate a % do preço no checkout |
+| depois de digitar | vai para `/resultado` | fica em `/planos`, com os valores novos |
+| quando o uso é consumido | no resgate | **na confirmação do pagamento** |
+
+Um código nunca é os dois: `upsertCoupon` zera `grants` quando há percentual. "100% de desconto"
+seria acesso total por um caminho que ainda passa pelo gateway, cobrando R$ 0,00 de alguém.
+
+**O uso do cupom de desconto só é consumido quando o dinheiro entra.** Abandonar o checkout é o
+comportamento mais comum que existe; consumir na digitação faria um código abandonado gastar o uso
+de outra pessoa. Se o último uso for levado por outro pagamento nesse intervalo, quem pagou já pagou
+com desconto — não se revoga acesso nem se cobra a diferença por uma corrida de milissegundos, e o
+pedido guarda `coupon_code` e `discount_percent` para o caso ficar registrado.
+
+**O valor é recalculado no servidor**, dentro de `createOrder`, relendo o cupom do banco. O que a
+tela mostrou não volta pelo formulário. A análise guarda só o CÓDIGO (`recommendation_sessions.
+coupon_code`), nunca o percentual: um cupom desativado precisa parar de valer na hora, inclusive
+para quem já o aplicou.
+
+**Teto de 90%**: o gateway recusa cobrança abaixo de um mínimo, e 90% sobre o produto mais barato
+(R$ 9,99) dá R$ 1,00. Acima disso nasceria um cupom que o painel aceita e o checkout recusa.
+
+O preço cheio aparece riscado ao lado do com desconto. Não é o "de/por" que o §58 proíbe — aquele é
+o valor inventado que nunca foi cobrado; este é o que a loja cobra de todo mundo neste instante.
+
+Trancado por `tests/security/cupom-de-desconto.test.ts`.
+
+---
+
 ## 6. Métricas (§50)
 
 Negócio: conversão por etapa, abandono por etapa do quiz, ticket médio, split `racket_report` vs

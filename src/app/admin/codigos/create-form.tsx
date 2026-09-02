@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { createCode, type CodeResult } from './actions';
+import { DESCONTO_MAX_PERCENT } from '@/payments/catalogo';
 
 type Preset = { readonly label: string; readonly description: string };
 
@@ -48,7 +49,7 @@ export function CreateCodeForm({ presets }: { presets: Readonly<Record<string, P
       </div>
 
       <fieldset className="mt-5">
-        <legend className="text-sm font-medium">O que o código libera</legend>
+        <legend className="text-sm font-medium">O que o código faz</legend>
         <div className="mt-2 space-y-2">
           {Object.entries(presets).map(([key, preset], i) => (
             <label
@@ -71,6 +72,35 @@ export function CreateCodeForm({ presets }: { presets: Readonly<Record<string, P
           ))}
         </div>
       </fieldset>
+
+      {/*
+        ═══ O CAMPO DE PORCENTAGEM FICA SEMPRE VISÍVEL ══════════════════════════════════════════
+
+        Escondê-lo até "Desconto em %" ser marcado seria mais limpo e mais frágil: exigiria estado
+        no cliente para um formulário que hoje funciona sem JavaScript nenhum, e um campo que
+        aparece do nada costuma ser preenchido depois do resto, quando a pessoa já achou que
+        terminou.
+
+        Visível e ignorado, ele não faz mal: o servidor só lê este valor quando o tipo escolhido é o
+        de desconto. Um número esquecido aqui nunca vira desconto num código de acesso.
+      */}
+      <div className="mt-4">
+        <label htmlFor="discount_percent" className="text-sm font-medium">
+          Porcentagem do desconto{' '}
+          <span className="font-normal text-graphite">(só para &ldquo;Desconto em %&rdquo;)</span>
+        </label>
+        <div className="mt-1 flex items-center gap-2">
+          <input
+            id="discount_percent"
+            name="discount_percent"
+            inputMode="numeric"
+            placeholder="ex.: 20"
+            className="min-h-[52px] w-28 rounded border border-line px-3 text-right
+                       focus-visible:border-court"
+          />
+          <span className="text-sm text-graphite">% — de 1 a {DESCONTO_MAX_PERCENT}</span>
+        </div>
+      </div>
 
       <div className="mt-5">
         <label htmlFor="note" className="text-sm font-medium">

@@ -2,6 +2,9 @@ import { and, eq, isNull, or, sql, gte} from 'drizzle-orm';
 import { db } from '@/database/client';
 import { accessCoupons, couponRedemptions, entitlements, recommendationSessions } from '@/database/schema';
 import { ALL_ENTITLEMENTS, type Entitlement } from '@/payments/entitlements';
+/* A regra do desconto é de COMÉRCIO, não de banco — ver a nota em `catalogo.ts`. */
+export { comDesconto, DESCONTO_MAX_PERCENT } from '@/payments/catalogo';
+import { comDesconto } from '@/payments/catalogo';
 
 /**
  * Códigos de acesso — criação, resgate e listagem.
@@ -21,7 +24,10 @@ export type CouponSummary = {
   readonly dailyLimit: number | null;
   /** Quantos resgates nas últimas 24 h — o número que denuncia um vazamento em curso. */
   readonly usedToday: number;
+  /** 1 a 90 = cupom de desconto. `null` = cupom de acesso, que libera de graça. */
+  readonly discountPercent: number | null;
 };
+
 
 export type RedeemOutcome =
   | { kind: 'granted'; entitlements: readonly Entitlement[] }
@@ -34,6 +40,14 @@ export type RedeemOutcome =
    * voltar amanhã é fazer o convidado gastar o seu tempo e o dele.
    */
   | { kind: 'daily_limit'; limit: number }
+  /**
+   * O código é de DESCONTO: não entrega nada agora, muda o preço do checkout.
+   *
+   * Desfecho próprio, e não um `granted` com lista vazia, porque o que a tela faz depois é oposto:
+   * `granted` manda a pessoa para o relatório, e este a mantém nos planos — com os valores novos e
+   * o botão de pagar, que é o passo que falta.
+   */
+  | { kind: 'discount'; code: string; percent: number }
   /** O código não existe. */
   | { kind: 'unknown_code' }
   /** A análise não existe no banco — link velho, ou banco trocado desde que ela foi gerada. */
@@ -74,29 +88,49 @@ export async function listCoupons(): Promise<CouponSummary[]> {
     note: r.note,
     dailyLimit: r.dailyLimit,
     usedToday: porCodigo.get(r.code) ?? 0,
+    discountPercent: r.discountPercent,
   }));
 }
 
+/**
+ * Cria ou edita um código.
+ *
+ * Um código é de ACESSO ou de DESCONTO, nunca os dois: com `discountPercent`, `grants` é forçado a
+ * vazio aqui, e não apenas na tela. Um cupom que desse acesso E desconto liberaria o relatório de
+ * graça e ainda mandaria a pessoa pagar por ele — e a tela de edição é justamente onde alguém
+ * marcaria as duas coisas sem perceber.
+ */
 export async function upsertCoupon(input: {
   code: string;
   grants: readonly string[];
   maxUses: number | null;
   note: string | null;
+  discountPercent?: number | null;
 }): Promise<void> {
   const code = normalizeCode(input.code);
+  const desconto = input.discountPercent ?? null;
+  const grants = desconto === null ? [...input.grants] : [];
+
   await db()
     .insert(accessCoupons)
     .values({
       code,
-      grants: [...input.grants],
+      grants,
       maxUses: input.maxUses,
       note: input.note,
+      discountPercent: desconto,
       active: true,
     })
     .onConflictDoUpdate({
       target: accessCoupons.code,
       // O contador NÃO é zerado ao editar: quem já usou continua tendo usado.
-      set: { grants: [...input.grants], maxUses: input.maxUses, note: input.note, active: true },
+      set: {
+        grants,
+        maxUses: input.maxUses,
+        note: input.note,
+        discountPercent: desconto,
+        active: true,
+      },
     });
 }
 
@@ -145,12 +179,47 @@ export async function redeemCoupon(input: {
   if (!recommendationSessionId) return { kind: 'unknown_analysis' };
 
   const existing = await conn
-    .select({ grants: accessCoupons.grants, dailyLimit: accessCoupons.dailyLimit })
+    .select({
+      grants: accessCoupons.grants,
+      dailyLimit: accessCoupons.dailyLimit,
+      discountPercent: accessCoupons.discountPercent,
+      active: accessCoupons.active,
+      maxUses: accessCoupons.maxUses,
+      usedCount: accessCoupons.usedCount,
+    })
     .from(accessCoupons)
     .where(eq(accessCoupons.code, code))
     .limit(1);
 
   if (!existing[0]) return { kind: 'unknown_code' };
+
+  /*
+    ═══ O CAMINHO DO CUPOM DE DESCONTO PARA AQUI ══════════════════════════════════════════════
+
+    Ele não entrega nada agora, então NADA é consumido: nem uso, nem registro de resgate. A pessoa
+    ainda vai pagar, e pode desistir no checkout — um código digitado e abandonado não pode gastar
+    o cupom de outra pessoa.
+
+    O uso é consumido na CONFIRMAÇÃO DO PAGAMENTO, em `consumirCupomDoPedido`. É o único instante
+    em que "este cupom foi usado" é verdade.
+
+    O que acontece aqui é só guardar o código na análise. A porcentagem NÃO é copiada: ela é lida
+    de novo a cada preço exibido e outra vez no checkout, para que desativar um cupom valha na hora
+    inclusive para quem já o aplicou.
+  */
+  if (existing[0].discountPercent !== null) {
+    if (!existing[0].active) return { kind: 'exhausted' };
+
+    const limite = existing[0].maxUses;
+    if (limite !== null && existing[0].usedCount >= limite) return { kind: 'exhausted' };
+
+    await conn
+      .update(recommendationSessions)
+      .set({ couponCode: code })
+      .where(eq(recommendationSessions.id, recommendationSessionId));
+
+    return { kind: 'discount', code, percent: existing[0].discountPercent };
+  }
 
   // Registro do resgate ANTES do consumo: é ele que torna a operação idempotente por análise.
   const claimed = await conn
@@ -298,6 +367,7 @@ export async function addCouponUses(code: string, amount: number): Promise<Coupo
     active: r.active,
     note: r.note,
     dailyLimit: r.dailyLimit,
+    discountPercent: r.discountPercent,
     /*
       Zero, e não uma consulta.
 
@@ -348,4 +418,95 @@ export async function seedInviteCoupons(): Promise<void> {
       },
     ])
     .onConflictDoNothing();
+}
+
+/**
+ * O desconto que vale AGORA para esta análise, se houver.
+ *
+ * ═══ POR QUE ISTO É LIDO DE NOVO A CADA VEZ ══════════════════════════════════════════════════
+ *
+ * Preço é dinheiro, e dinheiro não se lê de cache. Esta função é chamada quando a tela de planos
+ * monta os valores E outra vez quando o checkout é criado — de propósito, e não por descuido.
+ *
+ * Entre as duas coisas o dono pode ter desativado o cupom, ou o último uso pode ter sido gasto por
+ * outra pessoa. Nesses casos ela devolve `null`, o preço volta ao cheio, e o cliente vê isso antes
+ * de pagar em vez de descobrir depois.
+ *
+ * A ordem também importa: quem decide o valor cobrado é a chamada do CHECKOUT, não a da tela.
+ */
+export async function descontoDaAnalise(
+  publicId: string,
+): Promise<{ code: string; percent: number } | null> {
+  const rows = await db()
+    .select({
+      code: accessCoupons.code,
+      percent: accessCoupons.discountPercent,
+      active: accessCoupons.active,
+      maxUses: accessCoupons.maxUses,
+      usedCount: accessCoupons.usedCount,
+    })
+    .from(recommendationSessions)
+    .innerJoin(accessCoupons, eq(accessCoupons.code, recommendationSessions.couponCode))
+    .where(eq(recommendationSessions.publicId, publicId))
+    .limit(1);
+
+  const c = rows[0];
+  if (!c || c.percent === null) return null;
+  if (!c.active) return null;
+  if (c.maxUses !== null && c.usedCount >= c.maxUses) return null;
+
+  return { code: c.code, percent: c.percent };
+}
+
+/**
+ * Consome o uso do cupom de um pedido PAGO.
+ *
+ * ═══ POR QUE AQUI, E POR QUE FALHAR AQUI NÃO PODE DOER ═══════════════════════════════════════
+ *
+ * Este é o instante em que "o cupom foi usado" vira verdade: o dinheiro entrou. Consumir antes —
+ * quando a pessoa digita — faria um checkout abandonado gastar o uso de outra pessoa.
+ *
+ * O `UPDATE` carrega o próprio limite no `WHERE`, então dois pagamentos simultâneos do último uso
+ * não podem ambos vencer. Quando ele não afeta nenhuma linha, a resposta é NÃO FAZER NADA: quem
+ * pagou já pagou o valor com desconto, e revogar acesso ou cobrar a diferença por causa de uma
+ * corrida de milissegundos seria punir o cliente por um problema nosso. O pedido guarda o código e
+ * o percentual, então o caso fica registrado e visível.
+ *
+ * Devolve `true` quando o uso foi de fato consumido — só para quem quiser medir.
+ */
+export async function consumirCupomDoPedido(input: {
+  code: string;
+  sessionId: string;
+  recommendationSessionId: string;
+}): Promise<boolean> {
+  const conn = db();
+  const code = normalizeCode(input.code);
+
+  const consumed = await conn
+    .update(accessCoupons)
+    .set({ usedCount: sql`${accessCoupons.usedCount} + 1` })
+    .where(
+      and(
+        eq(accessCoupons.code, code),
+        or(isNull(accessCoupons.maxUses), sql`${accessCoupons.usedCount} < ${accessCoupons.maxUses}`),
+      ),
+    )
+    .returning({ code: accessCoupons.code });
+
+  /*
+    O registro do resgate entra mesmo quando o uso não foi consumido.
+
+    Ele responde "quem usou este cupom?", e uma compra paga com o desconto aplicado É um uso, tenha
+    o contador acompanhado ou não. Deixá-la de fora esconderia justamente o caso anômalo.
+  */
+  await conn
+    .insert(couponRedemptions)
+    .values({
+      code,
+      sessionId: input.sessionId,
+      recommendationSessionId: input.recommendationSessionId,
+    })
+    .onConflictDoNothing();
+
+  return consumed.length > 0;
 }

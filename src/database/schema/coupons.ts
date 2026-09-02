@@ -52,6 +52,28 @@ export const accessCoupons = pgTable('access_coupons', {
    * em que o teto zera e um script paciente teria duas rajadas cheias em poucos minutos.
    */
   dailyLimit: integer('daily_limit'),
+  /**
+   * Desconto percentual, de 1 a 90. `null` = código de ACESSO (libera de graça, o comportamento
+   * original).
+   *
+   * ═══ SÃO DOIS PRODUTOS DIFERENTES NA MESMA TABELA ══════════════════════════════════════════
+   *
+   * O código de acesso ENTREGA: quem digita recebe o relatório na hora, sem pagar. O código de
+   * desconto não entrega nada — ele muda o preço e a pessoa segue para o checkout. A diferença
+   * atravessa tudo: quando o uso é consumido, o que a tela mostra depois de digitar, e o que
+   * acontece se a pessoa desistir no meio.
+   *
+   * Um código nunca é os dois. Com `discount_percent` preenchido, `grants` fica vazio — quem quer
+   * dar acesso total dá acesso total; "100% de desconto" seria a mesma coisa por um caminho que
+   * ainda passa pelo gateway, cobrando R$ 0,00 de alguém.
+   *
+   * ─── POR QUE O TETO É 90%, E NÃO 99% ────────────────────────────────────────────────────────
+   *
+   * O gateway recusa cobrança abaixo de um valor mínimo. Com 90%, o produto mais barato do catálogo
+   * (R$ 9,99) cai para R$ 1,00 — que passa. Um teto maior criaria um cupom que parece válido no
+   * painel e falha no checkout, com o cliente na frente da tela.
+   */
+  discountPercent: integer('discount_percent'),
   usedCount: integer('used_count').notNull().default(0),
   active: boolean('active').notNull().default(true),
   /** Para o dono lembrar a quem ele mandou o código. */

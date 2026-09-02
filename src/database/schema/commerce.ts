@@ -57,6 +57,22 @@ export const orders = pgTable('orders', {
    * uma alteração futura de preço não pode reescrever o histórico do que alguém já pagou.
    */
   amountCents: integer('amount_cents').notNull(),
+  /**
+   * O cupom de desconto usado nesta compra, e quanto ele tirou.
+   *
+   * ═══ POR QUE OS DOIS, SE `amount_cents` JÁ TEM O VALOR FINAL ═══════════════════════════════
+   *
+   * Porque sem eles um pedido de R$ 20,99 é indistinguível de um pedido feito num dia em que o
+   * preço era R$ 20,99. Quando alguém pedir reembolso, ou quando o dono quiser saber se a campanha
+   * do cupom vendeu, a única resposta possível seria "não dá para saber".
+   *
+   * São também o que o webhook consulta para consumir o uso do cupom NA CONFIRMAÇÃO, e não quando
+   * a pessoa digitou: um código digitado e abandonado no checkout não pode gastar nada.
+   *
+   * `null` nos dois é o caso normal — compra sem cupom.
+   */
+  couponCode: text('coupon_code'),
+  discountPercent: integer('discount_percent'),
   currency: text('currency').notNull().default('BRL'),
   /** `pending` | `paid` | `failed` | `refunded` | `cancelled` */
   status: text('status').notNull().default('pending'),

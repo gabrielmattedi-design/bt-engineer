@@ -277,4 +277,27 @@ END $$`,
 )`,
   `CREATE INDEX IF NOT EXISTS "attempt_counters_scope_idx" ON "attempt_counters" USING btree ("scope","window_start")`,
   `ALTER TABLE "access_coupons" ADD COLUMN IF NOT EXISTS "daily_limit" integer`,
+
+  /*
+    Cupom de DESCONTO (set/2026) — três colunas, todas anuláveis.
+
+    Anuláveis não por comodidade: `null` é o estado correto e majoritário. Cupom sem desconto é
+    cupom de acesso, e pedido sem cupom é a compra normal. Um `DEFAULT 0` faria "sem desconto"
+    parecer "desconto de zero por cento", que é a mesma coisa escrita de um jeito que confunde
+    qualquer consulta futura.
+  */
+  `ALTER TABLE "access_coupons" ADD COLUMN IF NOT EXISTS "discount_percent" integer`,
+  `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "coupon_code" text`,
+  `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "discount_percent" integer`,
+  /*
+    O cupom aplicado vive na ANÁLISE, e não num cookie.
+
+    O cookie seria mais rápido de escrever e errado por dois motivos: ele é controlado por quem
+    está do outro lado — e aqui o assunto é dinheiro —, e ele se perde quando a pessoa abre o link
+    da própria análise em outro aparelho, que é exatamente o que o produto convida a fazer.
+
+    Guardado aqui, o desconto pertence à análise: nasce com ela, é conferido no servidor a cada
+    leitura, e a mesma pessoa reencontra o preço que já tinha visto.
+  */
+  `ALTER TABLE "recommendation_sessions" ADD COLUMN IF NOT EXISTS "coupon_code" text`,
 ];

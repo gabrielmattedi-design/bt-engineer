@@ -85,7 +85,21 @@ export function CouponForm({ sessionId }: { sessionId: string }) {
         </p>
       </div>
 
-      {state?.error && <p className="mt-3 text-sm text-warn">{state.error}</p>}
+      {state && 'error' in state && <p className="mt-3 text-sm text-warn">{state.error}</p>}
+
+      {/*
+        O cupom de DESCONTO precisa de confirmação na tela, e o de acesso não.
+
+        O de acesso leva a pessoa direto ao relatório: o resultado é a própria resposta. O de
+        desconto deixa a pessoa exatamente onde ela estava, com números diferentes — e sem uma
+        frase dizendo o que aconteceu, a leitura mais provável é "não funcionou", seguida de digitar
+        o código de novo.
+      */}
+      {state && 'ok' in state && (
+        <p className="mt-3 rounded border border-court/40 bg-court/5 p-3 text-sm text-court">
+          {state.ok}
+        </p>
+      )}
     </form>
   );
 }

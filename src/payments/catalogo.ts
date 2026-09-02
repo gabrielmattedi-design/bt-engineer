@@ -99,6 +99,36 @@ export function precoInicial(sku: Sku): number {
   return PORINDICE.get(sku)!.priceCents;
 }
 
+/**
+ * Teto do desconto de cupom, em pontos percentuais.
+ *
+ * ═══ POR QUE 90, E POR QUE ELE MORA AQUI ═════════════════════════════════════════════════════
+ *
+ * O gateway recusa cobrança abaixo de um valor mínimo. Com 90%, o produto mais barato do catálogo
+ * (R$ 9,99) cai para R$ 1,00 e passa. Um teto maior criaria um cupom que o painel aceita e o
+ * checkout recusa — com o cliente na frente da tela, que é a pior hora de descobrir.
+ *
+ * Fica neste módulo, e não junto do resgate, porque o FORMULÁRIO do painel precisa dele para
+ * escrever "de 1 a 90" ao lado do campo. Aquele arquivo fala com o Postgres, e um componente de
+ * cliente que o importasse arrastaria o driver do banco para dentro do navegador.
+ */
+export const DESCONTO_MAX_PERCENT = 90;
+
+/**
+ * Aplica um desconto percentual a um preço, em centavos.
+ *
+ * `Math.round` e não truncamento: R$ 29,99 com 15% dá 2549,15 centavos, e truncar entregaria um
+ * centavo a mais de desconto em quase toda combinação — barato, e ainda assim dinheiro decidido por
+ * acidente de arredondamento em vez de por regra.
+ *
+ * O piso de um real repete o que `DESCONTO_MAX_PERCENT` já garante. Ele existe porque essa garantia
+ * depende do preço mais barato do catálogo, e o catálogo é editável no painel: no dia em que
+ * existir um produto de R$ 1,00, é esta linha que impede um checkout de R$ 0,10.
+ */
+export function comDesconto(precoCents: number, percent: number): number {
+  return Math.max(PRECO_MIN_CENTS, Math.round(precoCents * (1 - percent / 100)));
+}
+
 /** Piso e teto do que o painel aceita digitar. Ver `conferirEscada`. */
 export const PRECO_MIN_CENTS = 100;
 export const PRECO_MAX_CENTS = 99_999;

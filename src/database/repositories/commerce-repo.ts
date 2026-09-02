@@ -13,6 +13,7 @@ import { PRODUCT_SEED } from '@/database/setup';
 import { canTransition, type PaymentEvent, type PaymentStatus } from '@/payments/provider';
 import { markFunnelBySessionId } from './funnel-repo';
 import { PRODUCT_ENTITLEMENTS } from '@/payments/entitlements';
+import { comDesconto, consumirCupomDoPedido, descontoDaAnalise } from './coupon-repo';
 
 export type Product = {
   readonly sku: string;
@@ -104,7 +105,7 @@ export async function createOrder(input: {
   sku: string;
   /** Quem comprou, quando o e-mail foi informado. Nulo não impede a compra — ver `identify()`. */
   userId?: string | null;
-}): Promise<{ orderId: string; product: Product } | null> {
+}): Promise<{ orderId: string; product: Product; amountCents: number } | null> {
   const product = await productBySku(input.sku);
   if (!product) return null;
 
@@ -117,6 +118,23 @@ export async function createOrder(input: {
 
   if (!rec[0]) return null;
 
+  /*
+    ═══ O DESCONTO É RESOLVIDO AQUI, NO SERVIDOR, NO INSTANTE DA COMPRA ═══════════════════════
+
+    A tela de planos já mostrou um valor com desconto, e ele NÃO é reaproveitado: nada que passou
+    pelo navegador decide quanto alguém paga. O cupom é relido do banco agora, com as mesmas
+    conferências — ativo, dentro do limite —, e um cupom que morreu no meio do caminho
+    simplesmente não vale.
+
+    O sentido do erro é o certo: a divergência possível é o cliente ver um preço com desconto e
+    pagar o cheio, nunca o contrário. Quando isso acontece, ele vê o valor real na tela do gateway
+    antes de confirmar.
+  */
+  const desconto = await descontoDaAnalise(input.publicId);
+  const amountCents = desconto
+    ? comDesconto(product.priceCents, desconto.percent)
+    : product.priceCents;
+
   const inserted = await conn
     .insert(orders)
     .values({
@@ -124,13 +142,15 @@ export async function createOrder(input: {
       recommendationSessionId: rec[0].id,
       userId: input.userId ?? null,
       productSku: product.sku,
-      amountCents: product.priceCents,
+      amountCents,
+      couponCode: desconto?.code ?? null,
+      discountPercent: desconto?.percent ?? null,
       currency: product.currency,
       status: 'pending',
     })
     .returning({ id: orders.id });
 
-  return { orderId: inserted[0]!.id, product };
+  return { orderId: inserted[0]!.id, product, amountCents };
 }
 
 export async function attachPayment(input: {
@@ -213,6 +233,7 @@ export async function processPaymentEvent(
       recommendationSessionId: orders.recommendationSessionId,
       sku: orders.productSku,
       amountCents: orders.amountCents,
+      couponCode: orders.couponCode,
       // `left join`: pedido sem e-mail é normal e não pode sumir da consulta que concede o acesso.
       email: users.email,
       publicId: recommendationSessions.publicId,
@@ -257,6 +278,30 @@ export async function processPaymentEvent(
   }
 
   await markFunnelBySessionId(order.sessionId, 'paid');
+
+  /*
+    ═══ O CUPOM DE DESCONTO É CONSUMIDO AQUI, E EM NENHUM OUTRO LUGAR ═════════════════════════
+
+    "Este cupom foi usado" só vira verdade quando o dinheiro entra. Consumir quando a pessoa digita
+    faria um checkout abandonado gastar o uso de outra — e abandonar checkout é o comportamento mais
+    comum de todos.
+
+    Falhar aqui não pode doer: `consumirCupomDoPedido` nunca lança e nunca revoga nada. Se o último
+    uso tiver sido levado por outra pessoa entre o checkout e a confirmação, quem pagou já pagou o
+    valor com desconto — e cobrar a diferença por causa de uma corrida de milissegundos seria punir
+    o cliente por um problema nosso. O pedido guarda o código e o percentual, então o caso fica
+    registrado.
+
+    Vem ANTES da concessão de propósito: a concessão é o que a pessoa comprou, e nada relacionado a
+    contabilidade de cupom pode se interpor entre o pagamento e o acesso.
+  */
+  if (order.couponCode && order.recommendationSessionId) {
+    await consumirCupomDoPedido({
+      code: order.couponCode,
+      sessionId: order.sessionId,
+      recommendationSessionId: order.recommendationSessionId,
+    });
+  }
 
   const grants = PRODUCT_ENTITLEMENTS[order.sku] ?? [];
   if (grants.length > 0) {

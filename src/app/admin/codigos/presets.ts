@@ -32,9 +32,32 @@ export const ACCESS_PRESETS = {
     description: 'O relatório da 1ª colocada, sem pódio nem setup.',
     grants: ['racket_report_access'],
   },
+  /**
+   * O quarto item não é um conjunto de acesso — é o OUTRO tipo de código.
+   *
+   * ═══ POR QUE ELE MORA NA MESMA LISTA ═════════════════════════════════════════════════════
+   *
+   * Porque a pergunta que o dono responde ao criar um código é uma só: "o que este código faz?".
+   * Três respostas liberam alguma coisa e uma dá desconto. Separar em duas telas duplicaria o
+   * campo de código, o de limite e o de anotação para uma diferença que cabe num item a mais.
+   *
+   * `grants` vazio não é descuido: um código de desconto não entrega NADA por si só. Quem digita
+   * segue para o checkout e paga — menos.
+   */
+  desconto: {
+    label: 'Desconto em %',
+    description: 'Não libera nada: abate uma porcentagem do preço no checkout.',
+    grants: [],
+    percentual: true,
+  },
 } as const satisfies Record<
   string,
-  { label: string; description: string; grants: readonly Entitlement[] }
+  {
+    label: string;
+    description: string;
+    grants: readonly Entitlement[];
+    percentual?: boolean;
+  }
 >;
 
 export type AccessPresetKey = keyof typeof ACCESS_PRESETS;

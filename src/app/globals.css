@@ -287,6 +287,34 @@
     page-break-inside: avoid;
   }
 
+  /*
+    ═══ OS QUADROS TAMBÉM, E ELES ERAM A METADE QUE FALTAVA ═════════════════════════════════════
+
+    A lista acima cobre elementos SEMÂNTICOS, e o relatório quase não usa: o card da raquete
+    vencedora, os três do pódio, o quadro de confiança, o de setup — todos são `div`. Nenhum estava
+    protegido.
+
+    Foto de um PDF gerado no iPhone (set/2026): a página 8 terminava em "WILSON" e a 9 começava em
+    "Wilson Clash 100 Pro v3 (2025)" — a marca numa folha e o modelo na outra, dentro do MESMO
+    card, com a borda cortada no meio. É exatamente o defeito que a página única existe para evitar,
+    sobrevivendo onde a página única não chega.
+
+    ─── POR QUE SELETOR DE CLASSE, E NÃO UMA CLASSE NOVA EM CADA CARD ──────────────────────────
+
+    Marcar um por um exigiria tocar em oito componentes e lembrar de fazê-lo no nono. Este produto é
+    inteiramente Tailwind, e "caixa com borda arredondada" é literalmente `rounded` + `border-*` na
+    marcação — a regra descreve a mesma coisa que o olho vê, e vale para o card que ainda não foi
+    escrito.
+
+    Quadro mais alto que a folha não vira problema: o navegador ignora `break-inside: avoid` quando
+    não há para onde empurrar, e volta a quebrar como antes.
+  */
+  [class~='rounded'][class*='border'],
+  [class~='rounded'][class*='bg-white'] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   h1, h2, h3 {
     break-after: avoid;
     page-break-after: avoid;

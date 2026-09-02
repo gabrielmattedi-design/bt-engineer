@@ -2,7 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
-import { addCouponUses, setCouponActive, upsertCoupon } from '@/database/repositories/coupon-repo';
+import {
+  addCouponUses,
+  DESCONTO_MAX_PERCENT,
+  setCouponActive,
+  upsertCoupon,
+} from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { ACCESS_PRESETS, type AccessPresetKey } from './presets';
 
@@ -34,13 +39,36 @@ export async function createCode(_prev: unknown, formData: FormData): Promise<Co
 
   const note = String(formData.get('note') ?? '').trim() || null;
 
+  /*
+    A porcentagem só é lida quando o código É de desconto.
+
+    Ler sempre transformaria um número esquecido no campo — de uma criação anterior, que o navegador
+    reapresenta — em desconto silencioso num código de acesso. O `preset` é a única coisa que decide
+    qual dos dois tipos está sendo criado.
+  */
+  let discountPercent: number | null = null;
+  if ('percentual' in preset && preset.percentual) {
+    const bruto = String(formData.get('discount_percent') ?? '').trim();
+    const n = Number.parseInt(bruto, 10);
+    if (!Number.isFinite(n) || n < 1 || n > DESCONTO_MAX_PERCENT) {
+      return {
+        error:
+          `A porcentagem precisa ser um número de 1 a ${DESCONTO_MAX_PERCENT}. ` +
+          'Acima disso o valor final ficaria abaixo do mínimo que o Mercado Pago aceita cobrar.',
+      };
+    }
+    discountPercent = n;
+  }
+
   try {
-    await withAutoBootstrap(() => upsertCoupon({ code, grants: preset.grants, maxUses, note }));
+    await withAutoBootstrap(() =>
+      upsertCoupon({ code, grants: preset.grants, maxUses, note, discountPercent }),
+    );
     revalidatePath('/admin/codigos');
     return {
-      ok: `Código ${code.toUpperCase()} salvo — ${preset.label.toLowerCase()}, ${
-        maxUses === null ? 'usos ilimitados' : `${maxUses} usos`
-      }.`,
+      ok: `Código ${code.toUpperCase()} salvo — ${
+        discountPercent === null ? preset.label.toLowerCase() : `${discountPercent}% de desconto`
+      }, ${maxUses === null ? 'usos ilimitados' : `${maxUses} usos`}.`,
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Falha ao salvar o código.' };
