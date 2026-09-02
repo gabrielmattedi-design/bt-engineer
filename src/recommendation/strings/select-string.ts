@@ -581,12 +581,36 @@ function scoreVariant(
  * @param catalog variantes e modelos do banco — a fonte de verdade sobre o que existe
  * @returns `null` quando nenhuma variante sobrevive aos filtros (é honesto não recomendar)
  */
+/**
+ * ═══ POR QUE `racketScale` É OBRIGATÓRIA, E NÃO OPCIONAL ═════════════════════════════════════
+ *
+ * Ela já foi opcional, e a opcionalidade custou um defeito visível ao cliente.
+ *
+ * A régua alimenta `computeStringTarget`: sem ela, o alvo de corda é outro, e a MESMA raquete
+ * recebe outra corda. Isso não é uma degradação suave — é um segundo resultado, igualmente
+ * plausível na tela e impossível de distinguir do primeiro.
+ *
+ * Foi o que aconteceu. `withSetupFor` (questionario/actions.ts) recalcula o setup quando o jogador
+ * aponta o seletor para outra posição do pódio, e nunca passou a régua. Relatado com o relatório
+ * aberto: a raquete do jogador estava no pódio, ele apontou o setup para ela, e o bloco "antes de
+ * trocar de raquete" mostrava OUTRA corda para a MESMA raquete — as duas de poliéster, na mesma
+ * tensão, modelos diferentes.
+ *
+ * Um parâmetro opcional que muda o resultado é uma armadilha de assinatura: o chamador que o
+ * esquece não recebe erro nenhum, recebe uma resposta diferente. Documentar não bastava — a
+ * documentação estava lá e o defeito passou. Obrigatório, o compilador é quem cobra.
+ *
+ * Ela vem ANTES de `mode` na assinatura por causa disso: um parâmetro com padrão só pode ficar
+ * depois de todos os obrigatórios, senão o padrão nunca é usado e vira código morto que parece
+ * ativo. `mode` mantém o padrão porque ele não muda o cálculo — muda quais variantes são
+ * recomendáveis, e o padrão é o mais restritivo dos dois.
+ */
 export function selectStringVariant(
   profile: PlayerProfile,
   racket: ScoredRacket,
   catalog: StringCatalog,
+  racketScale: CatalogScale,
   mode: 'strict' | 'permissive' = 'strict',
-  racketScale?: CatalogScale,
 ): StringRecommendation | null {
   const target = computeStringTarget(profile, racket, racketScale);
   const excluded = excludedStringTypes(profile);

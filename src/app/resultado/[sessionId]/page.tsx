@@ -761,7 +761,31 @@ export default async function ResultadoPage({
                 </p>
               </div>
             )}
+
           </section>
+        )}
+
+        {/* ── POR QUE O BLOCO DA RAQUETE ATUAL NÃO ESTÁ NA PÁGINA ────
+            FORA da seção acima, e isso não é detalhe de layout.
+
+            A seção da raquete atual só existe quando há raquete atual reconhecida — e "não há
+            raquete reconhecida" é justamente uma das duas razões que este aviso explica. Dentro
+            dela, o aviso morreria exatamente no caso em que é mais necessário.
+
+            Ele existe porque uma seção que o produto ANUNCIA e a página não mostra é
+            indistinguível de uma entrega quebrada: quem pagou pelo setup completo e não encontrou
+            "corda e tensão para a raquete que você já tem" conclui que faltou, não que no caso
+            dele não havia o que calcular.
+        */}
+        {report.current_racket_setup_note && (
+          <div className="rounded border border-line bg-white p-6">
+            <p className="text-xs uppercase tracking-[0.2em] text-graphite">
+              Sobre a sua raquete atual
+            </p>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed text-graphite">
+              {report.current_racket_setup_note}
+            </p>
+          </div>
         )}
 
         {/* ── PÓDIO (§28) ─────────────────────────────────────────── */}

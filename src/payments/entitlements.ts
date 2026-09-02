@@ -345,6 +345,14 @@ export type ReportPayload = {
    */
   readonly current_racket_setup: CurrentRacketSetupPayload | null;
   /**
+   * Por que o bloco acima não está aqui — ver `buildCurrentRacketSetupNote`.
+   *
+   * Existe porque a ausência dele é indistinguível de uma entrega quebrada: o produto anuncia essa
+   * seção, e quem pagou precisa saber que, no caso dele, não havia o que calcular. `null` quando o
+   * bloco está presente.
+   */
+  readonly current_racket_setup_note: string | null;
+  /**
    * Por que a raquete mais pesada pode ser a mais fácil de girar. Ver `buildWeightReading`.
    *
    * `null` quando não há comparação concreta a fazer — a versão genérica da frase não informa nada.
@@ -721,6 +729,68 @@ function buildJuniorTransitionNote(profile: PlayerProfile): string | null {
 }
 
 /**
+ * Por que o bloco da raquete atual NÃO está na página.
+ *
+ * ═══ UMA AUSÊNCIA SILENCIOSA É UMA ENTREGA QUEBRADA ══════════════════════════════════════════
+ *
+ * A home, o comparativo de planos e a descrição do produto anunciam "corda e tensão para a raquete
+ * que você já tem". Quem paga por isso e não encontra a seção conclui, com razão, que o produto não
+ * entregou o que vendeu — e não tem como saber que, no caso dele, não havia o que entregar.
+ *
+ * Relatado assim, com dois testes lado a lado: "no meu teste pessoal apareceu, mas no teste infantil
+ * não apareceu essa seção, não sei porquê". A pergunta não era retórica; a página não respondia.
+ *
+ * São duas razões possíveis, e as duas são legítimas:
+ *
+ *   1. Não há raquete atual reconhecida — a pessoa marcou que não tem, ou digitou um modelo que o
+ *      catálogo não conhece. Não existe quadro sobre o qual calcular.
+ *
+ *   2. O setup principal JÁ É o da raquete dela — porque ela venceu o ranking, ou porque o próprio
+ *      jogador apontou o seletor de setup para ela. Repetir o mesmo cálculo num segundo bloco não
+ *      acrescentaria nada e faria a pessoa procurar uma diferença que não existe.
+ *
+ * Nos dois casos a resposta certa é dizer, não calar. `null` quando o bloco está presente — aí a
+ * página já responde sozinha.
+ */
+function buildCurrentRacketSetupNote(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+  setupAlvoId: string,
+  temBloco: boolean,
+): string | null {
+  if (temBloco) return null;
+
+  const atualId = profile.current_racket?.variant_id;
+  const reconhecida =
+    atualId != null &&
+    !profile.current_racket?.unrecognized &&
+    result.full_ranking.some((r) => r.racket.variant.id === atualId);
+
+  if (!reconhecida) {
+    return (
+      'O setup completo também traz a corda e a tensão ideais para a raquete que você já tem — mas ' +
+      'para isso precisamos saber qual é ela. Você não informou uma raquete atual, ou o modelo que ' +
+      'você digitou não está no catálogo que analisamos. Se quiser essa parte, refaça o ' +
+      'questionário escolhendo sua raquete na lista: a recomendação de quadro não muda por isso, e ' +
+      'você ganha o ajuste que dá para fazer sem trocar nada.'
+    );
+  }
+
+  if (atualId === setupAlvoId) {
+    const nome = result.full_ranking.find((r) => r.racket.variant.id === atualId);
+    return (
+      `Você não vai encontrar um bloco separado de "corda e tensão para a sua raquete atual" nesta ` +
+      `página, e o motivo é bom: o setup acima JÁ É o dela. ` +
+      `${nome ? `A ${currentRacketLabel(nome.racket.variant)} que você já tem é ` : 'Sua raquete é '}` +
+      `a raquete para a qual esse setup foi calculado, então a corda, a espessura e a tensão que ` +
+      `você leu ali são exatamente o que fazer no próximo encordoamento — sem trocar de quadro.`
+    );
+  }
+
+  return null;
+}
+
+/**
  * Monta o bloco "e a raquete que eu já tenho?" — ver `CurrentRacketSetupPayload`.
  *
  * ═══ POR QUE ELE NÃO É RECALCULADO AQUI ══════════════════════════════════════════════════════
@@ -736,13 +806,31 @@ function buildJuniorTransitionNote(profile: PlayerProfile): string | null {
 function buildCurrentRacketSetup(
   result: RecommendationResult,
   profile: PlayerProfile,
+  setupAlvoId: string,
 ): CurrentRacketSetupPayload | null {
   const dados = result.current_racket_setup;
   if (!dados) return null;
 
-  const atual = result.full_ranking.find(
-    (r) => r.racket.variant.id === profile.current_racket?.variant_id,
-  );
+  const atualId = profile.current_racket?.variant_id;
+
+  /**
+   * ═══ UMA RAQUETE, UMA RESPOSTA ═══════════════════════════════════════════════════════════
+   *
+   * Se o setup principal já aponta para a raquete do jogador, este bloco não pode existir — senão
+   * a mesma raquete aparece na página com DUAS cordas diferentes.
+   *
+   * Foi exatamente o que aconteceu, relatado com o relatório aberto: a raquete dele ficou no pódio,
+   * ele usou o seletor para calcular o setup em cima dela, e o bloco "antes de trocar de raquete"
+   * seguia mostrando o setup gravado na análise — outro modelo de corda, mesmo tipo, mesma tensão.
+   *
+   * Duas causas, as duas consertadas. A divergência de CÁLCULO estava em `withSetupFor`
+   * (`questionario/actions.ts`), que omitia a régua do catálogo. A duplicação de BLOCO é esta
+   * condição: `result.current_racket_setup` é gravado quando a atual não é a vencedora, e o
+   * seletor de setup pode mudar o alvo depois, sem que o valor gravado saiba disso.
+   */
+  if (atualId && atualId === setupAlvoId) return null;
+
+  const atual = result.full_ranking.find((r) => r.racket.variant.id === atualId);
   if (!atual) return null;
 
   const rec = dados.string_recommendation;
@@ -1182,6 +1270,24 @@ export function serializeRecommendation(
     };
   });
 
+  /**
+   * PARA QUAL raquete o setup principal foi calculado — resolvido uma vez, usado em três lugares.
+   *
+   * `result.setup_for_variant_id` só é preenchido quando o jogador aponta o seletor para outra
+   * posição do pódio; sem isso o alvo é a 1ª colocada, que é o padrão do motor. A resolução vive
+   * aqui em cima porque o bloco da raquete atual precisa dela para não duplicar a mesma raquete
+   * com duas cordas — ver `buildCurrentRacketSetup`.
+   */
+  const setupAlvoId = result.setup_for_variant_id ?? first.racket.variant.id;
+
+  /*
+    Sem `full_setup_access` o bloco não é CONSTRUÍDO, não é escondido por CSS — mesma garantia
+    estrutural do §32 que vale para o resto do payload.
+  */
+  const setupDaAtual = canSeeSetup
+    ? buildCurrentRacketSetup(result, profile, setupAlvoId)
+    : null;
+
   let setup: SetupPayload | null = null;
   if (canSeeSetup && result.string_recommendation && result.tension) {
     const rec = result.string_recommendation;
@@ -1236,7 +1342,7 @@ export function serializeRecommendation(
       })),
     },
     setup,
-    setup_for_variant_id: result.setup_for_variant_id ?? first.racket.variant.id,
+    setup_for_variant_id: setupAlvoId,
     top3_offer_available:
       result.top3_offer_available && result.podium.some((e) => !canSeeRank(granted, e.rank)),
     /**
@@ -1257,7 +1363,10 @@ export function serializeRecommendation(
     current_racket_standing: buildCurrentStanding(result, profile, first),
     // Faz parte do setup completo — sem `full_setup_access` o bloco não é CONSTRUÍDO, não é
     // escondido por CSS. É a mesma garantia estrutural do §32 que vale para o resto do payload.
-    current_racket_setup: canSeeSetup ? buildCurrentRacketSetup(result, profile) : null,
+    current_racket_setup: setupDaAtual,
+    current_racket_setup_note: canSeeSetup
+      ? buildCurrentRacketSetupNote(result, profile, setupAlvoId, setupDaAtual !== null)
+      : null,
     /*
       Estas duas NÃO são premium, e é deliberado.
 

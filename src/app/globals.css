@@ -304,12 +304,35 @@
   /*
     ═══ O QUE NÃO PODE SER PARTIDO ═══════════════════════════════════════════════════════════
 
-    Em camadas, da maior para a menor. É assim de propósito: quando um bloco é mais alto que a
-    folha, o navegador IGNORA `break-inside: avoid` nele — não há para onde empurrar — e passa a
-    respeitar a camada de baixo. Uma seção comprida acaba partida, mas nunca no meio de um quadro;
-    um quadro comprido acaba partido, mas nunca no meio de uma linha de tabela.
+    Em camadas, da maior para a menor — mas a camada de `section` NÃO existe mais, e a remoção dela
+    é o conserto de um defeito real.
+
+    ─── POR QUE `section` SAIU DAQUI (set/2026) ────────────────────────────────────────────────
+
+    A teoria era que, quando um bloco é mais alto que a folha, o navegador ignora `break-inside:
+    avoid` nele e passa a respeitar a camada de baixo. Na prática o Chrome não degrada assim: com um
+    ancestral `avoid` mais alto que a página, ele empurra o conteúdo para fora da caixa da folha em
+    vez de refluir, e o que sobra é cortado. O resultado é exatamente o que foi relatado — "as
+    páginas ficaram meio cortadas, mesmo no computador".
+
+    O defeito só apareceu agora porque, até então, toda seção deste relatório cabia numa folha. A
+    seção da raquete atual passou a carregar o setup completo dela — três quadros, três blocos de
+    explicação e a ressalva — e cruzou a altura da página. A regra não ficou errada; ela sempre foi
+    uma aposta de que seções são curtas, e a aposta deixou de valer.
+
+    ─── E POR QUE NÃO SE PERDE NADA COM ISSO ───────────────────────────────────────────────────
+
+    Os defeitos originais que motivaram a regra continuam todos cobertos, cada um pela camada que de
+    fato o resolve:
+
+      título sozinho no pé da folha ....... `h1,h2,h3 { break-after: avoid }`, algumas linhas abaixo
+      tabela partida ao meio .............. `table, tr`
+      card do pódio cortado na borda ...... a regra de quadro arredondado, logo abaixo
+      linha órfã .......................... `orphans` / `widows`
+
+    O que a camada de `section` acrescentava era impedir uma quebra ENTRE dois parágrafos da mesma
+    seção — o único tipo de corte que um documento impresso pode ter sem parecer mal montado.
   */
-  section,
   table,
   tr,
   li,

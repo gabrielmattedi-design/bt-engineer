@@ -90,14 +90,52 @@ describe('a folha', () => {
 });
 
 describe('o que não pode ser partido', () => {
-  it('os elementos semânticos, os gráficos e as tabelas', () => {
-    for (const alvo of ['section', 'table', 'tr', 'svg', 'img']) {
+  it('os gráficos e as tabelas', () => {
+    for (const alvo of ['table', 'tr', 'svg', 'img']) {
       expect(blocoPrint, `${alvo} pode ser cortado no meio`).toMatch(
         new RegExp(`(^|[\\s,])${alvo}[\\s,]`, 'm'),
       );
     }
     expect(blocoPrint).toContain('break-inside: avoid');
     expect(blocoPrint).toContain('page-break-inside: avoid');
+  });
+
+  /**
+   * ═══ E `section` NÃO PODE VOLTAR PARA A LISTA ════════════════════════════════════════════
+   *
+   * Ela esteve lá, e foi removida por causar o defeito que deveria evitar.
+   *
+   * A regra era uma aposta: "seções são mais curtas que uma folha, então proteger a seção inteira
+   * protege tudo dentro dela". A aposta valeu enquanto valeu. Quando a seção da raquete atual passou
+   * a carregar o setup completo — três quadros, três blocos de explicação e a ressalva —, ela cruzou
+   * a altura da página, e o Chrome não degrada como a documentação sugere: com um ancestral `avoid`
+   * mais alto que a folha, ele empurra o conteúdo para fora da caixa em vez de refluir. O relato foi
+   * "as páginas ficaram meio cortadas, mesmo no computador".
+   *
+   * A proteção real é a das camadas menores, e ela continua toda aqui — tabela, linha, quadro
+   * arredondado, título que não fica órfão. Uma quebra entre dois parágrafos da mesma seção é o
+   * único corte que este teste aceita, porque é o único que um documento impresso pode ter sem
+   * parecer mal montado.
+   */
+  it('a seção inteira NÃO é marcada como indivisível', () => {
+    /*
+      A conferência é por REGRA, e a regra é o par "lista de seletores + corpo".
+
+      Uma versão anterior deste teste usava uma expressão sobre o bloco inteiro e capturava só a
+      última linha de seletores antes da chave — com `section` três linhas acima, ela passava.
+      Partir em `}` e ler cada regra separada é o que garante que a lista inteira seja olhada.
+    */
+    const semComentariosNoBloco = semComentarios(blocoPrint);
+    const regras = semComentariosNoBloco.split('}');
+
+    for (const regra of regras) {
+      if (!regra.includes('break-inside: avoid')) continue;
+      const seletores = regra.slice(0, regra.indexOf('{'));
+      expect(
+        seletores,
+        'section voltou a ser indivisível — uma seção mais alta que a folha volta a ser cortada',
+      ).not.toMatch(/(^|[\s,])section([\s,]|$)/);
+    }
   });
 
   /**

@@ -16,7 +16,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { recommend, enrichProfileWithCatalog } from '@/recommendation';
+import {
+  buildCatalogScale,
+  enrichProfileWithCatalog,
+  recommend,
+  selectStringVariant,
+} from '@/recommendation';
 import { buildPlayerProfile } from '@/recommendation/profile/build-profile';
 import { serializeRecommendation, type Entitlement } from '@/payments/entitlements';
 import { PERSONAS } from '@/data/personas';
@@ -175,6 +180,109 @@ describe('a leitura do peso', () => {
     for (const nota of comNota) {
       expect(nota).toMatch(/\d+ g/);
       expect(nota).toMatch(/inércia/);
+    }
+  });
+});
+
+/**
+ * ═══ UMA RAQUETE, UMA RESPOSTA ═══════════════════════════════════════════════════════════════
+ *
+ * Relatado com o relatório aberto: a raquete do jogador ficou no pódio, ele usou o seletor para
+ * calcular o setup em cima dela, e a página passou a mostrar DUAS cordas diferentes para a MESMA
+ * raquete — as duas de poliéster, na mesma tensão, modelos diferentes.
+ *
+ * Eram dois defeitos somados, e os dois testados aqui:
+ *
+ *   1. CÁLCULO. `withSetupFor` recalcula o setup quando o seletor muda de alvo, e não passava a
+ *      régua do catálogo para `selectStringVariant` — um argumento que era OPCIONAL e mudava o
+ *      resultado. Hoje é obrigatório: esquecê-lo não compila.
+ *
+ *   2. DUPLICAÇÃO. `current_racket_setup` é gravado quando a atual não é a vencedora, e o seletor
+ *      pode apontar para ela depois, sem que o valor gravado saiba disso.
+ */
+describe('a mesma raquete nunca recebe duas cordas', () => {
+  /**
+   * A régua do catálogo NÃO é um detalhe de afinação — ela muda a corda escolhida.
+   *
+   * Este teste existe para que ninguém volte a torná-la opcional "porque não deve fazer diferença".
+   * Se um dia ela realmente não fizer, este teste falha e a conversa acontece na mesa, não no
+   * relatório de um cliente.
+   */
+  it('a régua do catálogo muda a corda escolhida', () => {
+    const escala = buildCatalogScale(RACKETS);
+    let divergiram = 0;
+
+    for (const persona of PERSONAS) {
+      const profile = enrichProfileWithCatalog(buildPlayerProfile(persona.answers), RACKETS, STRINGS);
+      const alvo = recommend({
+        profile,
+        rackets: RACKETS,
+        strings: STRINGS,
+        datasetVersion: TEST_DATASET_VERSION,
+        mode: TEST_MODE,
+        includeSetup: true,
+      }).podium[0];
+      if (!alvo) continue;
+
+      const comRegua = selectStringVariant(profile, alvo.racket, STRINGS, escala, TEST_MODE);
+      /*
+        A régua "vazia" é a de um catálogo de uma raquete só — o mais perto que dá de chegar do
+        estado antigo agora que o argumento é obrigatório. Se ela produzisse sempre a mesma corda,
+        a régua não estaria fazendo nada.
+      */
+      const semRegua = selectStringVariant(
+        profile,
+        alvo.racket,
+        STRINGS,
+        buildCatalogScale([alvo.racket]),
+        TEST_MODE,
+      );
+      if (comRegua?.variant.variant.id !== semRegua?.variant.variant.id) divergiram++;
+    }
+
+    expect(divergiram, 'a régua virou enfeite — ou o cálculo mudou de forma').toBeGreaterThan(0);
+  });
+
+  /**
+   * Quando o setup principal já aponta para a raquete do jogador, o bloco separado não existe — e
+   * no lugar dele fica uma frase dizendo por quê. Silêncio aqui seria lido como entrega faltando.
+   */
+  it('o bloco some quando o setup já é o da raquete atual, e a página diz isso', () => {
+    for (const persona of COM_RAQUETE) {
+      const { result, payload } = analisar(persona, TUDO);
+      const atualId = persona.answers.current_racket_id;
+      if (payload.setup_for_variant_id !== atualId) continue;
+
+      expect(payload.current_racket_setup, `${persona.id}: raquete com dois setups`).toBeNull();
+      expect(payload.current_racket_setup_note, `${persona.id}: sumiço sem explicação`).not.toBeNull();
+      expect(result.podium.length).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * ═══ E A AUSÊNCIA NUNCA É MUDA ═══════════════════════════════════════════════════════════
+   *
+   * A home, o comparativo de planos e a descrição do produto anunciam "corda e tensão para a
+   * raquete que você já tem". Quem paga e não encontra a seção conclui que o produto não entregou.
+   *
+   * Relatado assim, com dois testes lado a lado: "no meu teste pessoal apareceu, mas no teste
+   * infantil não apareceu essa seção, não sei porquê". A página não respondia — agora responde.
+   */
+  it('quem comprou o setup sempre recebe o bloco OU a explicação', () => {
+    for (const persona of PERSONAS) {
+      const { payload } = analisar(persona, TUDO);
+      const temUmDosDois =
+        payload.current_racket_setup !== null || payload.current_racket_setup_note !== null;
+      expect(temUmDosDois, `${persona.id}: nem o bloco nem o motivo da falta`).toBe(true);
+    }
+  });
+
+  /** E quem não comprou não recebe nem um nem outro: a explicação não pode virar teaser (§32). */
+  it('quem não comprou não recebe nem o bloco nem a explicação', () => {
+    for (const persona of PERSONAS) {
+      const { payload } = analisar(persona, SO_RAQUETE);
+      expect(payload.current_racket_setup, persona.id).toBeNull();
+      expect(payload.current_racket_setup_note, persona.id).toBeNull();
     }
   });
 });

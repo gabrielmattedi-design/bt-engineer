@@ -150,8 +150,8 @@ export function recommend(input: RecommendInput): RecommendationResult {
       profile,
       top.racket,
       input.strings,
-      mode,
       ranked.scale,
+      mode,
     );
     if (stringRecommendation) {
       tension = computeTension(top.racket, stringRecommendation.variant, profile);
@@ -182,7 +182,7 @@ export function recommend(input: RecommendInput): RecommendationResult {
   } | null = null;
 
   if (input.includeSetup && input.strings && currentRacket && currentRacket.variant.id !== top?.racket.variant.id) {
-    const corda = selectStringVariant(profile, currentRacket, input.strings, mode, ranked.scale);
+    const corda = selectStringVariant(profile, currentRacket, input.strings, ranked.scale, mode);
     if (corda) {
       currentRacketSetup = {
         string_recommendation: corda,
@@ -227,6 +227,14 @@ export function recommend(input: RecommendInput): RecommendationResult {
 }
 
 export { rankRackets, selectPodium } from './engine/rank-rackets';
+/*
+  A régua do catálogo é exportada porque quem RECALCULA um setup fora daqui precisa dela.
+
+  `selectStringVariant` aceita a régua como argumento opcional, e omiti-la não é o mesmo cálculo:
+  ela alimenta `computeStringTarget`, então a mesma raquete produz outra corda. Ver `withSetupFor`
+  em `questionario/actions.ts`, que era exatamente o caminho que omitia.
+*/
+export { buildCatalogScale } from './engine/catalog-scale';
 export { buildPlayerProfile } from './profile/build-profile';
 export { scoreRacket, scoreRackets } from './normalize/racket-attributes';
 export { selectStringVariant } from './strings/select-string';

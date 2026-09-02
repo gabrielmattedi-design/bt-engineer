@@ -17,6 +17,7 @@ import { isMissingTable } from '@/database/setup';
 import { extractFreeText } from '@/ai/extract-free-text';
 import { DATASET_VERSION, loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import {
+  buildCatalogScale,
   computeTension,
   enrichProfileWithCatalog,
   recommend,
@@ -168,6 +169,29 @@ export async function getReport(
  * Devolve o resultado com corda e tensão recalculadas para a variante escolhida.
  *
  * Quando não há escolha, ou quando ela é a própria 1ª colocada, o resultado volta intacto.
+ *
+ * ═══ ESTA FUNÇÃO PRECISA CALCULAR EXATAMENTE COMO O MOTOR CALCULA ════════════════════════════
+ *
+ * Ela é o segundo caminho que produz um setup, e por isso é o lugar onde uma divergência aparece
+ * como contradição na tela. Foi o que aconteceu, relatado com o relatório aberto: a raquete do
+ * jogador estava no pódio, ele apontou o setup para ela, e o bloco "antes de trocar de raquete"
+ * mostrava OUTRA corda para a MESMA raquete — as duas de poliéster, na mesma tensão, modelos
+ * diferentes.
+ *
+ * Havia duas divergências, e as duas eram silenciosas:
+ *
+ *   1. A RÉGUA DO CATÁLOGO não era passada. Ela alimenta `computeStringTarget` — sem ela o alvo de
+ *      corda muda, e com ele a escolha. O motor sempre passou; este caminho, nunca. Era um
+ *      argumento OPCIONAL, e é por isso que ninguém percebeu: esquecê-lo não dava erro, dava outra
+ *      resposta. Agora é obrigatório, e quem esquecer não compila — ver `selectStringVariant`.
+ *
+ *   2. O MODO estava fixo em `'permissive'`, enquanto o motor usa `datasetMode()`. Hoje os dois
+ *      coincidem em produção, então isto não chegou a produzir efeito visível — o que é pior, não
+ *      melhor: é um segundo cálculo esperando a configuração mudar para discordar do primeiro.
+ *
+ * Um argumento opcional que muda o resultado é uma armadilha de assinatura, e ela cobrou o preço
+ * aqui. A régua é reconstruída a partir do catálogo, que é determinístico: o mesmo catálogo produz
+ * a mesma régua que produziu na hora da análise.
  */
 function withSetupFor(
   result: RecommendationResult,
@@ -180,7 +204,14 @@ function withSetupFor(
   if (!chosen || chosen.rank === 1) return result;
 
   const strings = loadStringCatalog();
-  const recommendation = selectStringVariant(profile, chosen.racket, strings, 'permissive');
+  const mode = datasetMode();
+  const recommendation = selectStringVariant(
+    profile,
+    chosen.racket,
+    strings,
+    buildCatalogScale(catalog()),
+    mode,
+  );
   if (!recommendation) return result;
 
   return {
