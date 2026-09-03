@@ -329,7 +329,7 @@ describe('a separação diz a verdade sobre os próprios números', () => {
     let verificados = 0;
 
     for (const { persona, result } of runs) {
-      const sep = buildSeparation(result.full_ranking);
+      const sep = buildSeparation(result.full_ranking, result.full_ranking.length);
       if (!sep) continue;
       verificados += 1;
 
@@ -351,7 +351,7 @@ describe('a separação diz a verdade sobre os próprios números', () => {
    */
   it('a contagem de marcas empatadas é a contagem real', () => {
     for (const { persona, result } of runs) {
-      const sep = buildSeparation(result.full_ranking);
+      const sep = buildSeparation(result.full_ranking, result.full_ranking.length);
       if (!sep) continue;
 
       const primeiro = result.full_ranking[0]!;

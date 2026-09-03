@@ -645,8 +645,37 @@ function applyDeclaredFloor(
   const posicaoNoCatalogo = (entry: ScoredEntry, need: NeedKey): number =>
     scale.position(NEED_TO_RACKET_ATTRIBUTE[need] as ScaleKey, valorDe(entry, need));
 
-  const naMedia = compativeis.filter(
-    (e) => posicaoNoCatalogo(e, primeira) >= mediaDoCatalogo,
+  /*
+    ═══ A PREMISSA MEDE A MÉDIA, E SÓ A MÉDIA ═══════════════════════════════════════════════
+
+    `naMedia` saía de `compativeis`, e a interseção fazia a premissa cortar por DOIS motivos
+    enquanto explicava só um. Uma raquete acima da média no eixo pedido, mas abaixo do piso de
+    compatibilidade, era excluída aqui e recebia a frase da premissa — que afirma "entrega menos
+    que a raquete média". Falso, e verificável na própria frase: 26 das 41 exclusões de um perfil
+    real imprimiam um número ACIMA da média que diziam não alcançar. Uma delas: "76 de 100, contra
+    60".
+
+    O estrago não era só de texto. Como a interseção some com quem é bom no eixo pedido e fraco no
+    encaixe, o ranking encolhia muito: um rapaz de 16 anos avançado terminava com 3 raquetes de 47,
+    e o relatório dizia "das 3 raquetes avaliadas".
+
+    Medido nas 22 personas, trocando `compativeis` por `scored`:
+
+        tamanho do ranking .......... mín 2 → 6, média 13,8 → 16,6
+        mensagens contraditórias .... 185 → 0
+
+    A promessa da premissa não muda: quem pede spin em 1º continua sem receber spin abaixo da média.
+    O piso de compatibilidade continua governando a TOLERÂNCIA logo abaixo, que é onde ele foi
+    desenhado para agir — e continua pesando no próprio score, que é o que ordena o ranking.
+
+    ─── E A COMPARAÇÃO É FEITA NOS NÚMEROS QUE APARECEM ────────────────────────────────────
+
+    Arredondados. Comparar em precisão cheia e exibir arredondado produzia "60 de 100, contra 60"
+    como motivo de exclusão — verdadeiro nos bastidores (59,6 < 59,8) e absurdo na tela. Um corte
+    que não dá para enxergar no número exibido não pode ser explicado por ele.
+  */
+  const naMedia = scored.filter(
+    (e) => Math.round(posicaoNoCatalogo(e, primeira)) >= Math.round(mediaDoCatalogo),
   );
   if (naMedia.length > 0) {
     tentar({

@@ -130,29 +130,36 @@ describe('o texto do card gêmeo', () => {
    * posicionamento declarado e ele difere, o card diz qual é qual.
    */
   it('explica o que separa as linhas em vez de mandar escolher por marca', () => {
-    const profile = enrichProfileWithCatalog(
-      buildPlayerProfile(jogador(['power', 'spin'])), RACKETS, STRINGS,
-    );
-    const r = recommend({
-      profile, rackets: RACKETS, strings: STRINGS,
-      datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
-    });
-    const payload = serializeRecommendation(r, profile, TUDO);
+    /*
+      A varredura é sobre as PERSONAS, e não sobre um perfil montado à mão.
 
-    const gemeas = payload.podium.filter(
-      (e): e is Extract<typeof e, { distinction?: unknown }> =>
-        'distinction' in e && Boolean((e as { distinction?: { identical_twin?: boolean } }).distinction?.identical_twin),
-    );
-    expect(gemeas.length, 'nenhum card gêmeo no cenário — o teste não prova nada').toBeGreaterThan(0);
+      A versão anterior deste teste usava um jogador construído aqui, e ele deixou de produzir card
+      gêmeo quando a premissa do piso de demanda foi corrigida — o guard acusou ("nenhum card gêmeo
+      no cenário") e o teste falhou por não ter o que provar, que é exatamente o comportamento
+      desejado. Varrer as personas tira o teste da dependência de um perfil específico continuar
+      caindo no caso.
+    */
+    const cards: string[] = [];
+    for (const persona of PERSONAS) {
+      const profile = enrichProfileWithCatalog(buildPlayerProfile(persona.answers), RACKETS, STRINGS);
+      const r = recommend({
+        profile, rackets: RACKETS, strings: STRINGS,
+        datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
+      });
+      for (const e of serializeRecommendation(r, profile, TUDO).podium) {
+        const d = (e as { distinction?: { identical_twin?: boolean; headline: string } }).distinction;
+        if (d?.identical_twin) cards.push(d.headline);
+      }
+    }
 
-    const babolats = gemeas.filter((e) => {
-      const d = (e as { distinction?: { headline: string } }).distinction;
-      return d?.headline.includes('Babolat');
-    });
+    expect(cards.length, 'nenhum card gêmeo em nenhuma persona — o teste não prova nada')
+      .toBeGreaterThan(0);
 
-    for (const card of babolats) {
-      const texto = (card as { distinction?: { headline: string } }).distinction!.headline;
-      expect(texto, 'duas Babolat não se separam por preferência de marca').toMatch(
+    // Duas raquetes da MESMA marca nunca se escolhem por "preferência de marca".
+    const mesmaMarca = cards.filter((h) => /Babolat/.test(h));
+    expect(mesmaMarca.length, 'nenhum par da mesma marca na varredura').toBeGreaterThan(0);
+    for (const h of mesmaMarca) {
+      expect(h, 'duas Babolat separadas por preferência de marca').toMatch(
         /linha de (potência|spin|controle|conforto)/,
       );
     }

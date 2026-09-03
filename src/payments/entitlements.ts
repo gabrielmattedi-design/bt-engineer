@@ -1664,7 +1664,7 @@ export function serializeRecommendation(
     headline: explainHeadline(first, result.podium[1]?.technical_tie_with_previous ?? false),
     podium,
     podium_tie: buildTieGroup(result.podium),
-    separation: buildSeparation(result.full_ranking),
+    separation: buildSeparation(result.full_ranking, result.candidates_evaluated),
     analysis_outdated:
       result.engine_version === RECOMMENDATION_ENGINE_VERSION
         ? null

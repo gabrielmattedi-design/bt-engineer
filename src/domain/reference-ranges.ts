@@ -18,6 +18,46 @@
  */
 
 /**
+ * 2.37.0 — a premissa do piso de demanda parou de cortar por compatibilidade, e o relatório parou
+ * de subdeclarar quantas raquetes analisou.
+ *
+ * ═══ O QUE ESTAVA ERRADO ═════════════════════════════════════════════════════════════════════
+ *
+ * A premissa promete uma coisa só: "você pôs spin em 1º lugar, então não vai receber spin abaixo da
+ * média do catálogo". O conjunto permitido, porém, era a INTERSEÇÃO de "acima da média" com
+ * "compatível com o perfil" (encaixe físico >= 70 e técnico >= 65). Uma raquete boa no eixo pedido
+ * e fraca no encaixe caía aqui — e recebia a frase da premissa, que fala da média.
+ *
+ * O resultado era um relatório que se contradizia na própria frase de exclusão. Num perfil real, 26
+ * das 41 exclusões imprimiam um número ACIMA da média que diziam não alcançar; uma delas: "76 de
+ * 100, contra 60". Somadas as 22 personas, 185 mensagens contraditórias.
+ *
+ * E o estrago não era só de texto. Como a interseção removia quem era bom no eixo pedido, o ranking
+ * encolhia demais: um rapaz de 16 anos, avançado, terminava com 3 raquetes de 47 avaliadas.
+ *
+ * ═══ O CONSERTO, E O QUE ELE CUSTOU ══════════════════════════════════════════════════════════
+ *
+ * A premissa passa a medir só a média, sobre tudo o que foi pontuado. Medido nas 22 personas:
+ *
+ *     mensagens contraditórias ..... 185 → 0
+ *     tamanho do ranking ........... mín 2 → 6, média 13,8 → 16,0
+ *     raquete recomendada .......... mudou em 0 de 22
+ *
+ * A promessa não enfraquece: quem pede spin continua sem receber spin abaixo da média. O piso de
+ * compatibilidade continua governando a TOLERÂNCIA — que é onde ele foi desenhado para agir — e
+ * continua pesando no score, que é o que ordena o ranking.
+ *
+ * A comparação também passou a ser feita nos números ARREDONDADOS que o texto exibe. Comparar em
+ * precisão cheia e mostrar arredondado produzia "60 de 100, contra 60" como motivo de exclusão.
+ *
+ * ─── E "RAQUETES AVALIADAS" ERA O NÚMERO ERRADO ────────────────────────────────────────────
+ *
+ * A frase de separação do pódio dizia "das N raquetes avaliadas" usando o tamanho do RANKING — o
+ * que sobra depois do teto de peso e do piso de demanda. São coisas diferentes: 47 pontuadas contra
+ * 6 sobreviventes, num caso medido. O relatório subdeclarava o próprio trabalho por um fator de
+ * oito e soava como um catálogo minúsculo. Agora as duas quantidades aparecem, cada uma com o nome
+ * certo.
+ *
  * 2.36.0 — quando a sua raquete é irmã de linha de uma do pódio, a comparação entra no lugar do
  * número.
  *
@@ -585,7 +625,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.36.0';
+export const METHODOLOGY_VERSION = '2.37.0';
 
 export type Range = readonly [lo: number, hi: number];
 

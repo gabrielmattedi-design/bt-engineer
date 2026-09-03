@@ -557,8 +557,23 @@ export type PodiumSeparation = {
 /** A partir daqui o empate deixa de ser detalhe e vira a conclusão principal da análise. */
 const WIDE_TIE_SHARE = 0.2;
 
+/**
+ * ═══ "AVALIADAS" ERA O NÚMERO ERRADO ═════════════════════════════════════════════════════════
+ *
+ * O texto dizia "das N raquetes avaliadas" usando o tamanho do RANKING — que é o que sobra depois
+ * do teto de peso e do piso de demanda declarada. São coisas diferentes, e a diferença é enorme:
+ * num perfil real, 47 raquetes foram pontuadas contra o jogador e 6 chegaram ao ranking. O
+ * relatório anunciava "das 6 raquetes avaliadas", subdeclarando o próprio trabalho por um fator de
+ * oito e soando como um catálogo minúsculo.
+ *
+ * Agora as duas quantidades aparecem e cada uma com o nome certo: quantas foram ANALISADAS
+ * (`candidates_evaluated`, o catálogo inteiro que passou pelos filtros duros) e quantas
+ * SOBREVIVERAM ao perfil e ao pedido. O empate técnico continua sendo medido entre as
+ * sobreviventes, que é onde ele significa alguma coisa.
+ */
 export function buildSeparation(
   fullRanking: readonly RankedRacket[],
+  analisadas: number,
 ): PodiumSeparation | null {
   const first = fullRanking[0];
   if (!first || fullRanking.length < 4) return null;
@@ -568,8 +583,9 @@ export function buildSeparation(
   );
   const tied = empatadas.length;
   const brands = new Set(empatadas.map((r) => r.racket.variant.brand)).size;
-  const evaluated = fullRanking.length;
-  const share = tied / evaluated;
+  const sobreviventes = fullRanking.length;
+  const evaluated = analisadas;
+  const share = tied / sobreviventes;
 
   /**
    * ═══ `tied` INCLUI A PRÓPRIA PRIMEIRA — E ISSO JÁ PRODUZIU UMA CONTRADIÇÃO IMPRESSA ══════════
@@ -594,8 +610,9 @@ export function buildSeparation(
       brands_tied: brands,
       verdict: 'aberto',
       message:
-        `A 1ª colocada se destacou: das ${evaluated} raquetes avaliadas, nenhuma outra chegou perto ` +
-        'o bastante para ser considerada equivalente. Aqui a escolha do quadro faz diferença real, ' +
+        `Analisamos ${evaluated} raquetes contra o seu perfil, e ${sobreviventes} passaram por tudo o ` +
+        `que você pediu. Entre essas, a 1ª colocada se destacou: nenhuma outra chegou perto o ` +
+        'bastante para ser considerada equivalente. Aqui a escolha do quadro faz diferença real, ' +
         'e vale seguir a recomendação.',
     };
   }
@@ -607,10 +624,11 @@ export function buildSeparation(
       brands_tied: brands,
       verdict: 'aberto',
       message:
-        `Das ${evaluated} raquetes avaliadas, apenas uma outra ficou tecnicamente empatada com a 1ª ` +
-        '— as demais ficaram claramente atrás. A escolha do quadro faz diferença real aqui, e entre ' +
-        'essas duas o que decide deixa de ser o número: entram preço, disponibilidade e o que você ' +
-        'sentir na mão.',
+        `Analisamos ${evaluated} raquetes contra o seu perfil, e ${sobreviventes} passaram por tudo o ` +
+        `que você pediu. Dessas, apenas uma outra ficou tecnicamente empatada com a 1ª — as demais ` +
+        'ficaram claramente atrás. A escolha do quadro faz diferença real aqui, e entre essas duas ' +
+        'o que decide deixa de ser o número: entram preço, disponibilidade e o que você sentir na ' +
+        'mão.',
     };
   }
 
@@ -632,7 +650,7 @@ export function buildSeparation(
       brands_tied: brands,
       verdict: 'disputado',
       message:
-        `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª. É um ` +
+        `${tied} das ${sobreviventes} raquetes que sobraram para o seu perfil ficaram tecnicamente empatadas com a 1ª — de ${evaluated} analisadas. É um ` +
         'grupo pequeno e bem definido: dentro dele a escolha é de preferência, mas ficar fora dele ' +
         `custa compatibilidade de verdade.${frasePorMarca}`,
     };
@@ -656,7 +674,7 @@ export function buildSeparation(
     brands_tied: brands,
     verdict: 'indiferente',
     message:
-      `${tied} das ${evaluated} raquetes avaliadas ficaram tecnicamente empatadas com a 1ª — ` +
+      `${tied} das ${sobreviventes} raquetes que sobraram para o seu perfil ficaram tecnicamente empatadas com a 1ª — de ${evaluated} analisadas — ` +
       `${Math.round(share * 100)}% do catálogo. Isso não é indecisão da análise: é o resultado ` +
       'dela. Seu perfil físico e seu swing se dão bem com uma faixa larga de quadros, e nessa ' +
       'faixa trocar de raquete muda pouco. O que ainda muda bastante para você é a CORDA e a ' +
