@@ -18,6 +18,44 @@
  */
 
 /**
+ * 2.39.0 — o encaixe físico voltou a distinguir do lado leve.
+ *
+ * Relato do dono do produto: um homem de 54 anos, 78 kg, preparo moderado e swing médio recebia
+ * uma Yonex VCORE 100L de 280 g. "Já acho 280 g exageradamente leve."
+ *
+ * ═══ AS DUAS EXPLICAÇÕES ÓBVIAS ESTAVAM ERRADAS ══════════════════════════════════════════════
+ *
+ * Não era o teto de peso da 2.38.0 (ver a errata daquela nota). E não era "quadro leve é fácil
+ * demais de girar": a 100L (280 g, balanço 330 mm) tem inércia de swing 16,77e6 contra 16,43e6 da
+ * VCORE 100 (300 g, balanço 320 mm) — ela é mais leve na balança e 2% MAIS pesada para girar. O
+ * que o jogador perde de verdade são 5 pontos de estabilidade, que ele não pediu; o que ganha é
+ * potência, que ele pôs em 1º lugar. A margem entre as duas era 0,22 ponto — empate técnico.
+ *
+ * ═══ O DEFEITO REAL: METADE DAS NOTAS ERA A MESMA NOTA ═══════════════════════════════════════
+ *
+ * `physical_fit` tinha zona morta de 13 pontos para os DOIS lados. A 100L fica 8 pontos abaixo da
+ * capacidade do jogador e saía isenta, com nota máxima. Medido sobre as 22 personas: o componente
+ * cravava exatamente 100 em 50,3% dos pares, e 51,0% dos quadros abaixo da capacidade saíam
+ * isentos. Ele deixava de ordenar qualquer coisa justamente onde a maioria dos quadros cai, e a
+ * decisão passava inteira para `objective_fit` (peso 0.339) — que, para quem pede potência,
+ * prefere o quadro mais leve, porque peso entra invertido em `power_score`.
+ *
+ * A zona morta do lado LEVE passa a 8 pontos. Saturação 50,3% → 46,8%. O homem de 54 anos passa a
+ * receber a VCORE 100 de 300 g. Uma das 22 personas troca de raquete.
+ *
+ * ═══ E A INCLINAÇÃO PRECISOU ACOMPANHAR ═════════════════════════════════════════════════════
+ *
+ * A primeira tentativa manteve a inclinação em 0.8 e quebrou o piso de match do produto: a p21 —
+ * a iniciante com dor no cotovelo, o caso mais apertado do catálogo — caiu de 75,11 para 74,89,
+ * abaixo de `MIN_TOP_MATCH`. Estreitar a janela sem tocar na inclinação não aumenta só a
+ * resolução do componente: aumenta a severidade em toda a faixa, em 40% no extremo. A inclinação
+ * do lado leve foi recalculada para preservar a severidade a 25 pontos de distância —
+ * (25−13)×0.8 = 9,6, logo (25−8)×s = 9,6, s ≈ 0,56 — e fixada em 0,55. p21 volta a 75,11.
+ *
+ * O lado pesado fica intacto em 13 pontos e inclinação 1.5. A assimetria é a de sempre e pelo
+ * motivo de sempre: massa a menos é perda de desempenho, recuperável; massa a mais é fadiga e
+ * atraso de preparação.
+ *
  * 2.38.0 — o teto de peso passou a ler a pessoa, e a página parou de se desmentir sobre potência.
  *
  * ═══ 1. O TETO ERA SÓ PORTE, E POR ISSO ERA INERTE ═══════════════════════════════════════════
@@ -35,9 +73,12 @@
  * mesmo homem sedentário e de swing lento vai a 291 g; e um de 62 anos com preparo bom e swing
  * rápido fica em 313 g, quase intacto. Idade sozinha, no extremo de 75 anos, custa 4%.
  *
- * A recomendação muda: acima de ~54 anos com preparo moderado, o vencedor troca de um quadro de
- * 300 g para um de 280 g. A troca acontece dentro de um empate técnico (0,13 a 0,41 ponto), e o
- * relatório já a declara como tal.
+ * ERRATA. Esta nota afirmava que "acima de ~54 anos o vencedor troca de 300 g para 280 g" COMO
+ * CONSEQUÊNCIA do teto. É falso, e a atribuição foi minha: eu tinha variado só a idade, que move o
+ * teto e o perfil ao mesmo tempo. Isolado — travando a idade em 54 e variando o teto à mão de 320
+ * a 300 g — o resultado não muda; e comparando "com teto" contra "sem teto nenhum" numa varredura
+ * de idades, as duas colunas saem idênticas. A virada para 280 g acontece aos 53 anos com ou sem
+ * teto e é anterior a esta versão. Ela é tratada na 2.39.0.
  *
  * O histórico articular foi implementado aqui e RETIRADO — ver a nota longa em
  * `ceilingCapacityFactor`. Ele quebrou a invariante de monotonicidade do conforto, porque massa
@@ -669,7 +710,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.38.0';
+export const METHODOLOGY_VERSION = '2.39.0';
 
 export type Range = readonly [lo: number, hi: number];
 

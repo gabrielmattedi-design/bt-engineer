@@ -162,12 +162,105 @@ export function physicalFit(
    */
   const MASS_TOLERANCE = 13;
 
+  /**
+   * ═══ A JANELA É MAIS ESTREITA DO LADO LEVE — E NÃO PELO MOTIVO QUE PARECE ══════════════════
+   *
+   * Relato do dono do produto, sobre um homem de 54 anos, 78 kg, preparo moderado e swing médio
+   * que recebia uma Yonex VCORE 100L de 280 g: "já acho 280 g exageradamente leve".
+   *
+   * ─── O QUE A INVESTIGAÇÃO ACHOU, E O QUE ELA DESMENTIU ──────────────────────────────────────
+   *
+   * A primeira suspeita era o teto de peso, que tinha acabado de mudar. Medido, e FALSO: travando
+   * a idade e variando o teto à mão de 320 a 300 g, o resultado não muda; comparando "com teto"
+   * contra "sem teto nenhum" numa varredura de idades, as duas colunas são idênticas. A virada
+   * para 280 g acontece aos 53 anos com ou sem teto, e é anterior àquela mudança.
+   *
+   * A segunda suspeita era que a raquete leve é fácil demais de girar. Também FALSA, e pelo lado
+   * contrário: a 100L (280 g, balanço 330 mm) tem inércia de swing 16,77e6 contra 16,43e6 da
+   * VCORE 100 (300 g, balanço 320 mm). Ela é mais leve na balança e 2% MAIS pesada para girar. O
+   * que o jogador de fato perde são 5 pontos de estabilidade — que ele não pediu.
+   *
+   * ─── O DEFEITO REAL: METADE DO CATÁLOGO CRAVA 100 ─────────────────────────────────────────
+   *
+   * Com 13 pontos para os dois lados, a 100L fica 8 pontos ABAIXO da capacidade do jogador (44,9
+   * contra 53,0) e sai ISENTA — `physical_fit` 100, nota máxima. Medido sobre as 22 personas:
+   *
+   *     `physical_fit` cravando exatamente 100 ........ 50,3% dos pares
+   *     quadros abaixo da capacidade que saem isentos .. 51,0%
+   *
+   * Metade das notas é a mesma nota. O componente do físico deixa de ordenar qualquer coisa
+   * justamente onde a maioria dos quadros cai, e a decisão passa inteira para `objective_fit`
+   * (peso 0.339) — que, para quem pediu potência, prefere o quadro mais leve, porque peso entra
+   * invertido em `power_score`.
+   *
+   * ─── POR QUE A JUSTIFICATIVA NÃO É "PUNIR O QUADRO LEVE" ──────────────────────────────────
+   *
+   * Isto precisa ficar escrito porque é contraintuitivo e eu quase registrei errado. Com a janela
+   * em 8, o `physical_fit` da própria 100L CONTINUA 100 — ela está a 8,0 pontos, exatamente na
+   * borda, e não leva desconto nenhum. O que muda o resultado é que OUTROS quadros do conjunto
+   * deixam de cravar 100, e a 100L perde a vantagem que tinha por estar empatada no teto com meio
+   * catálogo. É o mesmo mecanismo que justificou apertar de 15 para 13, e a mesma leitura: o ganho
+   * é de RESOLUÇÃO do componente, não de penalidade sobre uma raquete.
+   *
+   * Medido: saturação 50,3% → 46,8%; entre os quadros abaixo da capacidade, isenção 51,0% → 44,8%;
+   * o homem de 54 anos passa a receber a VCORE 100 de 300 g; 1 das 22 personas troca de raquete.
+   *
+   * ─── E POR QUE 8, E NÃO 6 ─────────────────────────────────────────────────────────────────
+   *
+   * 6 foi medido e REJEITADO. Ele não penaliza a 100L mais do que 8 penaliza — os dois deixam o
+   * `physical_fit` dela intacto —, só mexe mais no resto do conjunto (saturação 42,8%). Trocaria a
+   * recomendação de mais gente sem uma razão que se possa escrever no relatório, o que seria
+   * escolher a constante pelo resultado que ela produz. 8 também é o valor que mantém a janela
+   * acima do limiar de percepção de massa de um amador (~3,4 g nesta faixa).
+   *
+   * ─── O QUE CONTINUA VALENDO DO LADO PESADO ────────────────────────────────────────────────
+   *
+   * Os 13 pontos ficam intactos para cima. É deliberado: os dois lados não erram do mesmo jeito.
+   * Absolver um quadro pesado demais custa atraso de preparação e sobrecarga física, e a janela
+   * larga protege contra o ruído de `handlingCapacity` justamente onde errar é caro. Do lado leve
+   * os dois erros são de desempenho, da mesma natureza.
+   */
+  const MASS_TOLERANCE_UNDER = 8;
+
+  /**
+   * ═══ ESTREITAR A JANELA SEM ENDURECER O COMPONENTE ═════════════════════════════════════════
+   *
+   * A primeira tentativa manteve a inclinação em 0.8 e QUEBROU o piso de match do produto: a
+   * persona p21 — a iniciante com dor no cotovelo, que já é o caso mais apertado do catálogo —
+   * caiu de 75,11 para 74,89, abaixo de `MIN_TOP_MATCH`. O comentário de
+   * `tests/ethics/always-recommendable.test.ts` é explícito sobre o que fazer aí: recalibrar o
+   * motor ou ampliar o catálogo, nunca ajustar o número exibido.
+   *
+   * O erro foi confundir duas coisas. Estreitar a janela deveria aumentar a RESOLUÇÃO do
+   * componente perto da capacidade; mantendo a inclinação, ela também aumenta a SEVERIDADE em toda
+   * a faixa — a mesma raquete a 25 pontos de distância passava a pagar (25−8)×0.8 = 13,6 em vez de
+   * (25−13)×0.8 = 9,6, um aperto de 40% que ninguém pediu e que não tem justificativa física.
+   *
+   * A inclinação é recalculada para preservar a severidade no extremo:
+   *
+   *     (25 − 13) × 0.8  =  9,6        ←  o que o lado leve cobrava a 25 pontos
+   *     (25 −  8) × s    =  9,6        →  s ≈ 0,56
+   *
+   * O componente passa a começar a discriminar mais cedo e a cobrar o mesmo lá no fim. Isso também
+   * explica a varredura, que sem esta conta pareceria arbitrária: 0.8 e 0.4 derrubam p21 abaixo do
+   * piso, 0.5 e 0.6 não. O valor não foi escolhido por passar no teste — 0,55 é o que a conta dá,
+   * e p21 volta a 75,11, exatamente onde estava.
+   *
+   * Descer de peso continua muito mais barato que subir (0,55 contra 1,5), que é a assimetria
+   * original e o motivo dela: massa a menos é perda de desempenho, recuperável, e às vezes
+   * exatamente o que o jogador quer; massa a mais é fadiga e atraso de preparação.
+   */
+  const UNDER_SLOPE = 0.55;
+
   const delta = massPosition - capacity;
-  const excess = Math.max(0, Math.abs(delta) - MASS_TOLERANCE);
+  const excess = Math.max(
+    0,
+    Math.abs(delta) - (delta > 0 ? MASS_TOLERANCE : MASS_TOLERANCE_UNDER),
+  );
   const raw =
     delta > 0
       ? 100 - excess * 1.5 - Math.max(0, excess - 15) * 1.0
-      : 100 - excess * 0.8;
+      : 100 - excess * UNDER_SLOPE;
 
   return output('physical_fit', raw, [
     {

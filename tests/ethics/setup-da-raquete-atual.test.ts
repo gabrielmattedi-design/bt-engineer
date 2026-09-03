@@ -138,13 +138,23 @@ describe('a leitura do peso', () => {
    * dele. Estão pedindo menos, e não havia como saber pela página.
    */
   /**
-   * A nota afirma uma CONTRADIÇÃO — "a mais pesada é a que gira mais fácil" —, e a contradição
+   * A nota afirma uma CONTRADIÇÃO entre o número da balança e o esforço real, e a contradição
    * precisa existir de verdade. Se ela aparecesse sem isso, o relatório estaria explicando um
    * fenômeno que não está na tela, o que é pior do que não explicar nada.
    *
-   * Há duas referências possíveis, e a nota usa a primeira que serve: a raquete atual do jogador
-   * (a melhor, porque ele já a sentiu na mão) ou a mais leve do próprio pódio. O teste aceita
-   * qualquer uma — o que ele não aceita é nenhuma das duas.
+   * ─── SÃO TRÊS REFERÊNCIAS, E A NOTA USA A PRIMEIRA QUE SERVE ────────────────────────────────
+   *
+   * As duas primeiras dizem "a recomendada é MAIS PESADA e mesmo assim gira mais fácil": contra a
+   * raquete atual do jogador (a melhor referência, porque ele já a sentiu na mão) ou contra a mais
+   * leve do próprio pódio.
+   *
+   * A terceira é o ESPELHO, e faltava. Relato do dono do produto sobre um homem de 78 kg que
+   * recebeu uma VCORE 100L de 280 g: "já acho 280 g exageradamente leve". Ali a recomendada é a
+   * MAIS LEVE e mesmo assim exige do braço tanto quanto uma de 300 g — a 100L tem inércia 16,77e6
+   * contra 16,43e6 da VCORE 100, porque tem 10 mm a mais de balanço. Sem nota, o cliente lê o
+   * número e conclui sozinho, e errado, que recebeu uma raquete de iniciante.
+   *
+   * O teste aceita qualquer uma das três — o que ele não aceita é nenhuma delas.
    */
   it('só aparece quando a contradição entre peso e esforço existe mesmo', () => {
     for (const persona of PERSONAS) {
@@ -155,22 +165,36 @@ describe('a leitura do peso', () => {
       const pesoNovo = primeira.racket.variant.specs.unstrung_weight_g!;
       const inerciaNova = primeira.racket.attributes.swing_index;
 
-      const candidatos = [
-        result.full_ranking.find((r) => r.racket.variant.id === persona.answers.current_racket_id),
-        [...result.podium].sort(
-          (a, b) =>
-            (a.racket.variant.specs.unstrung_weight_g ?? 0) -
-            (b.racket.variant.specs.unstrung_weight_g ?? 0),
-        )[0],
-      ];
+      const porPeso = [...result.podium].sort(
+        (a, b) =>
+          (a.racket.variant.specs.unstrung_weight_g ?? 0) -
+          (b.racket.variant.specs.unstrung_weight_g ?? 0),
+      );
 
-      const contradiz = candidatos.some((c) => {
+      // "a recomendada pesa MAIS e gira igual ou mais fácil"
+      const maisPesadaEMaisFacil = [
+        result.full_ranking.find((r) => r.racket.variant.id === persona.answers.current_racket_id),
+        porPeso[0],
+      ].some((c) => {
         const peso = c?.racket.variant.specs.unstrung_weight_g;
         const inercia = c?.racket.attributes.swing_index;
         return peso != null && inercia != null && pesoNovo > peso && inerciaNova <= inercia;
       });
 
-      expect(contradiz, `${persona.id}: nota de peso sem contradição que a sustente`).toBe(true);
+      // "a recomendada pesa MENOS e não gira mais fácil por isso"
+      const maisPesadaDoPodio = porPeso[porPeso.length - 1];
+      const pesoPesada = maisPesadaDoPodio?.racket.variant.specs.unstrung_weight_g;
+      const inerciaPesada = maisPesadaDoPodio?.racket.attributes.swing_index;
+      const maisLeveENaoMaisFacil =
+        pesoPesada != null &&
+        inerciaPesada != null &&
+        pesoPesada > pesoNovo &&
+        inerciaNova >= inerciaPesada;
+
+      expect(
+        maisPesadaEMaisFacil || maisLeveENaoMaisFacil,
+        `${persona.id}: nota de peso sem contradição que a sustente`,
+      ).toBe(true);
     }
   });
 

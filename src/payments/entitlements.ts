@@ -976,6 +976,53 @@ function buildWeightReading(
     );
   }
 
+  /**
+   * ═══ O CASO ESPELHO, QUE FALTAVA ═════════════════════════════════════════════════════════════
+   *
+   * As duas leituras acima cobrem "a recomendada é MAIS PESADA e mesmo assim gira fácil". O caso
+   * inverso não tinha nota nenhuma, e é o que o dono do produto encontrou: um homem de 78 kg,
+   * preparo moderado, recebendo uma VCORE 100L de 280 g e lendo só o número. "Já acho 280 g
+   * exageradamente leve."
+   *
+   * O número sozinho de fato parece leve — e a explicação é a MESMA física, na direção contrária:
+   * aquela 100L tem inércia de swing 16,77e6 contra 16,43e6 de uma VCORE 100 de 300 g. Ela é 20 g
+   * mais leve na balança e 2% mais pesada para girar, porque tem 10 mm a mais de balanço.
+   *
+   * Calar aqui é deixar o cliente concluir sozinho, e errado, que recebeu uma raquete de iniciante.
+   * A nota não defende a escolha: ela dá o número que falta para a pessoa julgar. O que a raquete
+   * leve realmente troca — estabilidade contra bola pesada — é dito no bloco de trocas, e não é
+   * repetido aqui.
+   */
+  const maisPesada = result.podium
+    .filter((e) => e.racket.variant.specs.unstrung_weight_g !== null)
+    .sort(
+      (a, b) =>
+        (b.racket.variant.specs.unstrung_weight_g ?? 0) -
+        (a.racket.variant.specs.unstrung_weight_g ?? 0),
+    )[0];
+
+  const pesoPesada = maisPesada?.racket.variant.specs.unstrung_weight_g ?? null;
+  const inerciaPesada = maisPesada?.racket.attributes.swing_index ?? null;
+  if (
+    maisPesada &&
+    pesoPesada !== null &&
+    inerciaPesada !== null &&
+    pesoPesada - pesoNovo >= 5 &&
+    // Só quando a leve NÃO é a mais fácil de girar: aí o número da balança engana de verdade.
+    inerciaNova >= inerciaPesada
+  ) {
+    return (
+      `A recomendada pesa ${pesoNovo} g e há no seu pódio uma de ${pesoPesada} g — e talvez o ` +
+      `número menor pareça leve demais para você. Ele não é o que o braço sente. O esforço para ` +
+      `girar a raquete não é o peso da balança: é a INÉRCIA, que combina o peso com o quanto dele ` +
+      `está longe da mão. Quadros mais leves costumam ter o balanço mais adiantado, e isso devolve ` +
+      `na cabeça o que tiraram do cabo. No nosso índice de inércia (0–100), a recomendada marca ` +
+      `${Math.round(inerciaNova)} contra ${Math.round(inerciaPesada)} da mais pesada do pódio — ou ` +
+      `seja, ela exige do braço tanto quanto a de ${pesoPesada} g, ou mais. Menos gramas na balança ` +
+      `aqui não significa menos raquete.`
+    );
+  }
+
   return null;
 }
 
