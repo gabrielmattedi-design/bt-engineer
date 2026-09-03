@@ -107,14 +107,58 @@ export type Sim = { readonly n: number; readonly answers: QuestionnaireAnswers }
 export function gerar(quantos: number): Sim[] {
   const out: Sim[] = [];
   for (let n = 1; n <= quantos; n++) {
+    /*
+      ═══ GENTE QUE PODE EXISTIR ═══════════════════════════════════════════════════════════════
+
+      A primeira versão sorteava cada campo de forma independente, e isso produzia pessoas
+      impossíveis. Duas saíram no relatório e o dono do produto reparou nas duas:
+
+        #059  menina de 11 anos, 1,76 m e 99 kg
+        #001  homem de 70 anos, sedentário, nível iniciante — declarando swing MUITO RÁPIDO e
+              força bem acima da média
+
+      A observação dele: "aqui não tem problema dar errado, porque essa combinação não existe".
+      Exato — e é pior que inofensivo. Um perfil impossível consome uma amostra e, quando entra num
+      recorte de extremos ("os 20 mais velhos recebendo quadros pesados"), ocupa a vaga de um caso
+      real que precisava ser olhado.
+
+      Agora altura e peso saem da idade, e as autoavaliações se correlacionam com o preparo e o
+      nível. A correlação NÃO é perfeita de propósito: em ~15% dos perfis as respostas se
+      contradizem, porque contradição é coisa que gente de verdade responde e o motor tem máquina
+      para tratá-la (`swing_speed_over_level`, `level_mismatch`). Zerar isso apagaria o teste desses
+      caminhos.
+    */
     const sexo = r() < 0.5 ? 'masculino' : 'feminino';
     const idade = entre(10, 80);
-    const baseAlt = sexo === 'masculino' ? 176 : 164;
-    const altura = Math.max(140, Math.min(200, baseAlt + entre(-16, 16)));
-    // IMC plausível: 17 a 33.
-    const imc = 17 + r() * 16;
-    const peso = Math.max(35, Math.round(imc * (altura / 100) ** 2));
+
+    // Estatura por idade: crescimento até ~17 anos, depois o platô adulto com dispersão.
+    const adulta = sexo === 'masculino' ? 176 : 164;
+    const fracaoCrescida = idade >= 17 ? 1 : 0.62 + 0.38 * ((idade - 10) / 7);
+    const altura = Math.max(132, Math.min(200, Math.round(adulta * fracaoCrescida) + entre(-7, 7)));
+
+    /*
+      IMC por faixa etária. A tabela de criança e adolescente é bem mais estreita que a de adulto —
+      era ela que faltava, e sem ela nasceu uma menina de 11 anos com 99 kg.
+    */
+    const imcFaixa: readonly [number, number] =
+      idade < 13 ? [14, 21] : idade < 17 ? [16, 25] : idade < 60 ? [18, 33] : [20, 32];
+    const imc = imcFaixa[0] + r() * (imcFaixa[1] - imcFaixa[0]);
+    const peso = Math.max(28, Math.round(imc * (altura / 100) ** 2));
+
     const nivel = idade < 14 ? pick(['iniciante','iniciante_avancado'] as const) : pick(NIVEIS);
+    const iNivel = NIVEIS.indexOf(nivel as never);
+
+    /* Em 15% dos perfis as respostas destoam — é o que mantém vivos os caminhos de contradição. */
+    const coerente = r() < 0.85;
+    const preparo = coerente
+      ? pick(([['sedentario','moderado'],['sedentario','moderado','bom'],['moderado','bom'],['moderado','bom','atletico'],['bom','atletico']] as const)[iNivel]!)
+      : pick(['sedentario','moderado','bom','atletico'] as const);
+    const forca = coerente
+      ? pick((preparo === 'sedentario' ? ['abaixo','media'] : preparo === 'moderado' ? ['abaixo','media','acima'] : preparo === 'bom' ? ['media','acima'] : ['media','acima','bem_acima']) as readonly ('abaixo'|'media'|'acima'|'bem_acima')[])
+      : pick(['abaixo','media','acima','bem_acima'] as const);
+    const swing = coerente
+      ? pick((([['lenta','moderada'],['lenta','moderada'],['moderada','rapida'],['moderada','rapida'],['rapida','muito_rapida']] as const)[iNivel]!) as readonly ('lenta'|'moderada'|'rapida'|'muito_rapida')[])
+      : pick(['lenta','moderada','rapida','muito_rapida','nao_sei'] as const);
     const [rally, dir, spin, prof, saque] = TECNICA[nivel]!;
     const temDor = r() < 0.25;
     const nFalta = 1 + Math.floor(r() * 3);
@@ -156,10 +200,13 @@ export function gerar(quantos: number): Sim[] {
         height_cm: r() < 0.92 ? altura : null,
         weight_kg: r() < 0.92 ? peso : null,
         sex: r() < 0.94 ? sexo : 'prefiro_nao_dizer',
-        perceived_strength: pick(['abaixo','media','acima','bem_acima'] as const),
-        fitness_level: pick(['sedentario','moderado','bom','atletico'] as const),
-        frequency_per_week: entre(0, 5),
-        experience_duration: pick(['menos_1a','1_2a','2_5a','mais_5a'] as const),
+        perceived_strength: forca,
+        fitness_level: preparo,
+        // Quem joga mais é, em média, quem está em nível mais alto.
+        frequency_per_week: Math.max(0, Math.min(5, entre(0, 3) + Math.round(iNivel / 2))),
+        experience_duration: coerente
+          ? (['menos_1a','1_2a','2_5a','mais_5a','mais_5a'] as const)[iNivel]!
+          : pick(['menos_1a','1_2a','2_5a','mais_5a'] as const),
         has_lessons: pick(['nunca','ja_fiz','atualmente'] as const),
         plays_matches: pick(['nao','as_vezes','sim'] as const),
         tournament_experience: pick(['nunca','amadores','federados'] as const),
@@ -170,7 +217,7 @@ export function gerar(quantos: number): Sim[] {
         forehand_type: r() < 0.8 ? pick(['plano','topspin_moderado','topspin_acentuado','nao_sei'] as const) : null,
         backhand_hands: pick(['uma_mao','duas_maos'] as const),
         swing_length: pick(['curto','medio','longo'] as const),
-        swing_speed: pick(['lenta','moderada','rapida','muito_rapida','nao_sei'] as const),
+        swing_speed: swing,
         depth_control: r() < 0.85 ? pick(['sim','as_vezes','nao'] as const) : null,
         ball_tendency: [pick(['nenhuma','saem_longas','caem_curtas','variam_demais'])],
         discomfort_areas: temDor ? [pick(DORES)] : ['nenhum'],
@@ -310,8 +357,16 @@ export function auditar(sims: readonly Sim[]): { falhas: Falha[]; stats: Record<
     // 8. A massa recomendada não pode ficar absurdamente longe da capacidade.
     const cap = 0.45 * profile.physical_capacity_score + 0.35 * profile.swing_speed_score + 0.2 * profile.player_level_score;
     const pos = escala.position('mass_index', massIndex(top.racket.variant.specs)!);
-    // A atual fica de fora pela mesma razão: manter o que a pessoa já tem nunca é imprudente.
-    if (pos - cap > 40 && top.racket.variant.id !== atual?.variant.id) {
+    /*
+      A atual fica de fora porque manter o que a pessoa já tem nunca é imprudente.
+
+      E quem não declarou o peso também: sem ele não há reta de porte, e o teto — única proteção
+      dura sobre massa — não existe. É limitação conhecida e está documentada em
+      `frameWeightCeiling`; o que restou de risco nesse caso é coberto pelo aviso de migração
+      juvenil, que passou a sair sempre abaixo dos 14 anos. Manter a regra acusando aqui produziria
+      falha permanente sobre algo que o motor não tem como saber.
+    */
+    if (pos - cap > 40 && top.racket.variant.id !== atual?.variant.id && answers.weight_kg !== null) {
       add('massa muito acima da capacidade', n, `posição ${pos.toFixed(0)} vs capacidade ${cap.toFixed(0)}`);
     }
 

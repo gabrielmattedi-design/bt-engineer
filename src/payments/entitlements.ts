@@ -1159,7 +1159,25 @@ function buildLowMatchNote(
  */
 function buildJuniorTransitionNote(profile: PlayerProfile): string | null {
   const teto = profile.frame_weight_ceiling_g;
-  if (profile.age === null || profile.age >= 16 || teto === null || teto >= 300) return null;
+  if (profile.age === null || profile.age >= 16 || teto === null) return null;
+
+  /*
+    ═══ ABAIXO DE 14 O AVISO NÃO DEPENDE DO TETO ═══════════════════════════════════════════════
+
+    A condição era só `teto < 300`, usando o teto como medida de porte: quem é grande para a idade
+    fica travado em 300 g pela regra etária e não precisa do aviso. Isso continua certo dos 14 aos
+    15 anos.
+
+    Mas o teto some quando o peso não é declarado, e aí a regra etária devolve exatamente 300 —
+    indistinguível de "adolescente grande". Uma varredura de mil perfis achou o caso: menino de 10
+    anos, 1,32 m, sem peso informado, recebendo um quadro adulto de 300 g e NENHUM aviso.
+    A ausência do dado virava silêncio justamente onde ele é mais caro.
+
+    Abaixo de 14 anos a migração juvenil é a regra, não a exceção — não existe criança dessa idade
+    para quem o catálogo adulto seja obviamente o universo certo. Ali o aviso sai sempre, e o custo
+    de dizê-lo a um caso que não precisava é muito menor que o de calar num que precisava.
+  */
+  if (profile.age >= 14 && teto >= 300) return null;
 
   return (
     `Você tem ${profile.age} anos, e isso muda como esta análise deve ser lida. Todas as raquetes ` +

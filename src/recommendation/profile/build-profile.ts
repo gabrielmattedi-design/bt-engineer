@@ -533,9 +533,27 @@ export function ceilingCapacityFactor(a: CeilingAnswers): number {
 }
 
 export function frameWeightCeiling(a: CeilingAnswers): number | null {
-  // Sem peso não há reta. Inventar um corpo para poder limitar seria pior do que não limitar:
-  // o teto viraria uma restrição sobre uma pessoa imaginária.
-  if (a.weight_kg === null) return null;
+  const menorDeIdade = a.age !== null && a.age < 16;
+
+  /*
+    ═══ SEM PESO, A CRIANÇA PERDIA AS DUAS PROTEÇÕES ═══════════════════════════════════════════
+
+    Este `return null` vinha antes de tudo, e o limite dos 16 anos morria junto com ele. Uma
+    varredura de mil perfis achou o caso: menino de 10 anos, 1,32 m, sedentário, que não informou o
+    peso — e recebeu uma HEAD Extreme MP de 300 g, quadro adulto, com 79% de match.
+
+    A regra de porte de fato precisa do peso, e a nota abaixo continua valendo para ela: inventar um
+    corpo para poder limitar seria pior do que não limitar. Mas o limite dos 16 anos NÃO precisa de
+    peso nenhum — ele é função da idade, e a idade está ali. Deixá-lo cair junto era perder uma
+    proteção por causa de outra.
+
+    Hoje `weight_kg` é obrigatório no questionário, então este caminho só se alcança por dados
+    antigos ou parciais. É exatamente por isso que ele merecia guarda: quando alguém tornar o campo
+    opcional, o buraco reabre em silêncio, e quem cai nele é criança.
+  */
+  if (a.weight_kg === null) {
+    return menorDeIdade ? CEILING_UNDER_16_G : null;
+  }
 
   const porPorte =
     Math.min(CEILING_MAX_G, CEILING_BASE_G + CEILING_PER_KG * a.weight_kg) *
@@ -573,7 +591,7 @@ export function frameWeightCeiling(a: CeilingAnswers): number | null {
     falso sobre ele. Aplicando o `min` por último, quem é travado pela idade fica cravado em 300 e
     o aviso volta a distinguir o que se propõe a distinguir.
   */
-  const teto = a.age !== null && a.age < 16 ? Math.min(comFator, CEILING_UNDER_16_G) : comFator;
+  const teto = menorDeIdade ? Math.min(comFator, CEILING_UNDER_16_G) : comFator;
 
   /*
     Arredonda PARA BAIXO, e não para o inteiro mais próximo.
