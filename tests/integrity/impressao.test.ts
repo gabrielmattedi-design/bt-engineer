@@ -158,6 +158,42 @@ describe('o que não pode ser partido', () => {
     expect(blocoPrint).toMatch(/widows:\s*\d/);
   });
 
+  /**
+   * ═══ O CONTÊINER GRANDE NÃO PINTA CAIXA NO PAPEL ═════════════════════════════════════════
+   *
+   * A seção da raquete atual é a única `rounded-2xl` do relatório e a mais comprida: veredicto,
+   * comparação entre irmãs de linha, setup do quadro atual e a ressalva. Ela passa de uma folha —
+   * o que está certo, e é por isso que `section` saiu da lista de indivisíveis.
+   *
+   * O que sobrava era feio de um jeito específico. Medido num PDF gerado do relatório real: a
+   * página 9 abria com uma CASQUINHA VAZIA de trinta pixels — fundo, borda arredondada e nenhuma
+   * linha de texto. Era o `padding-bottom` mais a borda de baixo da seção transbordando sozinhos.
+   *
+   * Não existe CSS para "não deixe fragmento menor que X". Existe não ter caixa para fragmentar.
+   */
+  it('o contêiner grande não pinta caixa no papel', () => {
+    const regra = /\[class\*='rounded-2xl'\][^{]*\{[^}]*\}/.exec(blocoPrint)?.[0] ?? '';
+    expect(regra, 'a caixa grande voltou a ser pintada — e a casquinha vazia com ela').not.toBe('');
+    expect(regra).toMatch(/background:\s*transparent/);
+    expect(regra).toMatch(/border:\s*0/);
+  });
+
+  /**
+   * ═══ O PARÁGRAFO DE ABERTURA VIAJA COM O TÍTULO ══════════════════════════════════════════
+   *
+   * `break-after: avoid` no `h2` impede a quebra IMEDIATAMENTE depois dele, e só isso. Com uma
+   * linha de apoio embaixo, a regra fica satisfeita com o par título+apoio no pé da folha e manda o
+   * conteúdo para a página seguinte — que é o mesmo defeito com um passo a mais.
+   *
+   * Medido: a página 8 terminava em "O pódio da sua análise" mais o subtítulo, e os três cards
+   * abriam a 9. Encadeando um nível, o bloco inteiro passou para a mesma folha.
+   */
+  it('o parágrafo logo abaixo do título não se separa do que vem depois', () => {
+    const regra = /h1 \+ p,[\s\S]{0,80}?\{[^}]*\}/.exec(blocoPrint)?.[0] ?? '';
+    expect(regra, 'o título voltou a poder ficar sozinho com o subtítulo no pé da folha').not.toBe('');
+    expect(regra).toMatch(/break-after:\s*avoid/);
+  });
+
   it('o que só serve para clicar não vai para o papel', () => {
     // Botão impresso promete uma ação que o papel não tem; os seletores de raquete imprimiam uma
     // caixa vazia com um título solto em cima.

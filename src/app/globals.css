@@ -368,6 +368,24 @@
     São os dois defeitos que sobram depois que os blocos param de ser cortados — e são os que fazem
     um documento parecer mal montado mesmo quando nada está tecnicamente errado.
   */
+  /*
+    O PARÁGRAFO DE ABERTURA VIAJA COM O TÍTULO.
+
+    `break-after: avoid` no `h2` impede a quebra IMEDIATAMENTE depois dele — e só isso. Quando o
+    título é seguido de uma linha de apoio, a regra fica satisfeita com o par título+apoio no pé da
+    folha, e o conteúdo de verdade vai para a página seguinte. Medido num PDF do relatório real: a
+    página 8 terminava em "O pódio da sua análise" mais o subtítulo, e os três cards abriam a 9.
+
+    Encadear um nível resolve o caso comum sem virar uma corrente sem fim: no máximo o título e um
+    parágrafo se mudam juntos para a próxima folha.
+  */
+  h1 + p,
+  h2 + p,
+  h3 + p {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
   h1, h2, h3 {
     break-after: avoid;
     page-break-after: avoid;
@@ -392,6 +410,34 @@
 
   body {
     background: #FFFFFF !important;
+  }
+
+  /*
+    ═══ O CONTÊINER GRANDE NÃO PINTA CAIXA NO PAPEL ═══════════════════════════════════════════
+
+    A seção da raquete atual é a única `rounded-2xl` do relatório, e é a mais comprida: veredicto,
+    comparação entre irmãs de linha, setup completo do quadro atual e a ressalva. Ela passa de uma
+    folha com folga — o que está certo, e é por isso que `section` saiu da lista de indivisíveis.
+
+    O problema é o que sobra quando ela quebra. Medido num PDF gerado do relatório real: a página 9
+    abria com uma CASQUINHA VAZIA — trinta pixels de caixa arredondada, com fundo e borda, sem uma
+    linha de texto dentro. Era o rabo da seção: o conteúdo acabou perto do fim da página 8 e só o
+    `padding-bottom` mais a borda de baixo transbordaram.
+
+    Não existe CSS que diga "não deixe um fragmento menor que X". O que existe é não ter caixa para
+    fragmentar: no papel a seção vira fluxo de texto, separada por um filete em cima. A hierarquia
+    continua legível — o rótulo "ANTES DE TROCAR DE RAQUETE" e o título fazem esse trabalho —, e o
+    fundo verde-claro, que na tela codifica "não precisa trocar", já era decorativo aqui.
+
+    Os quadros PEQUENOS continuam com caixa: eles são `rounded` (não `rounded-2xl`), cabem
+    inteiros numa folha e a regra de indivisibilidade os protege.
+  */
+  [class*='rounded-2xl'] {
+    border: 0 !important;
+    border-top: 1px solid #E8E6E1 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 8mm 0 0 0 !important;
   }
 
   /*
