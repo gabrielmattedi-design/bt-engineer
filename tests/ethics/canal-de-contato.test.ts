@@ -70,6 +70,38 @@ describe('páginas legais alcançáveis', () => {
     expect(home).toContain('/termos');
   });
 
+  /**
+   * ═══ O RODAPÉ MOSTRA O ENDEREÇO, NÃO UM LINK QUE ABRE OUTRO PROGRAMA ══════════════════════
+   *
+   * O rodapé trazia `<a href="mailto:...">Contato</a>`. Relato do dono: clicar abria o Outlook —
+   * o cliente de e-mail padrão da máquina, que não é onde ele lê e-mail.
+   *
+   * É o defeito clássico do `mailto:`. Ele não abre "o e-mail": abre o programa que o sistema
+   * operacional elegeu. Quem usa webmail cai num cliente que nunca configurou, ou em nada. E o
+   * prejuízo é que o endereço — a única coisa de que a pessoa precisava — nunca chegou a aparecer
+   * na tela, porque estava escondido atrás da palavra "Contato". Não dá para copiar o que não
+   * está escrito.
+   *
+   * Isso importa aqui mais do que em outras telas: o rodapé é onde quem pagou e não recebeu
+   * procura com quem falar, e o caminho alternativo dessa pessoa é abrir disputa no gateway.
+   *
+   * As outras telas podem manter o `mailto:` porque nelas o endereço já aparece escrito ao lado —
+   * ali o link é conveniência, e falhar não custa nada.
+   */
+  it('o rodapé da home escreve o endereço em vez de escondê-lo num link', () => {
+    const home = readFileSync(join(ROOT, 'src', 'app', 'page.tsx'), 'utf8');
+    const semComentarios = home
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+
+    expect(semComentarios, 'o endereço sumiu do rodapé').toContain('CONTATO_EMAIL');
+    expect(
+      semComentarios,
+      'voltou o mailto: no rodapé — ele abre o cliente de e-mail do sistema, que pode não ser o ' +
+        'que a pessoa usa, e esconde o endereço atrás do rótulo',
+    ).not.toContain('mailto:');
+  });
+
   it('as duas páginas existem e nomeiam o responsável', () => {
     for (const rota of ['privacidade', 'termos']) {
       const fonte = readFileSync(join(ROOT, 'src', 'app', '(legal)', rota, 'page.tsx'), 'utf8');

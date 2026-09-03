@@ -489,9 +489,30 @@ export default async function HomePage() {
           <Link href="/termos" className="underline">
             Termos e reembolso
           </Link>
-          <a href={`mailto:${CONTATO_EMAIL}`} className="underline">
-            Contato
-          </a>
+          {/*
+            ═══ O ENDEREÇO ESCRITO, E NÃO UM LINK QUE ABRE OUTRO PROGRAMA ═══════════════════════
+
+            Aqui havia `<a href="mailto:...">Contato</a>`. Relato do dono: clicar abria o Outlook —
+            o cliente de e-mail padrão da máquina, que não é onde ele lê e-mail.
+
+            É o defeito clássico do `mailto:`: ele não abre "o e-mail", abre o programa que o
+            sistema operacional decidiu que é o e-mail. Quem usa Gmail no navegador cai num Outlook
+            que nunca configurou, ou num programa que pede cadastro, ou em nada — e no caminho o
+            endereço, que era a única coisa que a pessoa precisava, nunca chegou a aparecer na tela.
+            Sem link não há como copiar o que não está escrito.
+
+            Escrito, funciona em todo aparelho: dá para ler, copiar e colar em qualquer lugar. Não
+            depende de configuração nenhuma. `select-all` faz um clique selecionar o endereço
+            inteiro, que é o que a pessoa vai querer fazer em seguida.
+
+            Os outros três lugares que citam o contato — /minhas-analises, /retorno e as páginas
+            legais — já mostram o endereço escrito, com o `mailto:` só por cima. Lá o link é
+            conveniência: se ele falhar, o endereço continua legível. Só o rodapé escondia o
+            endereço atrás da palavra "Contato", e era o único ponto em que a falha custava tudo.
+          */}
+          <span>
+            Contato: <span className="select-all">{CONTATO_EMAIL}</span>
+          </span>
         </nav>
       </footer>
     </main>
