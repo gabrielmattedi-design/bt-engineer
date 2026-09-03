@@ -1,7 +1,9 @@
+import Link from 'next/link';
 import { markPageFunnel } from '@/app/funnel-mark';
 import { notFound } from 'next/navigation';
 import { activeProducts } from '@/database/repositories/commerce-repo';
-import { loadRecommendation } from '@/database/repositories/session-repo';
+import { grantedEntitlements, loadRecommendation } from '@/database/repositories/session-repo';
+import { PRODUCT_ENTITLEMENTS } from '@/payments/entitlements';
 import { seedProducts, withAutoBootstrap } from '@/database/setup';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
@@ -65,9 +67,73 @@ export default async function PlanosPage({
     await seedProducts();
     return activeProducts();
   });
-  // O upsell do Top 3 vem do relatório e mostra só aquele item; a entrada normal mostra os planos
-  // principais. Em nenhum dos casos inventamos uma opção que não existe no catálogo.
-  const visible = produto ? all.filter((p) => p.sku === produto) : all.filter((p) => p.sku !== 'top3_unlock');
+  /**
+   * ═══ A LOJA SÓ OFERECE O QUE FAZ SENTIDO PARA QUEM ESTÁ OLHANDO ══════════════════════════════
+   *
+   * Relato do dono: "essa tela habilita o pagamento de desbloquear a segunda colocada sem ter
+   * comprado nada, vai confundir o usuário. As opções de upgrade só devem aparecer na página de
+   * resultado, depois de pagar."
+   *
+   * A lista era `all` menos um SKU fixo, e por isso mostrava os cinco produtos a qualquer visitante:
+   * as duas portas de entrada e os três upgrades. "Desbloquear a 2ª colocada" por R$ 8,99 para quem
+   * não tem nem a 1ª é pior do que confuso — é vender um pedaço de um relatório que a pessoa não
+   * pode abrir. Ela pagaria e continuaria sem ver raquete nenhuma.
+   *
+   * O filtro agora é por POSSE, e sai de duas perguntas:
+   *
+   *   1. Este produto ainda entrega alguma coisa? Um SKU cujos entitlements a pessoa já tem some —
+   *      é o mesmo princípio do §58 em outra direção: não cobrar de novo pelo que já foi comprado.
+   *
+   *   2. O pré-requisito está pago? Só `racket_report` e `full_setup` são portas de entrada. Todo o
+   *      resto é upgrade e depende de `racket_report_access`, porque é literalmente uma extensão de
+   *      um relatório que precisa existir.
+   *
+   * O `?produto=` continua estreitando a lista a um item, mas AGORA sobre o conjunto já filtrado —
+   * antes ele passava por cima de tudo, e `/planos/<id>?produto=unlock_rank_2` abria um checkout de
+   * upgrade para quem não tinha comprado nada. Uma tela que esconde o botão não protege nada se o
+   * endereço continua funcionando.
+   */
+  const granted = new Set(await withAutoBootstrap(() => grantedEntitlements(sessionId)));
+  const ENTRADAS = new Set(['racket_report', 'full_setup']);
+
+  const temRelatorio = granted.has('racket_report_access');
+
+  const oferecivel = (sku: string): boolean => {
+    if (sku === 'top3_unlock') return false;
+    const concede = PRODUCT_ENTITLEMENTS[sku] ?? [];
+    // Nada a entregar: a pessoa já tem tudo o que este produto abriria.
+    if (concede.length > 0 && concede.every((e) => granted.has(e))) return false;
+    // Upgrade sem o relatório pago é um produto que a pessoa não consegue usar.
+    if (!ENTRADAS.has(sku) && !temRelatorio) return false;
+    /*
+      ═══ E A PORTA DE ENTRADA FECHA DEPOIS DE ATRAVESSADA ══════════════════════════════════
+
+      Este é o lado caro do mesmo erro, e ele sobreviveu à primeira versão do filtro.
+
+      Quem pagou R$ 29,99 pela raquete ainda via "Descubra seu setup completo" por R$ 44,99 — um
+      produto que INCLUI a raquete que ela acabou de comprar. Aceitar essa oferta custaria R$ 74,98
+      pelo mesmo conteúdo que `setup_upgrade` entrega por R$ 59,98, pagando duas vezes pelo
+      relatório. O §58 vale aqui na forma mais direta possível: não cobrar de novo por algo já
+      vendido.
+
+      O caminho para quem já entrou é o upgrade, e ele existe exatamente para isso — ver a nota de
+      preços em `PRODUCT_ENTITLEMENTS`, que documenta por que os dois caminhos chegam ao mesmo
+      conteúdo com R$ 9,99 de diferença.
+    */
+    if (ENTRADAS.has(sku) && temRelatorio) return false;
+    return true;
+  };
+
+  const disponiveis = all.filter((p) => oferecivel(p.sku));
+  const pedido = produto ? disponiveis.filter((p) => p.sku === produto) : [];
+  /*
+    Um `?produto=` que não sobrevive ao filtro cai de volta na lista, em vez de dar tela vazia.
+
+    O caso real é o link antigo: a pessoa guardou `/planos/<id>?produto=racket_report`, comprou por
+    outro caminho e volta nele meses depois. Mostrar "nenhum produto disponível" ali seria descrever
+    o sistema, não a situação dela.
+  */
+  const visible = produto ? (pedido.length > 0 ? pedido : disponiveis) : disponiveis;
 
   /*
     O desconto é relido AQUI, e não guardado de nenhuma visita anterior.
@@ -176,12 +242,35 @@ export default async function PlanosPage({
           ))}
         </div>
 
-        {visible.length === 0 && (
-          <p className="mt-8 rounded border border-warn/40 bg-warn/5 p-4 text-sm text-warn">
-            Nenhum produto disponível no momento. Abra <code>/admin/setup</code> e clique em
-            &ldquo;Criar produtos&rdquo;.
-          </p>
-        )}
+        {/*
+          ═══ LISTA VAZIA PASSOU A TER DUAS CAUSAS ═══════════════════════════════════════════
+
+          Antes só havia uma: a tabela de produtos vazia, e a mensagem era uma instrução técnica
+          para o dono do site. Com o filtro por posse existe uma segunda, e ela é de CLIENTE — quem
+          já comprou tudo chega aqui sem nada para ver. Mandar essa pessoa abrir `/admin/setup`
+          seria responder à pergunta errada, com um endereço que ela não pode abrir.
+        */}
+        {visible.length === 0 &&
+          (all.length === 0 ? (
+            <p className="mt-8 rounded border border-warn/40 bg-warn/5 p-4 text-sm text-warn">
+              Nenhum produto disponível no momento. Abra <code>/admin/setup</code> e clique em
+              &ldquo;Criar produtos&rdquo;.
+            </p>
+          ) : (
+            <div className="mt-8 rounded border border-court/30 bg-court/5 p-6">
+              <p className="font-display text-lg font-semibold">Você já tem tudo desta análise.</p>
+              <p className="mt-2 max-w-prose text-sm text-graphite">
+                Não há mais nada a comprar aqui — o que você adquiriu já está liberado no seu
+                relatório.
+              </p>
+              <Link
+                href={`/resultado/${sessionId}`}
+                className="mt-4 inline-block rounded bg-court px-5 py-2.5 text-sm font-semibold text-paper"
+              >
+                Abrir meu relatório
+              </Link>
+            </div>
+          ))}
 
         {!inviteOnly && <CouponForm sessionId={sessionId} />}
 

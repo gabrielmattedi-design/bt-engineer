@@ -5,7 +5,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createOrder, attachPayment } from '@/database/repositories/commerce-repo';
-import { ensureAnonymousSession } from '@/database/repositories/session-repo';
+import { ensureAnonymousSession, grantedEntitlements } from '@/database/repositories/session-repo';
 import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { contarTentativa, LIMITE_JANELA_MINUTOS } from '@/database/repositories/throttle-repo';
@@ -13,6 +13,7 @@ import { markFunnel } from '@/database/repositories/funnel-repo';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
+import { PRODUCT_ENTITLEMENTS } from '@/payments/entitlements';
 import { claimAnalysis, ensureUser } from '@/database/repositories/auth-repo';
 import { sendEmail } from '@/email/send';
 import { reportReadyEmail } from '@/email/templates';
@@ -119,6 +120,55 @@ export async function startCheckout(
   */
   if (!(await checkoutOpen())) return { error: INVITE_ONLY_MESSAGE };
 
+  /*
+    ═══ A MESMA REGRA DA VITRINE, DO LADO QUE NÃO SE CONTORNA ═════════════════════════════════
+
+    `page.tsx` deixou de listar upgrade para quem não comprou o relatório. Isso resolve o que se vê
+    e não resolve o que se pode fazer: o comentário quinze linhas acima já diz por quê — esconder é
+    decisão de tela, e um POST direto neste Server Action não passa por tela nenhuma.
+
+    Sem esta guarda, `unlock_rank_2` continuava comprável por quem não tem a 1ª colocada. A pessoa
+    pagaria R$ 8,99 por um pedaço de um relatório que ela não consegue abrir, e o estorno seria
+    trabalho manual para os dois lados.
+
+    A recusa vem ANTES de criar o pedido, pelo mesmo motivo do bloco acima: assim não existe pedido
+    órfão para limpar depois.
+  */
+  const ENTRADAS = new Set(['racket_report', 'full_setup']);
+  {
+    const jaTem = await withAutoBootstrap(() => grantedEntitlements(publicId));
+    const temRelatorio = jaTem.includes('racket_report_access');
+
+    if (!ENTRADAS.has(sku) && !temRelatorio) {
+      return {
+        error:
+          'Este complemento só existe para quem já tem o relatório da raquete. ' +
+          'Comece pela raquete recomendada — os upgrades aparecem depois, dentro do relatório.',
+      };
+    }
+
+    /*
+      A porta de entrada fecha depois de atravessada — e aqui ela custa dinheiro de verdade.
+
+      `full_setup` inclui o relatório da raquete. Vendê-lo a quem já comprou `racket_report` cobra o
+      relatório duas vezes: R$ 74,98 pelo conteúdo que o upgrade entrega por R$ 59,98. A tela já
+      deixou de oferecer; esta guarda é a que vale contra um POST direto.
+    */
+    if (ENTRADAS.has(sku) && temRelatorio) {
+      return {
+        error:
+          'Você já tem o relatório da raquete. Para completar, use "Completar com corda e tensão" ' +
+          '— comprar o pacote inteiro de novo cobraria duas vezes pelo que você já tem.',
+      };
+    }
+
+    /* E o que já foi comprado não pode ser comprado de novo. */
+    const concede = PRODUCT_ENTITLEMENTS[sku] ?? [];
+    if (concede.length > 0 && concede.every((e) => jaTem.includes(e))) {
+      return { error: 'Você já tem este item liberado nesta análise.' };
+    }
+  }
+
   try {
     const jar = await cookies();
     const token = jar.get('te_visitor')?.value;
@@ -169,7 +219,26 @@ export async function startCheckout(
         `/retorno` espera a confirmação e só então encaminha. Ver `src/app/retorno/[sessionId]`.
       */
       returnUrl: `${scheme}://${host}/retorno/${publicId}`,
-      failureUrl: `${scheme}://${host}/planos/${publicId}`,
+      /*
+        ═══ A VOLTA PRESERVA O `?produto=`, E ISSO NÃO É DETALHE ═══════════════════════════════
+
+        Relato do dono, com o print na mão: "ponho pra pagar, volto, e ele volta pra essa página,
+        não faz sentido. Deveria voltar para a mesma opção que estava antes de eu clicar."
+
+        Ele está certo, e a causa é esta linha. O caminho real é:
+
+            /analise/<id>  →  /planos/<id>?produto=racket_report  →  gateway
+
+        ou seja, quem clica está numa página que mostra UM produto. A URL de falha apontava para
+        `/planos/<id>` sem o parâmetro, e a página sem `produto` lista o catálogo inteiro — as duas
+        opções de entrada mais os três upgrades. Desistir do pagamento devolvia a pessoa a uma tela
+        que ela nunca tinha visto, oferecendo "Desbloquear a 2ª colocada" a quem não comprou nada.
+
+        Um sintoma, duas causas, e as duas precisavam de conserto: esta linha traz a pessoa de volta
+        ao lugar de onde ela saiu, e `page.tsx` deixa de oferecer upgrade a quem não tem o que
+        atualizar — porque a lista completa continua alcançável por outros caminhos.
+      */
+      failureUrl: `${scheme}://${host}/planos/${publicId}?produto=${encodeURIComponent(sku)}`,
       notificationUrl: `${scheme}://${host}/api/webhooks/payment`,
     });
 
