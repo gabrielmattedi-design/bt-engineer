@@ -105,12 +105,37 @@ export function explainRacketFit(
     ?.terms.find((t) => t.label === 'power_complement')?.value;
   const framePower = bandPosition(bands, 'power_score', attributes.power_score);
 
+  /*
+    ═══ O ESPELHO QUE A PRIMEIRA CORREÇÃO DEIXOU PASSAR ═════════════════════════════════════════
+
+    A versão anterior consertou só metade. Ela passou a conferir a posição no catálogo ANTES de
+    dizer "complementa a potência", mas deixou o ramo de cima — "escolhemos um frame mais contido" —
+    disparar sem conferir nada. E ele produz exatamente a mesma contradição, ao contrário:
+
+        "Como você já gera potência própria, escolhemos um frame mais CONTIDO"
+        "Potência: entre as mais POTENTES do catálogo"
+
+    A aritmética que abre o buraco: com potência natural 60, a necessária é 40, e a zona morta de
+    ±12 mais a inclinação de 1.3 deixam o termo passar de 0.75 com o frame em até 71 de posição.
+    Como `EXPECTATION_HIGH` é 60, qualquer frame entre 60 e 71 dispara as duas frases.
+
+    Medido numa varredura de 1000 perfis: 21 cards traziam esse par. A varredura anterior, de 202
+    cenários, não pegou — o par exige potência natural alta E frame potente, uma combinação que só
+    aparece com volume.
+
+    Agora os dois ramos consultam a MESMA régua antes de falar, e o silêncio é a resposta quando a
+    frase relativa contradiria a absoluta. Quem diz o que há para dizer nesses casos é a linha de
+    "o que você deve perceber", que fala em posição de catálogo e não erra.
+  */
   if (powerTerm !== null && powerTerm !== undefined && powerTerm >= 0.75) {
     if (profile.natural_power_score >= 60) {
-      out.push(
-        `Como você já gera potência própria, escolhemos um frame mais contido: a potência que ` +
-          `falta vem do seu swing, e o controle vem da raquete.`,
-      );
+      // "Contido" só quando o frame de fato não é dos potentes do catálogo.
+      if (framePower === null || framePower < EXPECTATION_HIGH) {
+        out.push(
+          `Como você já gera potência própria, escolhemos um frame mais contido: a potência que ` +
+            `falta vem do seu swing, e o controle vem da raquete.`,
+        );
+      }
     } else if (framePower === null || framePower > EXPECTATION_LOW) {
       out.push(
         `Este frame complementa a potência que seu swing ainda não entrega, ajudando a bola a ` +
@@ -118,10 +143,10 @@ export function explainRacketFit(
       );
     }
     /*
-      O caso restante — o jogador gera pouca potência E o frame é contido no catálogo — não ganha
-      frase nenhuma AQUI de propósito. Era exatamente ele que produzia a contradição, e a leitura
-      honesta dele já é dada duas vezes na página: em "o que você deve perceber" e no bloco de
-      trocas, que diz o que foi trocado por quê.
+      Os dois casos restantes — jogador potente com frame potente, e jogador contido com frame
+      contido — não ganham frase nenhuma AQUI, de propósito. São justamente os que produziam
+      contradição, e a leitura honesta deles já é dada duas vezes na página: em "o que você deve
+      perceber" e no bloco de trocas, que diz o que foi trocado por quê.
     */
   }
 

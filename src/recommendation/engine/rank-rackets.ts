@@ -468,12 +468,59 @@ function applyWeightCeiling(
     return g === null || g <= teto || e.racket.variant.id === currentRacket?.variant.id;
   };
 
-  const kept = scored.filter(dentro);
-  if (kept.length === scored.length) return null; // o teto não restringiu nada
-  if (kept.length < CEILING_MIN_SURVIVORS) return null;
+  const dentroDoTeto = scored.filter(dentro);
+  if (dentroDoTeto.length === scored.length) return null; // o teto não restringiu nada
+
+  /**
+   * ═══ QUANDO O TETO É APERTADO DEMAIS, ELE AFROUXA — NÃO DESLIGA ════════════════════════════
+   *
+   * Aqui havia um `return null`: se sobrassem menos de `CEILING_MIN_SURVIVORS` quadros, o teto era
+   * abandonado por inteiro e o ranking voltava a considerar o catálogo todo.
+   *
+   * A intenção era boa — um ranking de três raquetes não é um ranking. O efeito era o oposto do
+   * pretendido: quem mais precisava do limite era exatamente quem o perdia. Medido numa varredura
+   * de 1000 perfis, 9 recebiam quadro ACIMA do teto que o próprio perfil declarava, e um deles
+   * saía com 300 g contra um teto de 278 g. A pessoa de corpo pequeno terminava com MAIS peso do
+   * que se o limite tivesse sido apenas afrouxado.
+   *
+   * Foi visto primeiro num levantamento de 50 perfis — uma mulher de 1,48 m e 42 kg, teto de 277 g,
+   * recebendo 295 g — e o piso de `frameWeightCeiling` não alcança esse caso: ele nunca levanta o
+   * teto acima do que a reta de porte já disse, e para um corpo desses a própria reta cai abaixo
+   * do piso.
+   *
+   * A saída é afrouxar até o mínimo viável em vez de desistir: ficam os `CEILING_MIN_SURVIVORS`
+   * quadros MAIS LEVES do catálogo. O ranking recupera o tamanho de que precisa e a pessoa continua
+   * recebendo o que existe de mais leve, que é o que o teto queria dizer. Um limite que não pode
+   * ser cumprido ao pé da letra deve ceder na direção dele, não na contrária.
+   */
+  const kept =
+    dentroDoTeto.length >= CEILING_MIN_SURVIVORS
+      ? dentroDoTeto
+      : [...scored]
+          .sort((a, b) => (peso(a) ?? Infinity) - (peso(b) ?? Infinity))
+          .slice(0, CEILING_MIN_SURVIVORS)
+          /* A ordem do ranking é por score; o `sort` acima serve só para escolher QUAIS ficam. */
+          .sort((a, b) => scored.indexOf(a) - scored.indexOf(b));
+
+  const mantidos = new Set(kept.map((e) => e.racket.variant.id));
+
+  /**
+   * O motivo cita o teto QUE VALEU, não o que foi calculado.
+   *
+   * Quando o limite precisa afrouxar, o número do perfil deixa de descrever o corte: para um teto
+   * de 278 g o conjunto mantido vai até 280 g, porque 280 é o sexto quadro mais leve que existe.
+   * Escrever "acima do limite de 278 g" ao lado de um quadro de 280 g mantido é uma contradição na
+   * auditoria — e a auditoria existe para responder "por que esta raquete não apareceu?" meses
+   * depois, com o motivo que a pessoa teria visto.
+   */
+  const tetoAplicado = Math.max(
+    teto,
+    ...kept.map((e) => peso(e) ?? 0),
+  );
+  const afrouxou = tetoAplicado > teto;
 
   const excluded: ExcludedRacket[] = scored
-    .filter((e) => !dentro(e))
+    .filter((e) => !mantidos.has(e.racket.variant.id))
     .map((e) => ({
       variant_id: e.racket.variant.id,
       product_name: e.racket.variant.product_name,
@@ -511,11 +558,15 @@ function applyWeightCeiling(
         errada, é o que produziria a recomendação "sofisticada e fisicamente ruim".
       */
       reason:
-        `Quadro de ${peso(e)} g, acima do limite de ${teto} g que esta análise calcula para o seu ` +
-        'perfil físico. O que o peso na balança cobra é sustentar a raquete no alto durante a ' +
+        `Quadro de ${peso(e)} g, acima do limite de ${tetoAplicado} g que esta análise aplicou ao ` +
+        'seu perfil físico. O que o peso na balança cobra é sustentar a raquete no alto durante a ' +
         'partida inteira e absorver o choque do impacto — e acima desse limite a conta chega ' +
         'antes do fim do jogo. (O esforço para GIRAR o quadro é outra medida, a inércia, e ela é ' +
-        'avaliada com grau na pontuação, não neste corte.)',
+        'avaliada com grau na pontuação, não neste corte.)' +
+        (afrouxou
+          ? ` O cálculo pedia ${teto} g, mas o catálogo adulto não tem quadros leves o bastante ` +
+            'para sustentar uma comparação nesse limite: ficaram os mais leves que existem.'
+          : ''),
     }));
 
   return { kept, excluded };

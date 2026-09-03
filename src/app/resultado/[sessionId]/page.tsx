@@ -171,6 +171,25 @@ export default async function ResultadoPage({
               </div>
             </div>
 
+            {/* ── QUANDO O MELHOR ENCAIXE DISPONÍVEL É FRACO ───────────────
+                Vem ANTES do headline, e é deliberado.
+
+                O headline explica por que esta raquete foi escolhida — um elogio ao frame. Quando o
+                match está abaixo do piso do produto, ler o elogio primeiro e a ressalva depois já é
+                tarde: a conclusão do leitor se forma no número gigante logo acima, e tudo o que vier
+                em seguida é lido como confirmação dele.
+
+                §62: não vender uma análise que não se sustenta. Ela continua sendo entregue — existe
+                sempre uma raquete que é a melhor para um perfil —, mas com o número dito pelo que
+                ele é.
+            */}
+            {report.low_match_note && (
+              <p className="mt-4 max-w-prose rounded border-l-2 border-warn bg-warn/5 px-4 py-3
+                            text-sm leading-relaxed">
+                {report.low_match_note}
+              </p>
+            )}
+
             <p className="mt-4 text-sm text-graphite">{report.headline}</p>
 
             {/* ── PESO NA BALANÇA × ESFORÇO NA MÃO ─────────────────────

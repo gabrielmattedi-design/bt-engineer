@@ -9,6 +9,7 @@
  * resposta de quem não comprou.
  */
 
+import { MIN_TOP_MATCH } from '@/domain/reference-ranges';
 import type { PlayerProfile } from '@/domain/player-profile';
 import type { RankedRacket, RecommendationResult } from '@/domain/recommendation';
 import { currentRacketLabel } from '@/domain/racket';
@@ -372,6 +373,27 @@ export type ReportPayload = {
    * `null` quando não há comparação concreta a fazer — a versão genérica da frase não informa nada.
    */
   readonly weight_reading: string | null;
+  /**
+   * ═══ QUANDO NENHUMA RAQUETE DESTE CATÁLOGO SERVE BEM ═════════════════════════════════════════
+   *
+   * `MIN_TOP_MATCH` existia desde sempre em `reference-ranges.ts` e era usado em UM lugar: um teste
+   * que confere as 22 personas. O produto nunca o consultou. Numa varredura de 1000 perfis
+   * sintéticos, 83 recebiam a 1ª colocada abaixo dele — o pior com 39,9% —, e os 83 saíam com o
+   * selo de confiança em "Alta", sem uma linha dizendo que o número era ruim.
+   *
+   * Os dois números não se contradizem: confiança mede o quanto as RESPOSTAS sustentam a análise, e
+   * match mede o quanto o CATÁLOGO atende o perfil. Dá para ter certeza alta de que não há boa
+   * resposta. Mas lidos lado a lado, sem ressalva, eles dizem ao cliente que ele recebeu um bom
+   * encaixe — e §62 é exatamente sobre não vender uma análise que não se sustenta.
+   *
+   * A saída não é esconder a recomendação: `tests/ethics/always-recommendable.test.ts` fixa que
+   * existe sempre uma raquete que é a melhor para um perfil, e sonegá-la não protege ninguém. A
+   * saída é DIZER, na mesma tela e antes de qualquer elogio ao frame, que o melhor encaixe
+   * disponível é fraco e por quê.
+   *
+   * `null` na esmagadora maioria dos casos — só aparece quando o número de fato não se sustenta.
+   */
+  readonly low_match_note: string | null;
   /**
    * Aviso de migração juvenil, para menores de 16 anos ainda pequenos para o catálogo adulto.
    *
@@ -1038,6 +1060,77 @@ function buildWeightReading(
   }
 
   return null;
+}
+
+/**
+ * O aviso de MATCH BAIXO — §62.
+ *
+ * Ver o campo `low_match_note` para o defeito que ele fecha. Aqui ficam as duas decisões de
+ * redação, que são as que importam.
+ *
+ * ─── ELE NOMEIA A CAUSA, E A CAUSA NÃO É A MESMA PARA TODO MUNDO ────────────────────────────
+ *
+ * "Nenhuma raquete serve bem para você" é inútil e soa como desculpa. O que o leitor precisa saber
+ * é ONDE está o aperto, porque isso muda o que ele faz a seguir: um pedido contraditório se
+ * resolve escolhendo o que importa mais; um corpo fora da faixa do catálogo adulto se resolve
+ * olhando outro tipo de quadro; um perfil que só está longe da média não se resolve, e a resposta
+ * certa é experimentar em quadra.
+ *
+ * A causa sai dos componentes mais fracos da vencedora, que é onde o motor de fato perdeu pontos —
+ * e não de um palpite sobre o perfil.
+ *
+ * ─── E ELE NÃO PEDE DESCULPA NEM PROMETE CONSERTO ──────────────────────────────────────────
+ *
+ * O número menor é a informação, não uma falha da análise. O texto diz o que ele significa e o que
+ * ainda vale na recomendação — a ordem entre as raquetes continua correta, e a corda e a tensão
+ * continuam ajustáveis ao caso dele.
+ */
+function buildLowMatchNote(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+): string | null {
+  const first = result.podium[0];
+  if (!first || first.fit_score >= MIN_TOP_MATCH) return null;
+
+  const fracos = [...first.breakdown.components]
+    .filter((c) => c.weight > 0)
+    .sort((a, b) => a.raw - b.raw)
+    .slice(0, 2)
+    .map((c) => c.key);
+
+  const CAUSA: Partial<Record<string, string>> = {
+    physical_fit:
+      'a massa dos quadros que este catálogo oferece não encontra o seu porte e o seu preparo',
+    comfort_fit:
+      'o conforto que o seu histórico pede não existe junto com o resto do que você pediu',
+    objective_fit: 'o que você pediu puxa a raquete para direções que se anulam',
+    skill_fit: 'a exigência dos quadros disponíveis não encontra o seu nível técnico',
+    swing_fit: 'a potência dos quadros disponíveis não complementa o seu swing',
+    playstyle_fit: 'o seu estilo pede um conjunto de características que este catálogo não reúne',
+  };
+
+  const motivos = [...new Set(fracos.map((k) => CAUSA[k]).filter((x): x is string => !!x))];
+  const porque =
+    motivos.length === 0
+      ? 'o seu perfil fica longe do centro do que este catálogo cobre'
+      : motivos.join(', e ');
+
+  const pedidos = profile.declared_priorities.length;
+
+  return (
+    `O seu melhor encaixe ficou em ${Math.round(first.fit_score)}%, e isso precisa ser dito antes ` +
+    `de qualquer outra coisa: é um número baixo. Não é falha da análise nem erro seu — é o ` +
+    `resultado, e ele significa que ${porque}. ` +
+    (pedidos >= 2
+      ? 'Você ordenou mais de uma prioridade, e quando elas se opõem dentro da física da raquete ' +
+        'nenhum quadro atende as duas: reduzir a lista à que mais importa costuma elevar bastante ' +
+        'esse número. '
+      : '') +
+    'O que continua valendo: a ordem entre as raquetes está correta, esta é de fato a melhor entre ' +
+    'as que avaliamos, e a corda e a tensão abaixo foram calculadas para o seu caso — elas ajustam ' +
+    'dentro da faixa que o quadro permite, e nesse cenário é onde há mais a ganhar. Se puder, ' +
+    'experimente as três do pódio em quadra antes de decidir.'
+  );
 }
 
 /**
@@ -1805,6 +1898,7 @@ export function serializeRecommendation(
       a análise e cobrar à parte pela ressalva que a torna honesta (§62).
     */
     weight_reading: buildWeightReading(result, profile, first),
+    low_match_note: buildLowMatchNote(result, profile),
     junior_transition: buildJuniorTransitionNote(profile),
     radar: buildRadar(
       profile,
