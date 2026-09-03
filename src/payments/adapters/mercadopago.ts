@@ -16,9 +16,10 @@ import type {
  * cartão passa por este servidor, o que tira o produto inteiro do escopo de PCI-DSS — a diferença
  * entre uma integração que uma pessoa mantém e um projeto de conformidade.
  *
- * Ele também entrega PIX, cartão e boleto na mesma tela sem nenhum código a mais, e é a tela que o
+ * Ele também entrega PIX e cartão na mesma tela sem nenhum código a mais, e é a tela que o
  * comprador brasileiro reconhece. Para um produto de R$ 29,99 a R$ 49,99, reconhecimento na hora
- * de pagar vale mais do que qualquer customização de checkout.
+ * de pagar vale mais do que qualquer customização de checkout. Boleto e depósito são desligados na
+ * preferência — ver `payment_methods` em `createCheckout`.
  *
  * ═══ AS TRÊS COISAS QUE ESTE ARQUIVO PRECISA ACERTAR ═════════════════════════════════════════
  *
@@ -342,9 +343,11 @@ export const mercadoPagoProvider: PaymentProvider = {
           /*
             `pending` vai para a MESMA tela de espera do sucesso, de propósito.
 
-            Em PIX e boleto o pagamento fica pendente por minutos ou dias, e a tela de espera já diz
-            a coisa certa para esse caso: que a confirmação pode demorar e que o link chega por
-            e-mail sozinho. Mandar para os planos aqui sugeriria que a compra não aconteceu.
+            Mesmo sem boleto o estado pendente continua existindo: o PIX é aprovado em segundos, mas
+            "segundos" não é "instantâneo", e há a janela entre o cliente pagar e a confirmação
+            chegar ao nosso servidor. A tela de espera já diz a coisa certa para esse caso — que a
+            confirmação pode demorar um pouco e que o link chega por e-mail sozinho. Mandar para os
+            planos aqui sugeriria que a compra não aconteceu.
           */
           pending: input.returnUrl,
           failure: input.failureUrl,
@@ -352,18 +355,56 @@ export const mercadoPagoProvider: PaymentProvider = {
         /*
           Volta sozinho só quando aprovado.
 
-          Em PIX e boleto o pagamento fica pendente por minutos ou dias, e devolver a pessoa ao
-          relatório nesse estado a faria ver a tela de "ainda não liberado" achando que pagou por
-          nada. Nesses casos ela fica na tela do Mercado Pago, que explica o que falta.
+          Enquanto o pagamento não confirma, devolver a pessoa ao relatório a faria ver a tela de
+          "ainda não liberado" achando que pagou por nada. Nesse intervalo ela fica na tela do
+          Mercado Pago, que explica o que falta. Vale para o PIX ainda não compensado e para o
+          cartão em análise manual, que existe mesmo com boleto desligado.
         */
         auto_return: 'approved',
         notification_url: input.notificationUrl,
         statement_descriptor: 'TENNISENGINEER',
         /*
+          ═══ SÓ MEIOS DE APROVAÇÃO IMEDIATA ════════════════════════════════════════════════════
+
+          Decisão do dono: "quero opção só de pix e cartão de débito e crédito (...) porque quero
+          apenas aprovação na hora."
+
+          A razão é o produto, não a preferência por um meio de pagamento. O que se vende aqui é um
+          relatório que já está pronto e esperando do outro lado — o valor inteiro está em ver a
+          análise agora. Boleto compensa em um a três dias ÚTEIS: quem paga na sexta à noite fica
+          sem o que comprou até a quarta, e nesse intervalo já esqueceu o site, ou pediu estorno, ou
+          escreveu perguntando o que aconteceu. Para um produto de entrega instantânea, o boleto
+          vende uma espera que o produto não precisa ter.
+
+          ─── O QUE ENTRA EM CADA `id`, E O ERRO QUE ISTO NÃO PODE COMETER ──────────────────────
+
+          `ticket` = boleto e pagamento em lotérica. `atm` = depósito em caixa eletrônico. Os dois
+          compensam em dias.
+
+          O que NÃO pode ser excluído é `bank_transfer`: no Brasil o PIX vive dentro dele
+          (`payment_type_id: bank_transfer`, `payment_method_id: pix`). Excluir `bank_transfer`
+          achando que é "transferência bancária" mataria justamente o meio mais rápido que existe
+          aqui, e é o erro fácil de cometer lendo a lista de tipos.
+
+          `account_money` (saldo da conta Mercado Pago) fica: é aprovação instantânea, que é o
+          critério, e para quem tem saldo é o caminho de um toque.
+
+          ─── E POR QUE AQUI, E NÃO NO PAINEL ──────────────────────────────────────────────────
+
+          O painel do gateway também desliga meios de pagamento, mas a configuração é da CONTA
+          inteira, vale para tudo, e ninguém a revisa — ela muda com um clique de qualquer pessoa
+          com acesso, sem deixar rastro no projeto. Aqui a regra viaja com a preferência, está sob
+          revisão de código e tem teste. Se um dia isto for revertido, é uma linha de diff, não um
+          mistério de meses.
+        */
+        payment_methods: {
+          excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }],
+        },
+        /*
           ═══ O CAMPO QUE NÃO ESTÁ AQUI: `purpose` ══════════════════════════════════════════════
 
           A AUSÊNCIA dele é a decisão. Sem `purpose`, o Checkout Pro aceita pagamento de VISITANTE:
-          a pessoa paga com cartão, PIX ou boleto sem criar conta e sem fazer login em lugar nenhum.
+          a pessoa paga com cartão ou PIX sem criar conta e sem fazer login em lugar nenhum.
 
           Com `purpose: 'wallet_purchase'`, o Mercado Pago passa a exigir que o comprador entre
           numa conta antes de pagar. Para um produto de R$ 29,99 comprado por impulso logo depois

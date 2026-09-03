@@ -431,6 +431,88 @@ describe('criação do checkout', () => {
     expect(corpo.items[0].category_id).toBe('services');
   });
 
+  /**
+   * ═══ SÓ MEIOS DE APROVAÇÃO IMEDIATA ══════════════════════════════════════════════════════════
+   *
+   * Decisão do dono: "quero opção só de pix e cartão de débito e crédito (...) porque quero apenas
+   * aprovação na hora."
+   *
+   * A razão é o produto. O relatório já está pronto esperando do outro lado, e o valor inteiro está
+   * em vê-lo agora. Boleto compensa em um a três dias ÚTEIS: quem paga na sexta à noite fica sem o
+   * que comprou até a quarta — tempo suficiente para esquecer o site, pedir estorno ou escrever
+   * perguntando o que aconteceu.
+   *
+   * ─── O ERRO QUE ESTE TESTE EXISTE PARA IMPEDIR ─────────────────────────────────────────────
+   *
+   * No Brasil o PIX é do tipo `bank_transfer`. Quem lê a lista de tipos procurando o que excluir vê
+   * "bank_transfer" e pensa em transferência bancária — e excluí-lo mata justamente o meio mais
+   * rápido que existe aqui, que é o oposto do que se queria.
+   *
+   * O sintoma seria mudo: o checkout continua abrindo, continua aceitando cartão, e ninguém liga a
+   * queda de conversão à linha que desligou o PIX. Por isso o teste afirma as duas coisas — o que
+   * sai E o que tem de continuar entrando.
+   */
+  describe('meios de pagamento', () => {
+    async function corpoDaPreferencia() {
+      const fetchMock = vi.fn(
+        async (_url: string, _init?: RequestInit) =>
+          new Response(JSON.stringify({ id: 'pref_8', init_point: 'https://mp/c' }), {
+            status: 200,
+          }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      await mercadoPagoProvider.createCheckout({
+        orderId: 'ord_1',
+        sku: 'racket_report',
+        productName: 'Relatório',
+        amountCents: 2999,
+        currency: 'BRL',
+        returnUrl: 'https://exemplo.com/retorno/x',
+        failureUrl: 'https://exemplo.com/planos/x',
+        notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+        payerEmail: 'comprador@exemplo.com',
+        payerName: null,
+      });
+
+      return JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
+    }
+
+    it('exclui boleto e depósito, que compensam em dias', async () => {
+      const excluidos = (await corpoDaPreferencia()).payment_methods.excluded_payment_types.map(
+        (t: { id: string }) => t.id,
+      );
+      expect(excluidos, 'o boleto voltou ao checkout').toContain('ticket');
+      expect(excluidos, 'o depósito em caixa voltou ao checkout').toContain('atm');
+    });
+
+    it('NÃO exclui o PIX, que no Brasil é bank_transfer', async () => {
+      const excluidos = (await corpoDaPreferencia()).payment_methods.excluded_payment_types.map(
+        (t: { id: string }) => t.id,
+      );
+      expect(
+        excluidos,
+        'bank_transfer foi excluído — no Brasil isso desliga o PIX, o meio mais rápido que existe',
+      ).not.toContain('bank_transfer');
+    });
+
+    it('mantém crédito e débito', async () => {
+      const excluidos = (await corpoDaPreferencia()).payment_methods.excluded_payment_types.map(
+        (t: { id: string }) => t.id,
+      );
+      expect(excluidos).not.toContain('credit_card');
+      expect(excluidos).not.toContain('debit_card');
+    });
+
+    /** Saldo da conta é aprovação instantânea — atende ao critério e é um toque para quem tem. */
+    it('mantém o saldo da conta, que também é imediato', async () => {
+      const excluidos = (await corpoDaPreferencia()).payment_methods.excluded_payment_types.map(
+        (t: { id: string }) => t.id,
+      );
+      expect(excluidos).not.toContain('account_money');
+    });
+  });
+
   it('usa o sandbox_init_point quando é a única URL devolvida', async () => {
     vi.stubGlobal(
       'fetch',

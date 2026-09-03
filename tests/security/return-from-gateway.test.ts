@@ -120,7 +120,7 @@ describe('o adapter separa sucesso de recusa', () => {
     };
 
     expect(corpo.back_urls.success).toBe('https://exemplo.com/retorno/abc');
-    // PIX e boleto voltam pendentes; a tela de espera já diz a coisa certa para esse caso.
+    // O PIX pode voltar pendente por alguns segundos; a tela de espera já diz a coisa certa.
     expect(corpo.back_urls.pending).toBe('https://exemplo.com/retorno/abc');
     expect(corpo.back_urls.failure).toBe('https://exemplo.com/planos/abc');
   });
