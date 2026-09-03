@@ -369,23 +369,71 @@ const CEILING_SEX_FACTOR: Record<string, number> = {
  * perguntadas seria decidir pelo número da certidão contra as respostas da pessoa. Um jogador de
  * 62 anos, preparo bom, swing rápido e sem dor sai daqui com fator 1,000 e teto intacto.
  */
+/**
+ * ═══ O FATOR SÓ SABIA APERTAR — E ISSO ESTAVA ERRADO NA OUTRA PONTA ══════════════════════════
+ *
+ * A primeira versão deste fator ia de 0,90 a 1,00: ela lia o declínio da pessoa e não lia a força
+ * dela. O caso que expôs isso foi o perfil de teste 01 — mulher de 34 anos, 58 kg, preparo
+ * atlético, swing muito rápido, nível federado. Capacidade de manejo 83,4, das mais altas que o
+ * motor produz, e teto de 293 g, porque a reta de porte só lê a balança. Ela ficava limitada a
+ * quadros de 285 g.
+ *
+ * O dono do produto: "não dá pra ter um teto de 293. Ele tem que ler a pessoa, mas precisa ler
+ * também a força dela."
+ *
+ * ─── E A FORÇA NÃO ESTAVA AQUI DE JEITO NENHUM ──────────────────────────────────────────────
+ *
+ * Este era o segundo defeito, e o mais estranho: `perceived_strength` — a pergunta mais direta que
+ * o questionário faz sobre quanto peso a pessoa sustenta — não entrava no teto. Ela pesa 0.30 em
+ * `physical_capacity_score` e zero no limite de massa, o que não tem defesa: se há uma resposta que
+ * um teto de PESO deveria ler antes de qualquer outra, é essa.
+ *
+ * ─── A ESCALA PASSA A SER SIMÉTRICA ─────────────────────────────────────────────────────────
+ *
+ * Cada resposta declara quanto ela tira OU acrescenta em relação ao jogador típico, a soma é
+ * limitada nos dois lados, e o fator vai de 0,90 a 1,10. O porte continua sendo a base — ele diz de
+ * que corpo estamos falando —, e as respostas ajustam para cima ou para baixo o quanto desse corpo
+ * a pessoa de fato manda.
+ *
+ * Medido no perfil 01: fator 1,000 → 1,080, teto 293 g → 317 g. Ela deixa de ser barrada dos
+ * quadros de 300 e 315 g que a capacidade dela sempre disse que ela aguentaria. E no perfil 02 (o
+ * homem de 54 anos) o fator continua 0,979 e o teto continua 313 g — quem está perto do típico não
+ * se move.
+ *
+ * ─── POR QUE AFROUXAR É SEGURO, E APERTAR EXIGIU MAIS CUIDADO ───────────────────────────────
+ *
+ * Não são a mesma decisão. Apertar o teto REMOVE opções, e um aperto errado esconde da pessoa a
+ * raquete certa sem que ela saiba. Afrouxar apenas devolve candidatas ao ranking, onde
+ * `physicalFit` continua cobrando a massa com grau, contra a mesma capacidade estimada. O teto é
+ * uma rede de segurança, não um alvo: elevá-lo para quem declara força, preparo e swing acima da
+ * média devolve a decisão a quem sabe medi-la melhor, que é a pontuação.
+ */
 const CEILING_AGE_FROM = 50;
 const CEILING_AGE_TO = 75;
 const CEILING_AGE_MAX_DEFICIT = 0.04;
-const CEILING_FITNESS_DEFICIT: Record<string, number> = {
-  sedentario: 0.04,
-  moderado: 0.01,
-  bom: 0,
-  atletico: 0,
+
+/** Negativo aperta, positivo afrouxa. O zero é o jogador típico, não o melhor nem o pior. */
+const CEILING_STRENGTH_TERM: Record<string, number> = {
+  abaixo: -0.03,
+  media: 0,
+  acima: 0.02,
+  bem_acima: 0.04,
 };
-const CEILING_SWING_DEFICIT: Record<string, number> = {
-  lenta: 0.03,
-  moderada: 0.005,
-  rapida: 0,
-  muito_rapida: 0,
-  nao_sei: 0.005,
+const CEILING_FITNESS_TERM: Record<string, number> = {
+  sedentario: -0.04,
+  moderado: -0.01,
+  bom: 0.01,
+  atletico: 0.03,
+};
+const CEILING_SWING_TERM: Record<string, number> = {
+  lenta: -0.03,
+  moderada: -0.005,
+  rapida: 0.01,
+  muito_rapida: 0.03,
+  nao_sei: -0.005,
 };
 const CEILING_MAX_DEFICIT = 0.1;
+const CEILING_MAX_SURPLUS = 0.1;
 
 /**
  * ═══ O HISTÓRICO ARTICULAR FOI TESTADO AQUI E RETIRADO ═══════════════════════════════════════
@@ -440,7 +488,7 @@ const CEILING_FLOOR_G = 280;
  * afrouxá-lo, então a ausência delas é o caso mais permissivo e nunca produz um teto inseguro.
  */
 type CeilingAnswers = Pick<QuestionnaireAnswers, 'age' | 'weight_kg' | 'sex'> &
-  Partial<Pick<QuestionnaireAnswers, 'fitness_level' | 'swing_speed'>>;
+  Partial<Pick<QuestionnaireAnswers, 'fitness_level' | 'swing_speed' | 'perceived_strength'>>;
 
 /**
  * Quanto o teto de porte é reduzido pelo que a pessoa respondeu sobre si. 0.90 … 1.00.
@@ -459,20 +507,29 @@ export function ceilingCapacityFactor(a: CeilingAnswers): number {
     teto de PORTE puro. Um déficit por campo ausente apertaria em 2% todo teto calculado sem
     questionário, e a reta de porte deixaria de ser verificável isoladamente.
   */
+  /*
+    A idade continua sendo o único termo que só sabe apertar.
+
+    É deliberado e é o oposto de um veto: ela nunca AFROUXA porque ser jovem não é, por si, prova
+    de que se sustenta mais quadro — quem sustenta declara força, preparo e swing, e esses três
+    afrouxam. No extremo de 75 anos ela tira 4%, contra os 10% que os outros três somados podem
+    devolver. Um veterano forte e em forma sai daqui acima de 1,00.
+  */
   const idade =
     a.age === null
       ? 0
-      : clamp(
+      : -clamp(
           ((a.age - CEILING_AGE_FROM) / (CEILING_AGE_TO - CEILING_AGE_FROM)) *
             CEILING_AGE_MAX_DEFICIT,
           0,
           CEILING_AGE_MAX_DEFICIT,
         );
 
-  const preparo = CEILING_FITNESS_DEFICIT[a.fitness_level ?? ''] ?? 0;
-  const swing = CEILING_SWING_DEFICIT[a.swing_speed ?? ''] ?? 0;
+  const forca = CEILING_STRENGTH_TERM[a.perceived_strength ?? ''] ?? 0;
+  const preparo = CEILING_FITNESS_TERM[a.fitness_level ?? ''] ?? 0;
+  const swing = CEILING_SWING_TERM[a.swing_speed ?? ''] ?? 0;
 
-  return 1 - Math.min(CEILING_MAX_DEFICIT, idade + preparo + swing);
+  return 1 + clamp(idade + forca + preparo + swing, -CEILING_MAX_DEFICIT, CEILING_MAX_SURPLUS);
 }
 
 export function frameWeightCeiling(a: CeilingAnswers): number | null {
@@ -489,9 +546,17 @@ export function frameWeightCeiling(a: CeilingAnswers): number | null {
     hoje, com a idade, o preparo e o swing que ela declarou. São perguntas diferentes, e é por isso
     que uma multiplica a outra em vez de as duas disputarem um `min`.
   */
-  const comFator = Math.max(
-    porPorte * ceilingCapacityFactor(a),
-    Math.min(porPorte, CEILING_FLOOR_G),
+  /*
+    O `min` com `CEILING_MAX_G` é aplicado DE NOVO aqui, e não só dentro de `porPorte`.
+
+    Desde que o fator pode passar de 1,00, a multiplicação pode levar o teto acima do limite que a
+    reta jurava respeitar — 320 × 1,08 daria 345 g. Nenhum quadro do catálogo chega perto disso, de
+    modo que o número seria inerte, mas ele viaja no perfil e aparece na auditoria: um teto de 345 g
+    diria que esta análise considera 345 g sustentável para alguém, e ela não considera.
+  */
+  const comFator = Math.min(
+    CEILING_MAX_G,
+    Math.max(porPorte * ceilingCapacityFactor(a), Math.min(porPorte, CEILING_FLOOR_G)),
   );
 
   /*

@@ -18,6 +18,35 @@
  */
 
 /**
+ * 2.40.0 — o teto de peso passou a ler a FORÇA, e não só o declínio.
+ *
+ * O fator de capacidade da 2.38.0 ia de 0,90 a 1,00: ele lia a idade, o preparo e o swing para
+ * APERTAR o teto, e não tinha como afrouxá-lo. O caso que expôs isso saiu dos próprios perfis de
+ * teste — mulher de 34 anos, 58 kg, preparo atlético, swing muito rápido, nível federado:
+ * capacidade de manejo 83,4, das mais altas que o motor produz, e teto de 293 g, porque a reta de
+ * porte só lê a balança. Ela ficava limitada a quadros de 285 g e a um match de 75%.
+ *
+ * E havia um segundo defeito, mais estranho: `perceived_strength` — a pergunta mais direta que o
+ * questionário faz sobre quanto peso a pessoa sustenta — não entrava no teto de PESO. Pesava 0.30
+ * em `physical_capacity_score` e zero no limite de massa.
+ *
+ * A escala passa a ser simétrica, 0,90 a 1,10, com a força incluída. Medido:
+ *
+ *     a atleta de 58 kg .......... fator 1,000 → 1,080 · teto 293 → 317 g
+ *                                  1ª Wilson Blade 100L 285 g (75%) → Pure Drive 98 305 g (89%)
+ *     o homem de 54 anos ......... fator 0,979 · teto 313 g · VCORE 100 300 g — não se move
+ *     nas 22 personas ............ 9 afrouxam · 11 apertam · 2 neutras
+ *
+ * A idade continua sendo o único termo de mão única: ela só aperta, e no extremo de 75 anos tira
+ * 4%, contra os 10% que força, preparo e swing somados podem devolver. Ser jovem não é prova de
+ * que se sustenta mais quadro; quem sustenta declara. Um veterano forte e em forma sai acima de
+ * 1,00.
+ *
+ * Afrouxar e apertar não são a mesma decisão, e por isso a assimetria é aceitável: apertar REMOVE
+ * candidatas e esconde da pessoa uma raquete que ela nunca saberá que existia; afrouxar apenas as
+ * devolve ao ranking, onde `physicalFit` continua cobrando a massa com grau. O teto é rede de
+ * segurança, não alvo.
+ *
  * 2.39.0 — o encaixe físico voltou a distinguir do lado leve.
  *
  * Relato do dono do produto: um homem de 54 anos, 78 kg, preparo moderado e swing médio recebia
@@ -710,7 +739,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.39.0';
+export const METHODOLOGY_VERSION = '2.40.0';
 
 export type Range = readonly [lo: number, hi: number];
 

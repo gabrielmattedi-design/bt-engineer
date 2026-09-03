@@ -27,6 +27,7 @@ import { recommend, enrichProfileWithCatalog } from '@/recommendation';
 import { serializeRecommendation, type Entitlement } from '@/payments/entitlements';
 import {
   buildPlayerProfile,
+  ceilingCapacityFactor,
   frameWeightCeiling,
 } from '@/recommendation/profile/build-profile';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
@@ -361,15 +362,96 @@ describe('o aviso de migração juvenil', () => {
 describe('o fator de capacidade', () => {
   const corpo = { age: 62, weight_kg: 78, sex: 'masculino' as const };
 
-  /** Ele só APERTA. Nenhuma resposta pode liberar mais quadro do que o porte já autorizou. */
-  it('nunca afrouxa o teto de porte', () => {
+  /**
+   * ═══ ELE LÊ A PESSOA NAS DUAS DIREÇÕES ═══════════════════════════════════════════════════
+   *
+   * A primeira versão só sabia apertar (0,90 a 1,00), e isso estava errado na outra ponta. O caso
+   * que expôs: mulher de 34 anos, 58 kg, preparo atlético, swing muito rápido, nível federado —
+   * capacidade de manejo 83,4, das mais altas que o motor produz, e teto de 293 g, porque a reta de
+   * porte só lê a balança. Ela ficava limitada a quadros de 285 g.
+   *
+   * E `perceived_strength` — a pergunta mais direta que o questionário faz sobre quanto peso a
+   * pessoa sustenta — não entrava no teto de PESO. Pesava 0.30 na capacidade física e zero aqui.
+   *
+   * A escala passa a ser simétrica: 0,90 a 1,10. O porte diz de que corpo estamos falando; as
+   * respostas ajustam quanto desse corpo a pessoa manda.
+   */
+  it('aperta para quem declara menos e afrouxa para quem declara mais', () => {
     const porte = frameWeightCeiling(corpo)!;
-    for (const fitness of ['sedentario', 'moderado', 'bom', 'atletico'] as const) {
-      for (const speed of ['lenta', 'moderada', 'rapida', 'muito_rapida'] as const) {
-        const teto = frameWeightCeiling({ ...corpo, fitness_level: fitness, swing_speed: speed })!;
-        expect(teto, `${fitness}/${speed} afrouxou o teto`).toBeLessThanOrEqual(porte);
-      }
+    const parado = frameWeightCeiling({
+      ...corpo, perceived_strength: 'abaixo', fitness_level: 'sedentario', swing_speed: 'lenta',
+    })!;
+    const forte = frameWeightCeiling({
+      ...corpo, perceived_strength: 'bem_acima', fitness_level: 'atletico', swing_speed: 'muito_rapida',
+    })!;
+
+    expect(parado, 'quem declara menos não teve o teto apertado').toBeLessThan(porte);
+    expect(forte, 'quem declara mais não teve o teto afrouxado').toBeGreaterThan(parado);
+  });
+
+  /**
+   * A força entra — e sozinha, sem ajuda de preparo nem de swing.
+   *
+   * Era o defeito silencioso: um teto de PESO que não lia a resposta sobre quanto peso a pessoa
+   * sustenta. Este teste falha se ela voltar a ser ignorada.
+   */
+  it('a força declarada move o teto por si só', () => {
+    const fraca = frameWeightCeiling({ ...corpo, perceived_strength: 'abaixo' })!;
+    const media = frameWeightCeiling({ ...corpo, perceived_strength: 'media' })!;
+    const forte = frameWeightCeiling({ ...corpo, perceived_strength: 'bem_acima' })!;
+
+    expect(fraca).toBeLessThan(media);
+    expect(forte).toBeGreaterThan(media);
+  });
+
+  /**
+   * O caso que originou a mudança, com os números dele.
+   *
+   * Uma jogadora pequena e atlética não pode ficar presa em 293 g quando a capacidade de manejo
+   * dela é 83,4 — o teto existe para proteger quem tem pouco corpo, não para dizer a quem tem
+   * muita força que ela não pode usá-la.
+   */
+  it('a atleta de 58 kg deixa de ser barrada dos quadros que ela sustenta', () => {
+    const dela = {
+      age: 34, weight_kg: 58, sex: 'feminino' as const,
+      perceived_strength: 'acima' as const, fitness_level: 'atletico' as const,
+      swing_speed: 'muito_rapida' as const,
+    };
+    const teto = frameWeightCeiling(dela)!;
+    expect(teto, 'continua presa abaixo dos 300 g').toBeGreaterThan(300);
+    expect(ceilingCapacityFactor(dela)).toBeGreaterThan(1);
+  });
+
+  /**
+   * O afrouxamento é LIMITADO, e o limite é o mesmo que a reta de porte já prometia respeitar.
+   *
+   * Sem este `min`, 320 × 1,08 daria 345 g. Nenhum quadro do catálogo chega perto, então o número
+   * seria inerte — mas ele viaja no perfil e aparece na auditoria, afirmando que esta análise
+   * considera 345 g sustentável para alguém. Ela não considera.
+   */
+  it('por mais forte que seja, ninguém passa do limite da reta', () => {
+    for (const kg of [78, 95, 120, 150]) {
+      const teto = frameWeightCeiling({
+        age: 25, weight_kg: kg, sex: 'masculino',
+        perceived_strength: 'bem_acima', fitness_level: 'atletico', swing_speed: 'muito_rapida',
+      })!;
+      expect(teto, `${kg} kg passou do limite`).toBeLessThanOrEqual(320);
     }
+  });
+
+  /**
+   * IDADE NUNCA AFROUXA — o único termo de mão única, e de propósito.
+   *
+   * Ser jovem não é, por si, prova de que se sustenta mais quadro. Quem sustenta declara força,
+   * preparo e swing, e são esses três que abrem o teto. A idade só aperta, e pouco.
+   */
+  it('a idade só aperta, e nunca sozinha chega ao limite', () => {
+    const so = (age: number) => ceilingCapacityFactor({ age, weight_kg: 78, sex: 'masculino' });
+    expect(so(25)).toBe(1);
+    expect(so(40)).toBe(1);
+    expect(so(75)).toBeLessThan(1);
+    // 4% contra os 10% que os outros três podem devolver.
+    expect(so(75)).toBeGreaterThanOrEqual(0.95);
   });
 
   /**
