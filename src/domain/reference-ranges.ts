@@ -18,6 +18,32 @@
  */
 
 /**
+ * 2.42.0 — a linha de referência do radar deixou de ser nomeada duas vezes, de dois jeitos.
+ *
+ * A 2.41.0 rebatizou a linha cinza de "Média do catálogo" para "Média do catálogo para VOCÊ" e
+ * acrescentou uma nota explicando por que ela muda de perfil para perfil. Consertou o problema e
+ * criou dois menores, os dois apontados na leitura seguinte:
+ *
+ *   • A nota abria com "é a média de todas as raquetes que analisamos" — uma descrição impessoal
+ *     da mesma linha que a legenda, a três centímetros dela, acabava de chamar de pessoal. A
+ *     explicação da diferença só vinha duas orações depois, tarde demais.
+ *
+ *   • "para você" não diz contra o QUÊ a comparação foi feita, e soa mais como personalização de
+ *     marketing do que como medida.
+ *
+ * O rótulo passa a ser "Média do catálogo para o seu PERFIL", que é literalmente o que o motor
+ * compara. Foi cogitado "para o seu NÍVEL" e descartado por ser estreito demais e, por isso, falso:
+ * o nível é um dos termos do encaixe e nem o dominante — capacidade física, velocidade de swing,
+ * sensibilidade no braço e estilo declarado também entram. "Para o seu nível" convidaria a leitura
+ * de que dois jogadores do mesmo nível veem a mesma linha, e eles não veem.
+ *
+ * E o nome virou uma CONSTANTE usada nos dois lugares, em vez de duas strings mantidas em sintonia
+ * à mão — sintonia escrita à mão dura até a próxima edição. A nota também parou de fazer qualquer
+ * afirmação geral antes de separar os dois casos.
+ *
+ * Nada disto muda a linha desenhada nem a raquete recomendada. A versão sobe porque o rótulo É a
+ * leitura: quem abrir um relatório guardado precisa saber qual das três redações estava valendo.
+ *
  * 2.41.0 — quatro correções de leitura, e uma delas era um número errado.
  *
  * ═══ 1. O "50" DA BARRA NÃO ERA A MÉDIA ══════════════════════════════════════════════════════
@@ -787,7 +813,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.41.0';
+export const METHODOLOGY_VERSION = '2.42.0';
 
 export type Range = readonly [lo: number, hi: number];
 

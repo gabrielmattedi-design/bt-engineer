@@ -323,3 +323,51 @@ describe('o pódio impresso', () => {
     expect(article, 'a caixa deixou de esticar').toMatch(/flex-1/);
   });
 });
+
+/**
+ * ═══ A LEGENDA E A EXPLICAÇÃO FALAM DA MESMA LINHA ═══════════════════════════════════════════
+ *
+ * O gráfico tem uma linha cinza cujo significado o leitor não consegue deduzir sozinho, e ela é a
+ * régua contra a qual ele julga todo o resto. Por isso ela é nomeada duas vezes: na legenda, ao
+ * lado do traço, e na frase abaixo do gráfico que explica por que ela muda de perfil para perfil.
+ *
+ * As duas eram strings soltas, e discordaram. A legenda dizia "Média do catálogo para você"; a nota
+ * abaixo abria com "é a média de todas as raquetes que analisamos" — uma descrição pessoal e uma
+ * impessoal da mesma linha, a três centímetros de distância. Quem leu reparou na hora.
+ *
+ * O conserto não foi reescrever as duas em sintonia, porque sintonia escrita à mão dura até a
+ * próxima edição. Foi uma constante só, usada nos dois lugares. Este teste tranca isso.
+ */
+describe('a linha de referência do radar', () => {
+  const radar = readFileSync(join(ROOT, 'src', 'components', 'result', 'radar.tsx'), 'utf8');
+  const codigo = semComentarios(radar);
+
+  it('o nome da linha existe uma vez só, como constante', () => {
+    const decl = /const CATALOGO_LABEL = '([^']+)';/.exec(codigo);
+    expect(decl, 'a constante do rótulo sumiu').not.toBeNull();
+
+    const nome = decl![1]!;
+    // O nome não pode estar escrito à mão em lugar nenhum além da própria declaração.
+    const ocorrencias = codigo.split(nome).length - 1;
+    expect(ocorrencias, `"${nome}" foi escrito à mão fora da constante`).toBe(1);
+  });
+
+  it('a legenda e a nota usam a mesma constante', () => {
+    // Na série do gráfico...
+    expect(codigo, 'a legenda deixou de usar a constante').toMatch(/label:\s*CATALOGO_LABEL/);
+    // ...e no parágrafo que explica a linha.
+    expect(codigo, 'a nota deixou de usar a constante').toMatch(/\{CATALOGO_LABEL\}/);
+  });
+
+  /**
+   * "para o seu NÍVEL" foi cogitado e descartado: o nível é um dos termos do encaixe, e nem o
+   * dominante. Prometer nível convidaria a leitura de que dois jogadores do mesmo nível veem a
+   * mesma linha, e eles não veem — capacidade física, swing, sensibilidade no braço e estilo
+   * também entram.
+   */
+  it('o rótulo promete o perfil inteiro, não só o nível', () => {
+    const nome = /const CATALOGO_LABEL = '([^']+)';/.exec(codigo)?.[1] ?? '';
+    expect(nome, 'o rótulo estreitou para nível').not.toMatch(/n[íi]vel/i);
+    expect(nome).toMatch(/perfil/i);
+  });
+});

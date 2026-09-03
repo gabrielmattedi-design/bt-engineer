@@ -211,6 +211,43 @@ function zoneRanges(
   return new Set(groups).size === groups.length ? ranges : [];
 }
 
+/**
+ * ═══ O NOME DESTA LINHA JÁ ERROU DE DOIS JEITOS ══════════════════════════════════════════════
+ *
+ * 1. "Média do catálogo". Um leitor reparou que ela muda de perfil para perfil e perguntou, com
+ *    razão, se era a média das raquetes NÃO EXCLUÍDAS para aquele jogador. Não é — e a resposta
+ *    certa é mais interessante que a suspeita. As duas metades do gráfico medem naturezas
+ *    diferentes:
+ *
+ *      • Os três eixos de BOLA (potência, controle, spin) são propriedades da raquete. A média ali
+ *        sai do catálogo COMPLETO (`attribute_means`) e é idêntica para todo mundo.
+ *
+ *      • Os cinco eixos de ENCAIXE (braço, nível, jogo, swing, físico) não são propriedades da
+ *        raquete: "quanto esta raquete combina com o seu braço" só existe em relação a alguém. A
+ *        média ali é a de todas as raquetes pontuadas CONTRA ESTE JOGADOR (`component_means`), e
+ *        muda de perfil para perfil não por exclusão, mas porque a grandeza é relativa por
+ *        definição.
+ *
+ * 2. "Média do catálogo para você". Consertava o problema e criava outro: "para você" não diz
+ *    contra o QUÊ a comparação foi feita, e soa mais como personalização de marketing do que como
+ *    uma medida.
+ *
+ * Ficou "para o seu PERFIL" porque é literalmente o que o motor compara. Foi cogitado "para o seu
+ * NÍVEL" e descartado por ser estreito demais e, por isso, falso: o nível é UM dos termos, e nem o
+ * dominante. `physical_fit` depende de capacidade física, velocidade de swing e nível;
+ * `comfort_fit` da sensibilidade no braço; `swing_fit` da potência natural e do comprimento de
+ * swing; `playstyle_fit` do estilo declarado. "Para o seu nível" convidaria a leitura de que dois
+ * jogadores do mesmo nível veem a mesma linha, e eles não veem.
+ *
+ * ─── POR QUE É UMA CONSTANTE, E NÃO DUAS STRINGS ────────────────────────────────────────────
+ *
+ * Porque elas já discordaram. O rótulo dizia "para você" e a nota abaixo do gráfico abria com "é a
+ * média de todas as raquetes que analisamos" — duas descrições da mesma linha, uma pessoal e outra
+ * impessoal, a três centímetros de distância. Com uma constante só, o nome da linha na legenda e o
+ * nome dela na explicação não têm como divergir de novo.
+ */
+const CATALOGO_LABEL = 'Média do catálogo para o seu perfil';
+
 export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
   if (axes.length < 3) return null;
 
@@ -264,30 +301,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
       : []),
     {
       key: 'catalog',
-      /*
-        ═══ O RÓTULO PRECISOU DIZER "PARA VOCÊ" ══════════════════════════════════════════════
-
-        Ele dizia só "Média do catálogo", e um leitor atento reparou que a linha muda de perfil
-        para perfil e perguntou, com razão, se ela era a média das raquetes não excluídas para
-        aquele jogador.
-
-        Não é — e a resposta certa é mais interessante que a suspeita. As duas metades do gráfico
-        medem coisas de naturezas diferentes:
-
-          • Os três eixos de BOLA (potência, controle, spin) são propriedades da raquete. A média
-            ali sai do catálogo COMPLETO (`attribute_means`, sobre a régua de 47 quadros) e é
-            idêntica para todo mundo.
-
-          • Os cinco eixos de ENCAIXE (braço, nível, jogo, swing, físico) não são propriedades da
-            raquete: "quanto esta raquete combina com o seu braço" só existe em relação a alguém.
-            Não existe um valor de catálogo para eles. A média ali é a de todas as raquetes
-            pontuadas CONTRA ESTE JOGADOR (`component_means`), e por isso muda de perfil para
-            perfil — não por causa de exclusão, mas porque a grandeza é relativa por definição.
-
-        O rótulo antigo escondia essa diferença e fazia a linha parecer instável. O novo assume que
-        ela é sua, e a nota abaixo do gráfico explica por quê.
-      */
-      label: 'Média do catálogo para você',
+      label: CATALOGO_LABEL,
       values: axes.map((a) => a.catalog),
       stroke: PALETTE.graphite,
       fill: 'none',
@@ -476,14 +490,26 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
       {/*
         Sem esta nota, a linha cinza é o único traço do gráfico cujo significado o leitor não tem
         como deduzir — e ela é justamente a régua contra a qual ele julga todo o resto.
+
+        ─── A NOTA ABRIA DESMENTINDO O PRÓPRIO RÓTULO ──────────────────────────────────────────
+
+        Ela começava assim: "A linha média do catálogo para você É A MÉDIA DE TODAS AS RAQUETES QUE
+        ANALISAMOS". Lidas em sequência, as duas metades brigam — o rótulo promete algo do leitor,
+        e a frase seguinte descreve uma média sem dono. O leitor que reparou nisso tinha razão: a
+        explicação da diferença só vinha duas orações depois, tarde demais para desfazer a
+        impressão.
+
+        Agora ela não faz nenhuma afirmação geral antes de separar os dois casos. Começa pela
+        distinção, que é o que de fato responde à pergunta "por que essa linha muda?", e fecha
+        dizendo o que NÃO muda — o catálogo comparado é sempre o mesmo e completo.
       */}
       <p className="mt-4 max-w-prose text-xs leading-relaxed text-graphite">
-        A linha <strong>média do catálogo para você</strong> é a média de todas as raquetes que
-        analisamos. Nos três eixos de bola — potência, controle e spin — ela é a mesma para
-        qualquer pessoa, porque são características do quadro. Nos cinco eixos de encaixe ela muda
-        de jogador para jogador: &ldquo;quanto esta raquete combina com o seu braço&rdquo; é uma
-        medida que só existe em relação a você, e a média ali é a do catálogo inteiro comparado com
-        o seu perfil.
+        <strong>{CATALOGO_LABEL}:</strong> nos três eixos de bola — potência, controle e spin —
+        essa linha é a mesma para qualquer pessoa, porque são características do quadro. Nos cinco
+        eixos de encaixe ela é só sua e muda de jogador para jogador, porque &ldquo;quanto esta
+        raquete combina com o seu braço&rdquo; é uma medida que não existe sem alguém do outro
+        lado. Nos dois casos o catálogo comparado é o mesmo e completo — o que muda é contra quem
+        ele foi comparado.
       </p>
 
       {!hasCurrent && (
