@@ -102,6 +102,8 @@ describe('o provedor simulado em produção', () => {
       returnUrl: 'https://exemplo.com',
       failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
     });
   }
 

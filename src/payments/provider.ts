@@ -37,6 +37,28 @@ export type CreateCheckoutInput = {
    * O adapter simulado ignora este campo: a tela local de checkout já sabe para onde postar.
    */
   readonly notificationUrl: string;
+  /**
+   * O e-mail de quem está comprando — identidade do pagador para o gateway.
+   *
+   * ═══ POR QUE ISTO EXISTE, E POR QUE NÃO É DETALHE ═══════════════════════════════════════════
+   *
+   * O checkout já pedia e validava o e-mail: ele cria a conta, manda o link do relatório e alimenta
+   * /minhas-analises. Só que ele parava aqui — a preferência ia ao gateway SEM pagador nenhum, e
+   * toda compra chegava lá como um desconhecido.
+   *
+   * O sintoma apareceu num teste real do dono: pagou o relatório, e minutos depois a compra do
+   * upgrade foi recusada com o mesmo cartão que acabara de passar.
+   *
+   * Sem `payer`, o antifraude do gateway não tem como ligar a segunda transação à primeira. Duas
+   * compras do mesmo cartão em poucos minutos, valores diferentes, vendedor novo, comprador anônimo
+   * das duas vezes — é o desenho de uma regra de velocidade, e o antifraude reage à segunda. Com o
+   * pagador identificado, as duas transações passam a ser da MESMA pessoa, que é o que de fato são.
+   *
+   * `null` só quando o fluxo não tem e-mail. O checkout sempre tem; o adapter simulado ignora.
+   */
+  readonly payerEmail: string | null;
+  /** Nome do jogador, quando informado no questionário. Junto do e-mail, melhora a identificação. */
+  readonly payerName: string | null;
 };
 
 export type CheckoutSession = {

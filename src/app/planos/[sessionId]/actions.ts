@@ -5,7 +5,11 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createOrder, attachPayment } from '@/database/repositories/commerce-repo';
-import { ensureAnonymousSession, grantedEntitlements } from '@/database/repositories/session-repo';
+import {
+  ensureAnonymousSession,
+  grantedEntitlements,
+  loadRecommendation,
+} from '@/database/repositories/session-repo';
 import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { contarTentativa, LIMITE_JANELA_MINUTOS } from '@/database/repositories/throttle-repo';
@@ -20,6 +24,25 @@ import { reportReadyEmail } from '@/email/templates';
 import { SITE_URL } from '@/lib/site';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * O nome do jogador, para identificar o pagador no gateway — e nunca a um custo que derrube a compra.
+ *
+ * O nome é opcional no questionário, então costuma não existir. Ele acrescenta pouco perto do
+ * e-mail, que é o sinal que de fato importa para o antifraude (ver `payerEmail` em `provider.ts`),
+ * e por isso qualquer tropeço aqui é engolido: uma leitura lenta ou um banco engasgado não podem
+ * custar uma venda por causa de um campo acessório. Mesmo princípio de `identify`.
+ */
+async function nomeDoPagador(publicId: string): Promise<string | null> {
+  try {
+    const stored = await loadRecommendation(publicId);
+    const nome = stored?.profile.player_name?.trim();
+    return nome !== undefined && nome.length > 0 ? nome : null;
+  } catch (error) {
+    console.error(`[checkout] não consegui ler o nome do jogador de ${publicId}`, error);
+    return null;
+  }
+}
 
 /**
  * Guarda o e-mail e amarra a análise à pessoa.
@@ -240,6 +263,23 @@ export async function startCheckout(
       */
       failureUrl: `${scheme}://${host}/planos/${publicId}?produto=${encodeURIComponent(sku)}`,
       notificationUrl: `${scheme}://${host}/api/webhooks/payment`,
+      /*
+        ═══ O E-MAIL JÁ ESTAVA AQUI — E PARAVA AQUI ══════════════════════════════════════════
+
+        Ele é obrigatório neste fluxo, já foi validado acima, e servia para criar a conta, mandar o
+        link e alimentar /minhas-analises. Ao gateway não ia nada: toda compra chegava lá sem
+        pagador, como um desconhecido.
+
+        O sintoma apareceu num teste do dono — relatório aprovado, upgrade recusado minutos depois
+        com o mesmo cartão. Ver `payerEmail` em `provider.ts`: sem pagador, o antifraude não tem
+        como ligar a segunda compra à primeira, e duas transações do mesmo cartão em poucos minutos
+        de um comprador anônimo é exatamente o que uma regra de velocidade procura.
+
+        O nome vem do questionário e é opcional lá, então pode não existir. Vai só quando existe —
+        campo vazio conta como dado ruim, que é o oposto do que se quer.
+      */
+      payerEmail: email,
+      payerName: await nomeDoPagador(publicId),
     });
 
     await attachPayment({

@@ -278,12 +278,42 @@ export const mercadoPagoProvider: PaymentProvider = {
           {
             id: input.sku,
             title: input.productName,
+            /*
+              `description` e `category_id` não são enfeite de painel.
+
+              O Mercado Pago documenta a QUALIDADE dos dados enviados como fator na aprovação: a
+              análise de risco pontua pior o que chega sem descrição e sem categoria, porque é o
+              formato de quem integrou às pressas. `services` é a categoria correta — o que se
+              vende aqui é uma análise, não mercadoria física, e declarar produto físico pediria
+              endereço de entrega que não existe.
+            */
+            description: input.productName,
+            category_id: 'services',
             quantity: 1,
             currency_id: input.currency,
             // O Mercado Pago trabalha em unidades, não em centavos.
             unit_price: input.amountCents / 100,
           },
         ],
+        /*
+          ═══ O PAGADOR — O CAMPO QUE FALTAVA ══════════════════════════════════════════════════
+
+          Ver `payerEmail` em `provider.ts` para o caso que revelou a ausência: relatório aprovado,
+          upgrade recusado minutos depois, mesmo cartão. Sem pagador, as duas compras chegam ao
+          antifraude como dois desconhecidos, e a segunda em poucos minutos é o desenho de uma
+          regra de velocidade.
+
+          Só vai o que existe de verdade. Um `payer` com campos vazios é pior que nenhum: o gateway
+          o lê como dado ruim, que é justamente o que se quer evitar.
+        */
+        ...(input.payerEmail !== null || input.payerName !== null
+          ? {
+              payer: {
+                ...(input.payerEmail !== null ? { email: input.payerEmail } : {}),
+                ...(input.payerName !== null ? { name: input.payerName } : {}),
+              },
+            }
+          : {}),
         /*
           A ponte entre os dois sistemas.
 

@@ -227,6 +227,8 @@ describe('credenciais ausentes falham alto', () => {
         returnUrl: 'https://exemplo.com/resultado/x',
       failureUrl: 'https://exemplo.com/planos/x',
         notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+        payerEmail: 'comprador@exemplo.com',
+        payerName: null,
       }),
     ).rejects.toThrow(/MERCADOPAGO_ACCESS_TOKEN/);
   });
@@ -251,6 +253,8 @@ describe('criação do checkout', () => {
       returnUrl: 'https://exemplo.com/resultado/x',
       failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
     });
 
     expect(sessao.redirectUrl).toBe('https://mp/checkout');
@@ -288,6 +292,8 @@ describe('criação do checkout', () => {
       returnUrl: 'https://exemplo.com/resultado/x',
       failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
     });
 
     const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, unknown>;
@@ -295,6 +301,107 @@ describe('criação do checkout', () => {
       corpo,
       'purpose: wallet_purchase obrigaria o comprador a fazer login antes de pagar',
     ).not.toHaveProperty('purpose');
+  });
+
+  /**
+   * ═══ O PAGADOR VAI IDENTIFICADO ═════════════════════════════════════════════════════════════
+   *
+   * O caso que trouxe isto foi um teste real do dono: comprou o relatório, o pagamento passou, e
+   * minutos depois a compra do upgrade foi RECUSADA com o mesmo cartão.
+   *
+   *   "será que pode ser por passar num mesmo site dois pagamentos seguidos? talvez isso seja um
+   *    problema para quem for fazer o upgrade"
+   *
+   * O e-mail já era exigido e validado no checkout — criava a conta, mandava o link, alimentava
+   * /minhas-analises — e parava ali. À preferência não ia pagador nenhum: as duas compras chegavam
+   * ao antifraude como dois desconhecidos. Duas transações do mesmo cartão em poucos minutos, sem
+   * nada que as ligue à mesma pessoa, é o desenho de uma regra de velocidade.
+   *
+   * Não dá para provar daqui qual regra recusou aquele pagamento — isso está no painel do gateway,
+   * no `status_detail`. O que dá para garantir é que o dado que existia deixe de ser jogado fora,
+   * e é isso que este teste tranca. O upgrade é o fluxo em que a segunda compra é a REGRA, não a
+   * exceção, então o custo de mandar o comprador anônimo cai justamente sobre ele.
+   */
+  it('identifica o pagador com o e-mail do checkout', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'pref_4', init_point: 'https://mp/c' }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await mercadoPagoProvider.createCheckout({
+      orderId: 'ord_1',
+      sku: 'unlock_rank_3',
+      productName: 'Desbloquear a 3ª colocada',
+      amountCents: 899,
+      currency: 'BRL',
+      returnUrl: 'https://exemplo.com/retorno/x',
+      failureUrl: 'https://exemplo.com/planos/x',
+      notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: 'Gabriel',
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
+    expect(corpo.payer, 'a compra voltou a chegar ao gateway sem pagador').toBeDefined();
+    expect(corpo.payer.email).toBe('comprador@exemplo.com');
+    expect(corpo.payer.name).toBe('Gabriel');
+  });
+
+  /** Campo vazio conta como dado ruim para a análise de risco — melhor não mandar o campo. */
+  it('não inventa nome quando o jogador não informou', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'pref_5', init_point: 'https://mp/c' }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await mercadoPagoProvider.createCheckout({
+      orderId: 'ord_1',
+      sku: 'racket_report',
+      productName: 'Relatório',
+      amountCents: 2999,
+      currency: 'BRL',
+      returnUrl: 'https://exemplo.com/retorno/x',
+      failureUrl: 'https://exemplo.com/planos/x',
+      notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
+    expect(corpo.payer.email).toBe('comprador@exemplo.com');
+    expect(corpo.payer, 'nome vazio é pior que nome ausente').not.toHaveProperty('name');
+  });
+
+  /**
+   * Descrição e categoria também pesam na análise de risco — o gateway documenta a qualidade dos
+   * dados enviados como fator de aprovação. `services` porque o que se vende é uma análise;
+   * declarar produto físico pediria endereço de entrega que não existe.
+   */
+  it('descreve e categoriza o item', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'pref_6', init_point: 'https://mp/c' }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await mercadoPagoProvider.createCheckout({
+      orderId: 'ord_1',
+      sku: 'racket_report',
+      productName: 'Relatório da raquete',
+      amountCents: 2999,
+      currency: 'BRL',
+      returnUrl: 'https://exemplo.com/retorno/x',
+      failureUrl: 'https://exemplo.com/planos/x',
+      notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
+    expect(corpo.items[0].description).toBe('Relatório da raquete');
+    expect(corpo.items[0].category_id).toBe('services');
   });
 
   it('usa o sandbox_init_point quando é a única URL devolvida', async () => {
@@ -317,6 +424,8 @@ describe('criação do checkout', () => {
       returnUrl: 'https://exemplo.com/resultado/x',
       failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
     });
 
     expect(sessao.redirectUrl).toBe('https://sandbox/mp');
@@ -334,6 +443,8 @@ describe('criação do checkout', () => {
         returnUrl: 'https://exemplo.com/resultado/x',
       failureUrl: 'https://exemplo.com/planos/x',
         notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+        payerEmail: 'comprador@exemplo.com',
+        payerName: null,
       }),
     ).rejects.toThrow(/401/);
   });

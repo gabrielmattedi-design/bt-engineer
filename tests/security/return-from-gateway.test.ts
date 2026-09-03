@@ -111,6 +111,8 @@ describe('o adapter separa sucesso de recusa', () => {
       returnUrl: 'https://exemplo.com/retorno/abc',
       failureUrl: 'https://exemplo.com/planos/abc',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: null,
     });
 
     const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as {
