@@ -430,3 +430,77 @@ describe('todas as situações da raquete atual', () => {
     expect(testados, 'nenhuma raquete venceu o próprio ranking — o teste não prova nada').toBeGreaterThan(0);
   });
 });
+
+/**
+ * ═══ A ABERTURA NÃO PODE PROMETER O QUE A NOTA VAI DESMENTIR ═════════════════════════════════
+ *
+ * Relato do dono do produto, com o relatório aberto: a raquete atual aparecia em 10º, a 14 pontos
+ * da primeira, e o bloco de setup abria com "É o que aproxima a sua raquete do ideal por uma fração
+ * do custo de trocá-la". Muitos parágrafos abaixo, a `ceiling_note` dizia o contrário — que o
+ * ajuste "não fecha a distância para a recomendada".
+ *
+ * As duas frases falam da mesma coisa e discordavam porque só UMA delas era calculada: a abertura
+ * estava fixa no JSX da página, prometendo o mesmo a quem está a 2 pontos e a quem está a 14.
+ *
+ * §58 vale nas duas direções — nem empurrar a troca de quadro, nem fingir que ela é dispensável. O
+ * que estes testes trancam é que a abertura nasça do mesmo `gap` da nota, e que quem está longe
+ * leia "melhora", nunca "ideal".
+ */
+describe('a abertura do bloco de setup', () => {
+  const IDEAL = /\bideal\b/i;
+
+  it('nunca promete o ideal para quem está longe da primeira', () => {
+    let longe = 0;
+    for (const persona of PERSONAS) {
+      const { result, payload } = analisar(persona, TUDO);
+      const bloco = payload.current_racket_setup;
+      if (!bloco) continue;
+
+      const atual = result.full_ranking.find(
+        (r) => r.racket.variant.id === persona.answers.current_racket_id,
+      );
+      if (!atual) continue;
+      const gap = Math.round(result.podium[0]!.fit_score) - Math.round(atual.fit_score);
+      if (gap < 9) continue;
+
+      longe += 1;
+      expect(bloco.intro, `${persona.id} (${gap} pontos atrás): prometeu o ideal`).not.toMatch(IDEAL);
+      // E precisa dizer, ali mesmo, que não chega onde a recomendada chega.
+      expect(bloco.intro, `${persona.id}: abertura sem ressalva`).toMatch(
+        /não chega|melhor uso possível/i,
+      );
+    }
+    expect(longe, 'nenhuma persona ficou longe o bastante — o teste não prova nada')
+      .toBeGreaterThan(0);
+  });
+
+  /** A abertura e a nota saem do MESMO gap: nunca podem contar histórias diferentes. */
+  it('abertura e nota de teto concordam sobre a distância', () => {
+    for (const persona of PERSONAS) {
+      const { result, payload } = analisar(persona, TUDO);
+      const bloco = payload.current_racket_setup;
+      if (!bloco) continue;
+
+      const prometeMuito = /maior retorno/i.test(bloco.intro);
+      const notaAdmiteDistancia = /não fecha a distância|não a transforma na recomendada/i.test(
+        bloco.ceiling_note,
+      );
+      expect(
+        prometeMuito && notaAdmiteDistancia,
+        `${persona.id}: a abertura promete o máximo e a nota desmente`,
+      ).toBe(false);
+    }
+  });
+
+  it('a abertura sempre existe e nunca é genérica', () => {
+    let vistos = 0;
+    for (const persona of PERSONAS) {
+      const bloco = analisar(persona, TUDO).payload.current_racket_setup;
+      if (!bloco) continue;
+      vistos += 1;
+      expect(bloco.intro.length, `${persona.id}`).toBeGreaterThan(60);
+      expect(bloco.intro, `${persona.id}`).toMatch(/corda e tensão/i);
+    }
+    expect(vistos, 'nenhuma persona recebeu o bloco').toBeGreaterThan(0);
+  });
+});

@@ -202,12 +202,23 @@ export function buildTieGroup(podium: readonly RankedRacket[]): PodiumTieGroup |
   return {
     ranks: group.map((e) => e.rank),
     spread: Math.round(spread * 100) / 100,
+    /*
+      "num score construído sobre seis especificações publicadas" saiu daqui.
+
+      A frase era verdadeira e está documentada no cabeçalho deste arquivo, que é onde ela serve. No
+      relatório ela fazia outra coisa: no exato momento em que a análise admite um empate, ela
+      entregava ao leitor o argumento para desqualificar o empate — "então isso tudo saiu de seis
+      números". A limitação do método é declarada na página de metodologia, e ali ela é honestidade;
+      encaixada no meio de um veredicto, vira uma autocrítica que não ajuda ninguém a decidir.
+
+      O que a frase precisa dizer é o que muda a decisão da pessoa: a margem é pequena, a ordem
+      continua correta, e o que separa as três está no card de cada uma.
+    */
     message:
       `Estas ${n} primeiras empataram tecnicamente: ${spread.toFixed(2)} ponto separa a maior da ` +
-      'menor, num score construído sobre seis especificações publicadas. A ordem entre elas está ' +
-      'correta — a 1ª realmente pontuou mais —, mas por uma margem pequena demais para chamar as ' +
-      'outras de piores. São alternativas equivalentes, e o que separa cada uma está escrito no ' +
-      'próprio card.',
+      'menor. A ordem entre elas está correta — a 1ª realmente pontuou mais —, mas por uma margem ' +
+      'pequena demais para chamar as outras de piores. São alternativas equivalentes, e o que ' +
+      'separa cada uma está escrito no próprio card.',
   };
 }
 
@@ -658,17 +669,27 @@ export function buildSeparation(
   }
 
   /*
-    ═══ A FRAÇÃO É CALCULADA, NÃO ESCRITA À MÃO ═══════════════════════════════════════════════
+    ═══ A FRAÇÃO SAIU DO TEXTO ════════════════════════════════════════════════════════════════
 
-    Esta frase dizia "— quase um quarto do catálogo" com o número cravado no texto, enquanto o
-    veredicto dispara a partir de 20% (`WIDE_TIE_SHARE`) e não tem teto. Numa amostra real saiu
-    "5 das 9 raquetes avaliadas ficaram empatadas — quase um quarto do catálogo": 55% descrito
-    como um quarto.
+    A frase publicava a conta: "Dessas, 6 ficaram tecnicamente empatadas com a 1ª — 100% delas."
 
-    Não é preciosismo de redação. O relatório é pago e a sua única defesa é ser conferível — a
-    pessoa tem os dois números na mesma frase e faz a divisão de cabeça. Um texto que erra a conta
-    que ele mesmo exibe destrói mais confiança do que a informação vale.
+    Ela nasceu de um conserto legítimo. Antes dizia "— quase um quarto do catálogo" com o número
+    cravado à mão, enquanto o veredicto dispara a partir de 20% e não tem teto; numa amostra real
+    saiu "5 das 9 ficaram empatadas — quase um quarto", ou seja, 55% descrito como um quarto.
+    Calcular a fração corrigiu a mentira.
+
+    Só que o número certo expôs um problema que o número errado escondia. Este ramo dispara
+    justamente quando o empate é amplo, e nos casos extremos a fração dá 100%: o relatório
+    informava, com precisão, que NENHUMA das sobreviventes se distinguiu da primeira. Lido pelo
+    cliente, isso não descreve um perfil versátil — descreve uma análise que não decidiu nada.
+
+    O parágrafo continua dizendo a mesma verdade, e ela é útil: para este jogador o quadro importa
+    pouco dentro de uma faixa larga, e o dinheiro rende mais em corda e tensão. O que sai é só a
+    aritmética que convidava a conclusão oposta. A contagem permanece em `tied_with_first`, que é
+    o campo da auditoria — o dado não foi perdido, foi tirado da vitrine.
   */
+  void share;
+
   return {
     tied_with_first: tied,
     evaluated,
@@ -676,11 +697,11 @@ export function buildSeparation(
     verdict: 'indiferente',
     message:
       `Analisamos ${evaluated} raquetes contra o seu perfil e ${sobreviventes} passaram por tudo ` +
-      `o que você pediu. Dessas, ${tied} ficaram tecnicamente empatadas com a 1ª — ` +
-      `${Math.round(share * 100)}% delas. Isso não é indecisão da análise: é o resultado ` +
-      'dela. Seu perfil físico e seu swing se dão bem com uma faixa larga de quadros, e nessa ' +
-      'faixa trocar de raquete muda pouco. O que ainda muda bastante para você é a CORDA e a ' +
-      `TENSÃO — e essas custam uma fração do preço de um quadro novo.${frasePorMarca}`,
+      'o que você pediu. Entre elas as diferenças são pequenas, e isso não é indecisão da ' +
+      'análise: é o resultado dela. Seu perfil físico e seu swing se dão bem com uma faixa larga ' +
+      'de quadros, e nessa faixa trocar de raquete muda pouco. O que ainda muda bastante para ' +
+      'você é a CORDA e a TENSÃO — e essas custam uma fração do preço de um quadro novo.' +
+      `${frasePorMarca}`,
   };
 }
 

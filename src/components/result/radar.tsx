@@ -264,7 +264,30 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
       : []),
     {
       key: 'catalog',
-      label: 'Média do catálogo',
+      /*
+        ═══ O RÓTULO PRECISOU DIZER "PARA VOCÊ" ══════════════════════════════════════════════
+
+        Ele dizia só "Média do catálogo", e um leitor atento reparou que a linha muda de perfil
+        para perfil e perguntou, com razão, se ela era a média das raquetes não excluídas para
+        aquele jogador.
+
+        Não é — e a resposta certa é mais interessante que a suspeita. As duas metades do gráfico
+        medem coisas de naturezas diferentes:
+
+          • Os três eixos de BOLA (potência, controle, spin) são propriedades da raquete. A média
+            ali sai do catálogo COMPLETO (`attribute_means`, sobre a régua de 47 quadros) e é
+            idêntica para todo mundo.
+
+          • Os cinco eixos de ENCAIXE (braço, nível, jogo, swing, físico) não são propriedades da
+            raquete: "quanto esta raquete combina com o seu braço" só existe em relação a alguém.
+            Não existe um valor de catálogo para eles. A média ali é a de todas as raquetes
+            pontuadas CONTRA ESTE JOGADOR (`component_means`), e por isso muda de perfil para
+            perfil — não por causa de exclusão, mas porque a grandeza é relativa por definição.
+
+        O rótulo antigo escondia essa diferença e fazia a linha parecer instável. O novo assume que
+        ela é sua, e a nota abaixo do gráfico explica por quê.
+      */
+      label: 'Média do catálogo para você',
       values: axes.map((a) => a.catalog),
       stroke: PALETTE.graphite,
       fill: 'none',
@@ -281,7 +304,7 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
           viewBox={`${-PAD_X} ${-PAD_Y} ${SIZE + PAD_X * 2} ${SIZE + PAD_Y * 2}`}
           className="h-auto w-full max-w-[400px] shrink-0"
           role="img"
-          aria-label="Radar comparando o que seu jogo pede com a raquete recomendada, sua raquete atual e a média do catálogo"
+          aria-label="Radar comparando o que seu jogo pede com a raquete recomendada, sua raquete atual e a média do catálogo para o seu perfil"
         >
           {/* Setores de fundo: um território por bloco, desenhados ANTES da teia. */}
           {zones.map((zone) => (
@@ -450,8 +473,21 @@ export function CompatibilityRadar({ axes }: { axes: readonly RadarAxis[] }) {
         </dl>
       )}
 
+      {/*
+        Sem esta nota, a linha cinza é o único traço do gráfico cujo significado o leitor não tem
+        como deduzir — e ela é justamente a régua contra a qual ele julga todo o resto.
+      */}
+      <p className="mt-4 max-w-prose text-xs leading-relaxed text-graphite">
+        A linha <strong>média do catálogo para você</strong> é a média de todas as raquetes que
+        analisamos. Nos três eixos de bola — potência, controle e spin — ela é a mesma para
+        qualquer pessoa, porque são características do quadro. Nos cinco eixos de encaixe ela muda
+        de jogador para jogador: &ldquo;quanto esta raquete combina com o seu braço&rdquo; é uma
+        medida que só existe em relação a você, e a média ali é a do catálogo inteiro comparado com
+        o seu perfil.
+      </p>
+
       {!hasCurrent && (
-        <p className="mt-4 max-w-prose text-xs text-graphite">
+        <p className="mt-3 max-w-prose text-xs text-graphite">
           Sua raquete atual não aparece no gráfico porque não foi informada, ou não está no catálogo
           que analisamos.
         </p>

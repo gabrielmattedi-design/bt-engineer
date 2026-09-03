@@ -759,9 +759,16 @@ export default async function ResultadoPage({
                 <h3 className="mt-2 font-display text-xl font-bold">
                   O melhor setup para a sua {report.current_racket_setup.racket_name}
                 </h3>
+                {/*
+                  A abertura vem do cálculo, não daqui.
+
+                  Ela era fixa — "É o que aproxima a sua raquete do ideal por uma fração do custo de
+                  trocá-la" — e prometia a mesma coisa a quem estava a 2 pontos da primeira e a quem
+                  estava a 14. No segundo caso o relatório abria com a promessa e só desmentia lá
+                  embaixo, na `ceiling_note`. As duas frases nascem agora do mesmo `gap`.
+                */}
                 <p className="mt-2 max-w-prose text-sm leading-relaxed text-graphite">
-                  Rodamos o mesmo cálculo de corda e tensão sobre o quadro que você já tem. É o que
-                  aproxima a sua raquete do ideal por uma fração do custo de trocá-la.
+                  {report.current_racket_setup.intro}
                 </p>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-3">

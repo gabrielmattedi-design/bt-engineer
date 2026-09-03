@@ -10,8 +10,30 @@ import { cn } from '@/lib/cn';
  * mostrado aqui é medição.
  *
  * As marcas em 25 / 50 / 75 existem para dar referência: sem elas, uma barra preenchida não
- * responde "isso é muito ou pouco?". O 50 é destacado porque é a média do catálogo — é a leitura
- * que o usuário realmente faz ("acima ou abaixo do normal?").
+ * responde "isso é muito ou pouco?".
+ *
+ * ═══ O 50 NÃO É A MÉDIA, E A LEGENDA DIZIA QUE ERA ══════════════════════════════════════════
+ *
+ * Este comentário e a legenda na tela afirmavam: "o 50 é a média do catálogo avaliado — acima
+ * dele, esta raquete entrega mais que a média naquele aspecto". As duas frases estavam erradas.
+ *
+ * Os valores exibidos são POSIÇÃO na faixa que o catálogo ocupa em cada eixo, e a posição 50 é o
+ * MEIO dessa faixa, não a média das raquetes que a preenchem. As duas coisas só coincidem se a
+ * distribuição for simétrica, e ela não é. Medida a posição da média real nas 47 raquetes:
+ *
+ *     potência 49,4 · controle 42,5 · spin 60,5 · conforto 46,5
+ *     estabilidade 57,7 · manobrabilidade 42,9 · precisão 39,5
+ *
+ * Em spin a média do catálogo cai em 60,5: uma raquete marcando 55 estava sendo apresentada como
+ * "acima da média" quando está abaixo dela. Em precisão a média é 39,5, e o erro corre para o
+ * outro lado. O desvio chega a 10,5 pontos numa escala de 100, e é sistemático, não aleatório.
+ *
+ * A legenda passa a descrever o que a barra de fato mede: onde a raquete cai DENTRO da faixa que
+ * o mercado oferece naquele eixo. É uma afirmação mais modesta e é a verdadeira — e continua
+ * respondendo a pergunta que o leitor faz, que é "isso é muito ou pouco?".
+ *
+ * A média real existe e viaja no resultado (`attribute_means`); quem a usa é o radar, que a
+ * desenha como linha própria. Aqui ela não é desenhada, então não pode ser citada.
  *
  * Valores vêm em passos de 5 (R-04): o motor não tem precisão para afirmar 73 em vez de 75, e
  * exibir 73 transmitiria uma exatidão que não existe.
@@ -90,8 +112,10 @@ export function AttributeReadout({
       </dl>
 
       <p className="mt-5 text-[11px] leading-relaxed text-graphite">
-        Marcas em 25, 50 e 75 são referência de escala. O <strong>50</strong> é a média do catálogo
-        avaliado — acima dele, esta raquete entrega mais que a média naquele aspecto.
+        A escala vai do menor ao maior valor que encontramos no catálogo em cada aspecto: o{' '}
+        <strong>0</strong> é a raquete que menos entrega ali, o <strong>100</strong> é a que mais
+        entrega. As marcas em 25, 50 e 75 dividem essa faixa em quatro — acima de 50, esta raquete
+        está na metade de cima do que o mercado oferece naquele aspecto.
       </p>
     </section>
   );

@@ -18,6 +18,54 @@
  */
 
 /**
+ * 2.41.0 — quatro correções de leitura, e uma delas era um número errado.
+ *
+ * ═══ 1. O "50" DA BARRA NÃO ERA A MÉDIA ══════════════════════════════════════════════════════
+ *
+ * A legenda de `AttributeReadout` afirmava: "o 50 é a média do catálogo avaliado — acima dele,
+ * esta raquete entrega mais que a média naquele aspecto". Falso. Os valores exibidos são POSIÇÃO
+ * na faixa que o catálogo ocupa, e a posição 50 é o MEIO da faixa, não a média das raquetes que a
+ * preenchem — as duas só coincidem numa distribuição simétrica. Medida a posição da média real:
+ *
+ *     potência 49,4 · controle 42,5 · spin 60,5 · conforto 46,5
+ *     estabilidade 57,7 · manobrabilidade 42,9 · precisão 39,5
+ *
+ * Em spin, uma raquete marcando 55 era apresentada como "acima da média" estando abaixo dela; em
+ * precisão o erro corre para o outro lado. Desvio de até 10,5 pontos, sistemático. A legenda passa
+ * a descrever o que a barra mede: onde a raquete cai dentro da faixa que o mercado oferece.
+ *
+ * ═══ 2. A LINHA DO RADAR GANHOU NOME COMPLETO ════════════════════════════════════════════════
+ *
+ * "Média do catálogo" → "Média do catálogo para você", com nota explicando a assimetria real: nos
+ * três eixos de bola ela sai do catálogo completo e é igual para todos; nos cinco de encaixe ela é
+ * a média de todas as raquetes pontuadas CONTRA AQUELE JOGADOR, e muda de perfil para perfil
+ * porque "quanto esta raquete combina com o seu braço" só existe em relação a alguém. Não é efeito
+ * de exclusão — é a natureza da grandeza, e o rótulo antigo escondia isso.
+ *
+ * ═══ 3. DUAS FRASES QUE ARMAVAM O LEITOR CONTRA O RELATÓRIO ══════════════════════════════════
+ *
+ * "num score construído sobre seis especificações publicadas" saiu do texto de empate: a limitação
+ * é real e pertence à metodologia, mas encaixada no parágrafo em que a análise admite não separar
+ * três raquetes, ela entregava o argumento para desqualificar o próprio veredicto.
+ *
+ * "— 100% delas" saiu da frase de separação. Aquele ramo dispara quando o empate é amplo, e no
+ * extremo a conta informava, com precisão, que NENHUMA sobrevivente se distinguiu da primeira. A
+ * contagem continua em `tied_with_first`, que é o campo da auditoria.
+ *
+ * ═══ 4. A ABERTURA DO SETUP DEIXOU DE PROMETER O QUE A NOTA DESMENTIA ════════════════════════
+ *
+ * Era fixa no JSX — "É o que aproxima a sua raquete do ideal por uma fração do custo de trocá-la" —
+ * e valia igual para quem está a 2 pontos da primeira e para quem está a 14. No caso relatado, com
+ * a raquete em 10º, o bloco abria com a promessa e só a `ceiling_note`, parágrafos abaixo, admitia
+ * que o ajuste não fecha a distância. A abertura nasce agora do mesmo `gap` da nota, em três
+ * degraus, e não pode voltar a discordar dela.
+ *
+ * O pódio também mudou de forma: as três caixas passam a alinhar pela BASE, com altura fixa
+ * decrescente. Alinhado pelo topo com altura mínima, bastava um card estourar o mínimo para o pé
+ * dele descer sozinho — foi o que apareceu na tela como desalinhamento.
+ *
+ * Nada disto muda qual raquete é recomendada.
+ *
  * 2.40.0 — o teto de peso passou a ler a FORÇA, e não só o declínio.
  *
  * O fator de capacidade da 2.38.0 ia de 0,90 a 1,00: ele lia a idade, o preparo e o swing para
@@ -739,7 +787,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.40.0';
+export const METHODOLOGY_VERSION = '2.41.0';
 
 export type Range = readonly [lo: number, hi: number];
 

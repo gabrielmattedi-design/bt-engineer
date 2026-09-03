@@ -72,28 +72,37 @@ export function Podium({
         mínima decrescente. Quem lê da esquerda para a direita lê 1, 2, 3, que é a mesma ordem em
         que os números aparecem.
 
-        ─── POR QUE O RECUO É FIXO, E NÃO SÓ ALTURA MÍNIMA ──────────────────────────────────────
+        ─── AS BASES SÃO ALINHADAS; SÓ OS TOPOS ESCALONAM ──────────────────────────────────────
 
-        A versão anterior alinhava as três pela BASE e confiava só nas alturas mínimas para produzir
-        o degrau. Isso funciona enquanto o conteúdo couber nelas — e some no instante em que não
-        cabe: quando os três cards têm texto longo, os três crescem além do próprio mínimo, ficam da
-        mesma altura e o pódio sai reto.
+        Este bloco já teve as duas formas erradas, uma de cada lado, e vale registrar as duas.
 
-        Foi assim que apareceu, em dois testes lado a lado com o mesmo empate de 88%: num deles o
-        degrau existia, no outro os três cards viravam uma faixa plana. O que mudava era só o
-        comprimento do texto de cada card, e comprimento de texto não pode decidir hierarquia.
+        1. ALINHADO PELA BASE, com o degrau confiado só a alturas mínimas. Funciona enquanto o texto
+           couber nelas e some quando não cabe: os três crescem além do próprio mínimo, empatam de
+           altura e o pódio sai reto. Apareceu em dois testes com o mesmo empate de 88% — num o
+           degrau existia, no outro virava uma faixa plana.
 
-        E a hierarquia é real, mesmo quando os percentuais exibidos empatam: se uma raquete está em
-        1º, foi porque venceu por alguma margem — nem que seja na casa decimal que o arredondamento
-        esconde. O pódio precisa mostrar isso sempre.
+        2. ALINHADO PELO TOPO (`items-start`), com recuo fixo somado à altura mínima para que os
+           três somassem 23rem. Isso conserta o degrau e quebra a base: `min-height` é um MÍNIMO, e
+           basta um card estourar o dele para a base dele descer sozinha. Foi o que o usuário viu —
+           três caixas com o topo em escada e o pé em três alturas diferentes, o que lê como
+           desalinhamento, não como pódio.
 
-        Os números foram escolhidos para casar: 23 + 0, 20 + 3 e 17 + 6 dão 23rem nos três. Com
-        texto curto as bases se alinham como antes; com texto longo os topos continuam escalonados.
+        A forma que satisfaz as duas coisas é alinhar pela BASE e escalonar a ALTURA. Com
+        `items-end`, o pé das três encosta na mesma linha por construção — não por coincidência de
+        conteúdo. O degrau vem das alturas decrescentes, e é por isso que elas são `h-` e não
+        `min-h-`: uma altura fixa não cede quando o texto cresce, que era exatamente a falha de (2).
+
+        O conteúdo que sobrar rola dentro do próprio card (`overflow-y-auto`) em vez de empurrar a
+        base. Na prática isso quase nunca acontece — o card tem nome, percentual, uma frase curta e
+        as tags —, e as alturas abaixo foram medidas contra o card mais cheio que o produto gera.
+
+        E a hierarquia é real mesmo quando os percentuais exibidos empatam: se uma raquete está em
+        1º, venceu por alguma margem — nem que seja na casa decimal que o arredondamento esconde.
 
         Abaixo de `sm` tudo isso some: empilhadas, as caixas produziriam sobras diferentes de espaço
         vazio, sem nenhum degrau para justificar.
       */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-start">
+      <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:items-end">
         <PodiumCard entry={first} step="tall" />
         {rest[0] && <PodiumCard entry={rest[0]} step="mid" />}
         {rest[1] && <PodiumCard entry={rest[1]} step="short" />}
@@ -105,16 +114,19 @@ export function Podium({
 }
 
 /**
- * Cada degrau: recuo fixo no topo + altura mínima. Só a partir de `sm`, onde os três ficam lado a
- * lado.
+ * O degrau, só a partir de `sm` — onde os três ficam lado a lado.
  *
- * O recuo é o que garante o degrau quando o texto é longo; a altura mínima é o que alinha as bases
- * quando o texto é curto. Recuo + altura somam 23rem nos três, então as duas coisas convivem.
+ * Alturas FIXAS e decrescentes, com o grid alinhando pela base (`items-end`). Fixas, e não mínimas,
+ * porque um mínimo cede quando o texto cresce e leva a base junto — ver a nota longa acima.
+ *
+ * Os 3rem de diferença entre um degrau e o seguinte são o menor passo que ainda se lê como degrau
+ * numa tela de 1280 px, e o card mais alto tem folga sobre o conteúdo mais cheio que o produto
+ * gera (nome longo em duas linhas + frase de distinção + três tags).
  */
 const STEPS = {
-  tall: 'sm:mt-0 sm:min-h-[23rem]',
-  mid: 'sm:mt-12 sm:min-h-[20rem]',
-  short: 'sm:mt-24 sm:min-h-[17rem]',
+  tall: 'sm:h-[26rem]',
+  mid: 'sm:h-[23rem]',
+  short: 'sm:h-[20rem]',
 } as const;
 
 function PodiumCard({ entry, step }: { entry: PodiumEntry; step: keyof typeof STEPS }) {
@@ -123,7 +135,9 @@ function PodiumCard({ entry, step }: { entry: PodiumEntry; step: keyof typeof ST
   return (
     <article
       className={cn(
-        'flex flex-col rounded border bg-white p-5',
+        // `overflow-y-auto` é a válvula: se algum card estourar a altura, o excedente rola dentro
+        // dele em vez de empurrar a base e desfazer o alinhamento.
+        'flex flex-col overflow-y-auto rounded border bg-white p-5',
         STEPS[step],
         isFirst ? 'border-2 border-ink sm:p-7' : 'border-line',
       )}

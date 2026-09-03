@@ -370,3 +370,63 @@ describe('a separação diz a verdade sobre os próprios números', () => {
     }
   });
 });
+
+/**
+ * ═══ O QUE O RELATÓRIO NÃO PUBLICA SOBRE SI MESMO ════════════════════════════════════════════
+ *
+ * Duas frases saíram da tela por pedido do dono do produto, com a mesma justificativa: "dão margem
+ * a crítica do relatório, não precisa publicar". As duas eram VERDADEIRAS, e é por isso que este
+ * bloco existe — sem ele, a próxima pessoa que ler o código pensa que foram removidas por engano e
+ * as devolve.
+ *
+ * 1. "num score construído sobre seis especificações publicadas", no texto do empate técnico.
+ *    A limitação do método é real e está declarada na metodologia, que é onde ela informa. Solta no
+ *    meio de um veredicto, ela entregava ao leitor o argumento para desqualificar o próprio
+ *    veredicto — no exato parágrafo em que a análise admite não conseguir separar três raquetes.
+ *
+ * 2. "— 100% delas", a fração de sobreviventes empatadas com a 1ª. Este ramo dispara justamente
+ *    quando o empate é amplo, e no extremo a conta dá 100%: o relatório informava, com precisão,
+ *    que NENHUMA das sobreviventes se distinguiu. Lido pelo cliente, isso não descreve um perfil
+ *    versátil — descreve uma análise que não decidiu nada.
+ *
+ * O CONTEÚDO das duas continua no lugar certo: a contagem em `tied_with_first`, que é o campo da
+ * auditoria, e a limitação de seis especificações na página de metodologia. O que saiu foi a
+ * vitrine, não o dado.
+ */
+describe('o relatório não publica o argumento contra si mesmo', () => {
+  it('o texto do empate não cita a contagem de especificações', () => {
+    let verificados = 0;
+    for (const { persona, result } of runs) {
+      const grupo = buildTieGroup(result.podium);
+      if (!grupo) continue;
+      verificados += 1;
+      expect(grupo.message, `${persona.id}`).not.toMatch(/especificaç(ão|ões) publicad/i);
+      expect(grupo.message, `${persona.id}`).not.toMatch(/\bseis\b/i);
+      // E continua dizendo o que decide: a margem, e onde ler a diferença.
+      expect(grupo.message, `${persona.id}`).toMatch(/empataram tecnicamente/);
+    }
+    expect(verificados, 'nenhuma persona produziu grupo de empate').toBeGreaterThan(0);
+  });
+
+  it('a separação não publica a fração de empatadas', () => {
+    let verificados = 0;
+    for (const { persona, result } of runs) {
+      const sep = buildSeparation(result.full_ranking, result.candidates_evaluated);
+      if (!sep) continue;
+      verificados += 1;
+      expect(sep.message, `${persona.id}: publicou a fração`).not.toMatch(/\d+\s*% delas/);
+      expect(sep.message, `${persona.id}: publicou a fração`).not.toMatch(/% do catálogo/);
+    }
+    expect(verificados, 'nenhuma persona produziu separação').toBeGreaterThan(0);
+  });
+
+  /** O dado não foi perdido — continua no campo que a auditoria lê. */
+  it('a contagem continua disponível fora do texto', () => {
+    for (const { persona, result } of runs) {
+      const sep = buildSeparation(result.full_ranking, result.candidates_evaluated);
+      if (!sep) continue;
+      expect(sep.tied_with_first, `${persona.id}`).toBeGreaterThanOrEqual(0);
+      expect(Number.isFinite(sep.tied_with_first), `${persona.id}`).toBe(true);
+    }
+  });
+});

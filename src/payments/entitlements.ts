@@ -261,6 +261,20 @@ export type CurrentRacketSetupPayload = {
    * de partida, "suba 2 lbs" não é uma instrução, é um palpite.
    */
   readonly change_from_current: readonly string[];
+  /**
+   * A frase de abertura do bloco — e ela também depende da distância.
+   *
+   * Ela era FIXA na página: "É o que aproxima a sua raquete do ideal por uma fração do custo de
+   * trocá-la." Para quem está perto da primeira, verdade. Para quem está a 14 pontos — o caso
+   * relatado, com a raquete em 10º —, o relatório abria prometendo aproximar do ideal e só muitos
+   * parágrafos abaixo, na `ceiling_note`, admitia que não fecha a distância. As duas frases eram
+   * sobre a mesma coisa e discordavam.
+   *
+   * Nasce aqui, ao lado da `ceiling_note` e do mesmo `gap`, justamente para que não possam voltar a
+   * discordar: a página não tem como afirmar sobre a distância nada que este cálculo não tenha
+   * decidido.
+   */
+  readonly intro: string;
   /** Até onde isto leva, e onde só o quadro leva. Sempre presente. */
   readonly ceiling_note: string;
   readonly availability_warning: string | null;
@@ -1302,6 +1316,24 @@ function buildCurrentRacketSetup(
    * um remédio que não alcança o problema.
    */
   const gap = Math.round(result.podium[0]?.fit_score ?? 0) - Math.round(atual.fit_score);
+
+  /*
+    A abertura promete só o que a distância sustenta — ver a nota no campo `intro` do tipo.
+
+    Os três degraus são os mesmos da `ceiling_note` de propósito: um único `gap` decide as duas
+    frases, e a de cima nunca pode prometer o que a de baixo vai desmentir.
+  */
+  const abertura = 'Rodamos o mesmo cálculo de corda e tensão sobre o quadro que você já tem. ';
+  const intro =
+    gap < 4
+      ? `${abertura}No seu caso é o ajuste de maior retorno que existe hoje — e custa uma fração ` +
+        'de um quadro novo.'
+      : gap < 9
+        ? `${abertura}É um ganho real e barato: leva a sua raquete parte do caminho até o que o ` +
+          'seu jogo pede, sem trocar de quadro.'
+        : `${abertura}É o melhor uso possível dele, e melhora o que dá para melhorar sem trocar ` +
+          'de raquete — mas não chega onde a recomendada chegaria.';
+
   const ceiling_note =
     gap < 4
       ? 'Como a sua raquete já está muito perto da primeira colocada, este é o ajuste de maior ' +
@@ -1321,6 +1353,7 @@ function buildCurrentRacketSetup(
 
   return {
     racket_name: currentRacketLabel(atual.racket.variant),
+    intro,
     string_brand: rec.variant.model.brand,
     string_model: rec.variant.model.model,
     string_type: STRING_TYPE_PT[tipoNovo],
