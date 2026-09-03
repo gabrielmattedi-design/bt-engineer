@@ -15,3 +15,11 @@ e2e-*.mjs
 # Ficam fora do repositório: são PNGs pesados, regeneráveis a qualquer momento, e mudam a cada
 # ajuste de texto. O que precisa ser versionado é o SCRIPT, que é a fonte deles.
 /criativos/
+
+# Scripts descartáveis de simulação e auditoria.
+#
+# Eles vivem dentro do repositório por necessidade — fora dele o `tsx` não resolve os imports de
+# `@/`, nem os pacotes de `node_modules` —, mas são rascunho: existem para medir uma coisa e são
+# apagados em seguida. Dois deles já entraram num commit por um `git add -A` distraído.
+/.sim/
+/.aud/
