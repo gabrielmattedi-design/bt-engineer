@@ -18,6 +18,50 @@
  */
 
 /**
+ * 2.38.0 — o teto de peso passou a ler a pessoa, e a página parou de se desmentir sobre potência.
+ *
+ * ═══ 1. O TETO ERA SÓ PORTE, E POR ISSO ERA INERTE ═══════════════════════════════════════════
+ *
+ * A reta de porte satura em 320 g e o quadro mais pesado do catálogo tem 315 g: a partir de 73 kg o
+ * teto não cortava mais nada. Medido em 58 perfis, ele era inerte em 56. E a idade não compensava
+ * por dentro da pontuação — `ageFactor` (1.00 … 0.65) entra em `physical_capacity_score` com peso
+ * 0.14, que entra em `handlingCapacity` com 0.45: 2,2 pontos de capacidade entre 25 e 72 anos,
+ * contra uma zona morta de 13 em `physicalFit`. Em grade, 25a e 72a recebiam a MESMA raquete, o
+ * mesmo peso e a mesma inércia. A idade estava na fórmula e fora da decisão.
+ *
+ * O teto passa a ser `porte × fator de capacidade`, com o fator somando déficits declarados
+ * (idade, preparo, velocidade de swing) a partir do jogador típico e limitado a 10%. O caso que
+ * originou o pedido — 62 anos, 78 kg, preparo moderado, swing médio — sai de 320 g para 309 g; o
+ * mesmo homem sedentário e de swing lento vai a 291 g; e um de 62 anos com preparo bom e swing
+ * rápido fica em 313 g, quase intacto. Idade sozinha, no extremo de 75 anos, custa 4%.
+ *
+ * A recomendação muda: acima de ~54 anos com preparo moderado, o vencedor troca de um quadro de
+ * 300 g para um de 280 g. A troca acontece dentro de um empate técnico (0,13 a 0,41 ponto), e o
+ * relatório já a declara como tal.
+ *
+ * O histórico articular foi implementado aqui e RETIRADO — ver a nota longa em
+ * `ceilingCapacityFactor`. Ele quebrou a invariante de monotonicidade do conforto, porque massa
+ * absorve choque e neste catálogo todo quadro amigável ao braço pesa 300–315 g: baixar o teto de
+ * quem tem dor no cotovelo remove justamente os quadros que protegem o cotovelo.
+ *
+ * ═══ 2. O MOTIVO DA EXCLUSÃO PROMETIA UMA GRANDEZA E MEDIA OUTRA ═════════════════════════════
+ *
+ * Ele dizia que acima do teto "o que ela ganha em estabilidade você perde em preparação de golpe".
+ * Preparação de golpe é inércia; o filtro compara gramas. Medida a correlação entre as duas nas 47
+ * raquetes: r = 0,029. Na prática o teto exclui quadros mais fáceis de girar do que outros que ele
+ * mantém — com teto de 301 g, a Clash 100 Pro (305 g, a segunda MENOR inércia do catálogo) é
+ * cortada e a Clash 108 (280 g, a MAIOR) passa. O motivo passa a afirmar só o que o peso estático
+ * de fato cobra: sustentar o quadro e absorver o choque. A inércia continua cobrada com grau em
+ * `physicalFit`, via `massIndex`, que é onde ela pertence.
+ *
+ * ═══ 3. AS DUAS FRASES DE POTÊNCIA VIVIAM EM RÉGUAS DIFERENTES ═══════════════════════════════
+ *
+ * "Este frame complementa a potência que seu swing ainda não entrega" (régua do JOGADOR) e
+ * "frame contido: a potência vem mais de você do que da raquete" (régua do CATÁLOGO) apareciam na
+ * mesma página, sobre a mesma raquete. E o gatilho da primeira era `swing_fit >= 75`, que é 65%
+ * potência e 35% comprimento de swing — o segundo termo carregava para cima frames de potência
+ * inteiramente errada. Medido em 202 cenários: 105 cards traziam as duas frases; passam a 0.
+ *
  * 2.37.0 — a premissa do piso de demanda parou de cortar por compatibilidade, e o relatório parou
  * de subdeclarar quantas raquetes analisou.
  *
@@ -625,7 +669,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.37.0';
+export const METHODOLOGY_VERSION = '2.38.0';
 
 export type Range = readonly [lo: number, hi: number];
 

@@ -31,9 +31,10 @@ import {
 } from '@/recommendation/profile/build-profile';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { PERSONAS } from '@/data/personas';
-import { TEST_DATASET_VERSION, TEST_MODE, testRackets } from '../helpers/catalog';
+import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../helpers/catalog';
 
 const CATALOGO = testRackets();
+const CORDAS = testStrings();
 
 /** Respostas plausíveis e completas, para que só o corpo varie entre os perfis medidos. */
 function respostas(extra: Partial<QuestionnaireAnswers>): QuestionnaireAnswers {
@@ -338,5 +339,112 @@ describe('o aviso de migração juvenil', () => {
     expect(texto).toMatch(/adult/i);
     expect(texto).toMatch(/juven/i);
     expect(texto).toMatch(/27 polegadas|25 e 26 polegadas/);
+  });
+});
+
+/**
+ * ═══ O FATOR DE CAPACIDADE (v2.38.0) ═════════════════════════════════════════════════════════
+ *
+ * O teto era só PORTE, e por isso era inerte em quem mais precisava dele: a reta satura em 320 g,
+ * o quadro mais pesado do catálogo tem 315 g, e a partir de 73 kg ele deixava de cortar qualquer
+ * coisa. Varridos 58 perfis, era inerte em 56.
+ *
+ * A pontuação também não compensava. Medida a cadeia: `ageFactor` (1.00 … 0.65) entra em
+ * `physical_capacity_score` com peso 0.14, que entra em `handlingCapacity` com 0.45 — 2,2 pontos de
+ * capacidade entre 25 e 72 anos, contra a zona morta de 13 de `physicalFit`. Em grade, 25a e 72a
+ * recebiam a MESMA raquete, o mesmo peso e a mesma inércia. A idade estava na fórmula e fora da
+ * decisão.
+ *
+ * O que estes testes trancam não são os coeficientes — são as três propriedades que fazem o fator
+ * ser um refinamento e não um veto etário.
+ */
+describe('o fator de capacidade', () => {
+  const corpo = { age: 62, weight_kg: 78, sex: 'masculino' as const };
+
+  /** Ele só APERTA. Nenhuma resposta pode liberar mais quadro do que o porte já autorizou. */
+  it('nunca afrouxa o teto de porte', () => {
+    const porte = frameWeightCeiling(corpo)!;
+    for (const fitness of ['sedentario', 'moderado', 'bom', 'atletico'] as const) {
+      for (const speed of ['lenta', 'moderada', 'rapida', 'muito_rapida'] as const) {
+        const teto = frameWeightCeiling({ ...corpo, fitness_level: fitness, swing_speed: speed })!;
+        expect(teto, `${fitness}/${speed} afrouxou o teto`).toBeLessThanOrEqual(porte);
+      }
+    }
+  });
+
+  /**
+   * IDADE NÃO É VETO — a propriedade que o pedido do dono do produto fixou nestes termos:
+   * "não necessariamente idade como veto".
+   *
+   * Um jogador de 62 anos com preparo bom e swing rápido tem de sair praticamente com o teto
+   * intacto. Quem chega ao limite de 10% chegou SOMANDO preparo e swing, que são medidas diretas
+   * que o questionário já faz — nunca pelo número da certidão.
+   */
+  it('idade sozinha quase não aperta; o que aperta é o que a pessoa respondeu sobre si', () => {
+    const emForma = frameWeightCeiling({ ...corpo, fitness_level: 'bom', swing_speed: 'rapida' })!;
+    const parado = frameWeightCeiling({ ...corpo, fitness_level: 'sedentario', swing_speed: 'lenta' })!;
+    const jovemParado = frameWeightCeiling({
+      ...corpo, age: 25, fitness_level: 'sedentario', swing_speed: 'lenta',
+    })!;
+
+    // O veterano em forma perde no máximo um degrau do catálogo.
+    expect(frameWeightCeiling(corpo)! - emForma).toBeLessThanOrEqual(8);
+    // E o sedentário de swing lento perde MUITO mais, aos 62 como aos 25.
+    expect(emForma - parado).toBeGreaterThan(15);
+    expect(jovemParado).toBeLessThan(emForma);
+  });
+
+  /**
+   * O silêncio não desconta — a mesma regra de `armSensitivity`.
+   *
+   * É o que mantém a reta de porte verificável isoladamente: quem chama a função só com um corpo
+   * recebe o teto de porte puro, e os casos de fronteira acima continuam medindo a reta, não o
+   * fator.
+   */
+  it('sem respostas sobre preparo e swing, o teto é o do porte', () => {
+    expect(frameWeightCeiling({ age: 30, weight_kg: 80, sex: 'masculino' })).toBe(
+      frameWeightCeiling({
+        age: 30, weight_kg: 80, sex: 'masculino',
+        fitness_level: 'bom', swing_speed: 'rapida',
+      }),
+    );
+  });
+
+  /**
+   * O PISO: o fator não pode apertar o teto até o ponto em que o catálogo não tem o que responder.
+   *
+   * Sem ele, a persona p07 (29 anos, 55 kg, sedentária, swing lento) recebia teto de 275 g,
+   * sobravam 3 quadros de 47, `CEILING_MIN_SURVIVORS` desligava o teto inteiro — e ela terminava
+   * com 285 g, acima do teto que o próprio relatório dela declarava. Um número que o motor não
+   * honra é pior que um teto mais frouxo.
+   */
+  it('nenhuma persona recebe quadro acima do teto que o relatório dela declara', () => {
+    for (const persona of PERSONAS) {
+      const profile = enrichProfileWithCatalog(
+        buildPlayerProfile(persona.answers), CATALOGO, CORDAS,
+      );
+      const teto = profile.frame_weight_ceiling_g;
+      if (teto === null) continue;
+
+      const r = recommend({
+        profile, rackets: CATALOGO, strings: CORDAS,
+        datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: false,
+      });
+      for (const e of r.podium) {
+        const g = e.racket.variant.specs.unstrung_weight_g;
+        if (g === null) continue;
+        expect(g, `${persona.id} — teto ${teto} g`).toBeLessThanOrEqual(teto);
+      }
+    }
+  });
+
+  /** E o piso nunca SOBE um teto: para um corpo pequeno, quem manda continua sendo a reta. */
+  it('o piso não levanta o teto de um corpo pequeno', () => {
+    const teto = frameWeightCeiling({
+      age: 10, weight_kg: 35, sex: 'feminino',
+      fitness_level: 'sedentario', swing_speed: 'lenta',
+    })!;
+    expect(teto).toBeLessThanOrEqual(frameWeightCeiling({ age: 10, weight_kg: 35, sex: 'feminino' })!);
+    expect(teto).toBeLessThan(280);
   });
 });

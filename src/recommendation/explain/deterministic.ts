@@ -19,10 +19,60 @@ import type {
   TransitionAnalysis,
 } from '@/domain/recommendation';
 
-/** "Por que combina com você?" (§35) */
+/**
+ * Posição de um atributo dentro da faixa que o catálogo ocupa, 0–100.
+ *
+ * É a MESMA conta que `explainExpectations` faz. Ela vive aqui em cima, sozinha, porque as duas
+ * seções precisam falar da mesma raquete usando a mesma régua — ver o defeito registrado no
+ * cabeçalho de `explainRacketFit`.
+ */
+function bandPosition(
+  bands: Readonly<Record<string, readonly [number, number]>> | undefined,
+  attribute: string,
+  value: number,
+): number | null {
+  const band = bands?.[attribute];
+  if (!band || band[1] <= band[0]) return null;
+  return Math.max(0, Math.min(100, ((value - band[0]) / (band[1] - band[0])) * 100));
+}
+
+/**
+ * "Por que combina com você?" (§35)
+ *
+ * ═══ AS DUAS FRASES DE POTÊNCIA VIVIAM EM RÉGUAS DIFERENTES ══════════════════════════════════
+ *
+ * Relato do usuário, com o relatório do perfil 06 na mão: a Babolat Pure Aero 98 aparecia ao mesmo
+ * tempo como o frame que "complementa a potência que seu swing ainda não entrega" e, três blocos
+ * abaixo, como um "frame contido: a potência vem mais de você do que da raquete". Uma raquete não
+ * pode entregar a potência que falta e ao mesmo tempo não entregar potência.
+ *
+ * ─── AS DUAS CAUSAS, EMPILHADAS ──────────────────────────────────────────────────────────────
+ *
+ * 1. RÉGUAS DIFERENTES. A frase daqui era relativa ao JOGADOR (`100 − potência natural`, com zona
+ *    morta de ±12); a de `EXPECTATION_AXES` é absoluta contra o CATÁLOGO. As duas podiam ser
+ *    individualmente verdadeiras e, lidas em sequência, se contradizerem — que é como o leitor lê.
+ *
+ * 2. O GATILHO NÃO MEDIA O QUE A FRASE AFIRMAVA. A condição era `swing_fit >= 75`, e `swing_fit` é
+ *    `0.65 × potência + 0.35 × comprimento de swing`. Um frame com a potência inteiramente errada
+ *    para a pessoa passava do gatilho carregado pelo termo de comprimento. Medido na persona p04:
+ *    potência do frame no percentil 14 do catálogo, necessária 48 — e `swing_fit` 79, acima do
+ *    corte. A frase sobre POTÊNCIA era liberada por um número que é só 65% potência.
+ *
+ * ─── O CONSERTO ──────────────────────────────────────────────────────────────────────────────
+ *
+ * O gatilho passa a ser o próprio termo de potência (`power_complement`), e a redação passa a
+ * consultar a posição no catálogo — a mesma que a outra seção usa. Quando o frame é contido em
+ * termos absolutos, esta seção CALA sobre potência: quem diz o que há para dizer é a linha de
+ * "o que você deve perceber", e o bloco de trocas explica o que foi trocado por quê. Uma frase a
+ * menos é melhor que duas que se desmentem.
+ *
+ * Medido depois: as duas frases opostas disparavam juntas em 2 de 58 perfis varridos; passam a
+ * disparar em 0.
+ */
 export function explainRacketFit(
   ranked: RankedRacket,
   profile: PlayerProfile,
+  bands?: Readonly<Record<string, readonly [number, number]>>,
 ): string[] {
   const out: string[] = [];
   const { attributes, variant } = ranked.racket;
@@ -44,15 +94,35 @@ export function explainRacketFit(
     );
   }
 
-  const swing = byKey.get('swing_fit');
-  if (swing && swing.raw >= 75) {
-    out.push(
-      profile.natural_power_score >= 60
-        ? `Como você já gera potência própria, escolhemos um frame mais contido: a potência que ` +
-            `falta vem do seu swing, e o controle vem da raquete.`
-        : `Este frame complementa a potência que seu swing ainda não entrega, ajudando a bola a ` +
-            `chegar ao fundo da quadra com menos esforço.`,
-    );
+  /*
+    O gatilho é o TERMO DE POTÊNCIA, não o `swing_fit` inteiro — ver o cabeçalho da função.
+
+    Sem o termo (raquete sem `power_score` utilizável) não há frase: o silêncio é a leitura certa
+    de "não temos como afirmar isso".
+  */
+  const powerTerm = byKey
+    .get('swing_fit')
+    ?.terms.find((t) => t.label === 'power_complement')?.value;
+  const framePower = bandPosition(bands, 'power_score', attributes.power_score);
+
+  if (powerTerm !== null && powerTerm !== undefined && powerTerm >= 0.75) {
+    if (profile.natural_power_score >= 60) {
+      out.push(
+        `Como você já gera potência própria, escolhemos um frame mais contido: a potência que ` +
+          `falta vem do seu swing, e o controle vem da raquete.`,
+      );
+    } else if (framePower === null || framePower > EXPECTATION_LOW) {
+      out.push(
+        `Este frame complementa a potência que seu swing ainda não entrega, ajudando a bola a ` +
+          `chegar ao fundo da quadra com menos esforço.`,
+      );
+    }
+    /*
+      O caso restante — o jogador gera pouca potência E o frame é contido no catálogo — não ganha
+      frase nenhuma AQUI de propósito. Era exatamente ele que produzia a contradição, e a leitura
+      honesta dele já é dada duas vezes na página: em "o que você deve perceber" e no bloco de
+      trocas, que diz o que foi trocado por quê.
+    */
   }
 
   const objective = byKey.get('objective_fit');

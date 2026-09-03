@@ -320,7 +320,162 @@ const CEILING_SEX_FACTOR: Record<string, number> = {
   prefiro_nao_dizer: 0.99,
 };
 
-export function frameWeightCeiling(a: Pick<QuestionnaireAnswers, 'age' | 'weight_kg' | 'sex'>): number | null {
+/**
+ * ═══ O TETO ERA SÓ PORTE — E ISSO O DEIXAVA INERTE EM QUEM MAIS PRECISAVA DELE ═══════════════
+ *
+ * Relato do usuário, olhando o relatório de um jogador de 62 anos: "o teto de 320 g chama atenção.
+ * Talvez não necessariamente idade como veto, mas idade + preparo + swing + histórico articular
+ * deveriam afetar o teto. 320 g de máximo me pareceu um pouco absurdo."
+ *
+ * Ele está certo, e a medição é pior que a intuição. A reta de porte satura em 320 g, e o quadro
+ * mais pesado do catálogo tem 315 g: a partir de 73 kg o teto DEIXA DE CORTAR QUALQUER COISA.
+ * Varrendo 58 perfis, o teto era inerte em 56 deles. Ou seja, para o adulto de porte médio para
+ * cima — que é a maior parte de quem responde — não havia teto nenhum, por mais sedentário, mais
+ * velho ou mais lesionado que ele fosse.
+ *
+ * E idade não compensava isso por dentro da pontuação. Medida a cadeia inteira: `ageFactor` varre
+ * 1.00 … 0.65, entra em `physical_capacity_score` com peso 0.14 e este entra em `handlingCapacity`
+ * com 0.45 — 35 × 0.14 × 0.45 = 2,2 pontos de capacidade entre um jogador de 25 e um de 72 anos.
+ * A zona morta de `physicalFit` é 13. Medido em grade: 25a e 72a, tudo o mais igual, recebiam a
+ * MESMA raquete, o mesmo peso (286,7 g) e a mesma inércia. A idade estava na fórmula e fora da
+ * decisão.
+ *
+ * ─── POR QUE DÉFICITS SOMADOS A PARTIR DO TÍPICO, E NÃO FATORES MULTIPLICADOS ────────────────
+ *
+ * A primeira versão multiplicava quatro fatores ancorados em 1.0 = melhor caso. Medido: o jogador
+ * MEDIANO (45 anos, preparo moderado, swing médio, sem dor) levava 0,946 e perdia 18 g sem ter
+ * nada de excepcional; e um sedentário de 62 anos com dor no cotovelo caía a 0,795 — teto de 254 g,
+ * ZERO raquetes sobreviventes. Sete das 22 personas trocavam de raquete, várias delas para pior.
+ * Fatores independentes multiplicados compõem, e compor quatro estimativas grosseiras produz um
+ * número que nenhuma delas justifica.
+ *
+ * Aqui cada resposta declara quanto ela TIRA do jogador típico, os déficits somam, e a soma é
+ * limitada. O típico fica em ~0,99 (praticamente sem teto, que é o correto); só quem acumula
+ * motivos chega ao limite.
+ *
+ * ─── E POR QUE O LIMITE É 10%, QUE PARECE POUCO ─────────────────────────────────────────────
+ *
+ * Porque em cima de 320 g, 10% são 32 g, e nesta faixa 32 g são metade do catálogo: um teto de
+ * 288 g deixa 15 das 47 raquetes de pé. O limite não é tímido, é o que a granularidade real do
+ * mercado transforma numa diferença grande. Medido nas 22 personas, 3 trocam de raquete — p04, p08
+ * e p19 —, e as três são exatamente as personas com histórico articular, saindo de quadros de
+ * 310–315 g para 300–305 g. Nenhuma persona sem histórico se move.
+ *
+ * ─── O QUE ESTE FATOR NÃO É ─────────────────────────────────────────────────────────────────
+ *
+ * Não é idade como veto. A idade sozinha, no extremo de 75 anos, tira 4% — 13 g sobre 320. Quem
+ * chega ao limite de 10% chegou somando preparo, swing e articulação, que são medidas DIRETAS que
+ * o questionário já faz. Isso é deliberado: usar a idade como proxy pesado de coisas que já foram
+ * perguntadas seria decidir pelo número da certidão contra as respostas da pessoa. Um jogador de
+ * 62 anos, preparo bom, swing rápido e sem dor sai daqui com fator 1,000 e teto intacto.
+ */
+const CEILING_AGE_FROM = 50;
+const CEILING_AGE_TO = 75;
+const CEILING_AGE_MAX_DEFICIT = 0.04;
+const CEILING_FITNESS_DEFICIT: Record<string, number> = {
+  sedentario: 0.04,
+  moderado: 0.01,
+  bom: 0,
+  atletico: 0,
+};
+const CEILING_SWING_DEFICIT: Record<string, number> = {
+  lenta: 0.03,
+  moderada: 0.005,
+  rapida: 0,
+  muito_rapida: 0,
+  nao_sei: 0.005,
+};
+const CEILING_MAX_DEFICIT = 0.1;
+
+/**
+ * ═══ O HISTÓRICO ARTICULAR FOI TESTADO AQUI E RETIRADO ═══════════════════════════════════════
+ *
+ * Ele estava no pedido — "idade + preparo + swing + histórico articular" — e foi implementado:
+ * 0.05 para dor atual, 0.02 para dor passada. Trocava a raquete de 3 das 22 personas, e as três
+ * eram exatamente as de histórico articular (p04, p08, p19), saindo de quadros de 310–315 g para
+ * 300–305 g. Parecia o efeito pretendido.
+ *
+ * Quem desmentiu foi `tests/property/determinism.test.ts`, com a invariante "aumentar a
+ * sensibilidade no braço nunca eleva um frame mais rígido": ela QUEBROU. A amigabilidade média do
+ * ranking CAIU quando a dor declarada subiu.
+ *
+ * A causa é física e está documentada em `comfortFit`: massa absorve choque. `arm_friendliness`
+ * carrega o peso com coeficiente +0.30, e neste catálogo todos os quadros amigáveis ao braço pesam
+ * 300–315 g — não existe frame leve, de cabeça grande e flexível. Baixar o teto de peso de quem
+ * tem dor no cotovelo REMOVE justamente os quadros que protegem o cotovelo.
+ *
+ * O erro conceitual foi tratar "dor" como se fosse "menos capacidade de carregar". São coisas
+ * diferentes: o que dói no cotovelo é o CHOQUE do impacto, e contra choque o quadro mais pesado é
+ * melhor, não pior. O que a dor de fato limita — rigidez, vibração — já é cobrado por `comfortFit`
+ * de forma contínua, e ali na direção certa.
+ *
+ * Fica registrado como decisão medida, e não como esquecimento: um teto de peso não é o
+ * instrumento certo para histórico articular, e implementá-lo aqui teria produzido exatamente a
+ * "recomendação sofisticada e fisicamente ruim" que este trabalho foi feito para evitar.
+ */
+
+/**
+ * Piso do teto: abaixo disto o catálogo não tem o que responder.
+ *
+ * O fator pode APERTAR o teto, mas não pode apertá-lo até o ponto em que sobram três raquetes. A
+ * distribuição real do catálogo: 3 quadros até 275 g, 8 até 280 g, 15 até 285 g. Abaixo de 280 g o
+ * ranking deixa de ser um ranking, e `CEILING_MIN_SURVIVORS` desligaria o teto inteiro — o perfil
+ * passaria a carregar um número que o motor não honra, que é pior do que um teto mais frouxo.
+ *
+ * Medido: sem este piso, a persona p07 (29 anos, 55 kg, sedentária, swing lento) recebia teto de
+ * 275 g, sobravam 3 quadros, a válvula desligava o teto e ela terminava com 285 g — acima do teto
+ * que o próprio relatório dela declarava.
+ *
+ * O piso NUNCA sobe um teto: ele é limitado pelo que o porte já disse. Um corpo de 35 kg continua
+ * com 270 g, porque para ele o 270 não veio do fator, veio da reta.
+ */
+const CEILING_FLOOR_G = 280;
+
+/**
+ * O porte é obrigatório; o resto é refinamento.
+ *
+ * Os campos do fator são OPCIONAIS de propósito. Quem chama com um corpo e mais nada — um teste de
+ * fronteira da reta, uma simulação de curadoria — recebe o teto de porte puro, que é a resposta
+ * certa para "quanto este corpo comporta". Cada resposta que aparece só pode APERTAR o teto, nunca
+ * afrouxá-lo, então a ausência delas é o caso mais permissivo e nunca produz um teto inseguro.
+ */
+type CeilingAnswers = Pick<QuestionnaireAnswers, 'age' | 'weight_kg' | 'sex'> &
+  Partial<Pick<QuestionnaireAnswers, 'fitness_level' | 'swing_speed'>>;
+
+/**
+ * Quanto o teto de porte é reduzido pelo que a pessoa respondeu sobre si. 0.90 … 1.00.
+ *
+ * Exportado porque é o número que o relatório precisa se algum dia for explicar o teto ao leitor,
+ * e porque é o que os testes medem — um fator que só existe dentro de outra função não pode ser
+ * verificado sem reconstruir o perfil inteiro.
+ */
+export function ceilingCapacityFactor(a: CeilingAnswers): number {
+  /*
+    Silêncio não desconta.
+
+    É a mesma regra de `armSensitivity` ("o desconto é resposta a uma resposta, nunca ao
+    silêncio"), e aqui ela tem uma consequência concreta: `frameWeightCeiling` é chamada em testes
+    de fronteira e em simulações de curadoria só com o corpo, e nesses casos ela precisa devolver o
+    teto de PORTE puro. Um déficit por campo ausente apertaria em 2% todo teto calculado sem
+    questionário, e a reta de porte deixaria de ser verificável isoladamente.
+  */
+  const idade =
+    a.age === null
+      ? 0
+      : clamp(
+          ((a.age - CEILING_AGE_FROM) / (CEILING_AGE_TO - CEILING_AGE_FROM)) *
+            CEILING_AGE_MAX_DEFICIT,
+          0,
+          CEILING_AGE_MAX_DEFICIT,
+        );
+
+  const preparo = CEILING_FITNESS_DEFICIT[a.fitness_level ?? ''] ?? 0;
+  const swing = CEILING_SWING_DEFICIT[a.swing_speed ?? ''] ?? 0;
+
+  return 1 - Math.min(CEILING_MAX_DEFICIT, idade + preparo + swing);
+}
+
+export function frameWeightCeiling(a: CeilingAnswers): number | null {
   // Sem peso não há reta. Inventar um corpo para poder limitar seria pior do que não limitar:
   // o teto viraria uma restrição sobre uma pessoa imaginária.
   if (a.weight_kg === null) return null;
@@ -329,7 +484,31 @@ export function frameWeightCeiling(a: Pick<QuestionnaireAnswers, 'age' | 'weight
     Math.min(CEILING_MAX_G, CEILING_BASE_G + CEILING_PER_KG * a.weight_kg) *
     (CEILING_SEX_FACTOR[a.sex ?? ''] ?? 1.0);
 
-  const teto = a.age !== null && a.age < 16 ? Math.min(porPorte, CEILING_UNDER_16_G) : porPorte;
+  /*
+    O porte diz quanto quadro o CORPO comporta; o fator diz quanto desse quadro a pessoa sustenta
+    hoje, com a idade, o preparo e o swing que ela declarou. São perguntas diferentes, e é por isso
+    que uma multiplica a outra em vez de as duas disputarem um `min`.
+  */
+  const comFator = Math.max(
+    porPorte * ceilingCapacityFactor(a),
+    Math.min(porPorte, CEILING_FLOOR_G),
+  );
+
+  /*
+    ═══ O LIMITE DOS 16 ANOS É APLICADO POR ÚLTIMO, E A ORDEM IMPORTA ══════════════════════════
+
+    Ele é um TETO DURO sobre osso em crescimento, não mais um termo a compor: não faz sentido
+    descontar preparo físico de um limite que existe porque a placa de crescimento está aberta.
+
+    E a ordem tem uma consequência que um teste pegou. O aviso de migração juvenil
+    (`buildJuniorTransitionNote`) distingue "jovem pequeno para o catálogo adulto" de "jovem já
+    grande" perguntando se o teto ficou abaixo de 300 g — um jovem grande tem o teto travado pela
+    REGRA ETÁRIA, exatamente em 300. Com o fator aplicado depois do `min`, um rapaz de 15 anos e
+    72 kg saía com 298 g e recebia um aviso de "talvez você ainda precise de raquete juvenil" que é
+    falso sobre ele. Aplicando o `min` por último, quem é travado pela idade fica cravado em 300 e
+    o aviso volta a distinguir o que se propõe a distinguir.
+  */
+  const teto = a.age !== null && a.age < 16 ? Math.min(comFator, CEILING_UNDER_16_G) : comFator;
 
   /*
     Arredonda PARA BAIXO, e não para o inteiro mais próximo.

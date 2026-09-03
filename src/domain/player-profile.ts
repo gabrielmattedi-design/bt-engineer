@@ -18,7 +18,7 @@ import type { Score } from './scores';
  * enriquecimento contra o catálogo, que não existia para cordas. Um perfil gravado a partir daqui
  * carrega a resposta real; os anteriores continuam com `null`, que é o que sempre foi.
  */
-export const PROFILE_VERSION = '1.1.0';
+export const PROFILE_VERSION = '1.2.0';
 
 export type SwingLength = 'short' | 'medium' | 'long' | 'unknown';
 

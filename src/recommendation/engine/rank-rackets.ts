@@ -487,10 +487,35 @@ function applyWeightCeiling(
         mentiria em outros, e a exclusão fica registrada na auditoria do admin: um motivo errado ali
         é pior do que um motivo genérico.
       */
+      /*
+        ═══ O MOTIVO PROMETIA UMA COISA E MEDIA OUTRA ══════════════════════════════════════════
+
+        Ele dizia: "o que ela ganha em estabilidade você perde em PREPARAÇÃO DE GOLPE". Preparação
+        de golpe é inércia — massa vezes o quadrado da distância dela até a mão —, e este filtro
+        não olha inércia nenhuma: ele compara gramas de balança.
+
+        Medido neste catálogo, as duas grandezas são praticamente independentes: a correlação entre
+        peso estático e `computeSwingIndex` nas 47 raquetes é r = 0,029. Na prática isso significa
+        que um teto em gramas exclui quadros MAIS FÁCEIS de girar do que outros que ele mantém. Com
+        teto de 301 g, a Wilson Clash 100 Pro (305 g, inércia 15,26e6 — a segunda menor do catálogo
+        inteiro) é cortada, enquanto a Wilson Clash 108 (280 g, 17,48e6 — a MAIOR de todas) passa.
+        A frase antiga descrevia esse corte como se ele protegesse a preparação do golpe. Ele faz o
+        contrário.
+
+        O que o peso estático de fato cobra é real e é outra coisa: sustentar o quadro no alto, e o
+        choque que chega ao braço no impacto. É isso, e só isso, que o motivo pode afirmar.
+
+        A preparação de golpe continua sendo cobrada — em `physicalFit`, de forma contínua, através
+        de `massIndex`, que é metade peso e metade inércia. Ali é o lugar certo: é uma troca com
+        grau, não uma linha de corte. Duplicar a cobrança aqui, num filtro duro que mede a grandeza
+        errada, é o que produziria a recomendação "sofisticada e fisicamente ruim".
+      */
       reason:
         `Quadro de ${peso(e)} g, acima do limite de ${teto} g que esta análise calcula para o seu ` +
-        'perfil físico. Acima desse peso a raquete cansa antes do fim do jogo, e o que ela ganha ' +
-        'em estabilidade você perde em preparação de golpe.',
+        'perfil físico. O que o peso na balança cobra é sustentar a raquete no alto durante a ' +
+        'partida inteira e absorver o choque do impacto — e acima desse limite a conta chega ' +
+        'antes do fim do jogo. (O esforço para GIRAR o quadro é outra medida, a inércia, e ela é ' +
+        'avaliada com grau na pontuação, não neste corte.)',
     }));
 
   return { kept, excluded };

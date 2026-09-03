@@ -1470,7 +1470,9 @@ function unlockedEntry(
     },
     indices: buildIndices(ranked, bands),
     tags: buildTags(ranked),
-    why: explainRacketFit(ranked, profile),
+    // As `bands` viajam junto porque a frase de potência daqui precisa da MESMA régua que
+    // `explainExpectations` usa — sem elas as duas seções se contradiziam. Ver `explainRacketFit`.
+    why: explainRacketFit(ranked, profile, bands),
     /*
       Os eixos já explicados como TROCA não voltam em "o que você deve perceber".
 
