@@ -339,13 +339,40 @@ describe('criação do checkout', () => {
       failureUrl: 'https://exemplo.com/planos/x',
       notificationUrl: 'https://exemplo.com/api/webhooks/payment',
       payerEmail: 'comprador@exemplo.com',
-      payerName: 'Gabriel',
+      payerName: 'Gabriel Mattedi',
     });
 
     const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
     expect(corpo.payer, 'a compra voltou a chegar ao gateway sem pagador').toBeDefined();
     expect(corpo.payer.email).toBe('comprador@exemplo.com');
     expect(corpo.payer.name).toBe('Gabriel');
+    expect(corpo.payer.surname, 'o sobrenome foi para o campo errado').toBe('Mattedi');
+  });
+
+  /** Só o primeiro nome informado não vira sobrenome inventado. */
+  it('não inventa sobrenome de quem digitou um nome só', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'pref_7', init_point: 'https://mp/c' }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await mercadoPagoProvider.createCheckout({
+      orderId: 'ord_1',
+      sku: 'racket_report',
+      productName: 'Relatório',
+      amountCents: 2999,
+      currency: 'BRL',
+      returnUrl: 'https://exemplo.com/retorno/x',
+      failureUrl: 'https://exemplo.com/planos/x',
+      notificationUrl: 'https://exemplo.com/api/webhooks/payment',
+      payerEmail: 'comprador@exemplo.com',
+      payerName: 'Ana',
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as Record<string, any>;
+    expect(corpo.payer.name).toBe('Ana');
+    expect(corpo.payer, 'sobrenome inventado é dado falso num campo de identidade').not.toHaveProperty('surname');
   });
 
   /** Campo vazio conta como dado ruim para a análise de risco — melhor não mandar o campo. */

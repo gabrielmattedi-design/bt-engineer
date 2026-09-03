@@ -159,6 +159,39 @@ describe('a volta do checkout', () => {
   });
 });
 
+/**
+ * ═══ A VOLTA DE UM PAGAMENTO RECUSADO ═══════════════════════════════════════════════════════
+ *
+ * A URL de falha traz a pessoa de volta a esta página, e o gateway acrescenta `status=rejected` ao
+ * endereço. A página ignorava esse parâmetro: quem teve o pagamento recusado via o mesmo card, o
+ * mesmo preço e o mesmo botão, sem uma linha dizendo o que aconteceu.
+ *
+ * A recusa que mostrou o tamanho disso foi real, e o painel do gateway explicava:
+ *
+ *   "Protegemos você de um pagamento suspeito. Recomende a seu cliente que pague com o meio de
+ *    pagamento e dispositivo que costuma usar para compras on-line."
+ *
+ * É antifraude, não é o cartão. Quem levou essa recusa acha que o problema é o cartão dela e tenta
+ * de novo com o mesmo — que é justamente o que costuma ser recusado outra vez. O PIX passa por
+ * fora dessa análise inteira, e ninguém tinha como saber disso.
+ */
+describe('a volta de um pagamento recusado', () => {
+  it('a página lê o status que o gateway devolve', () => {
+    expect(pagina, 'o parâmetro de status voltou a ser ignorado').toMatch(/collection_status/);
+    expect(pagina).toMatch(/status === 'rejected'/);
+  });
+
+  it('diz que nada foi cobrado e que costuma não ser o cartão', () => {
+    expect(pagina).toMatch(/O pagamento não foi aprovado/);
+    expect(pagina, 'falta dizer que nada foi cobrado').toMatch(/Nada foi\s*\n?\s*cobrado/);
+  });
+
+  /** O caminho com mais chance, e o único que não passa pela análise de risco do cartão. */
+  it('aponta o PIX como saída', () => {
+    expect(pagina, 'a mensagem não oferece alternativa nenhuma').toMatch(/PIX/);
+  });
+});
+
 describe('o Server Action', () => {
   /**
    * A guarda que a tela não substitui.

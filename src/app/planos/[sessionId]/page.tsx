@@ -42,10 +42,35 @@ export default async function PlanosPage({
   searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
-  searchParams: Promise<{ produto?: string }>;
+  searchParams: Promise<{ produto?: string; status?: string; collection_status?: string }>;
 }) {
   const { sessionId } = await params;
-  const { produto } = await searchParams;
+  const { produto, status, collection_status } = await searchParams;
+
+  /**
+   * ═══ QUEM VOLTA DE UM PAGAMENTO RECUSADO CHEGAVA AQUI SEM UMA PALAVRA ══════════════════════
+   *
+   * A URL de falha do checkout devolve a pessoa a esta página, e o Mercado Pago acrescenta
+   * `status=rejected` ao endereço. A página ignorava esse parâmetro: quem teve o cartão recusado
+   * via o mesmo card, o mesmo preço e o mesmo botão, como se nada tivesse acontecido.
+   *
+   * O caso que mostrou o tamanho disso foi uma recusa real, com esta mensagem no painel:
+   *
+   *   "Protegemos você de um pagamento suspeito. Recomende a seu cliente que pague com o meio de
+   *    pagamento e dispositivo que costuma usar para compras on-line."
+   *
+   * É o antifraude — não é limite, não é cartão inválido, não é erro de digitação. A pessoa que
+   * levou essa recusa acredita que o problema é o cartão dela, e tentar de novo com o MESMO cartão
+   * é justamente o que costuma ser recusado de novo. Sem uma linha explicando, a venda acaba ali:
+   * ela não sabe que o PIX passa por fora dessa análise inteira.
+   *
+   * O texto não promete que vai dar certo e não culpa o banco de ninguém. Diz o que aconteceu e
+   * qual é o caminho com mais chance.
+   */
+  const pagamentoRecusado =
+    status === 'rejected' ||
+    status === 'failure' ||
+    collection_status === 'rejected';
 
   const stored = await loadRecommendation(sessionId);
   if (!stored) notFound();
@@ -167,6 +192,25 @@ export default async function PlanosPage({
           Avaliamos {stored.result.candidates_evaluated} raquetes contra o seu perfil.
           {inviteOnly ? ' Veja abaixo o que cada plano abre.' : ' Escolha o que você quer ver.'}
         </p>
+
+        {/* Ver `pagamentoRecusado` acima para o caso que este bloco fecha. */}
+        {pagamentoRecusado && (
+          <div className="mt-8 rounded border-l-2 border-warn bg-warn/5 px-5 py-4">
+            <p className="font-semibold">O pagamento não foi aprovado.</p>
+            <p className="mt-2 max-w-prose text-sm leading-relaxed text-graphite">
+              Na maioria das vezes isso não é problema com o seu cartão: o Mercado Pago recusa
+              automaticamente compras que fogem do padrão de quem está comprando — cartão pouco
+              usado naquele aparelho, primeira compra no site, duas compras seguidas. Nada foi
+              cobrado.
+            </p>
+            <p className="mt-2 max-w-prose text-sm leading-relaxed text-graphite">
+              O caminho com mais chance é o <strong>PIX</strong>, que não passa por essa análise e
+              cai na hora. Pagar pelo aparelho e pelo cartão que você já usa em outras compras
+              on-line também costuma resolver. Se preferir tentar o mesmo cartão de novo, espere
+              alguns minutos — tentativas seguidas tendem a ser recusadas de novo.
+            </p>
+          </div>
+        )}
 
         {/*
           Fase de convidados: o campo de código vem PRIMEIRO e os planos viram informação.

@@ -253,6 +253,14 @@ function assinaturaConfere(
   return 'hash-nao-confere';
 }
 
+/** Separa o nome informado nos dois campos que o gateway espera. Ver o uso, em `payer`. */
+function nomeESobrenome(completo: string | null): { name?: string; surname?: string } {
+  const partes = (completo ?? '').trim().split(/\s+/).filter((p) => p.length > 0);
+  const [primeiro, ...resto] = partes;
+  if (primeiro === undefined) return {};
+  return resto.length > 0 ? { name: primeiro, surname: resto.join(' ') } : { name: primeiro };
+}
+
 export const mercadoPagoProvider: PaymentProvider = {
   id: 'mercadopago',
 
@@ -310,7 +318,15 @@ export const mercadoPagoProvider: PaymentProvider = {
           ? {
               payer: {
                 ...(input.payerEmail !== null ? { email: input.payerEmail } : {}),
-                ...(input.payerName !== null ? { name: input.payerName } : {}),
+                /*
+                  O gateway guarda nome e sobrenome em campos separados, e quem informou o nome
+                  completo tem os dois. Mandar "Ana Souza" inteiro em `name` deixa `surname` vazio
+                  — um campo a menos para a análise de risco, sem nenhum ganho em troca.
+
+                  Quem digitou só o primeiro nome fica sem `surname`, que é o correto: inventar um
+                  sobrenome seria dado falso num campo que existe para conferir identidade.
+                */
+                ...nomeESobrenome(input.payerName),
               },
             }
           : {}),
