@@ -650,7 +650,8 @@ export function buildSeparation(
       brands_tied: brands,
       verdict: 'disputado',
       message:
-        `${tied} das ${sobreviventes} raquetes que sobraram para o seu perfil ficaram tecnicamente empatadas com a 1ª — de ${evaluated} analisadas. É um ` +
+        `Analisamos ${evaluated} raquetes contra o seu perfil e ${sobreviventes} passaram por tudo ` +
+        `o que você pediu. Dessas, ${tied} ficaram tecnicamente empatadas com a 1ª. É um ` +
         'grupo pequeno e bem definido: dentro dele a escolha é de preferência, mas ficar fora dele ' +
         `custa compatibilidade de verdade.${frasePorMarca}`,
     };
@@ -674,8 +675,9 @@ export function buildSeparation(
     brands_tied: brands,
     verdict: 'indiferente',
     message:
-      `${tied} das ${sobreviventes} raquetes que sobraram para o seu perfil ficaram tecnicamente empatadas com a 1ª — de ${evaluated} analisadas — ` +
-      `${Math.round(share * 100)}% do catálogo. Isso não é indecisão da análise: é o resultado ` +
+      `Analisamos ${evaluated} raquetes contra o seu perfil e ${sobreviventes} passaram por tudo ` +
+      `o que você pediu. Dessas, ${tied} ficaram tecnicamente empatadas com a 1ª — ` +
+      `${Math.round(share * 100)}% delas. Isso não é indecisão da análise: é o resultado ` +
       'dela. Seu perfil físico e seu swing se dão bem com uma faixa larga de quadros, e nessa ' +
       'faixa trocar de raquete muda pouco. O que ainda muda bastante para você é a CORDA e a ' +
       `TENSÃO — e essas custam uma fração do preço de um quadro novo.${frasePorMarca}`,
