@@ -11,6 +11,7 @@
  * — um relatório pago não pode viver em `/tmp`.
  */
 
+import { unansweredIn, visibleSteps } from '@/components/quiz/steps';
 import { randomUUID } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { isMissingTable } from '@/database/setup';
@@ -62,9 +63,52 @@ export type AnalysisResponse =
  * Roda a análise completa. Retorna apenas o TEASER — o resultado fica no servidor até haver
  * entitlement (§32). O nome da raquete nunca chega ao cliente nesta etapa (§27).
  */
+/**
+ * ═══ AS RESPOSTAS OBRIGATÓRIAS SÃO CONFERIDAS AQUI TAMBÉM ════════════════════════════════════
+ *
+ * O formulário já impede avançar com pergunta obrigatória em branco, e isso bastava enquanto a
+ * única porta era a tela. Não é: `analyzeAnswers` é um Server Action, e um POST direto entra sem
+ * passar por botão nenhum — o mesmo princípio que o checkout já registrava ("esconder é decisão de
+ * tela, e tela é o que menos protege").
+ *
+ * O que entrava por essa fresta não era detalhe. Sem `weight_kg` não existe reta de porte, e sem ela
+ * `frameWeightCeiling` devolve `null`: a única proteção DURA sobre a massa do quadro desaparece.
+ * Uma varredura de mil perfis achou o caso extremo — menino de 10 anos, 1,32 m, sem peso informado,
+ * recebendo um quadro adulto de 300 g. Aquele defeito foi consertado do lado do motor (o limite dos
+ * 16 anos deixou de depender do peso), mas o buraco de entrada continuava aberto para todo o resto:
+ * sem idade não há fator de capacidade, sem altura o porte fica cego.
+ *
+ * ─── A REGRA É A MESMA FUNÇÃO QUE A TELA USA ────────────────────────────────────────────────
+ *
+ * `isAnswered` sobre `visibleSteps`, exatamente como o formulário faz. Uma segunda lista de campos
+ * obrigatórios mantida à mão divergiria da primeira na próxima pergunta que alguém acrescentasse —
+ * e divergiria em silêncio, porque as duas só se encontram em produção. Assim, por construção, o
+ * servidor não recusa nada que a tela teria deixado passar.
+ *
+ * A checagem respeita `showIf`: quem marcou "não tenho raquete" não é cobrado pelas perguntas sobre
+ * a raquete atual, porque elas nem estão visíveis para ele.
+ */
+function respostasFaltando(answers: QuestionnaireAnswers): string[] {
+  return visibleSteps(answers)
+    .flatMap((step) => unansweredIn(step, answers))
+    .map((q) => q.title);
+}
+
 export async function analyzeAnswers(
   answers: QuestionnaireAnswers,
 ): Promise<AnalysisResponse> {
+  const faltando = respostasFaltando(answers);
+  if (faltando.length > 0) {
+    return {
+      ok: false,
+      reason: 'not_ready',
+      message:
+        faltando.length === 1
+          ? `Falta responder: ${faltando[0]}.`
+          : `Faltam ${faltando.length} respostas obrigatórias, começando por: ${faltando[0]}.`,
+    };
+  }
+
   // Camada 5 (opcional): texto livre → sinais. Falha ou ausência de chave devolve [].
   const signals = answers.free_text
     ? await extractFreeText(answers.free_text, { answeredFields: [] })

@@ -35,6 +35,28 @@ export type Question =
       readonly key: keyof QuestionnaireAnswers;
       readonly title: string;
       readonly help?: string;
+      /**
+       * O valor guardado é o NÚMERO da escolha, não o texto dela.
+       *
+       * ═══ O DEFEITO QUE ISTO FECHA ══════════════════════════════════════════════════════════
+       *
+       * `frequency_per_week` está declarada `number | null` em answers.ts, o motor faz conta com
+       * ela — `norm(a.frequency_per_week ?? 1, 0, 4)` em dois lugares — e as 20 personas de
+       * src/data/personas.ts guardam números. Mas a pergunta é de escolha única, e escolha única
+       * guardava a string do botão: o formulário escrevia `'3'` num campo tipado `number`, com um
+       * `as` no meio calando o compilador.
+       *
+       * Funcionava por coincidência: `('3' - 0) / 4` dá 0.75 em JavaScript. A conta certa pelo
+       * motivo errado. O tipo declarado era mentira para todo usuário real, e a mentira só
+       * apareceu quando a varredura de mil perfis — que gera números, como as personas — passou a
+       * ser conferida contra a validação de obrigatórias: 1000 de 1000 perfis seriam recusados
+       * por `frequency_per_week`, porque `isAnswered` exigia string.
+       *
+       * Com esta marca a escolha vira número na hora de guardar, o tipo passa a ser verdade, e a
+       * conta deixa de depender de coerção implícita. `isAnswered` aceita os dois formatos: os
+       * rascunhos gravados antes desta mudança continuam contando como respondidos.
+       */
+      readonly numeric?: true;
       readonly choices: readonly Choice[];
     }
   | {
@@ -221,6 +243,8 @@ export const STEPS: readonly Step[] = [
       {
         kind: 'single',
         key: 'frequency_per_week',
+        // Botões em vez de slider (a faixa é curta e discreta), mas o valor guardado é número.
+        numeric: true,
         title: 'Quantas vezes por semana você joga?',
         choices: [
           /*
@@ -850,7 +874,16 @@ export function isAnswered(question: Question, answers: QuestionnaireAnswers): b
   const value = answers[question.key];
 
   switch (question.kind) {
+    /*
+      Duas formas contam como respondida, e as duas são legítimas.
+
+      Escolha única normalmente guarda a string do botão. As marcadas `numeric` guardam o número
+      (ver o tipo `Question`) — e um rascunho começado antes dessa mudança guarda a string mesmo
+      numa pergunta `numeric`. Exigir só uma das formas apagaria a resposta de alguém no meio do
+      questionário, ou recusaria no servidor um perfil que a tela já deu por completo.
+    */
     case 'single':
+      if (typeof value === 'number') return Number.isFinite(value);
       return typeof value === 'string' && value.length > 0;
     case 'multi':
       return Array.isArray(value) && value.length > 0;

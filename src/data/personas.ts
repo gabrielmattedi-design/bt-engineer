@@ -401,6 +401,19 @@ export const PERSONAS: readonly Persona[] = [
   persona('p15', 'Todos os "não sei"', 'Preenche o mínimo — confiança deve ser baixa', {
     ...emptyAnswers(),
     age: 30,
+    /*
+      Altura e peso entraram porque "o mínimo" mudou de significado.
+
+      Esta persona nasceu para representar quem sabe pouco sobre o próprio jogo, e deixava as duas
+      em branco junto com todo o resto. Depois que idade, altura e peso passaram a ser obrigatórios
+      — na tela e no Server Action —, esse perfil deixou de ser "quem responde pouco" e virou um
+      perfil que o produto RECUSA: uma persona modelando um usuário que não consegue existir.
+
+      Ela continua sendo o caso de confiança baixa pelo motivo certo: todos os "não sei" que
+      sobraram são de perguntas em que "não sei" é resposta legítima.
+    */
+    height_cm: 175,
+    weight_kg: 74,
     perceived_level: 'intermediario',
     swing_speed: 'nao_sei',
     swing_length: 'nao_sei',

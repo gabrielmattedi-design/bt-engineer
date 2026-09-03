@@ -67,6 +67,7 @@ import { recommend, enrichProfileWithCatalog, buildCatalogScale } from '@/recomm
 import { serializeRecommendation, type Entitlement } from '@/payments/entitlements';
 import { MIN_TOP_MATCH, TECHNICAL_TIE_THRESHOLD } from '@/domain/reference-ranges';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
+import { STEPS, visibleSteps, unansweredIn } from '@/components/quiz/steps';
 
 const rackets = scoreRackets(loadRacketCatalog());
 const strings = loadStringCatalog();
@@ -97,12 +98,81 @@ const TECNICA: Record<string, readonly [string,string,string,string,string]> = {
   intermediario_avancado: ['sim','sim','as_vezes','sim','as_vezes'],
   avancado: ['sim','sim','sim','sim','sim'],
 };
-const ESTILOS = ['baseline','aggressive_baseliner','counterpuncher','heavy_spin','flat_hitter','all_court','serve_and_volley','net_player'];
-const OBJETIVOS = ['potencializar','ganhar_potencia','ganhar_controle','mais_spin','atacar_mais','mais_conforto','mais_estabilidade','mais_facil','mais_exigente'];
-const FALTA = ['power','control','spin','stability','comfort','maneuverability','precision'];
-const DORES = ['cotovelo','ombro','punho'];
+/**
+ * As opções vêm do questionário, não de uma cópia escrita à mão aqui.
+ *
+ * A lista de estilos era `['baseline','aggressive_baseliner','counterpuncher','heavy_spin',
+ * 'flat_hitter','all_court','serve_and_volley','net_player']` — nomes em inglês, de uma versão
+ * antiga da pergunta. A pergunta hoje oferece `dominar_fundo`, `muito_topspin`, `subir_rede` e
+ * companhia. SETE dos oito valores sorteados não existiam: a varredura vinha medindo, em quase
+ * todos os mil perfis, um estilo de jogo que o motor descartava em silêncio.
+ *
+ * Copiar uma lista que vive em outro arquivo é o defeito; ler a lista de lá é o conserto.
+ */
+function opcoes(key: keyof QuestionnaireAnswers): readonly string[] {
+  for (const step of STEPS) {
+    for (const q of step.questions) {
+      if (q.key !== key) continue;
+      if (q.kind === 'single' || q.kind === 'multi') return q.choices.map((c) => c.value);
+    }
+  }
+  throw new Error(`${key} não é pergunta de escolha no questionário`);
+}
+
+const ESTILOS = opcoes('play_style');
+const OBJETIVOS = opcoes('objective');
+const FALTA = opcoes('missing_attributes');
+const TENDENCIAS = opcoes('ball_tendency');
+/* "nenhum" é tratado à parte: é a resposta de quem NÃO tem dor, e o sorteio de dor vem antes. */
+const DORES = opcoes('discomfort_areas').filter((v) => v !== 'nenhum');
 
 export type Sim = { readonly n: number; readonly answers: QuestionnaireAnswers };
+
+/**
+ * ═══ O SORTEADOR TEM DE PRODUZIR RESPOSTAS QUE O QUESTIONÁRIO ACEITARIA ═══════════════════════
+ *
+ * O objeto sorteado sai com `as QuestionnaireAnswers`, e o `as` cala o compilador. Foi assim que
+ * dois valores inventados ficaram anos rodando sem ninguém ver: `experience_duration: 'menos_1a'`
+ * (a pergunta oferece `menos_6m` e `6_12m`) e `tournament_experience: 'federados'` (oferece
+ * `regionais` e `competitivo`). O motor não reconhece nenhum dos dois, cai no padrão, e a
+ * varredura reporta cobertura de um caminho que usuário nenhum consegue percorrer.
+ *
+ * Esta conferência fecha a porta pelos dois lados, e de propósito contra as MESMAS funções que a
+ * tela e o Server Action usam:
+ *
+ *   • todo valor de escolha tem de estar entre as opções declaradas da pergunta;
+ *   • todo campo obrigatório VISÍVEL tem de estar respondido — senão a varredura mede um perfil
+ *     que `analyzeAnswers` recusaria, que é o que aconteceu quando a obrigatoriedade de idade,
+ *     altura e peso passou a valer no servidor.
+ *
+ * Ela lança em vez de acumular falha: não é um achado sobre o produto, é o instrumento de medição
+ * descalibrado, e um instrumento descalibrado invalida tudo o que for medido depois dele.
+ */
+function conferirContraOQuestionario(answers: QuestionnaireAnswers, n: number): void {
+  for (const step of visibleSteps(answers)) {
+    const faltando = unansweredIn(step, answers);
+    if (faltando.length > 0) {
+      throw new Error(
+        `perfil ${n}: o produto recusaria estas respostas — falta "${faltando[0]!.title}"`,
+      );
+    }
+
+    for (const q of step.questions) {
+      if (q.kind !== 'single' && q.kind !== 'multi') continue;
+      const validos = new Set(q.choices.map((c) => c.value));
+      const valor = answers[q.key];
+      const usados = Array.isArray(valor) ? valor : valor === null ? [] : [valor];
+      for (const v of usados) {
+        if (!validos.has(String(v))) {
+          throw new Error(
+            `perfil ${n}: "${String(v)}" não é opção de ${q.key} — o questionário oferece ` +
+              `${[...validos].join(', ')}`,
+          );
+        }
+      }
+    }
+  }
+}
 
 export function gerar(quantos: number): Sim[] {
   const out: Sim[] = [];
@@ -182,9 +252,9 @@ export function gerar(quantos: number): Sim[] {
           current_racket_id: CATALOGO_IDS[Math.floor(r() * CATALOGO_IDS.length)]!,
           ...(r() < 0.7
             ? {
-                current_string_type: pick(['co_polyester','polyamide_monofilament','natural_gut','nao_sei'] as const),
+                current_string_type: pick(opcoes('current_string_type')),
                 current_tension_lbs: entre(44, 58),
-                current_tension_feeling: pick(['muito_solta','confortavel','muito_dura','nao_sei'] as const),
+                current_tension_feeling: pick(opcoes('current_tension_feeling')),
               }
             : {}),
         }
@@ -195,44 +265,66 @@ export function gerar(quantos: number): Sim[] {
       answers: {
         ...emptyAnswers(),
         dominant_hand: r() < 0.88 ? 'destro' : 'canhoto',
+        /*
+          Idade, altura e peso são OBRIGATÓRIOS, e agora também do lado do servidor.
+
+          Esta varredura já os deixou em branco em 8% dos perfis, para exercitar o caminho "sem
+          teto". Ele existia e produziu um achado real — criança de 10 anos recebendo quadro adulto
+          de 300 g. O conserto foi nos dois lados: o limite dos 16 anos deixou de depender do peso,
+          e `analyzeAnswers` passou a recusar respostas obrigatórias em branco.
+
+          Com a porta fechada, sortear esses campos vazios testaria um estado que o produto não
+          aceita mais — cobertura falsa, do mesmo tipo que os perfis impossíveis. O sexo continua em
+          branco às vezes porque ele É opcional no questionário, e "prefiro não dizer" é resposta.
+        */
         age: idade,
-        // Em parte dos perfis a pessoa não informa altura/peso — e aí não há teto a calcular.
-        height_cm: r() < 0.92 ? altura : null,
-        weight_kg: r() < 0.92 ? peso : null,
+        height_cm: altura,
+        weight_kg: peso,
         sex: r() < 0.94 ? sexo : 'prefiro_nao_dizer',
         perceived_strength: forca,
         fitness_level: preparo,
         // Quem joga mais é, em média, quem está em nível mais alto.
         frequency_per_week: Math.max(0, Math.min(5, entre(0, 3) + Math.round(iNivel / 2))),
+        /*
+          `menos_6m` e `regionais` vêm das opções REAIS da pergunta.
+
+          Aqui estavam `menos_1a` e `federados`, que o questionário nunca ofereceu e o motor não
+          reconhece — o `as QuestionnaireAnswers` lá embaixo escondia os dois. A conferência em
+          `conferirContraOQuestionario` agora quebra a varredura se isso voltar a acontecer.
+        */
         experience_duration: coerente
-          ? (['menos_1a','1_2a','2_5a','mais_5a','mais_5a'] as const)[iNivel]!
-          : pick(['menos_1a','1_2a','2_5a','mais_5a'] as const),
-        has_lessons: pick(['nunca','ja_fiz','atualmente'] as const),
-        plays_matches: pick(['nao','as_vezes','sim'] as const),
-        tournament_experience: pick(['nunca','amadores','federados'] as const),
+          ? (['menos_6m','1_2a','2_5a','mais_5a','mais_5a'] as const)[iNivel]!
+          : pick(opcoes('experience_duration')),
+        has_lessons: pick(opcoes('has_lessons')),
+        plays_matches: pick(opcoes('plays_matches')),
+        tournament_experience: pick(opcoes('tournament_experience')),
         perceived_level: nivel,
         can_sustain_rally: rally, can_direct_ball: dir, can_generate_spin: spin,
         can_vary_depth: prof, reliable_second_serve: saque,
-        play_style: r() < 0.82 ? [pick(ESTILOS)] : [],
-        forehand_type: r() < 0.8 ? pick(['plano','topspin_moderado','topspin_acentuado','nao_sei'] as const) : null,
-        backhand_hands: pick(['uma_mao','duas_maos'] as const),
-        swing_length: pick(['curto','medio','longo'] as const),
+        play_style: [pick(ESTILOS)],
+        forehand_type: pick(opcoes('forehand_type')),
+        backhand_hands: pick(opcoes('backhand_hands')),
+        swing_length: pick(opcoes('swing_length')),
         swing_speed: swing,
-        depth_control: r() < 0.85 ? pick(['sim','as_vezes','nao'] as const) : null,
-        ball_tendency: [pick(['nenhuma','saem_longas','caem_curtas','variam_demais'])],
+        depth_control: pick(opcoes('depth_control')),
+        ball_tendency: [pick(TENDENCIAS)],
         discomfort_areas: temDor ? [pick(DORES)] : ['nenhum'],
         ...(temDor ? {
           discomfort_status: r() < 0.5 ? 'atual' : 'passado',
-          discomfort_intensity: pick(['leve','moderado','forte'] as const),
-          discomfort_from_tennis: pick(['sim','nao'] as const),
+          /* Só aparece quando a dor é PASSADA, e aí é obrigatória — faltava, e o produto recusaria. */
+          discomfort_when: pick(opcoes('discomfort_when')),
+          discomfort_intensity: pick(opcoes('discomfort_intensity')),
+          discomfort_from_tennis: pick(opcoes('discomfort_from_tennis')),
         } : {}),
         ...atual,
-        missing_attributes: falta,
+        // `missing_attributes` é opcional no questionário: não pedir nada é resposta legítima.
+        missing_attributes: r() < 0.9 ? falta : [],
         objective: [pick(OBJETIVOS)],
-        string_budget: pick(['economico','equilibrado','premium'] as const),
-        string_breakage: pick(['nunca','raramente','a_cada_2_3_meses','mensalmente','semanalmente'] as const),
+        string_budget: pick(opcoes('string_budget')),
+        string_breakage: pick(opcoes('string_breakage')),
       } as QuestionnaireAnswers,
     });
+    conferirContraOQuestionario(out[out.length - 1]!.answers, n);
   }
   return out;
 }

@@ -320,15 +320,30 @@ function QuestionField({
 
       <div className="mt-5 space-y-2">
         {question.kind === 'single' &&
-          question.choices.map((choice) => (
+          question.choices.map((choice) => {
+            /*
+              A comparação é por texto de propósito.
+
+              Numa pergunta `numeric` o estado guarda o número 3 e o botão carrega a string '3';
+              num rascunho começado antes da marca `numeric`, guarda a string. `String(value)`
+              acerta os dois — `value === choice.value` deixaria o botão certo sem destaque, e a
+              pessoa clicaria de novo achando que não pegou.
+            */
+            const selecionado = value !== null && value !== undefined && String(value) === choice.value;
+            return (
             <button
               key={choice.value}
               type="button"
-              aria-pressed={value === choice.value}
+              aria-pressed={selecionado}
               onClick={() =>
-                onSet(question.key, choice.value as QuestionnaireAnswers[typeof question.key])
+                onSet(
+                  question.key,
+                  (question.numeric
+                    ? Number(choice.value)
+                    : choice.value) as QuestionnaireAnswers[typeof question.key],
+                )
               }
-              className={cn('choice', value === choice.value && 'choice-selected')}
+              className={cn('choice', selecionado && 'choice-selected')}
             >
               <span className="flex-1">
                 <span className="font-medium">{choice.label}</span>
@@ -337,7 +352,8 @@ function QuestionField({
                 )}
               </span>
             </button>
-          ))}
+            );
+          })}
 
         {question.kind === 'multi' &&
           question.choices.map((choice) => {
