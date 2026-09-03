@@ -13,6 +13,7 @@ import {
   LIMITE_JANELA_MINUTOS,
 } from '@/database/repositories/throttle-repo';
 import { withAutoBootstrap } from '@/database/setup';
+import { resetFunnel } from '@/database/repositories/funnel-repo';
 
 /**
  * Quantos palpites de senha cabem numa janela de 15 minutos.
@@ -147,4 +148,46 @@ export async function saveVerification(
 
   revalidatePath('/admin/verificacao');
   return { ok: true, product_name: variant.product_name };
+}
+
+/**
+ * A palavra que precisa ser digitada para zerar a medição.
+ *
+ * Um clique num botão vermelho é uma questão de tempo até acontecer sem querer, e este é o tipo de
+ * estrago que não aparece na hora: o painel volta a mostrar zeros, o que é exatamente o esperado
+ * logo depois de zerar de propósito. Ninguém desconfia. A falta só aparece semanas depois, quando
+ * alguém procura a comparação com o período anterior e ela não existe mais.
+ *
+ * A palavra é em português e é a própria ação. Não é senha — é atrito deliberado, o suficiente
+ * para que o dedo não faça sozinho o que a cabeça não decidiu.
+ */
+const CONFIRMACAO_ZERAR = 'ZERAR';
+
+/**
+ * Zera o funil e as origens de tráfego — ver `resetFunnel` para o que sai e o que fica.
+ *
+ * A autenticação é revalidada AQUI e não só na página, pelo mesmo motivo de `saveVerification`:
+ * uma Server Action é um endpoint HTTP e pode ser chamada direto, sem passar por renderização
+ * nenhuma. Numa ação destrutiva, a diferença entre conferir na tela e conferir aqui é a diferença
+ * entre uma proteção e a aparência de uma.
+ */
+export async function resetarFunil(
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ error: string } | { ok: true; marcos: number; origens: number }> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const confirmacao = String(formData.get('confirmacao') ?? '').trim().toUpperCase();
+  if (confirmacao !== CONFIRMACAO_ZERAR) {
+    return { error: `Digite ${CONFIRMACAO_ZERAR} para confirmar. Nada foi apagado.` };
+  }
+
+  try {
+    const { marcos, origens } = await withAutoBootstrap(() => resetFunnel());
+    revalidatePath('/admin/funil');
+    return { ok: true, marcos, origens };
+  } catch (error) {
+    console.error('[admin] falha ao zerar o funil', error);
+    return { error: 'O banco recusou a limpeza. Nada foi apagado — confira o log do servidor.' };
+  }
 }

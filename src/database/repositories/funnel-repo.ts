@@ -4,6 +4,7 @@ import { and, eq, gte, sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '../client';
 import { funnelMarkers } from '../schema/funnel';
 import { anonymousSessions } from '../schema/sessions';
+import { visitorCampaigns } from '../schema/campaigns';
 
 /**
  * Registro e leitura do funil — §16 da lista de lançamento.
@@ -256,4 +257,53 @@ export function computeQuizDropoff(
       lostHere: proxima === null ? 0 : Math.max(0, reached - proxima),
     };
   });
+}
+
+/**
+ * ZERA A MEDIÇÃO — e nada além dela.
+ *
+ * ═══ POR QUE ISTO EXISTE ═════════════════════════════════════════════════════════════════════
+ *
+ * Pedido do dono na véspera do lançamento: "consegue zerar agora o funil, para eu ter real ideia
+ * do público quando lançar?"
+ *
+ * A razão é boa e a conta é simples. Todo marco gravado até aqui é dele mesmo testando — dezenas
+ * de questionários respondidos, pagamentos aprovados e recusados, telas abertas e reabertas. Um
+ * funil que soma o dono ao público não mede o público: ele mede os dois juntos, e a taxa de
+ * conversão que sai daí não serve para decidir nada. Pior, ela ENGANA na direção otimista, porque
+ * quem testa completa o fluxo inteiro muito mais do que um visitante real.
+ *
+ * ═══ O QUE ELA APAGA, E O QUE ELA NÃO ENCOSTA ════════════════════════════════════════════════
+ *
+ * Apaga `funnel_markers` e `visitor_campaigns` — as duas tabelas de MEDIÇÃO, e as duas juntas de
+ * propósito: a origem do tráfego é lida ao lado do funil no mesmo painel, e zerar uma sem a outra
+ * deixaria o painel comparando um período com outro na mesma tela.
+ *
+ * NÃO encosta em `orders`, `recommendation_sessions`, `entitlements`, `users` nem `coupons`. As
+ * compras de teste continuam existindo, os relatórios continuam abrindo pelos links já enviados, e
+ * quem tem acesso continua tendo. Zerar métrica não pode apagar venda — são coisas de natureza
+ * diferente, e confundir as duas seria destruir o registro fiscal de uma operação para limpar um
+ * gráfico.
+ *
+ * ═══ POR QUE NÃO TEM VOLTA, E O QUE ISSO EXIGE DE QUEM CHAMA ═════════════════════════════════
+ *
+ * O cabeçalho deste arquivo já diz: abandono é ausência de dado, "ou se grava no momento, ou se
+ * perde para sempre". O mesmo vale ao contrário — apagado, não há de onde reconstruir. Não existe
+ * backup destas linhas em lugar nenhum do produto.
+ *
+ * Por isso a tela que chama isto exige confirmação DIGITADA, e não um clique. Um botão vermelho
+ * num painel que alguém abre todo dia é uma questão de tempo até ser clicado sem querer — e o
+ * estrago só apareceria semanas depois, quando alguém procurasse a comparação com o mês anterior.
+ *
+ * Devolve quantas linhas saíram de cada tabela, para a tela poder dizer o que de fato aconteceu em
+ * vez de um "pronto" que não prova nada.
+ */
+export async function resetFunnel(): Promise<{ marcos: number; origens: number }> {
+  if (!isDatabaseConfigured()) return { marcos: 0, origens: 0 };
+
+  const conn = db();
+  const marcos = await conn.delete(funnelMarkers).returning({ id: funnelMarkers.id });
+  const origens = await conn.delete(visitorCampaigns).returning({ id: visitorCampaigns.id });
+
+  return { marcos: marcos.length, origens: origens.length };
 }

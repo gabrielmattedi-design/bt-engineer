@@ -5,6 +5,7 @@ import { funnelReport, funnelStartedAt, quizDropoff } from '@/database/repositor
 import { dataCurta } from '@/lib/datas';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { withAutoBootstrap } from '@/database/setup';
+import { ResetFunnelForm } from './reset-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -324,6 +325,9 @@ export default async function FunilPage({
             )}
           </ul>
         </div>
+
+        {/* O único controle destrutivo do painel. Ver `reset-form.tsx` para as duas travas. */}
+        <ResetFunnelForm />
       </div>
     </main>
   );
