@@ -256,3 +256,70 @@ describe('o botão', () => {
     expect(botao).toMatch(/Cabeçalhos e rodapés/);
   });
 });
+
+/**
+ * ═══ O DEGRAU DO PÓDIO NÃO PODE CORTAR TEXTO ═════════════════════════════════════════════════
+ *
+ * O pódio já teve três formas, e as duas primeiras falharam de maneiras opostas. Vale registrar as
+ * três porque cada conserto parecia óbvio e produziu o defeito seguinte.
+ *
+ *   1. BASE alinhada + altura MÍNIMA decrescente. O degrau some quando o texto cresce: os três
+ *      passam do próprio mínimo, empatam de altura e o pódio sai reto.
+ *
+ *   2. TOPO alinhado + recuo fixo + altura mínima. Conserta o degrau e quebra a base — `min-height`
+ *      é um mínimo, e basta um card estourar o dele para o pé descer sozinho.
+ *
+ *   3. BASE alinhada + altura FIXA decrescente, com `overflow-y-auto` como válvula. Na tela o
+ *      excedente rolava; no PAPEL não existe rolagem, e a válvula virou tesoura. Foi o que o dono
+ *      do produto viu no PDF: a terceira tag do 1º card cortada ao meio, e o texto do 3º truncado.
+ *      Uma tag pela metade é pior do que qualquer desalinhamento.
+ *
+ * A forma que funciona não mede a caixa por fora: as três ESTICAM até a mesma altura e o degrau vem
+ * de um recuo ACIMA de cada uma. O recuo é fixo, então o topo escalona sempre; a caixa cresce com o
+ * conteúdo, então a base continua alinhada e nada é cortado.
+ *
+ * Verificado num navegador, em modo de impressão, sobre os 10 perfis simulados: bases idênticas,
+ * topos estritamente decrescentes e `scrollHeight === clientHeight` nos 30 cards. O que este teste
+ * tranca é a REGRA que faz isso valer — as três marcas cuja ausência devolveria um dos defeitos.
+ */
+describe('o pódio impresso', () => {
+  const podio = readFileSync(
+    join(ROOT, 'src', 'components', 'result', 'podium.tsx'),
+    'utf8',
+  );
+  const codigo = semComentarios(podio);
+
+  /** Sem `items-stretch` as caixas voltam a ter alturas independentes e a base se desfaz. */
+  it('as três caixas esticam até a mesma altura', () => {
+    expect(codigo, 'o grid do pódio deixou de esticar as caixas').toContain('sm:items-stretch');
+  });
+
+  /**
+   * O degrau tem de ser RECUO, não altura. Uma altura precisa adivinhar o tamanho do conteúdo e
+   * corta quando erra; um recuo não tem opinião sobre o conteúdo.
+   */
+  it('o degrau é recuo acima da caixa, não altura da caixa', () => {
+    const steps = /const STEPS = \{[\s\S]*?\} as const;/.exec(codigo)?.[0] ?? '';
+    expect(steps, 'não achei a tabela de degraus').not.toBe('');
+    expect(steps, 'o degrau voltou a ser altura fixa').not.toMatch(/sm:h-\[/);
+    expect(steps, 'o degrau voltou a ser altura mínima').not.toMatch(/sm:min-h-\[/);
+    expect(steps, 'o degrau deixou de ser recuo').toMatch(/sm:pt-/);
+  });
+
+  /**
+   * `overflow` de rolagem na CAIXA é a tesoura do papel. Se algum dia o conteúdo estourar de novo,
+   * a resposta é deixar a caixa crescer — nunca esconder o excedente.
+   *
+   * A checagem é sobre o `<article>`, e não sobre o arquivo inteiro, porque existe um
+   * `overflow-hidden` legítimo mais abaixo: ele recorta o BORRÃO decorativo do card bloqueado, que
+   * não tem texto de relatório embaixo. Proibir a palavra no arquivo todo proibiria o recorte certo
+   * junto com o errado.
+   */
+  it('a caixa do card não esconde o próprio conteúdo', () => {
+    const article = /<article\s+className=\{cn\(([\s\S]*?)\)\}/.exec(codigo)?.[1] ?? '';
+    expect(article, 'não achei as classes do card').not.toBe('');
+    expect(article, 'voltou o overflow que cortava o texto na impressão').not.toMatch(/overflow/);
+    // E ela cresce até preencher o que sobra abaixo do recuo — é o que alinha as bases.
+    expect(article, 'a caixa deixou de esticar').toMatch(/flex-1/);
+  });
+});
