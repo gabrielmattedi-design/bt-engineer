@@ -1131,14 +1131,87 @@ export function selectPodium(
   const podium: RankedRacket[] = [];
   const familiesUsed = new Set<string>();
 
+  /**
+   * ═══ QUANDO A 1ª É A RAQUETE ATUAL E ELA ESTÁ ACIMA DO TETO ════════════════════════════════
+   *
+   * A raquete atual é isenta do teto de peso em `applyWeightCeiling` — ela é referência do
+   * relatório, e sumir com ela esconderia justamente a comparação que explica o teto. Só que a
+   * isenção a mantém no RANKING, e do ranking ela pode sair em 1º lugar. Aí a análise passa a
+   * recomendar um quadro que ela própria calculou ser pesado demais para aquele corpo.
+   *
+   * Numa varredura de 1000 perfis isso acontece em 68 deles. O pior encontrado:
+   *
+   *     #748 — 15 anos, 1,48 m, 43 kg, teto 288 g
+   *            venceu a Wilson Blade 98 18×20 de 305 g — a atual, 17 g acima do teto
+   *            match 71,5% (abaixo do piso de 75) e percentil 9 em spin, com spin declarado
+   *            como prioridade nº 1
+   *
+   * ─── A DECISÃO: NEM EXCLUIR, NEM REBAIXAR ──────────────────────────────────────────────────
+   *
+   * Do dono, escolhendo uma terceira saída entre as duas que eu havia proposto:
+   *
+   *   "não excluiria nem rebaixaria automaticamente a raquete atual. Deixaria ela vencer, mas
+   *    mudaria a natureza da recomendação (...) E o pódio comercial deveria mostrar a melhor
+   *    alternativa dentro do teto imediatamente abaixo."
+   *
+   * Está certo, e por um motivo que nenhuma das minhas duas propostas alcançava: o número é
+   * verdadeiro. Aquela raquete REALMENTE obteve o maior match técnico, e rebaixá-la faria o
+   * relatório mentir sobre o próprio cálculo para proteger uma regra. Excluí-la esconderia da
+   * pessoa que o quadro que ela já usa é, tecnicamente, o que melhor a atende.
+   *
+   * O que muda é o que a 1ª colocada SIGNIFICA — dito em texto, em `buildCurrentAboveCeilingNote`
+   * — e o que vem logo abaixo dela.
+   *
+   * ─── O QUE ESTA FUNÇÃO GARANTE ─────────────────────────────────────────────────────────────
+   *
+   * Que a 2ª posição seja a melhor alternativa DENTRO do teto. Em quase todos os casos ela já
+   * seria: o teto removeu do ranking tudo o que o excede, menos a atual. Mas dois caminhos furam
+   * isso, e os dois aparecem na varredura:
+   *
+   *   • a diversidade de família pula a melhor alternativa quando ela é da mesma família da atual
+   *     — e a atual é exatamente o quadro que a pessoa não deveria manter;
+   *   • o teto pode ter AFROUXADO (menos de `CEILING_MIN_SURVIVORS` sobreviventes), e aí sobram no
+   *     ranking outros quadros acima dele.
+   *
+   * Nos dois casos a 2ª posição deixaria de ser uma alternativa de verdade, e é ela que carrega
+   * todo o peso da recomendação neste cenário.
+   */
+  const teto = profile.frame_weight_ceiling_g;
+  const atualId = profile.current_racket?.variant_id ?? null;
+  const acimaDoTeto = (e: RankedRacket): boolean => {
+    const g = e.racket.variant.specs.unstrung_weight_g;
+    return teto !== null && g !== null && g > teto;
+  };
+
+  const primeiro = ranking[0];
+  const topoAcimaDoTeto =
+    primeiro !== undefined &&
+    atualId !== null &&
+    primeiro.racket.variant.id === atualId &&
+    acimaDoTeto(primeiro);
+
+  /** A melhor dentro do teto, ignorando a diversidade de família — é a alternativa comercial. */
+  const alternativa = topoAcimaDoTeto
+    ? ranking.find((e) => e !== primeiro && !acimaDoTeto(e))
+    : undefined;
+
   for (const entry of ranking) {
     if (podium.length >= 3) break;
+
+    /* Ela entra na 2ª posição pelo bloco abaixo; aqui seria repetida. */
+    if (alternativa !== undefined && entry === alternativa) continue;
 
     const familyKey = `${entry.racket.variant.brand}::${entry.racket.variant.family}`;
     if (familiesUsed.has(familyKey) && !wantsWeightChange) continue;
 
     familiesUsed.add(familyKey);
     podium.push({ ...entry, rank: podium.length + 1 });
+
+    if (alternativa !== undefined && podium.length === 1) {
+      const fam = `${alternativa.racket.variant.brand}::${alternativa.racket.variant.family}`;
+      familiesUsed.add(fam);
+      podium.push({ ...alternativa, rank: 2 });
+    }
   }
 
   return podium;

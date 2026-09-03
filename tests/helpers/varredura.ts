@@ -388,8 +388,20 @@ export function auditar(sims: readonly Sim[]): { falhas: Falha[]; stats: Record<
         violações de uma vez. Nenhuma era defeito do produto — todas eram buraco na regra:
 
         1. A RAQUETE ATUAL É ISENTA do teto, e de propósito: excluí-la impediria o relatório de
-           dizer onde o quadro da própria pessoa ficou. Se ela vence, a recomendação é "fique com a
-           sua", que não faz mal a ninguém por mais pesada que seja.
+           dizer onde o quadro da própria pessoa ficou.
+
+           ─── MAS A ISENÇÃO TEM PREÇO, E ESTA REGRA COBRA ────────────────────────────────────
+
+           A primeira versão desta nota dizia que a atual vencendo "não faz mal a ninguém por mais
+           pesada que seja". Estava errada, e a varredura mostrou onde: em 68 dos 1000 perfis a
+           atual vencia ACIMA do teto, e o relatório recomendava, calado, um quadro que ele mesmo
+           tinha calculado ser pesado demais. O pior caso — #748, 15 anos, 1,48 m, 43 kg, teto de
+           288 g — vencia com um quadro de 305 g, match 71,5% e percentil 9 em spin, com spin
+           declarado como prioridade nº 1.
+
+           A isenção continua, porque o número é verdadeiro. O que passou a ser exigido é o que
+           acompanha a isenção: a nota que diz que aquele quadro está acima da faixa (verificada na
+           regra 9), e uma 2ª colocada DENTRO do teto — a alternativa de verdade.
 
         2. O TETO AFROUXA quando o catálogo não tem quadros leves o bastante: ficam os seis mais
            leves, e o limite efetivo passa a ser o 6º mais leve — 280 g neste catálogo. Um teto de
@@ -410,6 +422,39 @@ export function auditar(sims: readonly Sim[]): { falhas: Falha[]; stats: Record<
         }
       }
       if (teto > 320) add('teto acima do limite da reta', n, `${teto} g`);
+
+      /*
+        ═══ 9. A ISENÇÃO DA ATUAL VEM ACOMPANHADA — NÃO É SILÊNCIO ═════════════════════════════
+
+        Quando a 1ª colocada é a raquete atual e ela excede o teto, duas coisas têm de existir, e
+        são as duas metades da decisão registrada em `selectPodium`: o texto que muda a natureza da
+        recomendação, e uma 2ª colocada que caiba no teto. Sem o texto, o relatório recomenda em
+        silêncio um quadro que ele próprio reprovou. Sem a 2ª dentro do teto, ele levanta o
+        problema e não oferece saída.
+      */
+      const primeira = res.podium[0];
+      const pesoPrimeira = primeira?.racket.variant.specs.unstrung_weight_g ?? null;
+      const primeiraEhAtual =
+        primeira !== undefined && atual !== undefined && primeira.racket.variant.id === atual.variant.id;
+
+      if (primeiraEhAtual && pesoPrimeira !== null && pesoPrimeira > teto) {
+        const aviso = (payloadCedo as { current_above_ceiling?: string | null })
+          .current_above_ceiling;
+        if (!aviso) {
+          add('atual acima do teto vence SEM aviso', n, `${pesoPrimeira} g contra teto ${teto} g`);
+        }
+        const segunda = res.podium[1];
+        const pesoSegunda = segunda?.racket.variant.specs.unstrung_weight_g ?? null;
+        if (segunda === undefined) {
+          add('atual acima do teto sem alternativa', n, `pódio de ${res.podium.length}`);
+        } else if (pesoSegunda !== null && pesoSegunda > tetoEfetivo) {
+          add(
+            'alternativa à atual também acima do teto',
+            n,
+            `2ª tem ${pesoSegunda} g contra teto efetivo ${tetoEfetivo} g`,
+          );
+        }
+      }
     }
 
     // 4. Ranking monotônico.

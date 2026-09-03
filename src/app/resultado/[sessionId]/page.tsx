@@ -190,6 +190,21 @@ export default async function ResultadoPage({
               </p>
             )}
 
+            {/* ── A 1ª É A RAQUETE ATUAL, E ELA ESTÁ ACIMA DO TETO ──────────────
+                No mesmo lugar e pelo mesmo motivo que o aviso de match baixo: ele muda o que a
+                primeira posição SIGNIFICA, e lido depois do headline chegaria tarde — a conclusão
+                do leitor já se formou no número grande logo acima.
+
+                Aqui a recomendação não deixa de valer; ela passa a ter uma condição. Ver
+                `buildCurrentAboveCeilingNote`.
+            */}
+            {report.current_above_ceiling && (
+              <p className="mt-4 max-w-prose rounded border-l-2 border-warn bg-warn/5 px-4 py-3
+                            text-sm leading-relaxed">
+                {report.current_above_ceiling}
+              </p>
+            )}
+
             <p className="mt-4 text-sm text-graphite">{report.headline}</p>
 
             {/* ── PESO NA BALANÇA × ESFORÇO NA MÃO ─────────────────────

@@ -395,6 +395,13 @@ export type ReportPayload = {
    */
   readonly low_match_note: string | null;
   /**
+   * A 1ª colocada é a raquete que a pessoa JÁ USA, e ela está acima do teto de peso do perfil.
+   *
+   * Ver `buildCurrentAboveCeilingNote` e o bloco correspondente em `selectPodium`. `null` sempre
+   * que a 1ª não é a atual, ou quando a atual cabe no teto — o caso normal.
+   */
+  readonly current_above_ceiling: string | null;
+  /**
    * Aviso de migração juvenil, para menores de 16 anos ainda pequenos para o catálogo adulto.
    *
    * Ver `buildJuniorTransitionNote`. `null` para todo o resto, que é a quase totalidade.
@@ -1130,6 +1137,76 @@ function buildLowMatchNote(
     'as que avaliamos, e a corda e a tensão abaixo foram calculadas para o seu caso — elas ajustam ' +
     'dentro da faixa que o quadro permite, e nesse cenário é onde há mais a ganhar. Se puder, ' +
     'experimente as três do pódio em quadra antes de decidir.'
+  );
+}
+
+/**
+ * A 1ª COLOCADA É A RAQUETE ATUAL, E ELA ESTÁ ACIMA DO TETO — §62.
+ *
+ * ═══ O CASO ═════════════════════════════════════════════════════════════════════════════════
+ *
+ * A raquete atual é isenta do teto de peso: ela é referência do relatório, não candidata, e
+ * removê-la esconderia da pessoa a comparação que explica o teto. A isenção a mantém no ranking, e
+ * do ranking ela pode sair em 1º. Quando isso acontece, a análise recomenda um quadro que ela
+ * mesma calculou ser pesado demais para aquele corpo — e recomenda em silêncio.
+ *
+ * 68 de 1000 perfis sintéticos. O pior: 15 anos, 1,48 m, 43 kg, teto de 288 g, vencendo a Blade 98
+ * 18×20 de 305 g com 71,5% de match e percentil 9 em spin — spin era a prioridade nº 1.
+ *
+ * ═══ POR QUE O TEXTO, E NÃO UM REBAIXAMENTO ═════════════════════════════════════════════════
+ *
+ * Decisão do dono, e ela é melhor que as duas alternativas que eu havia proposto:
+ *
+ *   "Deixaria ela vencer, mas mudaria a natureza da recomendação: Sua raquete atual obteve o maior
+ *    match técnico, mas está acima da faixa de peso indicada para seu perfil. Por isso, não
+ *    recomendamos mantê-la sem avaliar em quadra fadiga, manobrabilidade e conforto."
+ *
+ * O número é verdadeiro — aquele quadro obteve mesmo o maior match. Rebaixá-lo faria o relatório
+ * mentir sobre o próprio cálculo para salvar uma regra, e excluí-lo esconderia da pessoa que a
+ * raquete que ela já tem é, tecnicamente, a que melhor a atende. O que precisa mudar é o
+ * SIGNIFICADO da primeira posição: ela deixa de ser "compre esta" e passa a ser "esta é a que mais
+ * combina, e há uma condição a verificar antes de ficar com ela".
+ *
+ * Três coisas o texto faz de propósito:
+ *
+ *   • nomeia as três coisas a avaliar em quadra — fadiga, manobrabilidade e conforto —, que são
+ *     exatamente o que o peso acima do teto ameaça, e não uma ressalva genérica;
+ *   • dá o número em gramas, porque "acima da faixa" sem quantidade não deixa ninguém decidir: 2 g
+ *     acima e 32 g acima pedem reações diferentes, e as duas acontecem;
+ *   • aponta para a 2ª colocada pelo nome, porque `selectPodium` garante que ela seja a melhor
+ *     alternativa DENTRO do teto. Sem esse fecho o aviso levanta um problema e não oferece saída.
+ *
+ * Não pede desculpa e não promete conserto: a condição é física, e quem decide se ela pesa é quem
+ * vai jogar.
+ */
+function buildCurrentAboveCeilingNote(
+  result: RecommendationResult,
+  profile: PlayerProfile,
+): string | null {
+  const first = result.podium[0];
+  const teto = profile.frame_weight_ceiling_g;
+  const atualId = profile.current_racket?.variant_id ?? null;
+  if (!first || teto === null || atualId === null) return null;
+  if (first.racket.variant.id !== atualId) return null;
+
+  const peso = first.racket.variant.specs.unstrung_weight_g;
+  if (peso === null || peso <= teto) return null;
+
+  const excesso = Math.round(peso - teto);
+  const segunda = result.podium[1];
+
+  return (
+    `A sua raquete atual, a ${first.racket.variant.product_name}, obteve o maior match técnico ` +
+    `desta análise — mas ela está acima da faixa de peso indicada para o seu perfil: ${peso} g ` +
+    `contra um limite calculado de ${teto} g, ${excesso} g a mais. Por isso não recomendamos ` +
+    `mantê-la sem avaliar em quadra três coisas que o peso extra é justamente o que ameaça: ` +
+    `fadiga ao longo de um jogo inteiro, manobrabilidade em bolas rápidas e em cima do corpo, e ` +
+    `conforto no braço depois de algumas horas. Se as três estiverem bem, o número acima vale ` +
+    `pelo que diz e ficar com ela é uma escolha defensável.` +
+    (segunda
+      ? ` Se qualquer uma delas incomodar, a ${segunda.racket.variant.product_name} é a melhor ` +
+        `opção dentro do seu limite de peso, e é ela que aparece logo abaixo.`
+      : '')
   );
 }
 
@@ -1917,6 +1994,7 @@ export function serializeRecommendation(
     */
     weight_reading: buildWeightReading(result, profile, first),
     low_match_note: buildLowMatchNote(result, profile),
+    current_above_ceiling: buildCurrentAboveCeilingNote(result, profile),
     junior_transition: buildJuniorTransitionNote(profile),
     radar: buildRadar(
       profile,
