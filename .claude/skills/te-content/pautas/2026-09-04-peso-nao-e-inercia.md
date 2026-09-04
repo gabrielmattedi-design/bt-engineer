@@ -42,12 +42,24 @@
 
 | | Quando | Arte | Sticker por cima |
 |---|---|---|---|
-| 1 | junto com o post | **Você sabe o peso da sua raquete.** · [`DAHUMJQrGd8`](https://www.canva.com/d/ulLJHb2DjOEXNlf) | **Enquete:** o quanto o peso prevê o esforço no 3º set — Quase tudo / Mais ou menos / Quase nada |
+| 1 | junto com o post | **Você sabe o peso da sua raquete.** · [`DAHUMJQrGd8`](https://www.canva.com/d/ulLJHb2DjOEXNlf) | **Quiz** (não enquete): "Quanto o peso prevê o esforço?" — Quase tudo / Boa parte / Metade / **Quase nada** ✓ |
 | 2 | ~4h depois | **39 das 47 custam mais pra girar** · [`DAHUMFVpq4w`](https://www.canva.com/d/qJGgWHXasX0NCV6) | **Sticker do post** |
 | 3 | dia seguinte | **Qual raquete você usa hoje?** · [`DAHUMNSqL_E`](https://www.canva.com/d/AmZyJ3XgWulHQ3e) | **Caixa de pergunta** |
 
 Cada arte deixa a faixa de 1000 a 1650 vazia — é onde o sticker entra. Story sem
 sticker não tem motivo para existir.
+
+**Quiz, e não enquete, no Story 1.** A enquete devolve porcentagem; o quiz tem
+resposta certa e revela no toque. Quem acha que sabe escolhe "Quase tudo", recebe o
+erro na hora e passa a querer o post — que é justamente o público que a pauta foi
+reescrita para alcançar. "Quase nada" fica por último, depois de três opções
+plausíveis, porque quem lê rápido escolhe entre as primeiras.
+
+**O intervalo entre stories não cria suspense.** Stories do mesmo perfil ficam numa
+bolha só: quem abre à noite vê o 1 e o 2 colados, como se tivessem sido postados
+juntos. O que o intervalo faz de verdade é devolver o perfil ao começo da fila de
+stories — duas aparições em vez de uma. Já o Story 3 no dia seguinte tem outra
+função: é o dia SEM post, e sem ele o perfil parece parado.
 
 ---
 
@@ -61,7 +73,20 @@ Todo número desta pauta saiu de `scripts/fatos.ts`, contra o catálogo ao vivo.
 | **39** delas têm mais inércia que alguma ≥ **10 g** mais pesada | `[catálogo]` | slide 04, story 2, legenda |
 | r(peso, inércia) = 0,029 — "praticamente zero" | `[catálogo]` | slide 04 |
 | distância conta ao quadrado | `[física]` | slide 03 |
-| a que resiste mais cobra mais no terceiro set | `[heurística]` | slide 06 |
+| a que resiste mais cobra mais no terceiro set | `[heurística]` | slide 06, quiz do story 1 |
+
+**Se alguém contestar nos comentários** — e esta pauta foi feita para provocar quem
+acha que sabe, então alguém vai:
+
+- *"Peso importa sim."* Ele tem razão, e não contradiz nada. A afirmação nunca foi
+  "peso não importa"; foi "o número sozinho não prevê o esforço". Concordar com a
+  parte em que ele está certo vale mais que ganhar a discussão.
+- *"Qual a fonte?"* O nosso catálogo de 47 raquetes. O índice de inércia é derivado
+  de peso × balanço — **nunca chamar de swingweight**, que é medição de laboratório
+  que não temos (`limites.md` §1).
+- A linha entre medido e interpretado: que o peso não prevê a INÉRCIA é medição
+  (`r = 0,029`). Que mais inércia cansa mais no terceiro set é heurística nossa, e
+  a copy diz isso.
 
 **Duas frases que NÃO entraram, e por quê.** "Duas raquetes de 300 g cansam de
 formas completamente diferentes" era a manchete óbvia — e o catálogo não sustenta:
