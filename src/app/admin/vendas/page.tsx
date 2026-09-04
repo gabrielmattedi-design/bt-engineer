@@ -1,14 +1,58 @@
-import { redirect } from 'next/navigation';
-import { AdminNav } from '../nav';
-import { isAuthenticated } from '../auth';
-import { LANCAMENTO, vendasDesde } from '@/database/repositories/commerce-repo';
-import { registrarAcessoAVendas } from '@/database/repositories/support-repo';
-import { withAutoBootstrap } from '@/database/setup';
-import { Wordmark } from '@/components/marketing/wordmark';
-import { brl } from '@/payments/catalogo';
-import { dataCurta, dataLonga, hora } from '@/lib/datas';
+import { redirect } from "next/navigation";
+import { AdminNav } from "../nav";
+import { isAuthenticated } from "../auth";
+import {
+  LANCAMENTO,
+  vendasDesde,
+  type Vendas,
+} from "@/database/repositories/commerce-repo";
+import { registrarAcessoAVendas } from "@/database/repositories/support-repo";
+import { withAutoBootstrap } from "@/database/setup";
+import { Wordmark } from "@/components/marketing/wordmark";
+import { brl } from "@/payments/catalogo";
+import { dataCurta, dataLonga, hora } from "@/lib/datas";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
+/**
+ * Descreve a falha em português, sem esconder o que o banco disse.
+ *
+ * ═══ POR QUE ESTA TELA MOSTRA O ERRO TÉCNICO ═════════════════════════════════════════════════
+ *
+ * Esta página quebrou em produção duas vezes seguidas, e as duas vezes a única informação
+ * disponível foi `Digest: 1292406898` — um hash que só faz sentido cruzado com o log da Vercel. O
+ * diagnóstico virou dedução a partir do código, e a primeira dedução estava errada: consertei uma
+ * comparação de data que de fato estava fora do padrão da casa, o dono recarregou, e voltou o
+ * MESMO digest. Digest igual é erro igual; eu tinha consertado outra coisa.
+ *
+ * O projeto já tinha aprendido isso uma vez, em `planos/actions.ts`: "a tela dizia apenas
+ * digest: 1191712468", e a saída foi devolver frase em português em vez de deixar o erro morrer no
+ * servidor. A lição não tinha chegado ao admin.
+ *
+ * Aqui é ainda mais seguro fazê-lo: a página inteira está atrás de `isAuthenticated()`, então o
+ * único leitor possível é o dono. Esconder dele o motivo da falha não protege ninguém — só
+ * transforma cada erro numa investigação por dedução, que é exatamente o que custou duas rodadas.
+ *
+ * O `code` do Postgres vem junto porque é ele que separa as causas: `42P01` tabela que não existe,
+ * `42703` coluna que não existe, `42883` função ou operador com tipos incompatíveis. As três
+ * pedem consertos diferentes e são indistinguíveis pela mensagem em inglês.
+ */
+function descreverFalha(error: unknown): string {
+  const partes: string[] = [];
+  let atual: unknown = error;
+
+  for (let nivel = 0; nivel < 5 && atual; nivel += 1) {
+    if (typeof atual !== "object" || atual === null) break;
+    const e = atual as { code?: string; message?: string; cause?: unknown };
+    const linha = [e.code ? `[${e.code}]` : null, e.message ?? String(atual)]
+      .filter(Boolean)
+      .join(" ");
+    if (linha && !partes.includes(linha)) partes.push(linha);
+    atual = e.cause;
+  }
+
+  return partes.length > 0 ? partes.join(" ← ") : String(error);
+}
 
 /**
  * `/admin/vendas` — gestão.
@@ -34,22 +78,34 @@ export const dynamic = 'force-dynamic';
  * Ver `vendasDesde` para o porquê do corte.
  */
 export default async function VendasPage() {
-  if (!(await isAuthenticated())) redirect('/admin');
+  if (!(await isAuthenticated())) redirect("/admin");
 
-  const vendas = await withAutoBootstrap(async () => {
-    const v = await vendasDesde(LANCAMENTO);
-    /*
-      O acesso é registrado como qualquer consulta de atendimento.
+  let vendas: Vendas | null = null;
+  let falha: string | null = null;
 
-      Não é desconfiança do dono: é que a senha do admin pode um dia estar com mais alguém, e um
-      painel que abre a lista de clientes sem deixar rastro não tem como responder "quem viu isso,
-      e quando". O registro aparece na própria tela de atendimento, onde ele é lido.
-    */
-    await registrarAcessoAVendas(v.itens.length);
-    return v;
-  });
+  try {
+    vendas = await withAutoBootstrap(async () => {
+      const v = await vendasDesde(LANCAMENTO);
+      /*
+        O acesso é registrado como qualquer consulta de atendimento.
 
-  const total = vendas.itens.reduce((soma, v) => soma + v.amountCents, 0);
+        Não é desconfiança do dono: é que a senha do admin pode um dia estar com mais alguém, e um
+        painel que abre a lista de clientes sem deixar rastro não tem como responder "quem viu
+        isso, e quando". O registro aparece na própria tela de atendimento, onde ele é lido.
+      */
+      await registrarAcessoAVendas(v.itens.length);
+      return v;
+    });
+  } catch (error) {
+    // Vai para o log da Vercel TAMBÉM, com prefixo procurável — a tela resolve o diagnóstico
+    // imediato, o log resolve o histórico.
+    console.error("[admin/vendas] falha ao carregar as vendas:", error);
+    falha = descreverFalha(error);
+  }
+
+  const total = vendas
+    ? vendas.itens.reduce((soma, v) => soma + v.amountCents, 0)
+    : 0;
 
   return (
     <main className="min-h-screen bg-paper">
@@ -64,27 +120,50 @@ export default async function VendasPage() {
 
         <h1 className="font-display text-2xl font-semibold">Vendas</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">
-          Pagamentos confirmados desde o lançamento, em {dataLonga(vendas.desde)} às{' '}
-          {hora(vendas.desde)}. Acesso por cupom não aparece aqui — não é venda, e tem contador
-          próprio em Códigos de acesso.
+          Pagamentos confirmados desde o lançamento, em {dataLonga(LANCAMENTO)}{" "}
+          às {hora(LANCAMENTO)}. Acesso por cupom não aparece aqui — não é
+          venda, e tem contador próprio em Códigos de acesso.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-8 border-y border-line py-4">
-          <div>
-            <div className="font-display text-3xl font-semibold tabular-nums">
-              {vendas.itens.length}
-            </div>
-            <div className="text-xs uppercase tracking-wide text-graphite">
-              {vendas.itens.length === 1 ? 'pedido pago' : 'pedidos pagos'}
-            </div>
+        {falha !== null && (
+          <div className="mt-6 rounded border border-warn/40 bg-warn/5 p-5">
+            <h2 className="font-display text-base font-semibold text-warn">
+              Não consegui carregar as vendas
+            </h2>
+            <p className="mt-2 max-w-prose text-sm text-graphite">
+              O que o banco respondeu, sem tradução. Mande esta linha inteira
+              que eu conserto — é ela que separa &ldquo;tabela não existe&rdquo;
+              de &ldquo;coluna não existe&rdquo; de &ldquo;tipo
+              incompatível&rdquo;, e as três pedem consertos diferentes.
+            </p>
+            <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded bg-ink p-4 text-xs leading-relaxed text-paper">
+              {falha}
+            </pre>
           </div>
-          <div>
-            <div className="font-display text-3xl font-semibold tabular-nums">{brl(total)}</div>
-            <div className="text-xs uppercase tracking-wide text-graphite">receita no período</div>
-          </div>
-        </div>
+        )}
 
-        {vendas.itens.length === 0 ? (
+        {vendas && (
+          <div className="mt-6 flex flex-wrap gap-8 border-y border-line py-4">
+            <div>
+              <div className="font-display text-3xl font-semibold tabular-nums">
+                {vendas.itens.length}
+              </div>
+              <div className="text-xs uppercase tracking-wide text-graphite">
+                {vendas.itens.length === 1 ? "pedido pago" : "pedidos pagos"}
+              </div>
+            </div>
+            <div>
+              <div className="font-display text-3xl font-semibold tabular-nums">
+                {brl(total)}
+              </div>
+              <div className="text-xs uppercase tracking-wide text-graphite">
+                receita no período
+              </div>
+            </div>
+          </div>
+        )}
+
+        {vendas === null ? null : vendas.itens.length === 0 ? (
           <p className="mt-8 text-sm text-graphite">
             Nenhuma venda desde o lançamento ainda.
           </p>
@@ -104,18 +183,26 @@ export default async function VendasPage() {
               <tbody className="divide-y divide-line">
                 {vendas.itens.map((v) => (
                   <tr key={v.orderId}>
-                    <td className="py-3 pr-4 tabular-nums text-graphite">{dataCurta(v.paidAt)}</td>
+                    <td className="py-3 pr-4 tabular-nums text-graphite">
+                      {dataCurta(v.paidAt)}
+                    </td>
                     <td className="py-3 pr-4">
                       {/*
                         Sem e-mail é o caso das compras feitas antes de o checkout exigi-lo. Dizer
                         "—" esconderia a diferença entre "não informou" e "coluna vazia por defeito
                         nosso"; a frase curta é honesta e cabe na célula.
                       */}
-                      {v.email ?? <span className="text-graphite">sem cadastro</span>}
+                      {v.email ?? (
+                        <span className="text-graphite">sem cadastro</span>
+                      )}
                     </td>
                     <td className="py-3 pr-4 text-graphite">{v.sku}</td>
-                    <td className="py-3 pr-4 text-right tabular-nums">{brl(v.amountCents)}</td>
-                    <td className="py-3 pr-4 text-graphite">{v.couponCode ?? ''}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums">
+                      {brl(v.amountCents)}
+                    </td>
+                    <td className="py-3 pr-4 text-graphite">
+                      {v.couponCode ?? ""}
+                    </td>
                     <td className="py-3">
                       {v.publicId ? (
                         <a
@@ -141,16 +228,19 @@ export default async function VendasPage() {
           O rodapé é condicional pelo mesmo motivo do aviso em `/admin/analises`: como texto fixo
           ele afirmaria algo que pode deixar de ser verdade, e ninguém voltaria aqui para apagá-lo.
         */}
-        {vendas.anterioresAoCorte > 0 && (
+        {vendas !== null && vendas.anterioresAoCorte > 0 && (
           <p className="mt-8 max-w-prose text-xs leading-relaxed text-graphite">
             <strong>
-              {vendas.anterioresAoCorte}{' '}
-              {vendas.anterioresAoCorte === 1 ? 'pedido pago não aparece' : 'pedidos pagos não aparecem'}{' '}
+              {vendas.anterioresAoCorte}{" "}
+              {vendas.anterioresAoCorte === 1
+                ? "pedido pago não aparece"
+                : "pedidos pagos não aparecem"}{" "}
               nesta lista
-            </strong>{' '}
-            por serem anteriores ao lançamento — são as compras de teste feitas por você. Elas
-            continuam no banco e continuam válidas; só não entram na contagem de vendas, para a
-            receita aqui ser a receita de clientes.
+            </strong>{" "}
+            por serem anteriores ao lançamento — são as compras de teste feitas
+            por você. Elas continuam no banco e continuam válidas; só não entram
+            na contagem de vendas, para a receita aqui ser a receita de
+            clientes.
           </p>
         )}
       </div>
