@@ -1,4 +1,4 @@
-# 06/09/2026 · A pergunta de corda que quase ninguém faz
+# 06/09/2026 · A corda não é acessório
 
 **Pilar** P1 Diagnóstico + P2 Física aplicada · **Formato** 2 stories · **Arte** Story (fundo ink) ·
 **CTA** engajamento · **Status** `gerado`
@@ -17,18 +17,18 @@ o que impede a página de virar monotema.
 
 | | Arte | Sticker por cima |
 |---|---|---|
-| 1 | **Quantas vezes você estoura corda?** | **Enquete:** Toda semana / Todo mês / Quase nunca |
+| 1 | **A corda não é acessório.** | **Enquete:** Eu escolho / Deixo com o encordoador |
 | 2 | **0,15 mm é toda a diferença.** | nenhum — é a página da explicação |
 
-### Página 1 — o sintoma
+### Página 1 — a importância
 
-> **Quantas vezes você estoura corda?**
-> Parece detalhe. É uma das perguntas que mais muda a recomendação de corda — e quase ninguém pensa
-> nela na hora de comprar.
+> **A corda não é acessório.**
+> É ela que ajusta potência, spin, conforto e durabilidade ao mesmo tempo. Pode fazer render a
+> raquete que você já tem — ou trabalhar contra ela.
 >
 > `Responde aí ↓`
 
-### Página 2 — por que a pergunta importa
+### Página 2 — o ajuste fino
 
 > **0,15 mm é toda a diferença.**
 > Da corda mais fina à mais grossa do nosso catálogo. Parece nada — e decide spin, conforto e
@@ -36,8 +36,23 @@ o que impede a página de virar monotema.
 >
 > `Por isso a pergunta anterior ↑`
 
-A ordem é deliberada: pergunta primeiro, explicação depois. Invertida, a página 2 responde algo que
-ninguém perguntou; nesta ordem, quem votou já está investido quando a explicação chega.
+**A ordem é importância → detalhe.** A página 1 estabelece que a corda decide muita coisa; a 2
+mostra que dentro dessa decisão a margem é de décimos de milímetro. Invertida, a 2 vira minúcia de
+técnico antes de alguém ter aceitado que a peça importa.
+
+### Por que a página 1 deixou de ser uma pergunta
+
+A primeira versão perguntava **"Quantas vezes você estoura corda?"**. Funciona como enquete, mas
+começa a conversa pelo sintoma de quem já quebra corda — ou seja, por quem já leva o assunto a
+sério. Quem trata a corda como acessório, que é o público que esta pauta existe para alcançar,
+responde "quase nunca" e segue rolando, confirmado na própria despreocupação.
+
+A versão publicada inverte: afirma primeiro, e só depois pede a resposta. A enquete continua ali,
+mas passou a medir a coisa certa — **quem decide a corda**, não quem a arrebenta.
+
+O rodapé da página 2 (`Por isso a pergunta anterior ↑`) continua válido: a página 1 segue tendo uma
+pergunta por cima, e "por isso" agora aponta para algo mais forte — *é por isso que importa quem
+escolhe*.
 
 ---
 
@@ -45,12 +60,21 @@ ninguém perguntou; nesta ordem, quem votou já está investido quando a explica
 
 | Afirmação | Origem | Onde |
 |---|---|---|
+| a corda ajusta potência, spin, conforto e durabilidade | `[motor]` — os eixos `power`, `spin`, `comfort` e `durability` de `select-string.ts` | página 1 |
+| "ao mesmo tempo" — são eixos de UM vetor-alvo, não escolhas separadas | `[motor]` — `computeStringTarget` resolve os oito eixos num alvo só | página 1 |
+| a corda pode fazer render ou atrapalhar a raquete | `[motor]` — a compensação cruzada de `select-string.ts` §1 | página 1 |
 | a faixa de espessura do catálogo é 1,15 a 1,30 mm — logo 0,15 mm de amplitude | `[catálogo]` via `fatos.ts` | página 2 |
-| espessura decide spin, conforto e durabilidade | `[motor]` — eixo `gauge` em `select-string.ts` | página 2 |
-| a frequência de quebra muda a recomendação | `[motor]` — alimenta `durability` e `gauge` | página 1 |
+| espessura decide spin, conforto e durabilidade | `[motor]` — eixo `gauge` | página 2 |
 
-`limites.md` §5 autoriza explicitamente **"a faixa de peso / área / espessura que o catálogo
-cobre"**: descreve o conjunto, não um modelo nomeado. Nenhuma corda é citada pelo nome.
+A frase mais arriscada da página 1 é **"ou trabalhar contra ela"** — soa a slogan, e a regra da
+skill é que slogan não se publica sem medida por trás. Aqui existe: o comentário de
+`select-string.ts` descreve a compensação cruzada em que **um frame rígido ELEVA o alvo de conforto
+e um frame potente ELEVA o alvo de controle** — "a corda corrige o frame, não o duplica". Uma corda
+que duplica o frame em vez de corrigi-lo é literalmente o que o motor evita escolher. A frase
+descreve um mecanismo do produto, não uma opinião.
+
+`limites.md` §5 autoriza publicar a faixa que o catálogo cobre: descreve o conjunto, não um modelo
+nomeado. **Nenhuma corda e nenhuma raquete é citada pelo nome em nenhuma das duas páginas.**
 
 ---
 
@@ -73,3 +97,6 @@ exatamente o caminho que produziu o erro do "26 das 47 · 10 g".
 **Para publicar, é preciso antes** acrescentar a medição a `fatos.ts` — varrer perfis sintéticos
 por frequência de quebra e devolver a espessura média de cada resposta. Aí a pauta existe, e é
 forte: *"um usuário reclamou, a gente mediu, e ele estava certo."*
+
+A pergunta de frequência de quebra, que era a página 1 desta pauta, é o gancho natural DAQUELE
+post — e lá ela funciona, porque chega depois de alguém já ter aceitado que a corda decide algo.
