@@ -104,16 +104,32 @@ describe('a consulta nunca é parcial', () => {
 
   it('não existe função que liste análises sem termo de busca', () => {
     /*
-      Duas exceções deliberadas, e nenhuma delas devolve dado de cliente:
+      Três exceções deliberadas, e nenhuma delas devolve dado de cliente:
 
-        `recentLookups`  — o LOG de auditoria (tipo da busca, contagem, horário).
-        `anyEmailStored` — um BOOLEANO: existe algum e-mail no sistema? Não conta, não lista.
+        `recentLookups`          — o LOG de auditoria (tipo da busca, contagem, horário).
+        `anyEmailStored`         — um BOOLEANO: existe algum e-mail no sistema? Não conta, não lista.
+        `registrarAcessoAVendas` — ESCRITA no mesmo log, para a abertura de `/admin/vendas`.
 
       Qualquer outra exportação que devolva uma coleção sem receber um termo seria uma listagem de
       clientes com outro nome, e é isso que esta asserção impede de entrar sem ser notada.
+
+      ─── POR QUE A TERCEIRA ENTROU, E POR QUE ELA NÃO AFROUXA A REGRA ─────────────────────────
+
+      Esta lista falhou quando `/admin/vendas` foi construída, que é o teste funcionando: uma
+      exportação nova neste arquivo é exatamente o evento que ele existe para interceptar.
+
+      Ela é admissível porque só ESCREVE. Não recebe termo, não devolve coleção, não devolve nada —
+      registra que a lista de vendas foi aberta e por quem, no mesmo log das buscas. Se um dia
+      alguém acrescentar aqui uma função que LÊ sem termo, esta asserção falha de novo, e aí a
+      resposta certa não é acrescentar o nome: é perguntar se aquela leitura devia existir.
     */
     const exported = [...REPO_SOURCE.matchAll(/export async function (\w+)/g)].map((m) => m[1]);
-    expect(exported.sort()).toEqual(['anyEmailStored', 'findAnalyses', 'recentLookups']);
+    expect(exported.sort()).toEqual([
+      'anyEmailStored',
+      'findAnalyses',
+      'recentLookups',
+      'registrarAcessoAVendas',
+    ]);
   });
 
   /** O teto existe para que uma consulta larga apareça como larga, em vez de despejar tudo. */

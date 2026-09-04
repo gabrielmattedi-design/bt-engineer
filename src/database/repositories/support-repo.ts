@@ -40,7 +40,14 @@ import {
  */
 
 /** Como o termo foi interpretado. É isto — e não o termo — que vai para a auditoria. */
-export type LookupKind = 'analise' | 'pedido' | 'pagamento' | 'email';
+/**
+ * `vendas` não vem de `classifyQuery` — não há termo digitado, é a abertura da lista inteira.
+ *
+ * Ele entra no MESMO registro das buscas de propósito: separar em duas tabelas faria a pergunta
+ * "quem olhou dado de cliente, e quando" precisar de duas consultas, e a segunda seria esquecida.
+ * A coluna é `text`, então o valor novo não pede migração.
+ */
+export type LookupKind = 'analise' | 'pedido' | 'pagamento' | 'email' | 'vendas';
 
 export type ClassifiedQuery =
   | { readonly kind: 'email'; readonly value: string }
@@ -303,6 +310,21 @@ async function recordLookup(input: {
   recommendationSessionId: string | null;
 }): Promise<void> {
   await db().insert(supportLookups).values(input);
+}
+
+/**
+ * Registra a abertura de `/admin/vendas`.
+ *
+ * `matchedCount` guarda o tamanho da lista mostrada, que é a informação equivalente à das buscas:
+ * quantos registros de cliente aquele acesso colocou na tela. Nunca lança — um log que derruba a
+ * tela que ele audita faz com que a tela seja consertada tirando o log.
+ */
+export async function registrarAcessoAVendas(quantidade: number): Promise<void> {
+  try {
+    await recordLookup({ queryKind: 'vendas', matchedCount: quantidade, recommendationSessionId: null });
+  } catch (error) {
+    console.error('[admin] não foi possível registrar o acesso à lista de vendas', error);
+  }
 }
 
 export type LookupLogEntry = {

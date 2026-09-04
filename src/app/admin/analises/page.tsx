@@ -25,6 +25,14 @@ export const dynamic = 'force-dynamic';
  * dados de todos os clientes — e a diferença entre as duas coisas é uma linha de código, então ela
  * precisa ser uma decisão consciente e escrita, não um acidente de implementação.
  *
+ * Essa decisão foi tomada uma vez, em `/admin/vendas`: lá existe uma lista, porque "como estão as
+ * vendas?" é uma pergunta de gestão que não tem termo de busca possível. A lista de lá é de
+ * PEDIDOS PAGOS a partir do lançamento e leva ao relatório por link, não embutido.
+ *
+ * A regra desta tela não mudou por causa daquela, e a separação em duas telas é o que garante
+ * isso: acrescentar a lista aqui teria sido mais rápido e teria apagado o motivo de a busca ser
+ * exata — ninguém defende uma restrição que convive com a conveniência que ela proíbe.
+ *
  * Também não reenvia e-mail nem corrige endereço: essas ações dependem de um cadastro que ainda
  * não existe. Quando existir, elas entram aqui.
  */
@@ -71,15 +79,32 @@ export default async function AnalisesPage() {
                   key={`${l.createdAt.toISOString()}-${i}`}
                   className="flex items-baseline justify-between gap-4 py-2 text-sm"
                 >
+                  {/*
+                    `vendas` não é busca — é a abertura da lista inteira em `/admin/vendas`, e
+                    chamá-la de "busca por vendas" descreveria errado o único registro que existe
+                    dela. O log serve para responder "quem olhou dado de cliente, e quando"; um log
+                    que nomeia mal o acesso responde essa pergunta com a resposta errada.
+                  */}
                   <span>
-                    busca por <strong>{l.queryKind}</strong> ·{' '}
-                    <span className="text-graphite">
-                      {l.matchedCount === 0
-                        ? 'sem resultado'
-                        : l.matchedCount === 1
-                          ? '1 análise'
-                          : `${l.matchedCount} análises`}
-                    </span>
+                    {l.queryKind === 'vendas' ? (
+                      <>
+                        abriu a <strong>lista de vendas</strong> ·{' '}
+                        <span className="text-graphite">
+                          {l.matchedCount === 1 ? '1 pedido' : `${l.matchedCount} pedidos`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        busca por <strong>{l.queryKind}</strong> ·{' '}
+                        <span className="text-graphite">
+                          {l.matchedCount === 0
+                            ? 'sem resultado'
+                            : l.matchedCount === 1
+                              ? '1 análise'
+                              : `${l.matchedCount} análises`}
+                        </span>
+                      </>
+                    )}
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-graphite">
                     {dataCurta(l.createdAt)}

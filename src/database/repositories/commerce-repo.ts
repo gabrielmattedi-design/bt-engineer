@@ -365,3 +365,101 @@ export async function revokeForOrder(orderId: string): Promise<void> {
     .set({ revokedAt: new Date() })
     .where(and(eq(entitlements.grantedByOrderId, orderId), sql`${entitlements.revokedAt} IS NULL`));
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * VENDAS — a lista que `/admin/vendas` mostra.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * ═══ POR QUE ELA NÃO EXISTIA, E POR QUE PASSA A EXISTIR ══════════════════════════════════════
+ *
+ * `/admin/analises` recusa listar de propósito, e o comentário de lá explica: uma busca exata é
+ * ferramenta de atendimento, uma lista é janela para folhear os dados de todos os clientes, e a
+ * diferença entre as duas é uma linha de código. Aquela recusa continua valendo PARA AQUELA TELA.
+ *
+ * Esta função existe porque a pergunta é outra. "Quem perdeu o link?" é atendimento e se responde
+ * com busca. "Como estão as vendas?" é gestão, não tem termo de busca possível, e o dono não pode
+ * depender de abrir o Postgres para saber quanto vendeu.
+ *
+ * A separação em duas telas não é organização: é o que impede que a conveniência da gestão relaxe
+ * a regra do atendimento sem ninguém decidir isso.
+ */
+export const LANCAMENTO = new Date('2026-09-03T18:00:00-03:00');
+
+export type Venda = {
+  readonly orderId: string;
+  readonly paidAt: Date;
+  readonly email: string | null;
+  readonly sku: string;
+  readonly amountCents: number;
+  readonly couponCode: string | null;
+  /** `null` no pedido sem análise ligada — o esquema permite. Sem ele não há relatório a abrir. */
+  readonly publicId: string | null;
+};
+
+export type Vendas = {
+  readonly desde: Date;
+  readonly itens: readonly Venda[];
+  /**
+   * Quantos pedidos pagos ficaram DE FORA do corte.
+   *
+   * Uma lista filtrada que não diz o que escondeu mente por omissão: o dono somaria a coluna,
+   * compararia com o extrato do Mercado Pago, veria a diferença e não teria como saber se falta
+   * dinheiro ou se falta linha. Este número responde isso sem precisar de investigação.
+   */
+  readonly anterioresAoCorte: number;
+};
+
+/**
+ * As vendas a partir de `desde`, da mais recente para a mais antiga.
+ *
+ * ─── POR QUE O CORTE, E POR QUE ELE É UMA DATA E NÃO UM "ÚLTIMOS N DIAS" ─────────────────────
+ *
+ * Tudo que foi pago antes do lançamento é o próprio dono testando — compras reais, com dinheiro
+ * real, e nenhuma delas é cliente. Misturá-las à lista não infla só a contagem: infla a receita, e
+ * uma receita inflada é o número que faz decidir errado sobre preço e sobre anúncio.
+ *
+ * "Últimos 30 dias" resolveria hoje e voltaria a errar em outubro, quando os testes saírem da
+ * janela sozinhos. O lançamento é um instante fixo no passado, então a constante é a forma
+ * honesta — e fica visível na tela, com a contagem do que ficou de fora ao lado.
+ *
+ * ─── STATUS `paid`, E NÃO "TEM ENTITLEMENT" ──────────────────────────────────────────────────
+ *
+ * Acesso concedido por cupom não é venda. Se esta lista contasse entitlement, o cupom MAITE
+ * apareceria como receita de R$ 0,00 e o dono veria clientes onde tem convidados. O cupom tem
+ * contador próprio em `/admin/codigos`.
+ */
+export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
+  const conn = db();
+
+  const itens = await conn
+    .select({
+      orderId: orders.id,
+      paidAt: orders.paidAt,
+      email: users.email,
+      sku: orders.productSku,
+      amountCents: orders.amountCents,
+      couponCode: orders.couponCode,
+      publicId: recommendationSessions.publicId,
+    })
+    .from(orders)
+    // `left join` nos dois: pedido sem e-mail e pedido sem análise são casos reais e não podem
+    // sumir da lista — some justamente o pedido estranho, que é o que mais interessa ver.
+    .leftJoin(users, eq(users.id, orders.userId))
+    .leftJoin(recommendationSessions, eq(recommendationSessions.id, orders.recommendationSessionId))
+    .where(and(eq(orders.status, 'paid'), sql`${orders.paidAt} >= ${desde}`))
+    .orderBy(sql`${orders.paidAt} desc`);
+
+  const fora = await conn
+    .select({ n: sql<number>`count(*)::int` })
+    .from(orders)
+    .where(and(eq(orders.status, 'paid'), sql`${orders.paidAt} < ${desde}`));
+
+  return {
+    desde,
+    // `paidAt` é não-nulo por construção em pedido `paid` — o webhook grava os dois juntos —, mas o
+    // TIPO permite nulo, e o filtro já garantiu a condição. O descarte mantém o tipo honesto.
+    itens: itens.filter((v): v is Venda => v.paidAt !== null),
+    anterioresAoCorte: fora[0]?.n ?? 0,
+  };
+}
