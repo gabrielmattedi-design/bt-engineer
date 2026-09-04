@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '@/database/client';
 import {
   entitlements,
@@ -447,13 +447,26 @@ export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
     // sumir da lista — some justamente o pedido estranho, que é o que mais interessa ver.
     .leftJoin(users, eq(users.id, orders.userId))
     .leftJoin(recommendationSessions, eq(recommendationSessions.id, orders.recommendationSessionId))
-    .where(and(eq(orders.status, 'paid'), sql`${orders.paidAt} >= ${desde}`))
-    .orderBy(sql`${orders.paidAt} desc`);
+    /*
+      `gte`/`desc` e NÃO um template `sql` cru.
+
+      As duas formas geram o mesmo SQL e mandam parâmetros diferentes: o operador tipado aplica o
+      `mapToDriverValue` da coluna e envia a data como string ISO, que é o que o driver espera de
+      um `timestamptz`; o template cru pula esse mapeamento e entrega um objeto `Date` solto.
+
+      A primeira versão desta tela usava o template e quebrou em produção com "server-side
+      exception" — sem sintoma nenhum no build, no typecheck ou nos testes, porque nada disso
+      chega a executar a consulta. Todas as outras comparações de data do projeto
+      (`funnel-repo`, `coupon-repo`) já usavam o operador tipado; esta era a única exceção, e foi
+      a única que falhou.
+    */
+    .where(and(eq(orders.status, 'paid'), gte(orders.paidAt, desde)))
+    .orderBy(desc(orders.paidAt));
 
   const fora = await conn
     .select({ n: sql<number>`count(*)::int` })
     .from(orders)
-    .where(and(eq(orders.status, 'paid'), sql`${orders.paidAt} < ${desde}`));
+    .where(and(eq(orders.status, 'paid'), lt(orders.paidAt, desde)));
 
   return {
     desde,

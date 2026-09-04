@@ -55,6 +55,40 @@ describe('a lista conta venda, e não acesso', () => {
   });
 });
 
+describe('comparação de data usa operador tipado, nunca template `sql` cru', () => {
+  /*
+    ═══ A FALHA QUE ISTO IMPEDE DE VOLTAR ═══════════════════════════════════════════════════════
+
+    A primeira versão desta tela comparava datas com `sql`${orders.paidAt} >= ${desde}``. O SQL
+    gerado é idêntico ao do operador tipado; o PARÂMETRO não é:
+
+      gte(orders.paidAt, desde)  →  '2026-09-03T21:00:00.000Z'   (string ISO, via mapToDriverValue)
+      sql`... >= ${desde}`       →  Date { ... }                  (objeto cru, sem mapeamento)
+
+    O template pula o `mapToDriverValue` da coluna e entrega um `Date` solto ao driver. Em produção
+    a página respondeu "Application error: a server-side exception has occurred", e nada tinha
+    avisado antes: build limpo, typecheck limpo, testes verdes — porque nenhum dos três executa a
+    consulta.
+
+    O resto do projeto já fazia certo (`funnel-repo`, `coupon-repo`). Esta era a única exceção, e
+    foi a única que quebrou — o que é o argumento inteiro a favor de seguir o padrão de casa mesmo
+    quando as duas formas "parecem iguais".
+  */
+  const repo = readFileSync(REPO, 'utf8');
+
+  it('não compara coluna de data dentro de template `sql`', () => {
+    const suspeitas = [...repo.matchAll(/sql`[^`]*(?:paidAt|createdAt|paid_at|created_at)[^`]*`/g)]
+      .map((m) => m[0])
+      .filter((s) => /[<>]=?/.test(s));
+    expect(suspeitas).toEqual([]);
+  });
+
+  it('usa `gte` e `lt` importados do drizzle', () => {
+    expect(repo).toMatch(/import \{[^}]*\bgte\b[^}]*\} from 'drizzle-orm'/);
+    expect(repo).toMatch(/import \{[^}]*\blt\b[^}]*\} from 'drizzle-orm'/);
+  });
+});
+
 describe('o corte é o lançamento, e é explícito', () => {
   it('a constante é anterior a agora', () => {
     expect(LANCAMENTO.getTime()).toBeLessThan(Date.now());
