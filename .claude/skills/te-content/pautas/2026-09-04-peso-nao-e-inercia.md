@@ -48,7 +48,7 @@ arquivadas, não a peça de trabalho.
 
 | | Quando | Arte | Sticker por cima |
 |---|---|---|---|
-| 1 | junto com o post | **A mais leve pesa mais na mão.** — 270 g contra 315 g | **Quiz:** "O que faz a de 270 g pesar mais na mão?" — Onde a massa está ✓ / Quanta massa tem / O tamanho da cabeça |
+| 1 | junto com o post | **A mais leve pode pesar mais na mão.** | **Quiz:** "O que decide o peso na mão?" — Onde a massa está ✓ / Quantos gramas tem / O tamanho da cabeça |
 | 2 | ~4h depois | **39 das 47 custam mais pra girar** | **Sticker do post** |
 | 3 | dia seguinte | **Qual raquete você usa hoje?** | **Caixa de pergunta** |
 
@@ -56,10 +56,10 @@ Cada arte deixa a faixa de 1000 a 1650 vazia — é onde o sticker entra. Story 
 sticker não tem motivo para existir.
 
 **Quiz, e não enquete, no Story 1.** A enquete devolve porcentagem; o quiz tem
-resposta certa e revela no toque. A arte AFIRMA o paradoxo — 270 g pesando mais na
-mão que 315 g — e o quiz pergunta a causa. Quem sabe responde "onde a massa está" e
-sai se sentindo esperto; quem não sabe recebe a resposta na hora e passa a querer o
-post. Os dois ganham alguma coisa, que é o que a enquete de sim/não não fazia.
+resposta certa e revela no toque. A arte levanta a possibilidade e o quiz pergunta a
+causa. Quem sabe responde "onde a massa está" e sai se sentindo esperto; quem não
+sabe recebe a resposta na hora e passa a querer o post. Os dois ganham alguma coisa,
+que é o que a enquete de sim/não não fazia.
 
 **O intervalo entre stories não cria suspense.** Stories do mesmo perfil ficam numa
 bolha só: quem abre à noite vê o 1 e o 2 colados, como se tivessem sido postados
@@ -78,7 +78,7 @@ Todo número desta pauta saiu de `scripts/fatos.ts`, contra o catálogo ao vivo.
 | 47 raquetes no catálogo | `[catálogo]` | slide 04, story 2 |
 | **39** delas têm mais inércia que alguma ≥ **10 g** mais pesada | `[catálogo]` | slide 04, story 2, legenda |
 | r(peso, inércia) = 0,029 — "praticamente zero" | `[catálogo]` | slide 04 |
-| a mais leve (270 g, inércia 43,5) supera a mais pesada (315 g, inércia 38,0) | `[catálogo]` | story 1 |
+| a mais leve (270 g, inércia 43,5) supera a mais pesada (315 g, inércia 38,0) | `[catálogo]` | conferência do story 1 — não publicado |
 | distância conta ao quadrado | `[física]` | slide 03 |
 | a que resiste mais cobra mais no terceiro set | `[heurística]` | slide 06, quiz do story 1 |
 
@@ -121,10 +121,10 @@ cometido no único número que o arquivo não cobria.
 A contagem agora sai de `fatos.peso_vs_inercia`, **sempre acompanhada do limiar**.
 Não dá para citar uma sem o outro.
 
-**O Story 1 mudou de abordagem DUAS vezes, e a segunda foi a certa.**
+**O Story 1 passou por três versões, e cada uma consertou um defeito diferente.**
 
-A versão original era "Você sabe quanto pesa sua raquete?" com enquete de sim/não. O
-dono viu o risco antes de publicar:
+A primeira era "Você sabe quanto pesa sua raquete?" com enquete de sim/não. O dono
+viu o risco antes de publicar:
 
 > "alguém mais experiente vai falar: pô, é óbvio que eu já sei o peso da minha
 > raquete."
@@ -132,10 +132,31 @@ dono viu o risco antes de publicar:
 Está certo, e o problema é estrutural: uma pergunta que o experiente responde de
 primeira não entrega nada a ele e sinaliza que a página é para iniciante.
 
-A segunda versão concedia que ele sabe e perguntava o quanto o peso prevê o esforço.
-Melhor, e ainda abstrato. O dono então apontou o slide 05 como ponto de partida —
-*"você dá um exemplo bem drástico"* — e é isso que a versão final faz: em vez de
-falar sobre a ideia, ela mostra o caso.
+A segunda concedia que ele sabe e perguntava o quanto o peso prevê o esforço. Melhor,
+e ainda abstrato. O dono apontou o slide 05 como ponto de partida — *"você dá um
+exemplo bem drástico"* —, então a terceira trouxe o par extremo do catálogo: 270 g
+com mais inércia que 315 g.
+
+E aí ele freou, com razão:
+
+> "ficou muito radical (…) eu quero falar que a mais leve PODE pesar mais na mão"
+
+O caso extremo é verdadeiro — está na tabela de conferência acima — e mesmo assim
+comunica errado num story. Sozinho, sem os seis slides atrás dele, "270 pesa mais que
+315" soa como afirmação de que peso não importa. Quem discorda não vai ao post
+conferir: descarta a página como sensacionalista, que é exatamente o leitor que a
+pauta queria.
+
+O "pode" custa quase nada em impacto e muda a natureza da frase: de veredicto para
+possibilidade. E o apoio saiu do caso específico para a regra — *escolher alguns
+gramas a menos pode até aumentar o esforço, dependendo de como a massa está
+distribuída* — que é a afirmação que o carrossel inteiro sustenta.
+
+**A lição, que vale para as próximas pautas:** o dado mais extremo do catálogo nem
+sempre é o melhor de publicar. Num story avulso, sem o contexto ao lado, o extremo
+vira exagero aos olhos de quem sabe alguma coisa. O caso drástico serve para
+CONFERIR a afirmação; a copy publica a versão que ainda é verdadeira quando lida
+sozinha.
 
 Fui procurar o par mais extremo do catálogo e ele é melhor que o do slide 05: a
 raquete **mais leve** (270 g) tem inércia 43,5, e a **mais pesada** (315 g) tem 38,0.
