@@ -146,8 +146,17 @@ postar** — o Story sem sticker perde a razão de existir.
 
 ### 9. Registrar
 
-Só depois da aprovação do dono, e com o status certo: `gerado`, `aprovado` ou `publicado`. Só
-`publicado` bloqueia repetição futura.
+**Antes de entregar**, escreva a pauta inteira em `pautas/AAAA-MM-DD-<tema>.md`: copy de cada
+slide, legenda, hashtags, os stories com o sticker de cada um, os ids do Canva e a tabela de
+conferência técnica com a etiqueta de origem de cada afirmação.
+
+Isso não é burocracia. A arte fica no Canva, mas a legenda e as hashtags só existiam na conversa —
+e conversa some. Na primeira pauta foi preciso escavar o transcrito da sessão para reencontrar a
+legenda de um post que ainda nem tinha ido ao ar. Um arquivo por pauta resolve isso e ainda dá o
+que a próxima pauta precisa ler para não repetir o argumento.
+
+Depois, e **só depois da aprovação do dono**, acrescente a linha em `historico/publicado.jsonl` com
+o status certo: `gerado`, `aprovado` ou `publicado`. Só `publicado` bloqueia repetição futura.
 
 ---
 
@@ -172,3 +181,4 @@ Só depois da aprovação do dono, e com o status certo: `gerado`, `aprovado` ou
 | `scripts/caso.ts` | Roda o motor de verdade para o pilar P4 |
 | `scripts/historico.ts` | Lê o histórico e aplica as quatro regras |
 | `historico/publicado.jsonl` | Uma linha por pauta, append-only |
+| `pautas/` | Um arquivo por pauta: copy, legenda, hashtags, stories, ids do Canva |
