@@ -5,7 +5,11 @@
 
 ---
 
-## Carrossel — 6 slides, 1080 × 1350
+## Carrossel — 6 páginas, 1080 × 1350
+
+**➡️ Projeto único: [`DAHUOi8eRFg`](https://www.canva.com/design/DAHUOi8eRFg/edit)** — abra este,
+arraste para o lado, baixe tudo de uma vez. Os links por página abaixo são as origens
+arquivadas, não a peça de trabalho.
 
 | | Etiqueta | Título | Apoio | Canva |
 |---|---|---|---|---|
@@ -38,22 +42,24 @@
 
 ---
 
-## Stories — 3, arquétipo D, 1080 × 1920
+## Stories — 3 páginas, arquétipo D, 1080 × 1920
+
+**➡️ Projeto único: [`DAHUOsJO670`](https://www.canva.com/design/DAHUOsJO670/edit)**
 
 | | Quando | Arte | Sticker por cima |
 |---|---|---|---|
-| 1 | junto com o post | **Você sabe o peso da sua raquete.** · [`DAHUMJQrGd8`](https://www.canva.com/d/ulLJHb2DjOEXNlf) | **Quiz** (não enquete): "Quanto o peso prevê o esforço?" — Quase tudo / Boa parte / Metade / **Quase nada** ✓ |
-| 2 | ~4h depois | **39 das 47 custam mais pra girar** · [`DAHUMFVpq4w`](https://www.canva.com/d/qJGgWHXasX0NCV6) | **Sticker do post** |
-| 3 | dia seguinte | **Qual raquete você usa hoje?** · [`DAHUMNSqL_E`](https://www.canva.com/d/AmZyJ3XgWulHQ3e) | **Caixa de pergunta** |
+| 1 | junto com o post | **A mais leve pesa mais na mão.** — 270 g contra 315 g | **Quiz:** "O que faz a de 270 g pesar mais na mão?" — Onde a massa está ✓ / Quanta massa tem / O tamanho da cabeça |
+| 2 | ~4h depois | **39 das 47 custam mais pra girar** | **Sticker do post** |
+| 3 | dia seguinte | **Qual raquete você usa hoje?** | **Caixa de pergunta** |
 
 Cada arte deixa a faixa de 1000 a 1650 vazia — é onde o sticker entra. Story sem
 sticker não tem motivo para existir.
 
 **Quiz, e não enquete, no Story 1.** A enquete devolve porcentagem; o quiz tem
-resposta certa e revela no toque. Quem acha que sabe escolhe "Quase tudo", recebe o
-erro na hora e passa a querer o post — que é justamente o público que a pauta foi
-reescrita para alcançar. "Quase nada" fica por último, depois de três opções
-plausíveis, porque quem lê rápido escolhe entre as primeiras.
+resposta certa e revela no toque. A arte AFIRMA o paradoxo — 270 g pesando mais na
+mão que 315 g — e o quiz pergunta a causa. Quem sabe responde "onde a massa está" e
+sai se sentindo esperto; quem não sabe recebe a resposta na hora e passa a querer o
+post. Os dois ganham alguma coisa, que é o que a enquete de sim/não não fazia.
 
 **O intervalo entre stories não cria suspense.** Stories do mesmo perfil ficam numa
 bolha só: quem abre à noite vê o 1 e o 2 colados, como se tivessem sido postados
@@ -72,6 +78,7 @@ Todo número desta pauta saiu de `scripts/fatos.ts`, contra o catálogo ao vivo.
 | 47 raquetes no catálogo | `[catálogo]` | slide 04, story 2 |
 | **39** delas têm mais inércia que alguma ≥ **10 g** mais pesada | `[catálogo]` | slide 04, story 2, legenda |
 | r(peso, inércia) = 0,029 — "praticamente zero" | `[catálogo]` | slide 04 |
+| a mais leve (270 g, inércia 43,5) supera a mais pesada (315 g, inércia 38,0) | `[catálogo]` | story 1 |
 | distância conta ao quadrado | `[física]` | slide 03 |
 | a que resiste mais cobra mais no terceiro set | `[heurística]` | slide 06, quiz do story 1 |
 
@@ -114,16 +121,33 @@ cometido no único número que o arquivo não cobria.
 A contagem agora sai de `fatos.peso_vs_inercia`, **sempre acompanhada do limiar**.
 Não dá para citar uma sem o outro.
 
-**O Story 1 mudou de abordagem, por pedido do dono.** Era "Você sabe quanto pesa
-sua raquete?" com enquete de sim/não. O risco que ele apontou:
+**O Story 1 mudou de abordagem DUAS vezes, e a segunda foi a certa.**
+
+A versão original era "Você sabe quanto pesa sua raquete?" com enquete de sim/não. O
+dono viu o risco antes de publicar:
 
 > "alguém mais experiente vai falar: pô, é óbvio que eu já sei o peso da minha
 > raquete."
 
-Está certo, e o problema é estrutural: uma enquete que o experiente responde de
-primeira não entrega nada a ele, e sinaliza que a página é para iniciante. A versão
-nova **concede** que ele sabe — "Você sabe o peso da sua raquete." — e pergunta o
-que ninguém sabe de cabeça: o quanto esse número prevê o esforço no terceiro set.
+Está certo, e o problema é estrutural: uma pergunta que o experiente responde de
+primeira não entrega nada a ele e sinaliza que a página é para iniciante.
 
-A resposta certa (*quase nada*, r = 0,029) é contraintuitiva o bastante para que a
-maioria erre, inclusive quem entende. Errar é o que faz o post seguinte valer.
+A segunda versão concedia que ele sabe e perguntava o quanto o peso prevê o esforço.
+Melhor, e ainda abstrato. O dono então apontou o slide 05 como ponto de partida —
+*"você dá um exemplo bem drástico"* — e é isso que a versão final faz: em vez de
+falar sobre a ideia, ela mostra o caso.
+
+Fui procurar o par mais extremo do catálogo e ele é melhor que o do slide 05: a
+raquete **mais leve** (270 g) tem inércia 43,5, e a **mais pesada** (315 g) tem 38,0.
+**45 g de diferença, na direção errada** — e são os dois extremos da faixa, então não
+existe exemplo mais drástico neste catálogo.
+
+Um número concreto e absurdo para o hook, contra uma frase sobre um conceito: quem
+lê "270 g pesa mais na mão que 315 g" para, mesmo sem entender ainda. E o quiz
+transforma o "hein?" em participação sem exigir que ele saiba a resposta.
+
+**O carrossel e os stories viraram um arquivo cada**, a pedido do dono: seis páginas
+e três páginas, um download por peça em vez de nove. As páginas de origem estão
+arquivadas na subpasta `Páginas avulsas (origem)` — não apagadas, porque
+`merge-designs` copia e o original é a rede de segurança. Ver `marca.md`, que agora
+traz isso como regra de todas as pautas.

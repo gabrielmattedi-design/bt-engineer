@@ -187,6 +187,35 @@ A etiquetagem com `autofill_field_label` continua valendo a pena: ela documenta 
 campos de conteúdo e é o que faz o esquema do template ser legível por
 `get-brand-template-dataset`.
 
+### Peça conectada é UM design de várias páginas
+
+Um carrossel de seis slides e uma sequência de três stories não são seis e três
+arquivos: são **um** arquivo cada, com seis e três páginas. O dono abre um, arrasta
+para o lado, e baixa tudo de uma vez.
+
+> "eu abro um e faço download completo"
+
+A primeira pauta saiu errada: nove designs separados, nove downloads, e nove lugares
+onde uma correção pode ser esquecida — o número errado do slide 04 sobreviveu
+justamente porque cada peça é um arquivo que se confere sozinho.
+
+`create-design-from-brand-template` só cria uma página, então o caminho é montar as
+páginas separadas e depois costurar com `merge-designs`:
+
+1. `merge-designs` com `type: "create_new_design"`, `title` da pauta e **um**
+   `insert_pages` da primeira página.
+2. `merge-designs` com `type: "modify_existing_design"` e o `design_id` devolvido,
+   um `insert_pages` por página seguinte, na ordem.
+
+**Uma operação por chamada.** Mandar as três de uma vez devolve
+*"Only a single operation per merge request is supported"* — medido em 04/09/2026.
+São N chamadas para N páginas, e não tem atalho.
+
+Depois, mova as páginas de origem para uma subpasta `Páginas avulsas (origem)`: elas
+não servem mais para nada no dia a dia, e deixá-las ao lado do projeto é convidar o
+dono a baixar a errada. **Não apague** — `merge-designs` copia, não move, e o
+original é a rede de segurança se a costura sair torta.
+
 ### Os cinco passos
 
 1. **`create-design-from-brand-template`** com o id do arquétipo. Devolve um design novo com o
