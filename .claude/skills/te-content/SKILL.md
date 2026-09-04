@@ -121,7 +121,7 @@ Escolha o arquétipo pelo pilar (A Ficha técnica · B Editorial · C Diagrama),
 controle. Respeite os limites de caracteres de `marca.md`: o layout é ancorado no topo, e reduzir a
 fonte para caber descaracteriza o arquétipo.
 
-**Pronto hoje:** apenas o Editorial (`EAHUMKDtV1o`). Ficha técnica e Diagrama ainda a montar.
+**Os três estão prontos:** Ficha técnica `EAHUMHdg-_0` · Editorial `EAHUMKDtV1o` · Diagrama `EAHUMD6CggM`.
 
 ### 7. Legenda e CTA
 
