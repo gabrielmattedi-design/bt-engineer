@@ -13,7 +13,11 @@ import {
   LIMITE_JANELA_MINUTOS,
 } from '@/database/repositories/throttle-repo';
 import { withAutoBootstrap } from '@/database/setup';
-import { removerRelatoriosSemPagamento, resetFunnel } from '@/database/repositories/funnel-repo';
+import {
+  removerJornadasDeCupomDoFunil,
+  removerRelatoriosSemPagamento,
+  resetFunnel,
+} from '@/database/repositories/funnel-repo';
 
 /**
  * Quantos palpites de senha cabem numa janela de 15 minutos.
@@ -208,13 +212,18 @@ export async function resetarFunil(
  * A autenticação é revalidada aqui pelo mesmo motivo de `resetarFunil`: Server Action é endpoint
  * HTTP e pode ser chamada sem passar por tela nenhuma.
  */
-export async function reconciliarFunil(): Promise<{ error: string } | { ok: true; apagados: number }> {
+export async function reconciliarFunil(): Promise<
+  { error: string } | { ok: true; relatorios: number; convidados: number }
+> {
   if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
 
   try {
-    const apagados = await withAutoBootstrap(() => removerRelatoriosSemPagamento());
+    const [relatorios, convidados] = await withAutoBootstrap(async () => [
+      await removerRelatoriosSemPagamento(),
+      await removerJornadasDeCupomDoFunil(),
+    ]);
     revalidatePath('/admin/funil');
-    return { ok: true, apagados };
+    return { ok: true, relatorios, convidados };
   } catch (error) {
     console.error('[admin] falha ao reconciliar o funil', error);
     return { error: 'O banco recusou a limpeza. Nada foi apagado — confira o log do servidor.' };

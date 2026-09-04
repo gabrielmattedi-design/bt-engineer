@@ -34,9 +34,28 @@ function sourceWithoutComments(path: string): string {
     .replace(/^\s*\/\/.*$/gm, '');
 }
 
+/**
+ * O corpo de UMA função, e não "daqui até o fim do arquivo".
+ *
+ * A primeira versão destes testes fatiava do nome da função até o fim do fonte. Passou enquanto a
+ * reconciliação era a última coisa do arquivo e quebrou na primeira função acrescentada depois —
+ * `temPagamento`, que legitimamente contém 'paid', fez a asserção "não apaga o marco paid" falhar
+ * sem que nada de errado tivesse sido escrito.
+ *
+ * Um teste que falha quando o código está certo é pior que um teste ausente: ele treina quem lê a
+ * ignorar a falha. O recorte agora termina na próxima declaração de topo.
+ */
+function corpoDe(source: string, nome: string): string {
+  const inicio = source.indexOf(nome);
+  if (inicio === -1) return '';
+  const resto = source.slice(inicio + nome.length);
+  const fim = resto.search(/\n(?:export |async function |function |const )/);
+  return fim === -1 ? resto : resto.slice(0, fim);
+}
+
 describe('a limpeza toca apenas o marco `report`', () => {
   const repo = sourceWithoutComments(REPO);
-  const corpo = repo.slice(repo.indexOf('export async function removerRelatoriosSemPagamento'));
+  const corpo = corpoDe(repo, 'export async function removerRelatoriosSemPagamento');
 
   it('o delete filtra por `report`', () => {
     expect(corpo).toContain("eq(funnelMarkers.marker, 'report')");
@@ -70,7 +89,7 @@ describe('a limpeza é por critério, nunca por contagem', () => {
   });
 
   it('não existe limite, alvo ou número escrito à mão', () => {
-    const corpo = repo.slice(repo.indexOf('async function hashesOrfaosDeRelatorio'));
+    const corpo = corpoDe(repo, 'async function hashesOrfaosDeRelatorio');
     // `.limit(` ou `.slice(` seriam a forma de "apagar até a conta fechar" — o pedido literal.
     expect(corpo).not.toContain('.limit(');
     expect(corpo).not.toContain('.slice(');
@@ -86,13 +105,13 @@ describe('a limpeza é por critério, nunca por contagem', () => {
 describe('a ação e a tela', () => {
   it('a Server Action revalida a autenticação', () => {
     const actions = sourceWithoutComments(ACTIONS);
-    const corpo = actions.slice(actions.indexOf('export async function reconciliarFunil'));
+    const corpo = corpoDe(actions, 'export async function reconciliarFunil');
     expect(corpo).toContain('isAuthenticated');
   });
 
   it('o botão só é renderizado quando há incoerência', () => {
     const page = sourceWithoutComments(PAGE);
-    expect(page).toMatch(/relatoriosSemPagamento > 0 &&\s*\(?\s*<ReconciliarFunilForm/);
+    expect(page).toMatch(/relatoriosSemPagamento > 0 \|\| convidadosNoFunil > 0/);
   });
 
   it('a contagem ignora o filtro de período', () => {
@@ -101,5 +120,74 @@ describe('a ação e a tela', () => {
     const page = sourceWithoutComments(PAGE);
     expect(page).toContain('contarRelatoriosSemPagamento()');
     expect(page).not.toContain('contarRelatoriosSemPagamento(janela)');
+  });
+});
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * O CONVIDADO SAI DO FUNIL — e o cliente NUNCA sai junto.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Pedido do dono: "quem usar o cupom que dá acesso total de graça não fica registrado no funil".
+ *
+ * A remoção é a operação mais perigosa deste arquivo, porque apaga a jornada INTEIRA de alguém em
+ * vez de um marco. Duas coisas a tornam segura, e as duas são fáceis de perder numa refatoração:
+ *
+ *   1. `coupon_redemptions` guarda os DOIS tipos de resgate — acesso grátis e desconto consumido no
+ *      pagamento. Quem usou desconto pagou. Sem o filtro por `discount_percent IS NULL`, a limpeza
+ *      apagaria clientes reais do funil, e o defeito apareceria como "a conversão caiu".
+ *
+ *   2. Uma pessoa pode ser convidada numa análise e COMPRAR em outra, do mesmo navegador. Sem a
+ *      guarda de `paid`, a limpeza levaria a venda junto.
+ *
+ * Nenhum dos dois quebra nada visível quando se perde: o site continua funcionando e os números
+ * ficam errados em silêncio. É exatamente o tipo de coisa que precisa de teste.
+ */
+describe('o convidado sai do funil', () => {
+  const repo = sourceWithoutComments(REPO);
+
+  it('só considera cupom de ACESSO, nunca de desconto', () => {
+    const corpo = corpoDe(repo, 'async function analisesLiberadasPorCupom');
+    expect(corpo).toContain('isNull(accessCoupons.discountPercent)');
+  });
+
+  it('nunca apaga a jornada de quem tem pagamento', () => {
+    const corpo = corpoDe(repo, 'export async function removerDoFunilPelaAnalise');
+    expect(corpo).toMatch(/if \(await temPagamento\(hash\)\) return 0;/);
+  });
+
+  it('a guarda de pagamento vem ANTES do delete', () => {
+    // Ordem importa: conferir depois de apagar é não conferir.
+    const corpo = corpoDe(repo, 'export async function removerDoFunilPelaAnalise');
+    expect(corpo.indexOf('temPagamento')).toBeLessThan(corpo.indexOf('.delete('));
+  });
+
+  it('a remoção não derruba a concessão do acesso', () => {
+    // Medição não pode custar ao convidado o relatório que ele veio buscar — mesma regra de
+    // `markFunnel`. O `try/catch` é o que garante isso.
+    const corpo = corpoDe(repo, 'export async function removerDoFunilPelaAnalise');
+    expect(corpo).toContain('catch');
+  });
+});
+
+describe('a remoção é chamada de onde o desconto não alcança', () => {
+  const cupom = sourceWithoutComments(
+    join(ROOT, 'src', 'database', 'repositories', 'coupon-repo.ts'),
+  );
+
+  it('sai de `grantEntitlements`, o caminho exclusivo do cupom de acesso', () => {
+    const corpo = corpoDe(cupom, 'async function grantEntitlements');
+    expect(corpo).toContain('removerDoFunilPelaAnalise(recommendationSessionId)');
+  });
+
+  it('a ramificação de desconto retorna antes de qualquer remoção', () => {
+    /*
+      O caminho do desconto termina em `kind: 'discount'` sem passar por `grantEntitlements` — é a
+      posição no arquivo que impede a remoção de alcançar quem vai pagar. Se um dia a chamada subir
+      para `redeemCoupon`, esta asserção falha e obriga a decisão a ser tomada de novo.
+    */
+    const trecho = cupom.slice(0, cupom.indexOf('async function grantEntitlements'));
+    expect(trecho).toContain("kind: 'discount'");
+    expect(trecho).not.toContain('removerDoFunilPelaAnalise(');
   });
 });

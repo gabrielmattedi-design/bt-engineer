@@ -1,5 +1,6 @@
 import { and, eq, isNull, or, sql, gte} from 'drizzle-orm';
 import { db } from '@/database/client';
+import { removerDoFunilPelaAnalise } from './funnel-repo';
 import { accessCoupons, couponRedemptions, entitlements, recommendationSessions } from '@/database/schema';
 import { ALL_ENTITLEMENTS, type Entitlement } from '@/payments/entitlements';
 /* A regra do desconto é de COMÉRCIO, não de banco — ver a nota em `catalogo.ts`. */
@@ -328,6 +329,28 @@ async function grantEntitlements(
       valid.map((entitlement) => ({ sessionId, recommendationSessionId, entitlement })),
     )
     .onConflictDoNothing();
+
+  /*
+    ═══ O CONVIDADO SAI DO FUNIL AQUI ═════════════════════════════════════════════════════════
+
+    Pedido do dono: quem entra por cupom de acesso não deve aparecer na medição. Ele nunca esteve
+    no caminho de compra, e contá-lo infla o TOPO do funil — o que afunda a taxa de conversão com
+    gente que foi convidada a não pagar. Ver a nota longa em `removerDoFunilPelaAnalise`.
+
+    ─── POR QUE DAQUI, E NÃO DE `redeemCoupon` ────────────────────────────────────────────────
+
+    Esta função é o ÚNICO caminho de concessão por cupom, e as duas ramificações do resgate passam
+    por ela: a concessão normal e a reconcessão de quem já tinha resgatado antes. Chamar de
+    `redeemCoupon` exigiria lembrar das duas, e esquecer uma não quebraria nada visível.
+
+    E, principalmente: o cupom de DESCONTO nunca chega aqui — ele retorna antes, com
+    `kind: 'discount'`, porque quem usa desconto ainda vai pagar. Se a remoção morasse mais acima,
+    a mesma linha apagaria do funil um cliente que pagou. A posição no arquivo é a guarda.
+
+    O resultado não é esperado nem o erro tratado: `removerDoFunilPelaAnalise` engole os próprios,
+    e o acesso que a pessoa veio buscar não pode depender da limpeza de uma métrica.
+  */
+  await removerDoFunilPelaAnalise(recommendationSessionId);
 
   return valid;
 }

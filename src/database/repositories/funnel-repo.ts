@@ -1,9 +1,10 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { and, eq, gte, inArray, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '../client';
 import { funnelMarkers } from '../schema/funnel';
-import { anonymousSessions } from '../schema/sessions';
+import { anonymousSessions, recommendationSessions } from '../schema/sessions';
+import { accessCoupons, couponRedemptions } from '../schema/coupons';
 import { visitorCampaigns } from '../schema/campaigns';
 
 /**
@@ -388,4 +389,140 @@ export async function removerRelatoriosSemPagamento(): Promise<number> {
     .returning({ id: funnelMarkers.id });
 
   return apagados.length;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * CONVIDADO NÃO É FUNIL — quem entra por cupom de acesso sai da medição.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * ═══ POR QUE ═══════════════════════════════════════════════════════════════════════════════════
+ *
+ * Pedido do dono: "quem usar o cupom que dá acesso total de graça não fica registrado no funil".
+ *
+ * Metade disso já era verdade — `checkout`, `paid` e `report` só existem para quem passou pelo
+ * pagamento. O que sobrava era o começo: `quiz:*`, `analysis` e `plans`. E é ali que o convidado
+ * mais atrapalha, porque ele infla o TOPO. Um funil com dez visitantes reais e cinco convidados diz
+ * que a conversão de planos para checkout é de 20% quando na verdade é de 30% — e o número que sai
+ * daí decide preço e decide anúncio.
+ *
+ * O convidado não é ruído acidental: ele nunca esteve no caminho de compra. Contá-lo não mede um
+ * público que existe; mede um público que foi convidado a não pagar.
+ *
+ * ═══ POR QUE APAGAR DEPOIS, E NÃO DEIXAR DE MARCAR ═══════════════════════════════════════════
+ *
+ * O cupom é digitado na TELA DE PLANOS, depois de a pessoa já ter respondido o questionário e visto
+ * a prévia. Quando se descobre que ela é convidada, os marcos já existem. Não há como não marcar —
+ * só há como remover.
+ *
+ * ═══ AS DUAS GUARDAS, E POR QUE CADA UMA ESTÁ AQUI ═══════════════════════════════════════════
+ *
+ * 1. Só o cupom de ACESSO. `coupon_redemptions` guarda os dois tipos de resgate: o acesso grátis e
+ *    o desconto consumido no pagamento. Quem usou desconto PAGOU, é cliente, e apagá-lo do funil
+ *    seria destruir a medição de uma venda real para limpar a de um convite. O discriminador é
+ *    `discount_percent IS NULL` em `access_coupons`.
+ *
+ * 2. Nunca apaga quem tem `paid`. Uma pessoa pode ser convidada numa análise e COMPRAR em outra, do
+ *    mesmo navegador — mesmo hash, duas jornadas. Apagar tudo naquele hash levaria junto a compra.
+ *    Na dúvida, o convidado fica no funil: contar um convidado a mais distorce um pouco, apagar uma
+ *    venda apaga a única coisa que o funil existe para medir.
+ */
+async function hashDaAnalise(recommendationSessionId: string): Promise<string | null> {
+  const linhas = await db()
+    .select({ hash: anonymousSessions.cookieTokenHash })
+    .from(recommendationSessions)
+    .innerJoin(anonymousSessions, eq(anonymousSessions.id, recommendationSessions.sessionId))
+    .where(eq(recommendationSessions.id, recommendationSessionId))
+    .limit(1);
+
+  return linhas[0]?.hash ?? null;
+}
+
+/** Já tem venda registrada? Então este hash não sai do funil — ver a guarda 2. */
+async function temPagamento(hash: string): Promise<boolean> {
+  const linhas = await db()
+    .select({ id: funnelMarkers.id })
+    .from(funnelMarkers)
+    .where(and(eq(funnelMarkers.visitorHash, hash), eq(funnelMarkers.marker, 'paid')))
+    .limit(1);
+
+  return linhas.length > 0;
+}
+
+/**
+ * Tira do funil a jornada da análise liberada por cupom de acesso. Devolve quantos marcos saíram.
+ *
+ * NUNCA lança, pelo mesmo motivo de `markFunnel`: medição não pode derrubar o produto. Se isto
+ * falhar, o convidado recebe o acesso que veio buscar e o funil fica com um registro a mais — o
+ * erro barato dos dois.
+ */
+export async function removerDoFunilPelaAnalise(recommendationSessionId: string): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  try {
+    const hash = await hashDaAnalise(recommendationSessionId);
+    if (!hash) return 0;
+    if (await temPagamento(hash)) return 0;
+
+    const apagados = await db()
+      .delete(funnelMarkers)
+      .where(eq(funnelMarkers.visitorHash, hash))
+      .returning({ id: funnelMarkers.id });
+
+    return apagados.length;
+  } catch (error) {
+    console.error('[funil] não foi possível remover a jornada do convidado', error);
+    return 0;
+  }
+}
+
+/** As análises liberadas por cupom de ACESSO — nunca as de desconto. Ver a guarda 1. */
+async function analisesLiberadasPorCupom(): Promise<string[]> {
+  const linhas = await db()
+    .select({ id: couponRedemptions.recommendationSessionId })
+    .from(couponRedemptions)
+    .innerJoin(accessCoupons, eq(accessCoupons.code, couponRedemptions.code))
+    .where(isNull(accessCoupons.discountPercent));
+
+  return [...new Set(linhas.map((l) => l.id))];
+}
+
+/**
+ * Quantas jornadas de convidado ainda estão no funil.
+ *
+ * Existe para a tela poder oferecer a limpeza dos resgates ANTERIORES a esta mudança — a remoção
+ * automática só vale dos próximos em diante, e quem já entrou de graça continuaria contado.
+ */
+export async function contarJornadasDeCupomNoFunil(): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  try {
+    let n = 0;
+    for (const analise of await analisesLiberadasPorCupom()) {
+      const hash = await hashDaAnalise(analise);
+      if (!hash || (await temPagamento(hash))) continue;
+
+      const linhas = await db()
+        .select({ id: funnelMarkers.id })
+        .from(funnelMarkers)
+        .where(eq(funnelMarkers.visitorHash, hash))
+        .limit(1);
+      if (linhas.length > 0) n += 1;
+    }
+    return n;
+  } catch (error) {
+    console.error('[funil] não foi possível contar as jornadas de convidado', error);
+    return 0;
+  }
+}
+
+/** Remove as jornadas de convidado que ficaram no funil. Devolve quantas análises foram limpas. */
+export async function removerJornadasDeCupomDoFunil(): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  let limpas = 0;
+  for (const analise of await analisesLiberadasPorCupom()) {
+    if ((await removerDoFunilPelaAnalise(analise)) > 0) limpas += 1;
+  }
+  return limpas;
 }

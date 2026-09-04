@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
 import {
+  contarJornadasDeCupomNoFunil,
   contarRelatoriosSemPagamento,
   funnelReport,
   funnelStartedAt,
@@ -51,7 +52,8 @@ export default async function FunilPage({
     tela e ver o erro. Bootstrap sob demanda cria a estrutura e a tela passa a funcionar sozinha, no
     primeiro acesso.
   */
-  const [funil, etapas, origens, medindoDesde, relatoriosSemPagamento] = await withAutoBootstrap(
+  const [funil, etapas, origens, medindoDesde, relatoriosSemPagamento, convidadosNoFunil] =
+    await withAutoBootstrap(
     () =>
       Promise.all([
         funnelReport(janela),
@@ -67,6 +69,7 @@ export default async function FunilPage({
           no mesmo lugar.
         */
         contarRelatoriosSemPagamento(),
+        contarJornadasDeCupomNoFunil(),
       ]),
   );
 
@@ -346,8 +349,11 @@ export default async function FunilPage({
           Só aparece quando existe incoerência — ver `reconciliar-form.tsx`. A ausência dele é a
           confirmação de que o funil fecha.
         */}
-        {relatoriosSemPagamento > 0 && (
-          <ReconciliarFunilForm quantidade={relatoriosSemPagamento} />
+        {(relatoriosSemPagamento > 0 || convidadosNoFunil > 0) && (
+          <ReconciliarFunilForm
+            relatorios={relatoriosSemPagamento}
+            convidados={convidadosNoFunil}
+          />
         )}
 
         {/* O único controle destrutivo do painel. Ver `reset-form.tsx` para as duas travas. */}
