@@ -106,10 +106,22 @@ Idade, altura e peso são obrigatórios — o script recusa perfil que o site ta
 
 ### 6. Criar a arte no Canva
 
-Ver `references/marca.md` para o sistema visual e o passo a passo.
+Ver `references/marca.md` — sistema visual, anatomia dos templates, ids e as duas armadilhas
+medidas do Canva.
 
-**Estado atual:** a conta tem 0 brand templates, então `autofill-design` ainda não tem onde operar.
-A Fase 1 (criar e etiquetar os templates) precisa acontecer uma vez antes do fluxo diário.
+Escolha o arquétipo pelo pilar (A Ficha técnica · B Editorial · C Diagrama), depois:
+
+1. `create-design-from-brand-template` com o id do arquétipo
+2. `read-design` com `open_transaction: true` — devolve o `transaction_id`
+3. `edit-design` com um `replace_text` por campo + `update_title` com o nome da pauta
+4. `edit-design` com `finalize: "commit"` — operações e commit **não** vão na mesma chamada
+5. `get-export-formats` e então `export-design` em PNG 1080×1350
+
+**Não existe `autofill-design` nesta integração.** O caminho acima dá o mesmo resultado com mais
+controle. Respeite os limites de caracteres de `marca.md`: o layout é ancorado no topo, e reduzir a
+fonte para caber descaracteriza o arquétipo.
+
+**Pronto hoje:** apenas o Editorial (`EAHUMKDtV1o`). Ficha técnica e Diagrama ainda a montar.
 
 ### 7. Legenda e CTA
 
