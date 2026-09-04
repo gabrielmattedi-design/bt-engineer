@@ -20,6 +20,7 @@
 import { loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import { countSetupCombinations } from '@/data/combinations';
 import { scoreRackets } from '@/recommendation/normalize/racket-attributes';
+import { buildCatalogScale } from '@/recommendation';
 
 const rackets = loadRacketCatalog();
 const strings = loadStringCatalog();
@@ -111,6 +112,67 @@ function pesoVersusInercia() {
   };
 }
 
+/**
+ * Quanto uma FAMÍLIA de raquetes discorda de si mesma.
+ *
+ * ═══ POR QUE ISTO VIROU FATO DE PRIMEIRA CLASSE ══════════════════════════════════════════════
+ *
+ * A caixa de pergunta trouxe "VCORE" sem versão, e a resposta honesta era outra pergunta: qual? A
+ * medição mostrou por quê — no eixo de conforto, entre a VCORE mais confortável e a menos
+ * confortável do catálogo cabem 26 raquetes de OUTRAS marcas. Mais da metade do catálogo, dentro
+ * de uma linha só.
+ *
+ * Esse número é o argumento inteiro de uma pauta, e ele nasceu num script descartável — o mesmo
+ * caminho que produziu o erro do "26 das 47 · 10 g", em que a contagem se descolou da condição que
+ * a gerou. A regra da skill é explícita: se `fatos.ts` não devolve, não vai para a arte.
+ *
+ * Devolve, para cada eixo: a amplitude que a família ocupa em percentil e QUANTAS raquetes de fora
+ * da família caem dentro dela. O segundo número é o que a copy publica, porque é o que se entende
+ * sem explicar percentil — e ele nunca sai sem o eixo ao lado, pela mesma razão que a contagem de
+ * inércia nunca sai sem o limiar.
+ */
+export function dispersaoDaFamilia(termo: string) {
+  const marcadas = scoreRackets(rackets);
+  const escala = buildCatalogScale(marcadas);
+  const alvo = termo.toLowerCase();
+  const familia = marcadas.filter((r) => r.variant.product_name.toLowerCase().includes(alvo));
+  if (familia.length < 2) return null;
+
+  const EIXOS = [
+    'power_score',
+    'control_score',
+    'spin_score',
+    'comfort_score',
+    'maneuverability_score',
+    'stability_score',
+  ] as const;
+
+  const eixos = EIXOS.map((eixo) => {
+    const dentro = familia.map((r) => escala.position(eixo, r.attributes[eixo]));
+    const min = Math.min(...dentro);
+    const max = Math.max(...dentro);
+    const outras = marcadas.filter((r) => {
+      if (r.variant.product_name.toLowerCase().includes(alvo)) return false;
+      const p = escala.position(eixo, r.attributes[eixo]);
+      return p > min && p < max;
+    }).length;
+    return {
+      eixo: eixo.replace('_score', ''),
+      percentil_min: Math.round(min),
+      percentil_max: Math.round(max),
+      /* O número publicável: quantas raquetes de outras famílias cabem dentro desta. */
+      outras_raquetes_no_meio: outras,
+    };
+  });
+
+  return {
+    termo,
+    membros: familia.map((r) => r.variant.product_name),
+    de: marcadas.length,
+    eixos: eixos.sort((a, b) => b.outras_raquetes_no_meio - a.outras_raquetes_no_meio),
+  };
+}
+
 export function fatos() {
   const specs = rackets.map((r) => r.specs);
   const peso = faixa(specs.map((s) => s.unstrung_weight_g));
@@ -144,6 +206,17 @@ export function fatos() {
 }
 
 if (require.main === module) {
+  const familia = process.argv[2];
+  if (familia) {
+    const d = dispersaoDaFamilia(familia);
+    console.log(
+      d === null
+        ? `Menos de duas raquetes com "${familia}" no nome — não há família para comparar.`
+        : JSON.stringify(d, null, 2),
+    );
+    process.exit(0);
+  }
+
   const f = fatos();
   console.log(JSON.stringify(f, null, 2));
   if (!f.pode_publicar_spec_de_modelo) {
