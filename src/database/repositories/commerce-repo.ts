@@ -237,6 +237,8 @@ export async function processPaymentEvent(
       // `left join`: pedido sem e-mail é normal e não pode sumir da consulta que concede o acesso.
       email: users.email,
       publicId: recommendationSessions.publicId,
+      /** A sessão que criou a ANÁLISE — a identidade do funil. Ver o marco `paid` abaixo. */
+      donoDaAnalise: recommendationSessions.sessionId,
     })
     .from(orders)
     .leftJoin(users, eq(users.id, orders.userId))
@@ -277,7 +279,22 @@ export async function processPaymentEvent(
     return { kind: 'processed', granted: [] };
   }
 
-  await markFunnelBySessionId(order.sessionId, 'paid');
+  /*
+    ═══ O MARCO É DA ANÁLISE, NÃO DO PEDIDO ═══════════════════════════════════════════════════
+
+    Aqui ia `order.sessionId` — a sessão anônima do navegador que fez ESTE pedido. Um comprador é
+    contado uma vez enquanto compra tudo no mesmo aparelho, porque `unique(visitor_hash, marker)`
+    absorve o segundo marco. Ele vira dois no dia em que compra o pacote simples no computador e o
+    upgrade pelo celular: dois cookies, duas sessões, dois hashes, dois "Pagou".
+
+    O comprador é a pessoa, e a pessoa aqui é quem respondeu o questionário — uma só, por análise,
+    em qualquer aparelho. `donoDaAnalise` é essa sessão.
+
+    O `??` cobre o pedido sem `recommendation_session_id`, que o esquema permite. Nesse caso a
+    sessão do pedido é a melhor identidade que existe, e é melhor contar por ela do que perder o
+    marco: um `paid` faltando esconderia uma venda no painel, que é pior que contar uma a mais.
+  */
+  await markFunnelBySessionId(order.donoDaAnalise ?? order.sessionId, 'paid');
 
   /*
     ═══ O CUPOM DE DESCONTO É CONSUMIDO AQUI, E EM NENHUM OUTRO LUGAR ═════════════════════════

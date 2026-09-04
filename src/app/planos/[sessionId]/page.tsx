@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { markPageFunnel } from '@/app/funnel-mark';
+import { markAnalysisFunnel } from '@/app/funnel-mark';
 import { notFound } from 'next/navigation';
 import { activeProducts } from '@/database/repositories/commerce-repo';
 import { grantedEntitlements, loadRecommendation } from '@/database/repositories/session-repo';
@@ -75,7 +75,7 @@ export default async function PlanosPage({
   const stored = await loadRecommendation(sessionId);
   if (!stored) notFound();
 
-  await markPageFunnel('plans');
+  await markAnalysisFunnel(sessionId, 'plans');
 
   /**
    * Semeia os produtos sob demanda se a tabela existir vazia.

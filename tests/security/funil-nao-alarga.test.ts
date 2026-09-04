@@ -32,6 +32,71 @@ function sourceWithoutComments(path: string): string {
     .replace(/^\s*\/\/.*$/gm, '');
 }
 
+/**
+ * Da prévia em diante, TODA etapa conta a mesma identidade: a dona da análise.
+ *
+ * É o que torna o funil monotônico por construção em vez de por sorte. Se uma dessas etapas voltar
+ * a marcar pelo cookie, ela passa a contar aparelhos enquanto as vizinhas contam pessoas — e a
+ * comparação entre elas deixa de significar qualquer coisa, sem que nada quebre.
+ *
+ * O caso que motivou incluir `checkout` e `plans` junto: comprar o pacote simples no computador e o
+ * upgrade pelo celular. Dois cookies, um comprador.
+ */
+const ETAPAS_POR_ANALISE = [
+  { arquivo: join(ROOT, 'src', 'app', 'analise', '[sessionId]', 'page.tsx'), marco: 'analysis' },
+  { arquivo: join(ROOT, 'src', 'app', 'planos', '[sessionId]', 'page.tsx'), marco: 'plans' },
+  { arquivo: join(ROOT, 'src', 'app', 'planos', '[sessionId]', 'actions.ts'), marco: 'checkout' },
+];
+
+describe('as etapas do meio do funil contam a análise, não o navegador', () => {
+  for (const { arquivo, marco } of ETAPAS_POR_ANALISE) {
+    it(`\`${marco}\` marca por \`markAnalysisFunnel\``, () => {
+      const source = sourceWithoutComments(arquivo);
+      expect(source).toContain(`markAnalysisFunnel(`);
+      expect(source).toContain(`, '${marco}')`);
+    });
+  }
+
+  it('`markPageFunnel` não existe mais em lugar nenhum', () => {
+    // A função marcava pelo cookie da requisição. Foi substituída, não desativada — se o nome
+    // reaparecer, alguém recriou a contagem por aparelho.
+    const encontrados = walk(join(ROOT, 'src'))
+      .filter((f) => sourceWithoutComments(f).includes('markPageFunnel'))
+      .map((f) => f.replace(ROOT, ''));
+    expect(encontrados).toEqual([]);
+  });
+});
+
+describe('o marco `paid` conta o comprador, não o pedido', () => {
+  const commerce = sourceWithoutComments(
+    join(ROOT, 'src', 'database', 'repositories', 'commerce-repo.ts'),
+  );
+
+  it('usa a sessão dona da análise', () => {
+    // Duas compras da mesma análise — pacote simples e upgrade — são um comprador só, mesmo
+    // feitas de aparelhos diferentes.
+    expect(commerce).toContain("markFunnelBySessionId(order.donoDaAnalise ?? order.sessionId, 'paid')");
+  });
+
+  it('não perde o marco quando o pedido não tem análise', () => {
+    // O esquema permite `recommendation_session_id` nulo. Sem o fallback, um `paid` sumiria do
+    // painel — esconder uma venda é pior do que contá-la por uma identidade menos precisa.
+    expect(commerce).toContain('?? order.sessionId');
+  });
+});
+
+function walk(dir: string): string[] {
+  const { readdirSync, statSync, existsSync } = require('node:fs') as typeof import('node:fs');
+  if (!existsSync(dir)) return [];
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...walk(full));
+    else if (full.endsWith('.ts') || full.endsWith('.tsx')) out.push(full);
+  }
+  return out;
+}
+
 describe('o marco `report` conta o comprador, não o navegador', () => {
   const source = sourceWithoutComments(RESULT_PAGE);
 
@@ -60,6 +125,18 @@ describe('`paidOwnerSessionId` só reconhece acesso vindo de pedido', () => {
 
   it('exige `grantedByOrderId` preenchido', () => {
     expect(repo).toContain('isNotNull(entitlementsTable.grantedByOrderId)');
+  });
+
+  it('devolve a dona da análise, não a sessão do entitlement', () => {
+    /*
+      Duas compras da mesma análise geram DOIS entitlements, cada um com a sessão do aparelho que
+      comprou. Selecionar `entitlementsTable.sessionId` devolveria uma delas — e o marco `report`
+      passaria a depender de qual linha o banco entregasse primeiro, contando ora um comprador, ora
+      outro. A análise é uma só, e a dona dela também.
+    */
+    expect(repo).toMatch(
+      /paidOwnerSessionId[\s\S]*select\(\{ sessionId: recommendationSessions\.sessionId \}\)/,
+    );
   });
 
   it('ignora acesso revogado', () => {

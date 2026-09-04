@@ -252,7 +252,26 @@ export async function grantedEntitlements(publicId: string): Promise<Entitlement
 }
 
 /**
- * A sessão anônima que COMPROU esta análise — ou `null` se ninguém comprou.
+ * A sessão anônima DONA da análise — quem respondeu o questionário.
+ *
+ * É a identidade que o funil usa da prévia em diante. Ela é estável onde o cookie não é: não muda
+ * quando a pessoa troca de aparelho, não se duplica quando ela compra duas vezes, e não nasce
+ * quando um terceiro abre o link compartilhado. Ver a nota longa em `src/app/funnel-mark.ts`.
+ */
+export async function analysisOwnerSessionId(publicId: string): Promise<string | null> {
+  if (!usingDatabase()) return null;
+
+  const rows = await db()
+    .select({ sessionId: recommendationSessions.sessionId })
+    .from(recommendationSessions)
+    .where(eq(recommendationSessions.publicId, publicId))
+    .limit(1);
+
+  return rows[0]?.sessionId ?? null;
+}
+
+/**
+ * A sessão dona de uma análise que foi PAGA — ou `null` se ninguém pagou por ela.
  *
  * ═══ POR QUE O FUNIL PRECISAVA DISTO ═════════════════════════════════════════════════════════
  *
@@ -264,6 +283,11 @@ export async function grantedEntitlements(publicId: string): Promise<Entitlement
  *
  * Os dois ids nem são do mesmo espaço: `orders.session_id` aponta para `anonymous_sessions`, e o
  * `[sessionId]` da URL do relatório é o `public_id` da sessão de RECOMENDAÇÃO. Este JOIN é a ponte.
+ *
+ * Devolve a dona da ANÁLISE, e não a sessão que aparece no entitlement. As duas coincidem na compra
+ * feita no mesmo navegador, e divergem quando alguém compra o pacote simples num aparelho e o
+ * upgrade em outro: aí existem dois entitlements com duas sessões, e usar a do entitlement contaria
+ * o mesmo comprador duas vezes. A análise é uma só.
  *
  * ═══ POR QUE `granted_by_order_id IS NOT NULL` ═══════════════════════════════════════════════
  *
@@ -279,7 +303,7 @@ export async function paidOwnerSessionId(publicId: string): Promise<string | nul
   if (!usingDatabase()) return null;
 
   const rows = await db()
-    .select({ sessionId: entitlementsTable.sessionId })
+    .select({ sessionId: recommendationSessions.sessionId })
     .from(entitlementsTable)
     .innerJoin(
       recommendationSessions,

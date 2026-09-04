@@ -13,7 +13,7 @@ import {
 import { redeemCoupon } from '@/database/repositories/coupon-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { contarTentativa, LIMITE_JANELA_MINUTOS } from '@/database/repositories/throttle-repo';
-import { markFunnel } from '@/database/repositories/funnel-repo';
+import { markAnalysisFunnel } from '@/app/funnel-mark';
 import { paymentProvider } from '@/payments/adapters';
 import { describeCheckoutFailure } from '@/payments/checkout-errors';
 import { checkoutOpen, INVITE_ONLY_MESSAGE } from '@/payments/mode';
@@ -296,7 +296,11 @@ export async function startCheckout(
       o clique faria uma falha de integração aparecer no painel como desistência do cliente, que é
       o diagnóstico oposto do certo.
     */
-    await markFunnel(token, 'checkout');
+    /*
+      Pela ANÁLISE, não pelo cookie: quem compra o pacote simples e depois o upgrade de outro
+      aparelho inicia dois checkouts de dois cookies — e é um comprador só.
+    */
+    await markAnalysisFunnel(publicId, 'checkout');
 
     destination = checkout.redirectUrl;
   } catch (error) {

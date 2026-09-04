@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { markPageFunnel } from '@/app/funnel-mark';
+import { markAnalysisFunnel } from '@/app/funnel-mark';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { getTeaser } from '@/app/questionario/actions';
@@ -90,7 +90,7 @@ export default async function AnalisePage({
   const precos = await precosPublicados();
 
   // Depois do `notFound`: um id inexistente não é uma visita à prévia.
-  await markPageFunnel('analysis');
+  await markAnalysisFunnel(sessionId, 'analysis');
 
   /**
    * Estado honesto: nenhuma raquete sobreviveu aos FILTROS DUROS.
