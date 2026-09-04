@@ -109,19 +109,21 @@ Idade, altura e peso são obrigatórios — o script recusa perfil que o site ta
 Ver `references/marca.md` — sistema visual, anatomia dos templates, ids e as duas armadilhas
 medidas do Canva.
 
-Escolha o arquétipo pelo pilar (A Ficha técnica · B Editorial · C Diagrama), depois:
+Escolha o arquétipo pelo pilar (A Ficha técnica · B Editorial · C Diagrama · D Story), depois:
 
 1. `create-design-from-brand-template` com o id do arquétipo
 2. `read-design` com `open_transaction: true` — devolve o `transaction_id`
 3. `edit-design` com um `replace_text` por campo + `update_title` com o nome da pauta
 4. `edit-design` com `finalize: "commit"` — operações e commit **não** vão na mesma chamada
-5. `get-export-formats` e então `export-design` em PNG 1080×1350
+5. `get-export-formats` e então `export-design` em PNG — 1080×1350 nos arquétipos A/B/C,
+   **1080×1920 no D**
 
 **Não existe `autofill-design` nesta integração.** O caminho acima dá o mesmo resultado com mais
 controle. Respeite os limites de caracteres de `marca.md`: o layout é ancorado no topo, e reduzir a
 fonte para caber descaracteriza o arquétipo.
 
-**Os três estão prontos:** Ficha técnica `EAHUMHdg-_0` · Editorial `EAHUMKDtV1o` · Diagrama `EAHUMD6CggM`.
+**Os quatro estão prontos:** Ficha técnica `EAHUMHdg-_0` · Editorial `EAHUMKDtV1o` ·
+Diagrama `EAHUMD6CggM` · Story `EAHUMDWWwI4`.
 
 ### 7. Legenda e CTA
 
@@ -137,6 +139,10 @@ Hashtags: 5 a 8, específicas (`#tenisbrasil`, `#raquetedetenis`), sem sopa de 3
 
 Quando fizer sentido, 2 a 3 Stories que estendem o post — enquete sobre o tema, bastidor do
 raciocínio, ou a pergunta que o post levanta.
+
+Cada um ganha arte própria no arquétipo **D · Story**, e cada arte deixa a faixa de 1000 a 1650
+vazia para o sticker nativo. Diga ao dono, junto com o PNG, **qual sticker vai em cima e quando
+postar** — o Story sem sticker perde a razão de existir.
 
 ### 9. Registrar
 

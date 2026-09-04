@@ -35,13 +35,14 @@ percebe uma marca; quem passa post a post não vê o mesmo layout duas vezes seg
 
 ---
 
-## Os três arquétipos
+## Os arquétipos
 
-| | Arquétipo | Fundo | Para |
-|---|---|---|---|
-| **A** | Ficha técnica | `paper` | P2 Física, P4 Caso |
-| **B** | Editorial | `ink` | P1 Diagnóstico, P3 Mito, P6 Story |
-| **C** | Diagrama | `court` | P5 Comparação, P7 Bastidor |
+| | Arquétipo | Formato | Fundo | Para |
+|---|---|---|---|---|
+| **A** | Ficha técnica | 1080×1350 | `paper` | P2 Física, P4 Caso |
+| **B** | Editorial | 1080×1350 | `ink` | P1 Diagnóstico, P3 Mito |
+| **C** | Diagrama | 1080×1350 | `court` | P5 Comparação, P7 Bastidor |
+| **D** | Story | 1080×1920 | `ink` | P6 Story — enquete, caixa de pergunta, chamada para o post |
 
 **A · Ficha técnica** — papel milimetrado, cotas, anotação de desenho técnico. Vocabulário de
 engenharia, que ninguém no tênis usa.
@@ -52,6 +53,9 @@ scroll na emoção, não no dado.
 **C · Diagrama** — o dado é a arte. Verde institucional, tipo menor, gráfico que se entende sem
 legenda.
 
+**D · Story** — o Editorial esticado para 9:16, com o miolo VAZIO de propósito. A arte é fundo: quem
+ocupa o centro da tela é o sticker nativo do Instagram (enquete, caixa de pergunta, link, post).
+
 ---
 
 ## Templates prontos
@@ -61,6 +65,7 @@ legenda.
 | **A · Ficha técnica** | `EAHUMHdg-_0` | `etiqueta` · `titulo` · `apoio` · `rodape` |
 | **B · Editorial** | `EAHUMKDtV1o` | `titulo` · `destaque` · `apoio` · `rodape` |
 | **C · Diagrama** | `EAHUMD6CggM` | `etiqueta` · `titulo` · `valor_a` · `rotulo_a` · `valor_b` · `rotulo_b` · `legenda` · `rodape` |
+| **D · Story** | `EAHUMDWWwI4` | `titulo` · `destaque` · `apoio` · `rodape` |
 
 ### Anatomia do Editorial (1080 × 1350)
 
@@ -132,6 +137,41 @@ comparação em que a barra menor representa o número maior é um gráfico que 
 outro arquétipo. Barra sem dado por trás é enfeite fingindo ser informação — e é justamente o que
 `limites.md` existe para impedir.
 
+### Anatomia do Story (1080 × 1920)
+
+Mesmos elementos do Editorial, redistribuídos em 9:16. Os `locator_id` são os MESMOS — o Story
+nasceu de um `resize-design` do Editorial, então a tabela de ids serve para os dois.
+
+| Elemento | `locator_id` | Posição | Formato |
+|---|---|---|---|
+| Fundo | `PB217X2Lkn1WJxbg-LBC2MCT4fVnQV1d4` | 0,0 · 1080×1920 | `#0B0F14` |
+| Grades | `…-LBfXcw80DqNBnMbc` · `…-LB4NWhdRKzv2mKKT` | 0,0 · 1080×1920 | branco, 3,5% e 5% |
+| Wordmark (anel + E) | `…-LBVBVDm79D6T6Jzw` · `…-LBD9z5kNljWcxcDY` | 200,80 · 56×56 | `#FAFAF8` |
+| Wordmark (texto) | `…-LBdCPd1swnV3PJRN` · `…-LB5wf59W8zfB9z7b` | 196,154 e 240,154 | Sora bold 30 · Inter 17 |
+| **`titulo`** | `…-LBQSc0v6WnMJgCfM` | 440,80 · larg. 920 | Sora bold 92, `#F7F8F6` |
+| **`destaque`** | `…-LBZs6t5v57hntdd9` | 552,80 · larg. 920 | Sora bold 92, `#FFC62E` |
+| Régua | `…-LB4bYJyP3YDdSsyM` | 830,80 · 156×8 | `#D85A2B` |
+| **`apoio`** | `…-LBYcJhfXGDMZ0KM7` | 886,80 · larg. 800 | Inter 32, `#A8B2AD` |
+| Domínio | `…-LBpNk92RQHKjR2xH` | 1700,80 | Inter 22, `#6E7A74` |
+| **`rodape`** | `…-LBMzL3mdm3W7NkSj` | 1700,580 · alin. dir. | Inter 22, `#6E7A74` |
+
+**As três faixas que mandam no layout.** O 9:16 do Instagram não é uma tela livre — a interface come
+as pontas e o sticker come o meio:
+
+- **0 a 190** — barra de perfil, avatar e "×". Nada da arte pode entrar aqui. Por isso o wordmark
+  começa em 200, e não nos 62 do formato 4:5.
+- **1000 a 1650** — **zona livre, e ela é o ponto do arquétipo.** É onde o dono cola a enquete, a
+  caixa de pergunta, o link ou o sticker do post. Texto nosso aqui vira texto atrás de sticker.
+- **1650 a 1920** — campo "Enviar mensagem" e barra de compartilhar. O rodapé em 1700 fica no limite
+  de cima dessa faixa, discreto por definição, e é o único elemento que aceita conviver com ela.
+
+Quando o `apoio` passa de duas linhas, ele invade a zona livre. Nesse caso suba a régua e o `apoio`
+juntos (foi o que o Story 2 fez: régua 760, `apoio` 816) em vez de reduzir a fonte.
+
+**O `rodape` do Story diz o que fazer, não onde estamos.** No 4:5 ele é contador de slide; aqui ele
+é a instrução da interação — "Responde aí ↓", "Toca no post ↑", "Caixa de pergunta ↓". A seta aponta
+para onde o sticker vai ficar.
+
 ---
 
 ## O fluxo diário
@@ -181,3 +221,13 @@ uma segunda chamada.
 **`update_stroke_properties` falhou com erro interno** ao tentar mudar a cor do anel do wordmark na
 Ficha técnica. A volta que funcionou foi `replace_shape` com um anel PREENCHIDO (círculo externo no
 sentido horário, interno no anti-horário) seguido de `recolor_element`.
+
+**`resize-design` não adapta o layout — ele empilha.** Ao levar o Editorial de 1080×1350 para
+1080×1920, o "magic resize" enfiou todos os elementos numa caixa flutuante no meio da tela, com o
+fundo e as grades ainda em 1350 de altura. Nada quebra, e é justamente por isso que engana: o
+arquivo abre, os ids continuam válidos, e a peça está errada.
+
+O caminho que funcionou foi tratar o resize como ponto de partida e reconstruir o layout inteiro num
+único `edit-design`: `resize_element` no fundo e nas duas grades para 1080×1920, e
+`position_element` em cada elemento de texto. Vale a pena fazer numa chamada só — cada `edit-design`
+devolve o documento inteiro, e o Story tem duas grades cujo `path` SVG ocupa milhares de caracteres.
