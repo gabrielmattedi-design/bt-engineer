@@ -70,6 +70,29 @@ conferida", reescreve sem o número.
 
 ---
 
+## 2-bis. Quiz de story tem resposta CERTA — e ela precisa de medição
+
+Um sticker de quiz não é uma pergunta retórica: o Instagram marca a resposta como
+certa ou errada na tela de quem responde. Isso transforma uma escolha de copy numa
+afirmação técnica com veredicto, e vale o mesmo rigor de qualquer número da arte.
+
+O caso que criou esta regra: o quiz "qual o impacto do peso na manobrabilidade?" ia
+com **Baixa** como resposta certa, porque combinava com a tese da pauta. A medição
+disse outra coisa — o peso explica 20,1% da variação da manobrabilidade no catálogo,
+e `maneuverability_score` usa `weight_inverse` com peso **0,30** no próprio motor.
+"Baixa" contradiria o produto, e qualquer leitor que perguntasse "então por que vocês
+usam peso?" estaria certo. A resposta é **Moderada**.
+
+Antes de publicar um quiz, meça as duas pontas:
+
+- a resposta marcada como certa é sustentada por dado, e não por conveniência
+  narrativa;
+- as opções descartadas são de fato erradas — se uma delas é defensável, quem a
+  escolher vai ver "errado" numa resposta que não era.
+
+E nunca use como distrator algo que o catálogo não tem. "Rigidez do quadro" parece um
+distrator inocente e sugere que o produto avalia RA, que ele não avalia (§1).
+
 ## 3. Heurística nossa ≠ lei da física
 
 O erro mais fácil de cometer sem perceber, e o que o dono pediu explicitamente para evitar.

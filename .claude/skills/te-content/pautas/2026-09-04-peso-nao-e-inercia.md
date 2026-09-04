@@ -48,7 +48,7 @@ arquivadas, não a peça de trabalho.
 
 | | Quando | Arte | Sticker por cima |
 |---|---|---|---|
-| 1 | junto com o post | **A mais leve pode pesar mais na mão.** | **Quiz:** "O que decide o peso na mão?" — Onde a massa está ✓ / Quantos gramas tem / O tamanho da cabeça |
+| 1 | junto com o post | **A mais leve pode pesar mais na mão.** | **Quiz:** "Qual o impacto do peso na manobrabilidade?" — Total / Alta / **Moderada** ✓ / Baixa |
 | 2 | ~4h depois | **39 das 47 custam mais pra girar** | **Sticker do post** |
 | 3 | dia seguinte | **Qual raquete você usa hoje?** | **Caixa de pergunta** |
 
@@ -60,6 +60,30 @@ resposta certa e revela no toque. A arte levanta a possibilidade e o quiz pergun
 causa. Quem sabe responde "onde a massa está" e sai se sentindo esperto; quem não
 sabe recebe a resposta na hora e passa a querer o post. Os dois ganham alguma coisa,
 que é o que a enquete de sim/não não fazia.
+
+**A resposta do quiz é "Moderada", e "Baixa" seria erro nosso.** O dono escreveu as
+quatro opções à mão e perguntou se "baixa" não seria radical demais. Estava certo, e
+a medição decide sem precisar de prudência:
+
+| | |
+|---|---|
+| r(peso, manobrabilidade) | −0,448 — **20,1%** da variação |
+| r(inércia, manobrabilidade) | −0,883 — **78%** da variação |
+| r(balanço, manobrabilidade) | −0,290 — 8,4% |
+
+E o argumento que fecha vem do nosso próprio motor, não do catálogo:
+`maneuverability_score` é montado com **`weight_inverse` a 0,30** — trinta por cento,
+por escrito —, mais 0,55 de inércia, que por sua vez é derivada de peso × balanço.
+Publicar "baixa" seria contradizer o produto, e a primeira pessoa a perguntar "então
+por que vocês usam peso?" estaria certa.
+
+"Alta" também não: a inércia domina com 78% contra 20%, e é justamente por isso que o
+carrossel existe. Em **30% dos pares** com ≥10 g de diferença a mais leve é a MENOS
+manobrável — frequente o bastante para o peso não decidir sozinho, raro o bastante
+para não ser baixo. Moderada é onde o número cai.
+
+O quiz não perde força com isso: a resposta intuitiva de quem não parou para pensar
+continua sendo "Alta" ou "Total".
 
 **O intervalo entre stories não cria suspense.** Stories do mesmo perfil ficam numa
 bolha só: quem abre à noite vê o 1 e o 2 colados, como se tivessem sido postados
@@ -80,7 +104,9 @@ Todo número desta pauta saiu de `scripts/fatos.ts`, contra o catálogo ao vivo.
 | r(peso, inércia) = 0,029 — "praticamente zero" | `[catálogo]` | slide 04 |
 | a mais leve (270 g, inércia 43,5) supera a mais pesada (315 g, inércia 38,0) | `[catálogo]` | conferência do story 1 — não publicado |
 | distância conta ao quadrado | `[física]` | slide 03 |
-| a que resiste mais cobra mais no terceiro set | `[heurística]` | slide 06, quiz do story 1 |
+| peso explica 20,1% da manobrabilidade; inércia, 78% | `[catálogo]` | quiz do story 1 |
+| `maneuverability_score` usa `weight_inverse` com peso 0,30 | `[motor]` | quiz do story 1 |
+| a que resiste mais cobra mais no terceiro set | `[heurística]` | slide 06 |
 
 **Se alguém contestar nos comentários** — e esta pauta foi feita para provocar quem
 acha que sabe, então alguém vai:
