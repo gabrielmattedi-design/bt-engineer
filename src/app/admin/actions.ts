@@ -13,7 +13,7 @@ import {
   LIMITE_JANELA_MINUTOS,
 } from '@/database/repositories/throttle-repo';
 import { withAutoBootstrap } from '@/database/setup';
-import { resetFunnel } from '@/database/repositories/funnel-repo';
+import { removerRelatoriosSemPagamento, resetFunnel } from '@/database/repositories/funnel-repo';
 
 /**
  * Quantos palpites de senha cabem numa janela de 15 minutos.
@@ -188,6 +188,35 @@ export async function resetarFunil(
     return { ok: true, marcos, origens };
   } catch (error) {
     console.error('[admin] falha ao zerar o funil', error);
+    return { error: 'O banco recusou a limpeza. Nada foi apagado — confira o log do servidor.' };
+  }
+}
+
+/**
+ * Reconcilia o funil: apaga os marcos de relatório sem pagamento correspondente.
+ *
+ * ─── POR QUE ESTA NÃO EXIGE CONFIRMAÇÃO DIGITADA, E `resetarFunil` EXIGE ─────────────────────
+ *
+ * As duas apagam linhas de medição, e o que muda é o que se perde num clique errado. `resetarFunil`
+ * apaga o histórico INTEIRO, não tem volta e não tem de onde reconstruir — daí a palavra digitada.
+ *
+ * Esta apaga apenas linhas que a instrumentação atual não produziria: `report` sem `paid` na mesma
+ * identidade. Clicá-la por engano no funil já coerente não apaga nada, porque não há o que apagar —
+ * a tela nem mostra o botão nesse caso. O custo do erro é zero, e uma confirmação cerimonial onde o
+ * risco é zero ensina a digitar a palavra sem ler, que é o que estraga a confirmação da outra.
+ *
+ * A autenticação é revalidada aqui pelo mesmo motivo de `resetarFunil`: Server Action é endpoint
+ * HTTP e pode ser chamada sem passar por tela nenhuma.
+ */
+export async function reconciliarFunil(): Promise<{ error: string } | { ok: true; apagados: number }> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  try {
+    const apagados = await withAutoBootstrap(() => removerRelatoriosSemPagamento());
+    revalidatePath('/admin/funil');
+    return { ok: true, apagados };
+  } catch (error) {
+    console.error('[admin] falha ao reconciliar o funil', error);
     return { error: 'O banco recusou a limpeza. Nada foi apagado — confira o log do servidor.' };
   }
 }

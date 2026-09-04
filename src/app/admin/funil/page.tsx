@@ -1,11 +1,17 @@
 import { redirect } from 'next/navigation';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
-import { funnelReport, funnelStartedAt, quizDropoff } from '@/database/repositories/funnel-repo';
+import {
+  contarRelatoriosSemPagamento,
+  funnelReport,
+  funnelStartedAt,
+  quizDropoff,
+} from '@/database/repositories/funnel-repo';
 import { dataCurta } from '@/lib/datas';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { withAutoBootstrap } from '@/database/setup';
 import { ResetFunnelForm } from './reset-form';
+import { ReconciliarFunilForm } from './reconciliar-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,13 +51,23 @@ export default async function FunilPage({
     tela e ver o erro. Bootstrap sob demanda cria a estrutura e a tela passa a funcionar sozinha, no
     primeiro acesso.
   */
-  const [funil, etapas, origens, medindoDesde] = await withAutoBootstrap(() =>
-    Promise.all([
-      funnelReport(janela),
-      quizDropoff(janela),
-      campaignReport(janela),
-      funnelStartedAt(),
-    ]),
+  const [funil, etapas, origens, medindoDesde, relatoriosSemPagamento] = await withAutoBootstrap(
+    () =>
+      Promise.all([
+        funnelReport(janela),
+        quizDropoff(janela),
+        campaignReport(janela),
+        funnelStartedAt(),
+        /*
+          A contagem NÃO é filtrada pela janela de período.
+
+          O resíduo é do banco inteiro: um marco órfão de agosto continua distorcendo a leitura de
+          "Tudo", e some da tela em "7 dias" só porque a janela o esconde. Um aviso que aparece e
+          desaparece conforme o filtro ensinaria que o problema vai e volta, quando ele está parado
+          no mesmo lugar.
+        */
+        contarRelatoriosSemPagamento(),
+      ]),
   );
 
   /*
@@ -325,6 +341,14 @@ export default async function FunilPage({
             )}
           </ul>
         </div>
+
+        {/*
+          Só aparece quando existe incoerência — ver `reconciliar-form.tsx`. A ausência dele é a
+          confirmação de que o funil fecha.
+        */}
+        {relatoriosSemPagamento > 0 && (
+          <ReconciliarFunilForm quantidade={relatoriosSemPagamento} />
+        )}
 
         {/* O único controle destrutivo do painel. Ver `reset-form.tsx` para as duas travas. */}
         <ResetFunnelForm />

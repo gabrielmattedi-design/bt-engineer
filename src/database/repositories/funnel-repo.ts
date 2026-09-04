@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '../client';
 import { funnelMarkers } from '../schema/funnel';
 import { anonymousSessions } from '../schema/sessions';
@@ -306,4 +306,86 @@ export async function resetFunnel(): Promise<{ marcos: number; origens: number }
   const origens = await conn.delete(visitorCampaigns).returning({ id: visitorCampaigns.id });
 
   return { marcos: marcos.length, origens: origens.length };
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * RECONCILIAÇÃO — apagar o resíduo da instrumentação antiga, e só ele.
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * ═══ POR QUE ISTO PRECISOU EXISTIR ═══════════════════════════════════════════════════════════
+ *
+ * O marco `report` era gravado pelo cookie do navegador enquanto `paid` era gravado pela sessão do
+ * pedido — duas identidades diferentes somadas na mesma coluna. O painel mostrou 1 pagamento e 2
+ * relatórios, depois 3 e 4, e um funil que alarga no fim é impossível por construção.
+ *
+ * A instrumentação foi consertada: os dois marcos agora contam a sessão dona da análise. Só que
+ * marco gravado não se reescreve sozinho, e o dono continuou olhando para uma linha final maior que
+ * a anterior — que é justamente a leitura que faz alguém desconfiar de que houve acesso sem
+ * pagamento.
+ *
+ * ═══ POR QUE NÃO É "AJUSTAR PARA TRÊS" ═══════════════════════════════════════════════════════
+ *
+ * O pedido foi "voltar o relatório pra três". Fazer isso literalmente — apagar linhas até a conta
+ * fechar — resolveria a tela de hoje e deixaria um funil onde o número foi digitado, não medido.
+ * O primeiro dia em que o novo total não batesse, ninguém saberia se o dado está errado ou se a
+ * correção manual está velha.
+ *
+ * A regra aqui é derivada, e por isso repetível: depois do conserto, `report` só é gravado quando
+ * existe entitlement vindo de PEDIDO, na mesma identidade que o `paid` usa. Logo, todo `report` sem
+ * `paid` correspondente é, por construção, resíduo do defeito antigo — e nenhum outro é.
+ *
+ * A conta de quem sobra não é escolhida: ela cai onde tem de cair.
+ *
+ * ═══ POR QUE EM DUAS FUNÇÕES, E POR QUE NA MEMÓRIA ═══════════════════════════════════════════
+ *
+ * Contar e apagar são separados para a tela poder MOSTRAR quantos são antes de oferecer o botão —
+ * um botão de apagar que não diz quanto vai apagar é um botão que se clica no escuro.
+ *
+ * A diferença é calculada em JavaScript e não com um `NOT IN` em SQL. São dezenas de linhas, o
+ * ganho de fazer no banco é nulo, e o custo seria uma subconsulta correlacionada que ninguém relê
+ * com confiança seis meses depois. A lição de ontem foi que a forma esperta e a forma da casa
+ * geram o mesmo resultado até o dia em que não geram.
+ */
+async function hashesOrfaosDeRelatorio(): Promise<string[]> {
+  const linhas = await db()
+    .select({ hash: funnelMarkers.visitorHash, marker: funnelMarkers.marker })
+    .from(funnelMarkers)
+    .where(sql`${funnelMarkers.marker} in ('report', 'paid')`);
+
+  const pagaram = new Set(linhas.filter((l) => l.marker === 'paid').map((l) => l.hash));
+  return linhas.filter((l) => l.marker === 'report' && !pagaram.has(l.hash)).map((l) => l.hash);
+}
+
+/** Quantos marcos de relatório não têm pagamento correspondente. Zero quando o funil está coerente. */
+export async function contarRelatoriosSemPagamento(): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+  try {
+    return (await hashesOrfaosDeRelatorio()).length;
+  } catch (error) {
+    console.error('[funil] não foi possível conferir a coerência do funil', error);
+    return 0;
+  }
+}
+
+/**
+ * Apaga os marcos `report` sem `paid` correspondente. Devolve quantos saíram.
+ *
+ * Só toca no marco `report`. Os outros marcos daquele mesmo visitante — `quiz:start`, `analysis`,
+ * `plans` — continuam existindo, porque aquela pessoa DE FATO passou por eles. O defeito era a
+ * identidade do último marco, não a existência da visita.
+ */
+export async function removerRelatoriosSemPagamento(): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  const orfaos = await hashesOrfaosDeRelatorio();
+  // `inArray` com lista vazia gera SQL inválido em vez de não apagar nada — a guarda é o conserto.
+  if (orfaos.length === 0) return 0;
+
+  const apagados = await db()
+    .delete(funnelMarkers)
+    .where(and(eq(funnelMarkers.marker, 'report'), inArray(funnelMarkers.visitorHash, orfaos)))
+    .returning({ id: funnelMarkers.id });
+
+  return apagados.length;
 }
