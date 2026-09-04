@@ -1,2 +1,3 @@
 {"data":"2026-09-04","pilar":"P2","formato":"carrossel","tema":"peso-nao-e-inercia-de-swing","hook":"Mais leve nem sempre é mais fácil de girar.","fatos_usados":["catalogo:correlacao_peso_inercia","catalogo:26_de_47"],"cta":"engajamento","status":"gerado"}
 {"data":"2026-09-05","pilar":"P6","formato":"story","tema":"vcore-mesma-linha-versoes-diferentes","hook":"26 raquetes cabem dentro da VCORE.","fatos_usados":["catalogo:dispersao_familia_vcore_conforto"],"cta":"engajamento","status":"gerado"}
+{"data":"2026-09-06","pilar":"P1","formato":"story","tema":"espessura-de-corda-e-frequencia-de-quebra","hook":"Quantas vezes você estoura corda?","fatos_usados":["catalogo:faixa_espessura_mm","motor:eixo_gauge"],"cta":"engajamento","status":"gerado"}
