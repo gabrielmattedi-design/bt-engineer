@@ -19,6 +19,7 @@
 
 import { loadRacketCatalog, loadStringCatalog } from '@/data/load';
 import { countSetupCombinations } from '@/data/combinations';
+import { scoreRackets } from '@/recommendation/normalize/racket-attributes';
 
 const rackets = loadRacketCatalog();
 const strings = loadStringCatalog();
@@ -59,6 +60,57 @@ export function temFonte(variantId: string, campo: string): boolean {
   return typeof p?.source_url === 'string' && p.source_url.length > 0;
 }
 
+/**
+ * Peso estático × inércia de swing — o fato mais publicado da skill, e o que mais deu problema.
+ *
+ * ═══ POR QUE ESTE BLOCO PRECISOU EXISTIR ═════════════════════════════════════════════════════
+ *
+ * A primeira pauta publicou "26 das 47 raquetes exigem mais esforço para acelerar do que outra
+ * 10 g mais pesada". As duas metades da frase são verdadeiras, e JUNTAS são falsas: 26 é a
+ * contagem com 15 g de diferença; com 10 g são 39.
+ *
+ * O erro não foi de conta, foi de processo. `fatos.ts` não devolvia este número, então ele foi
+ * medido uma vez num script descartável e daí em diante carregado à mão entre a arte, a legenda e
+ * o arquivo da pauta. É exatamente o defeito que o cabeçalho deste arquivo descreve — "nenhum
+ * número técnico é digitado" —, cometido no único número que o arquivo não cobria.
+ *
+ * Agora o limiar vem junto com a contagem, no mesmo objeto. Não dá para citar um sem o outro sem
+ * que a inconsistência fique visível na hora de escrever.
+ *
+ * ═══ O QUE `swing_index` É, E O QUE ELE NÃO É ════════════════════════════════════════════════
+ *
+ * É o índice de inércia do próprio produto, derivado de peso × balanço. NÃO é swingweight — essa é
+ * medição de laboratório que o catálogo não tem, e `limites.md` §1 proíbe citar. A copy fala em
+ * "esforço para acelerar" e nunca em número de swingweight.
+ */
+function pesoVersusInercia() {
+  const medidas = scoreRackets(rackets)
+    .map((r) => ({ g: r.variant.specs.unstrung_weight_g, si: r.attributes.swing_index }))
+    .filter((m): m is { g: number; si: number } => typeof m.g === 'number' && typeof m.si === 'number');
+
+  const n = medidas.length;
+  const mg = medidas.reduce((a, m) => a + m.g, 0) / n;
+  const ms = medidas.reduce((a, m) => a + m.si, 0) / n;
+  const cov = medidas.reduce((a, m) => a + (m.g - mg) * (m.si - ms), 0);
+  const dg = Math.sqrt(medidas.reduce((a, m) => a + (m.g - mg) ** 2, 0));
+  const ds = Math.sqrt(medidas.reduce((a, m) => a + (m.si - ms) ** 2, 0));
+
+  /* Quantas raquetes têm MAIS inércia que alguma pelo menos `limiar` gramas mais pesada. */
+  const invertidas = (limiar: number) =>
+    medidas.filter((m) => medidas.some((o) => o.g >= m.g + limiar && o.si < m.si)).length;
+
+  return {
+    de: n,
+    /** Correlação de Pearson entre peso na balança e inércia de swing. Perto de zero = não prevê. */
+    correlacao: Number((cov / (dg * ds)).toFixed(3)),
+    /*
+      A contagem NUNCA sai sem o limiar ao lado. Publicar "26 das 47" sem dizer "15 g" é publicar
+      um número que não se pode conferir — e foi assim que ele se descolou do limiar errado.
+    */
+    invertidas_por_limiar_g: { 5: invertidas(5), 10: invertidas(10), 15: invertidas(15), 20: invertidas(20) },
+  };
+}
+
 export function fatos() {
   const specs = rackets.map((r) => r.specs);
   const peso = faixa(specs.map((s) => s.unstrung_weight_g));
@@ -84,6 +136,7 @@ export function fatos() {
     espessuras_mm: gauges,
     padroes,
     tipos_de_corda: contar(strings.models, (m) => m.string_type),
+    peso_vs_inercia: pesoVersusInercia(),
     /** Quantas raquetes já podem ter especificação numérica publicada. Ver `temFonte`. */
     raquetes_com_fonte: comFonte,
     pode_publicar_spec_de_modelo: comFonte > 0,

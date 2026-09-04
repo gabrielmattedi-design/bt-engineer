@@ -96,6 +96,12 @@ Números vêm daqui, sempre:
 npx tsx .claude/skills/te-content/scripts/fatos.ts
 ```
 
+**Todo número vai para a arte com a condição que o produziu ao lado.** A primeira
+pauta publicou "26 das 47 … do que outra 10 g mais pesada": 26 é a contagem com 15 g,
+e com 10 g são 39. As duas metades eram verdadeiras e a frase era falsa. O número
+tinha sido medido uma vez num script descartável e carregado à mão daí em diante —
+se `fatos.ts` não devolve, não é para usar, e se devolve, use o objeto inteiro.
+
 Para o pilar P4, o caso vem do motor de verdade:
 
 ```bash
