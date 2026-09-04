@@ -11,8 +11,14 @@ export const dynamic = 'force-dynamic';
 /**
  * Webhook de pagamento — §33, docs/MONETIZATION.md §5.
  *
- * Esta rota é a ÚNICA origem de entitlement em todo o sistema. Nenhuma página, Server Action ou
- * componente concede acesso; um teste de arquitetura garante isso.
+ * Esta rota é a única origem COMERCIAL de entitlement: nenhuma página, Server Action ou componente
+ * concede acesso, e um teste de arquitetura garante isso.
+ *
+ * Existe uma segunda origem, deliberada e não comercial: `coupon-repo.grantEntitlements`, o cupom
+ * de acesso. Ela concede sem pedido e deixa `granted_by_order_id` NULO — é essa coluna que
+ * distingue as duas, e é por ela que o funil separa comprador de convidado. O comentário anterior
+ * dizia "a ÚNICA origem em todo o sistema", o que era falso desde que o cupom existe: quem lesse
+ * esta linha concluiria que acesso implica pagamento, e decidiria errado a partir disso.
  *
  * ─── SOBRE OS CÓDIGOS DE RESPOSTA ────────────────────────────────────────────────────────────
  *

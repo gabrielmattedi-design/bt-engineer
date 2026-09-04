@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { markPageFunnel } from '@/app/funnel-mark';
+import { markFunnelBySessionId } from '@/database/repositories/funnel-repo';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { Podium } from '@/components/result/podium';
@@ -13,7 +13,7 @@ import { brl } from '@/payments/catalogo';
 import { precosPublicados } from '@/payments/precos';
 import { getReport } from '@/app/questionario/actions';
 import { selectSetupRacket } from './actions';
-import { grantedEntitlements } from '@/database/repositories/session-repo';
+import { grantedEntitlements, paidOwnerSessionId } from '@/database/repositories/session-repo';
 
 /**
  * Fora do índice dos buscadores.
@@ -74,8 +74,27 @@ export default async function ResultadoPage({
 
     Antes dos redirecionamentos acima, este ponto contaria também quem chegou sem entitlement e
     foi mandado de volta aos planos — inflando o fim do funil justamente com quem não converteu.
+
+    ═══ E MARCADO PELO COMPRADOR, NÃO PELO NAVEGADOR ═════════════════════════════════════════
+
+    Aqui ficava `markPageFunnel('report')`, que usa o cookie de quem está abrindo a página. O
+    marco anterior do funil, `paid`, é gravado pela sessão do PEDIDO. Duas unidades diferentes
+    somadas na mesma coluna: o comprador que abre no computador e depois no celular vira duas
+    pessoas contra um pagamento, e o dono do produto abrindo o relatório de um cliente pelo admin
+    vira uma terceira.
+
+    Aconteceu no primeiro dia de tráfego real — 1 pagamento, 2 relatórios. Um funil que alarga no
+    fim é impossível por construção, e um número impossível no painel contamina a leitura de todos
+    os outros: a dúvida legítima que ele levanta é "então alguém entrou sem pagar?".
+
+    `paidOwnerSessionId` devolve a sessão que COMPROU. Assim `report` conta compradores que foram
+    ver o que compraram — que é a pergunta útil —, e nunca pode passar de `paid`.
+
+    O que se perde de propósito: não dá mais para saber que o relatório foi aberto em mais de um
+    aparelho. É informação de aparelho, não de pessoa, e o funil inteiro mede pessoas.
   */
-  await markPageFunnel('report');
+  const compradorId = await paidOwnerSessionId(sessionId);
+  if (compradorId) await markFunnelBySessionId(compradorId, 'report');
 
   const first = report.podium[0];
   const winner = first && !first.locked ? first : null;

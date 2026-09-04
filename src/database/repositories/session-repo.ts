@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from 'node:crypto';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '@/database/client';
 import {
   anonymousSessions,
@@ -249,4 +249,50 @@ export async function grantedEntitlements(publicId: string): Promise<Entitlement
     );
 
   return rows.map((r) => r.entitlement as Entitlement);
+}
+
+/**
+ * A sessão anônima que COMPROU esta análise — ou `null` se ninguém comprou.
+ *
+ * ═══ POR QUE O FUNIL PRECISAVA DISTO ═════════════════════════════════════════════════════════
+ *
+ * O marco `report` era gravado pelo cookie de quem estava abrindo a página. O marco `paid` é
+ * gravado pela sessão do PEDIDO. São unidades diferentes, e o painel somava as duas na mesma
+ * coluna: um comprador que abrisse o relatório no computador e depois no celular aparecia como duas
+ * pessoas, contra um pagamento. Foi assim que o funil apareceu com 1 pagamento e 2 relatórios — um
+ * funil que alarga no fim, o que é impossível por definição e destrói a confiança no painel inteiro.
+ *
+ * Os dois ids nem são do mesmo espaço: `orders.session_id` aponta para `anonymous_sessions`, e o
+ * `[sessionId]` da URL do relatório é o `public_id` da sessão de RECOMENDAÇÃO. Este JOIN é a ponte.
+ *
+ * ═══ POR QUE `granted_by_order_id IS NOT NULL` ═══════════════════════════════════════════════
+ *
+ * Existem DOIS caminhos de concessão neste sistema, e só um deles é comercial: o webhook de
+ * pagamento preenche `granted_by_order_id`; o cupom de acesso (MAITE) concede sem pedido e deixa a
+ * coluna nula. Quem entra por cupom nunca passou por `plans`, `checkout` nem `paid` — contá-lo em
+ * `report` recriaria exatamente a boca no fim do funil que este código existe para fechar.
+ *
+ * O cupom não some da medição: ele tem contador próprio em `access_coupons` e histórico em
+ * `coupon_redemptions`. O que ele não pode é entrar no meio de um funil onde não esteve.
+ */
+export async function paidOwnerSessionId(publicId: string): Promise<string | null> {
+  if (!usingDatabase()) return null;
+
+  const rows = await db()
+    .select({ sessionId: entitlementsTable.sessionId })
+    .from(entitlementsTable)
+    .innerJoin(
+      recommendationSessions,
+      eq(recommendationSessions.id, entitlementsTable.recommendationSessionId),
+    )
+    .where(
+      and(
+        eq(recommendationSessions.publicId, publicId),
+        isNull(entitlementsTable.revokedAt),
+        isNotNull(entitlementsTable.grantedByOrderId),
+      ),
+    )
+    .limit(1);
+
+  return rows[0]?.sessionId ?? null;
 }

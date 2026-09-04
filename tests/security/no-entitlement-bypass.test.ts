@@ -7,7 +7,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..');
@@ -37,10 +37,10 @@ describe('a página de resultado não concede acesso por conta própria', () => 
   });
 });
 
-describe('a concessão de entitlement tem origem única', () => {
+describe('a concessão de entitlement tem origens conhecidas', () => {
   it('nenhuma página ou componente escreve na tabela de entitlements', () => {
-    // A escrita pertence exclusivamente ao webhook de pagamento confirmado (§33). Qualquer outro
-    // ponto de escrita é um caminho paralelo de concessão.
+    // A escrita pertence à camada de repositório. Uma página que concede acesso é um caminho
+    // paralelo — foi exatamente o defeito do `?plano=` que este arquivo existe para impedir.
     const offenders: string[] = [];
     const dirs = [join(ROOT, 'src', 'app'), join(ROOT, 'src', 'components')];
 
@@ -54,6 +54,48 @@ describe('a concessão de entitlement tem origem única', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  /*
+    ═══ POR QUE ESTE TESTE PRECISOU EXISTIR ═════════════════════════════════════════════════════
+
+    O teste acima varria `src/app` e `src/components` — e mais nada. A escrita real de entitlement
+    mora em `src/database/repositories`, que ficava inteiramente fora da varredura. Resultado: dois
+    comentários no código afirmavam "só o webhook escreve aqui" e "a ÚNICA origem de entitlement em
+    todo o sistema", com um teste supostamente garantindo isso, enquanto `coupon-repo` concedia
+    acesso completo por cupom desde sempre.
+
+    Nada disso era brecha — o cupom é intencional, tem teto diário e throttle. O defeito era o
+    código MENTIR sobre a própria invariante, no comentário que alguém leria antes de decidir se
+    "tem acesso" significa "pagou". Não significa.
+
+    Este teste fixa a lista das origens. Uma terceira só passa se alguém a escrever aqui — que é
+    onde a decisão fica visível.
+  */
+  it('a lista de origens de concessão é exatamente a conhecida', () => {
+    const esperadas = [
+      '/src/database/repositories/commerce-repo.ts', // webhook de pagamento confirmado
+      '/src/database/repositories/coupon-repo.ts', // cupom de acesso, sem pedido
+    ];
+
+    const encontradas = walk(join(ROOT, 'src'))
+      .filter((file) => /insert\s*\(\s*entitlements/.test(sourceWithoutComments(file)))
+      .map((file) => file.replace(ROOT, '').split(sep).join('/'))
+      .sort();
+
+    expect(encontradas).toEqual(esperadas);
+  });
+
+  /*
+    O cupom concede SEM pedido, e é isso que o distingue no funil e em qualquer pergunta futura
+    sobre receita. Se um dia ele passar a preencher `grantedByOrderId`, um convidado vira comprador
+    em todo relatório do painel — sem que nada quebre e sem que ninguém perceba.
+  */
+  it('o cupom não se disfarça de compra', () => {
+    const cupom = sourceWithoutComments(
+      join(ROOT, 'src', 'database', 'repositories', 'coupon-repo.ts'),
+    );
+    expect(cupom).not.toContain('grantedByOrderId');
   });
 });
 

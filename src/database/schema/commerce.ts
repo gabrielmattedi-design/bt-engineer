@@ -125,8 +125,16 @@ export const paymentEvents = pgTable(
  * Entitlements (§32).
  *
  * Esta tabela é a ÚNICA fonte de verdade sobre o que um usuário pode ver. Não existe caminho que
- * conceda acesso a partir de query param, cookie do cliente ou estado de UI: `granted_by_order_id`
- * aponta para um pedido pago, e só o webhook escreve aqui.
+ * conceda acesso a partir de query param, cookie do cliente ou estado de UI.
+ *
+ * Dois caminhos escrevem aqui, e `granted_by_order_id` é o que os separa:
+ *
+ *   PREENCHIDO .. webhook de pagamento confirmado. Aponta para o pedido pago.
+ *   NULO ........ cupom de acesso (`coupon-repo`). Concessão de cortesia, sem pedido.
+ *
+ * A coluna não é decoração de auditoria: é o critério que responde "esta pessoa pagou?", e o funil
+ * depende dela para não contar convidado como comprador. Quem acrescentar um terceiro caminho
+ * precisa decidir conscientemente de que lado dessa linha ele cai.
  */
 export const entitlements = pgTable(
   'entitlements',
