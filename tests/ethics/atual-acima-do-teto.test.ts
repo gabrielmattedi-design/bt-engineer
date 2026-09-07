@@ -171,6 +171,26 @@ describe('o caso que originou a regra', () => {
     ).toBe(false);
   });
 
+  /**
+   * E não basta tirá-la do 1º lugar.
+   *
+   * A primeira versão desta correção só pulava a atual quando ela era `ranking[0]`. A varredura
+   * seguinte achou o resto do buraco: em 29 dos 1000 perfis ela entrava no pódio em 2º ou 3º,
+   * acima do teto do mesmo jeito — #0086, 44 anos, teto 280 g, com a Extreme MP de 300 g em 2º.
+   *
+   * Ocupar a segunda vaga de uma lista de três recomendações é ocupar lugar de recomendação. O
+   * critério nunca foi a posição, foi estar acima do teto.
+   */
+  it('não entra no pódio em NENHUMA posição', () => {
+    const { result, atual } = analisar();
+    for (const e of result.podium) {
+      expect(
+        e.racket.variant.id,
+        `a atual acima do teto voltou ao pódio, agora em ${e.rank}º`,
+      ).not.toBe(atual!.variant.id);
+    }
+  });
+
   /** Todo o pódio cabe no teto — senão trocamos um quadro pesado demais por outro. */
   it('todas as recomendadas cabem no teto', () => {
     const { profile, result } = analisar();

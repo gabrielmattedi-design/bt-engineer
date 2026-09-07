@@ -1237,12 +1237,30 @@ export function selectPodium(
     construção, e por isso `standingCore` ganhou um ramo próprio que roda ANTES dos ramos de gap.
     Se aquele ramo for removido, este bloco volta a mentir.
   */
-  const pularAtualAcimaDoTeto = topoAcimaDoTeto && alternativa !== undefined;
+  /*
+    ─── A EXCLUSÃO VALE EM QUALQUER POSIÇÃO, NÃO SÓ NO 1º LUGAR ──────────────────────────────
+
+    A primeira versão desta correção só pulava a atual quando ela era `ranking[0]`. A varredura
+    seguinte mostrou o buraco: em 29 dos 1000 perfis ela entrava no pódio em 2º ou 3º, acima do
+    teto do mesmo jeito. O pior deles:
+
+        #0086 — 44 anos, teto 280 g
+                2ª colocada: HEAD Extreme MP · 300 g (a atual), 20 g acima
+
+    Ocupar a segunda vaga de uma lista de três recomendações é ocupar lugar de recomendação. O
+    critério não era a POSIÇÃO, era estar acima do teto — pular só o topo tratava o sintoma.
+
+    A guarda do `length > 1` existe para o caso degenerado: se a atual for a única candidata,
+    mostrá-la é melhor que devolver pódio vazio, e o bloco da raquete atual explica o excesso.
+  */
+  const atualAcimaDoTeto = (e: RankedRacket): boolean =>
+    atualId !== null && e.racket.variant.id === atualId && acimaDoTeto(e);
+  const podeExcluirAtual = ranking.length > 1;
 
   for (const entry of ranking) {
     if (podium.length >= 3) break;
 
-    if (pularAtualAcimaDoTeto && entry === primeiro) continue;
+    if (podeExcluirAtual && atualAcimaDoTeto(entry)) continue;
 
     /* Ela entra pelo bloco abaixo; aqui seria repetida. */
     if (alternativa !== undefined && entry === alternativa) continue;
