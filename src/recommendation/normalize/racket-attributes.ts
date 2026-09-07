@@ -190,6 +190,7 @@ const TERM_TO_FIELD: Record<string, string> = {
   */
   swing_index: 'swingweight_kgcm2',
   swing_index_inverse: 'swingweight_kgcm2',
+  ra: 'ra_stiffness',
   ra_inverse: 'ra_stiffness',
   pattern_openness: 'string_pattern',
   pattern_density: 'string_pattern',
@@ -283,20 +284,71 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
   // Potência GRATUITA: o quanto o frame devolve sem esforço do jogador. Cabeça grande e viga larga
   // dominam; peso entra INVERTIDO porque um frame pesado exige o jogador. Plow-through pertence a
   // stability_score, não aqui.
+  /**
+   * ─── NOTA DE CALIBRAÇÃO (08/09/2026) — POTÊNCIA E CONTROLE ERAM O MESMO EIXO ───────────────
+   *
+   * Um cliente pediu POTÊNCIA em 1º e CONTROLE em 2º e recebeu um quadro no percentil 59 de
+   * potência e 37 de controle — abaixo da média justamente no que ele pôs em segundo lugar. Fomos
+   * medir a correlação entre os eixos no catálogo:
+   *
+   *     r(potência, controle) = −0,92
+   *
+   * Não é um fato sobre raquetes. É álgebra nossa: QUATRO dos cinco termos de `control_score` eram
+   * os mesmos de `power_score` com o sinal invertido — cabeça, viga, padrão e balanço. Controle era
+   * praticamente `1 − potência`, e quem declarasse os dois estava pedindo os dois extremos de um
+   * eixo só. O motor não ignorava o pedido; o modelo é que o tornava impossível.
+   *
+   * ─── O QUE QUEBRA O ESPELHO: RIGIDEZ MEDIDA ───────────────────────────────────────────────
+   *
+   * O termo `beam_width` pesava 0,28 na potência fingindo ser rigidez — viga grossa, quadro duro,
+   * mais energia devolvida. Com os 47 RA medidos deu para conferir, e a viga NÃO é isso:
+   * r(viga, RA) = 0,098. O mesmo defeito já corrigido em conforto e braço (C-31), aqui ainda de pé.
+   *
+   * O RA medido é a grandeza certa — quadro rígido devolve mais energia, é física de primeira
+   * ordem — e, decisivo, ele é ORTOGONAL ao que já usávamos:
+   *
+   *     r(RA, power_score antigo)   = +0,226
+   *     r(RA, control_score antigo) = −0,047
+   *
+   * Informação nova, não repetida. Por isso ele entra na POTÊNCIA e NÃO no controle: acrescentar o
+   * mesmo insumo aos dois com sinais opostos recriaria o espelho que se está desfazendo.
+   *
+   * Os casos que a fórmula antiga produzia deixam pouca dúvida sobre quem estava errado:
+   *
+   *     Babolat Pure Drive 98   RA 69 — o quadro mais rígido do catálogo → potência percentil 36
+   *     HEAD Radical Pro        RA 65                                    → potência percentil 18
+   *     Wilson Pro Staff 97     RA 66                                    → potência percentil 21
+   *
+   * ─── E POR QUE `weight_inverse` SAI DA POTÊNCIA ───────────────────────────────────────────
+   *
+   * Ele valia 0,15 e dizia: mais leve = mais potência. O raciocínio por trás é do JOGADOR — quadro
+   * leve acelera mais, logo a bola sai mais rápida — e não do QUADRO. Para a raquete em si, mais
+   * massa é mais energia no impacto, ou seja o sinal estava invertido.
+   *
+   * Pior: `physical_fit` e `swing_fit` já cobrem se a pessoa consegue acelerar o frame, com peso
+   * somado 0,36 do score. O termo aqui era terceira contagem da mesma coisa, e produzia a
+   * contradição que o cliente sentiu: o relatório chama este eixo de "em busca de PESO NA BOLA"
+   * (`player-identity.ts`) e ia buscar o quadro mais LEVE. Peso na bola é `stability_score`, que
+   * está a −0,83 daqui — pedir potência empurrava para o lado oposto do que a frase promete.
+   *
+   * `control_score` perde metade do peso da viga pelo mesmo motivo, e o que ela cedia vai para
+   * `swing_index` — que desde 07/09 é swingweight MEDIDO, e é um previsor honesto de controle:
+   * mais inércia, menos o quadro é deslocado pela bola.
+   */
   const power_score = build([
     T('head_size', n.h, 0.3),
-    T('beam_width', n.m, 0.28),
-    T('pattern_openness', n.o, 0.17),
-    T('weight_inverse', invOrNull(n.w), 0.15),
-    T('balance', n.b, 0.1),
+    T('ra', n.r, 0.3),
+    T('pattern_openness', n.o, 0.18),
+    T('balance', n.b, 0.12),
+    T('beam_width', n.m, 0.1),
   ]);
 
   const control_score = build([
     T('head_size_inverse', invOrNull(n.h), 0.28),
     T('pattern_density', n.d, 0.26),
-    T('beam_width_inverse', invOrNull(n.m), 0.2),
-    T('swing_index', n.s, 0.16),
-    T('balance_inverse', invOrNull(n.b), 0.1),
+    T('swing_index', n.s, 0.22),
+    T('balance_inverse', invOrNull(n.b), 0.12),
+    T('beam_width_inverse', invOrNull(n.m), 0.12),
   ]);
 
   // Abertura domina (0.45) pelo mecanismo de snap-back do encordoamento.

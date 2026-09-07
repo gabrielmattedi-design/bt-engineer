@@ -9,6 +9,82 @@ Formato de cada entrada: **data · versão · o que mudou · por quê · evidên
 
 ---
 
+## 2026-09-08 · `engine 2.32.0` — potência e controle deixam de ser o mesmo eixo
+
+### C-33 — `r(potência, controle) = −0,92` era álgebra nossa, não física ✅ corrigido
+
+**Encontrado por:** o dono, com o relatório na tela. Declarou potência em 1º, controle em 2º e
+manobrabilidade em 3º, não citou spin, e recebeu a HEAD Boom MP: potência p59, **controle p37**,
+spin p72. Abaixo da média justamente no que pôs em segundo lugar, e destaque no que não pediu.
+
+Medida a correlação no catálogo: **r(potência, controle) = −0,92**. Fomos às fórmulas e QUATRO dos
+cinco termos de `control_score` eram os de `power_score` com o sinal invertido — cabeça, viga,
+padrão e balanço. Controle era `1 − potência` por construção; quem declarasse os dois pedia os dois
+extremos de um eixo só, e o motor resolvia pelo mais forte.
+
+**Correção:** o RA medido entra na potência no lugar da viga, que pesava 0,28 fingindo ser rigidez
+(r(viga, RA) = 0,098 — o mesmo defeito da C-31, aqui ainda de pé). O RA é ortogonal ao que já
+usávamos — r com `power_score` antigo = +0,226, com `control_score` = −0,047 —, então é informação
+nova. Entra só na POTÊNCIA: adicioná-lo aos dois com sinais opostos recriaria o espelho.
+
+`weight_inverse` (0,15) sai da potência. Ele dizia "mais leve = mais potência", raciocínio do
+JOGADOR e não do QUADRO, já coberto por `physical_fit` e `swing_fit` (0,36 somados). E produzia a
+contradição que o dono sentiu: o relatório chama o eixo de "em busca de PESO NA BOLA" e ia buscar o
+quadro mais LEVE — peso na bola é `stability_score`, a −0,83 da potência.
+
+`control_score` cede metade do peso da viga para `swing_index`, que desde 07/09 é swingweight medido.
+
+| | antes | depois |
+|---|---|---|
+| r(potência, controle) | −0,92 | **−0,73** |
+| Babolat Pure Drive 98 (RA 69, a mais rígida) | potência p36 | **p56**, controle p64 |
+| HEAD Radical Pro (RA 65) | p18 | p35 |
+
+A ordenação de potência passou a ser a que qualquer jogador nomearia: Pure Drive 107, EZONE 105,
+Pure Drive Team e Pure Drive no topo; Gravity Pro, Blade 98 18×20 e Clash no fundo.
+
+**Efeito colateral aceito:** r(potência, conforto) foi de −0,35 para −0,73, porque os dois agora
+compartilham o RA com sinais opostos. Diferente do caso anterior, aqui o espelho é FÍSICO: a mesma
+rigidez que devolve energia é a que transmite choque. É o trade-off clássico, não álgebra.
+
+### C-34 — o limiar de "destaque" pegava 81% do catálogo em spin ✅ corrigido
+
+`EXPECTATION_HIGH/LOW` eram 60/40 fixos sobre faixas que não são simétricas nem parecidas:
+
+    eixo         média   >=60 (destaque)   <=40 (limitação)
+    spin          65,7        38 de 47            4
+    conforto      36,5         7                 29
+    controle      44,6         8                 23
+
+Em spin, "entre as que mais ajudam a rotação" saía para 81% do catálogo — a frase descrevia o eixo,
+não a raquete. Foi por aí que o spin virou o único destaque do relatório de quem não pediu spin.
+
+**Correção:** o limiar ancora na média do próprio eixo (`attribute_means`, que já viajava no
+resultado), com margem de 12. Distribuição depois: spin 12/9, conforto 12/16, controle 9/13,
+potência 17/14, estabilidade 17/16, manobrabilidade 15/19. `explainRacketFit` acompanhou no mesmo
+commit — as duas seções precisam da mesma régua, ou volta a contradição da v2.28.
+
+### C-35 — elogio não pedido calava, e `precision` não existia na seção ✅ corrigido
+
+Regra nova: quando uma prioridade DECLARADA sai abaixo da média, um destaque em eixo não pedido não
+ganha linha. A limitação não pedida continua saindo — calar defeito é pior que distrair.
+
+Medindo o invariante em 1000 perfis, o número devia ser zero e deu **94**. Todos os 94 tinham
+`precision` como prioridade — e `precision`, uma das SETE opções do questionário, não tinha entrada
+em `EXPECTATION_AXES`. Quem a declarava nunca lia uma palavra sobre ela, apesar de o cabeçalho da
+função prometer que "todo eixo declarado aparece". Acrescentada, o número foi a zero.
+
+### Fica reportado, sem correção
+
+Duas personas (`p01` e outra) declaram `forgiveness`, que o questionário **não oferece** e que
+`DISPLAYED_ATTRIBUTES` não carrega. Cheguei a incluir o eixo na seção antes de medir e reverti:
+cobri-lo exigiria ampliar a superfície exibida do produto por causa de um valor que nenhum usuário
+consegue escolher. O defeito está no fixture — mesma classe que `conferirContraOQuestionario` pega
+no sorteador e que ninguém aplica às personas. Há um teste `it.skip` em
+`tests/ethics/pedido-e-destaque.test.ts` esperando a decisão.
+
+---
+
 ## 2026-09-07 (2) · `engine 2.31.0` — a raquete atual acima do teto sai do pódio
 
 ### C-32 — isentar do filtro não podia significar promover ✅ corrigido

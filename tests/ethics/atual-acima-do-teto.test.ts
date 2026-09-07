@@ -309,22 +309,40 @@ describe('a alternativa comercial', () => {
    * variedade de marca não vale mais que ser a melhor opção viável.
    */
   it('a melhor alternativa entra mesmo sendo da família da atual', () => {
-    const { result, atual } = analisar();
+    /*
+      ═══ O CENÁRIO É CONSTRUÍDO, PORQUE O CATÁLOGO PAROU DE PRODUZI-LO ══════════════════════
+
+      A regra sob teste: a diversidade de família não pode pular a melhor opção DENTRO do teto só
+      porque ela é da mesma linha da raquete atual — justamente a linha que a pessoa já tem.
+
+      Ela só é exercitada quando a melhor dentro do teto é irmã da atual. Com a Blade 98 18×20 isso
+      valia até 08/09/2026; depois que o RA medido entrou em `power_score`, a melhor dentro do teto
+      para este perfil passou a ser a VCORE 100L, de outra linha, e o teste virou uma asserção sobre
+      QUAL raquete o catálogo tem no topo — não sobre a regra.
+
+      Trocando a atual para a HEAD Speed Pro (310 g, acima do mesmo teto de 288 g), a melhor dentro
+      do teto passa a ser irmã dela — a Speed MP L — e a regra é de fato exercitada. O teste
+      constrói a condição em vez de torcer para o catálogo mantê-la, e a asserção do meio falha alto
+      se o cenário deixar de valer.
+    */
+    const { profile, result, atual } = analisar({ current_racket_id: 'head-speed-pro-2026' });
+    const teto = profile.frame_weight_ceiling_g!;
     const recomendada = result.podium[0]!;
 
-    /*
-      A regra sob teste não mudou: a diversidade de família não pode pular a melhor opção dentro do
-      teto só porque ela é da MESMA linha da raquete atual — justamente a linha que a pessoa já tem.
+    expect(atual!.variant.specs.unstrung_weight_g!, 'a atual precisa exceder o teto').toBeGreaterThan(teto);
 
-      O que mudou é onde essa opção aparece. Antes ela era forçada para a 2ª posição, atrás da
-      atual; agora ela É a 1ª, porque a atual saiu do pódio. Comparar `podium[1]` com `podium[0]`,
-      como este teste fazia, passou a comparar duas raquetes que não são nenhuma das duas do caso.
-    */
+    const melhorDentro = result.full_ranking.find(
+      (e) => (e.racket.variant.specs.unstrung_weight_g ?? Infinity) <= teto,
+    )!;
     expect(
-      recomendada.racket.variant.family,
-      'a diversidade de família voltou a pular a melhor',
+      melhorDentro.racket.variant.family,
+      'o cenário deixou de exercitar a regra: a melhor dentro do teto não é irmã da atual',
     ).toBe(atual!.variant.family);
-    expect(recomendada.racket.variant.product_name).toContain('100L');
+
+    expect(
+      recomendada.racket.variant.id,
+      'a diversidade de família voltou a pular a melhor',
+    ).toBe(melhorDentro.racket.variant.id);
   });
 
   /** E ela é de fato a melhor dentro do teto, não uma qualquer que coube. */

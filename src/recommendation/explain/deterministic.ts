@@ -73,6 +73,7 @@ export function explainRacketFit(
   ranked: RankedRacket,
   profile: PlayerProfile,
   bands?: Readonly<Record<string, readonly [number, number]>>,
+  means?: Readonly<Record<string, number>>,
 ): string[] {
   const out: string[] = [];
   const { attributes, variant } = ranked.racket;
@@ -104,6 +105,14 @@ export function explainRacketFit(
     .get('swing_fit')
     ?.terms.find((t) => t.label === 'power_complement')?.value;
   const framePower = bandPosition(bands, 'power_score', attributes.power_score);
+  /*
+    A MESMA régua da outra seção — é a regra que o cabeçalho desta função existe para proteger.
+
+    Quando `explainExpectations` passou a ancorar o limiar na média de cada eixo (08/09/2026), este
+    ramo teve de acompanhar no mesmo commit: se um lado chamasse a raquete de potente e o outro não,
+    voltaria exatamente a contradição documentada acima, agora por um caminho novo.
+  */
+  const [potenteAcima, potenteAbaixo] = limiares(means, 'power_score');
 
   /*
     ═══ O ESPELHO QUE A PRIMEIRA CORREÇÃO DEIXOU PASSAR ═════════════════════════════════════════
@@ -130,13 +139,13 @@ export function explainRacketFit(
   if (powerTerm !== null && powerTerm !== undefined && powerTerm >= 0.75) {
     if (profile.natural_power_score >= 60) {
       // "Contido" só quando o frame de fato não é dos potentes do catálogo.
-      if (framePower === null || framePower < EXPECTATION_HIGH) {
+      if (framePower === null || framePower < potenteAcima) {
         out.push(
           `Como você já gera potência própria, escolhemos um frame mais contido: a potência que ` +
             `falta vem do seu swing, e o controle vem da raquete.`,
         );
       }
-    } else if (framePower === null || framePower > EXPECTATION_LOW) {
+    } else if (framePower === null || framePower > potenteAbaixo) {
       out.push(
         `Este frame complementa a potência que seu swing ainda não entrega, ajudando a bola a ` +
           `chegar ao fundo da quadra com menos esforço.`,
@@ -256,6 +265,41 @@ const EXPECTATION_AXES: readonly ExpectationAxis[] = [
     high: 'entre as mais rápidas de reposicionar em defesa e na rede.',
     low: 'exige preparação mais cedo que a média, especialmente em bolas rápidas.',
   },
+  /*
+    ═══ PRECISÃO FALTAVA AQUI, E O QUESTIONÁRIO A OFERECE ═════════════════════════════════════
+
+    O passo de prioridades lista SETE opções, e "Precisão — acertar alvos pequenos, como a linha ou
+    o canto" era a única sem entrada nesta tabela. Consequência: quem a escolhia como prioridade
+    lia uma seção "o que você deve perceber" que nunca mencionava precisão — enquanto o cabeçalho
+    desta função promete, com todas as letras, que "todo eixo que a pessoa DECLAROU aparece".
+
+    Achado medindo, não lendo: uma varredura de 1000 perfis contava quantos relatórios elogiavam um
+    eixo NÃO pedido enquanto uma prioridade ficava abaixo da média. O número deveria ser zero depois
+    da regra nova e deu 94 — e em todos os 94 a prioridade ignorada era `precision`. A regra estava
+    certa; ela é que não enxergava o eixo, porque o laço só percorre esta tabela.
+
+    `forgiveness` fica de FORA, e eu cheguei a incluí-la antes de medir — vale registrar por quê
+    para ninguém repetir. Ela está em `NEED_KEYS` e DUAS personas do fixture a declaram
+    (`personas.ts`), o que faz parecer um buraco igual ao de `precision`. Não é:
+
+      • o questionário não a oferece entre as sete prioridades;
+      • `DISPLAYED_ATTRIBUTES` — a superfície que o produto exibe — tem exatamente essas sete, e
+        `forgiveness_score` não está nela, então a faixa dela nem viaja no resultado.
+
+    Incluí-la aqui não funcionaria sem ampliar a superfície exibida, e ampliá-la por causa de um
+    valor que nenhum usuário consegue escolher é deixar o fixture ditar o produto. O que existe de
+    verdade é uma inconsistência nas personas — elas carregam uma resposta que a tela não oferece,
+    a mesma classe de defeito que `conferirContraOQuestionario` pega no sorteador da varredura e que
+    ninguém aplica às personas. Está reportada; a decisão é do dono.
+  */
+  {
+    need: 'precision',
+    label: 'Precisão',
+    attribute: 'precision_score',
+    value: (a) => a.precision_score,
+    high: 'entre as mais precisas do catálogo — ajuda quando o alvo é a linha ou o canto.',
+    low: 'menos precisa que a média em alvos pequenos, em troca de uma área útil mais generosa.',
+  },
 ];
 
 /**
@@ -266,8 +310,46 @@ const EXPECTATION_AXES: readonly ExpectationAxis[] = [
  * o corte em 70/30 a maioria das linhas virava "no meio do catálogo" repetido — trocar um ruído
  * (defeito em eixo não pedido) por outro (três linhas dizendo que não há nada a dizer).
  */
+/**
+ * ═══ O LIMIAR PASSOU A SER RELATIVO À MÉDIA DE CADA EIXO (08/09/2026) ════════════════════════
+ *
+ * Eram 60 e 40 fixos sobre a posição na faixa do catálogo, e a nota anterior justificava o par com
+ * a fração de eixos que caía na zona sem destaque. O que ela não mediu foi a distribuição EIXO A
+ * EIXO — e as faixas não são simétricas nem parecidas entre si:
+ *
+ *     eixo              média   >=60 (destaque)   <=40 (limitação)
+ *     spin               65,7        38 de 47            4
+ *     conforto           36,5         7                 29
+ *     controle           44,6         8                 23
+ *     potência           46,9        17                 19
+ *
+ * Em spin, "entre as que mais ajudam a rotação" saía para 81% do catálogo — a frase não descrevia
+ * a raquete, descrevia o eixo. Foi assim que um leitor que pediu potência, controle e
+ * manobrabilidade, e NÃO pediu spin, recebeu spin como o único destaque do relatório.
+ *
+ * Ancorando na média do próprio eixo, "destaque" volta a significar a mesma coisa em todos:
+ *
+ *     spin 12/9 · conforto 12/16 · controle 9/13 · potência 17/14 · estabilidade 17/16 · manobra 15/19
+ *
+ * A margem de 12 pontos é o que produz essa distribuição equilibrada nos seis. `attribute_means`
+ * já viajava no resultado, então não houve dado novo a calcular — só a régua certa a usar.
+ */
+const EXPECTATION_MARGIN = 12;
+/** Fallback quando a média do eixo não veio: o par antigo, que ao menos não quebra. */
 const EXPECTATION_HIGH = 60;
 const EXPECTATION_LOW = 40;
+
+/** Acima disto o eixo é destaque; abaixo do outro, é limitação. Em POSIÇÃO de catálogo. */
+function limiares(
+  means: Readonly<Record<string, number>> | undefined,
+  attribute: string,
+): readonly [number, number] {
+  const media = means?.[attribute];
+  if (typeof media !== 'number' || !Number.isFinite(media)) {
+    return [EXPECTATION_HIGH, EXPECTATION_LOW];
+  }
+  return [media + EXPECTATION_MARGIN, media - EXPECTATION_MARGIN];
+}
 
 /** Teto de linhas. Acima disso a seção vira lista de specs e para de ser lida. */
 const MAX_EXPECTATIONS = 5;
@@ -329,6 +411,7 @@ export function explainExpectations(
   profile: PlayerProfile,
   bands: Readonly<Record<string, readonly [number, number]>>,
   coveredByTradeOff: readonly NeedKey[] = [],
+  means?: Readonly<Record<string, number>>,
 ): string[] {
   const a = ranked.racket.attributes;
   const declared = new Set(profile.declared_priorities);
@@ -341,29 +424,60 @@ export function explainExpectations(
   };
 
   const line = (axis: ExpectationAxis, pos: number): string =>
-    `**${axis.label}:** ${pos >= EXPECTATION_HIGH ? axis.high : axis.low}`;
+    `**${axis.label}:** ${pos >= limiares(means, axis.attribute)[0] ? axis.high : axis.low}`;
 
   const pedidos: string[] = [];
   const pedidosNoMeio: string[] = [];
-  const extras: Array<{ line: string; distance: number }> = [];
+  const extras: Array<{ line: string; distance: number; alto: boolean }> = [];
+  /** Alguma prioridade DECLARADA saiu abaixo da média? Decide o destino dos extras. */
+  let pedidoDecepcionou = false;
 
   for (const axis of EXPECTATION_AXES) {
     const pos = position(axis);
     if (pos === null) continue;
-    const notavel = pos >= EXPECTATION_HIGH || pos <= EXPECTATION_LOW;
+    const [alto, baixo] = limiares(means, axis.attribute);
+    const notavel = pos >= alto || pos <= baixo;
 
     if (declared.has(axis.need)) {
       // Eixo pedido entra sempre — mas os que não têm destaque saem AGRUPADOS, ver abaixo.
       if (notavel) pedidos.push(line(axis, pos));
       else pedidosNoMeio.push(axis.label);
+      if (pos <= baixo) pedidoDecepcionou = true;
       continue;
     }
 
     // Eixo não pedido: só quando é notável, e nunca repetindo o que a seção de atenção já disse.
     if (covered.has(axis.need)) continue;
     if (!notavel) continue;
-    extras.push({ line: line(axis, pos), distance: Math.abs(pos - 50) });
+    extras.push({ line: line(axis, pos), distance: Math.abs(pos - 50), alto: pos >= alto });
   }
+
+  /*
+    ═══ ELOGIO NÃO PEDIDO CALA QUANDO UM PEDIDO FICOU ABAIXO DA MÉDIA ═════════════════════════
+
+    Relatado por um leitor, com a tela na mão. Ele declarou potência em 1º, controle em 2º e
+    manobrabilidade em 3º, não citou spin, e leu, nesta ordem:
+
+        Controle: menos controle direcional que a média.
+        Potência e Manobrabilidade: no meio do catálogo.
+        Spin: entre as que mais ajudam a rotação.
+
+    Nenhuma das três linhas é falsa, e ainda assim o conjunto diz uma coisa que a análise não
+    quis dizer: "erramos o que você pediu e acertamos o que você não pediu". A causa de fundo era o
+    modelo — potência e controle eram o mesmo eixo com o sinal trocado, corrigido em
+    `racket-attributes.ts` na mesma data — mas a seção continuaria capaz de produzir essa leitura
+    sempre que o pódio trouxer um destaque lateral.
+
+    A regra: quando um eixo DECLARADO saiu abaixo da média, a atenção pertence a ele. Um destaque
+    em eixo que ninguém perguntou é distração ali, por mais verdadeiro que seja.
+
+    ─── O QUE NÃO SE ESCONDE ─────────────────────────────────────────────────────────────────
+
+    A LIMITAÇÃO não pedida continua entrando. Se a raquete é fraca num eixo que a pessoa não
+    mencionou, ela precisa saber antes de comprar — calar isso seria omissão de defeito, que é
+    outra coisa, e pior. O que se corta é só o elogio, e só neste cenário.
+  */
+  const extrasVisiveis = pedidoDecepcionou ? extras.filter((e) => !e.alto) : extras;
 
   /*
     OS EIXOS PEDIDOS SEM DESTAQUE SAEM EM UMA LINHA SÓ.
@@ -396,8 +510,8 @@ export function explainExpectations(
     quem não foi perguntado não disputa o topo da lista com quem foi.
   */
   const ordenados = [...pedidos];
-  extras.sort((x, y) => y.distance - x.distance);
-  for (const extra of extras.slice(0, MAX_UNREQUESTED)) {
+  extrasVisiveis.sort((x, y) => y.distance - x.distance);
+  for (const extra of extrasVisiveis.slice(0, MAX_UNREQUESTED)) {
     if (ordenados.length >= MAX_EXPECTATIONS) break;
     ordenados.push(extra.line);
   }

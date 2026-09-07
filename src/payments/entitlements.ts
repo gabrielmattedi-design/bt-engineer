@@ -1844,6 +1844,8 @@ function unlockedEntry(
   bands: RecommendationResult['attribute_bands'],
   tradeOffs: readonly TradeOff[] = [],
   podium: readonly RankedRacket[] = [],
+  /* A média de cada eixo no catálogo. Ancora o limiar de "destaque" — ver `limiares()`. */
+  means?: RecommendationResult['attribute_means'],
 ): UnlockedPodiumEntry {
   const specs = ranked.racket.variant.specs;
   return {
@@ -1873,7 +1875,7 @@ function unlockedEntry(
     tags: buildTags(ranked),
     // As `bands` viajam junto porque a frase de potência daqui precisa da MESMA régua que
     // `explainExpectations` usa — sem elas as duas seções se contradiziam. Ver `explainRacketFit`.
-    why: explainRacketFit(ranked, profile, bands),
+    why: explainRacketFit(ranked, profile, bands, means),
     /*
       Os eixos já explicados como TROCA não voltam em "o que você deve perceber".
 
@@ -1885,6 +1887,7 @@ function unlockedEntry(
       profile,
       bands,
       tradeOffs.flatMap((t) => (t.axis ? [t.axis] : [])),
+      means,
     ),
     attention: tradeOffs,
   };
@@ -2007,10 +2010,11 @@ export function serializeRecommendation(
             : undefined,
         ),
         result.podium,
+        result.attribute_means,
       );
     }
     if (canSeeRank(granted, entry.rank)) {
-      return unlockedEntry(entry, profile, result.attribute_bands, [], result.podium);
+      return unlockedEntry(entry, profile, result.attribute_bands, [], result.podium, result.attribute_means);
     }
     return {
       rank: entry.rank,
@@ -2104,7 +2108,7 @@ export function serializeRecommendation(
      */
     comparison: result.podium.every((e) => canSeeRank(granted, e.rank))
       ? result.podium.map((entry) =>
-          unlockedEntry(entry, profile, result.attribute_bands, [], result.podium),
+          unlockedEntry(entry, profile, result.attribute_bands, [], result.podium, result.attribute_means),
         )
       : null,
     engine_version: result.engine_version,

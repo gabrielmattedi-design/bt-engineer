@@ -821,7 +821,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.43.0';
+export const METHODOLOGY_VERSION = '2.44.0';
 
 export type Range = readonly [lo: number, hi: number];
 
