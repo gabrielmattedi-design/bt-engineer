@@ -18,6 +18,7 @@
  */
 
 import { loadRacketCatalog, loadStringCatalog } from '@/data/load';
+import { lbsToKg } from '@/domain/units';
 import { countSetupCombinations } from '@/data/combinations';
 import { scoreRackets } from '@/recommendation/normalize/racket-attributes';
 import { buildCatalogScale } from '@/recommendation';
@@ -173,6 +174,117 @@ export function dispersaoDaFamilia(termo: string) {
   };
 }
 
+/**
+ * A faixa de tensão que o FABRICANTE recomenda — e quanta margem ela deixa em aberto.
+ *
+ * ═══ POR QUE ESTE NÚMERO INTERESSA ═══════════════════════════════════════════════════════════
+ *
+ * A etiqueta do quadro não traz uma tensão: traz um intervalo. Ninguém precisa acreditar no nosso
+ * motor para verificar isso — está impresso na garganta da raquete de quem está lendo. É o raro
+ * fato do produto que o leitor confere sozinho em cinco segundos, e por isso vale mais publicado
+ * do que qualquer índice interno.
+ *
+ * Publicamos a MENOR largura do catálogo, não a média. A média é mais impressionante e mais frágil:
+ * quem tiver em casa justamente o quadro de faixa estreita vai achar que o número foi inflado. O
+ * mínimo é o número que nenhum leitor consegue desmentir com a própria raquete na mão.
+ *
+ * `limites.md` §5 autoriza: descreve a faixa que o CONJUNTO cobre, não a especificação de um modelo
+ * nomeado — que continua travada enquanto `source_url` for nulo (§2).
+ */
+export function tensaoDoFabricante() {
+  const faixas = rackets
+    .map((r) => r.specs)
+    .filter(
+      (s): s is typeof s & { recommended_tension_min_lbs: number; recommended_tension_max_lbs: number } =>
+        typeof s.recommended_tension_min_lbs === 'number' &&
+        typeof s.recommended_tension_max_lbs === 'number',
+    )
+    .map((s) => ({
+      min: s.recommended_tension_min_lbs,
+      max: s.recommended_tension_max_lbs,
+      largura: s.recommended_tension_max_lbs - s.recommended_tension_min_lbs,
+    }));
+
+  if (faixas.length === 0) return null;
+  const larguras = faixas.map((f) => f.largura);
+
+  /* Em kg porque é assim que se fala com encordoador no Brasil; em lbs porque é o que a etiqueta
+     do quadro traz. Os dois juntos, sempre — publicar só um lado obriga o leitor a converter para
+     conferir, e conferência que dá trabalho não acontece. */
+  const emKg = (lbs: number) => Number(lbsToKg(lbs).toFixed(1));
+
+  return {
+    de: faixas.length,
+    de_um_total_de: rackets.length,
+    largura_minima_lbs: Math.min(...larguras),
+    largura_minima_kg: emKg(Math.min(...larguras)),
+    largura_maxima_lbs: Math.max(...larguras),
+    largura_maxima_kg: emKg(Math.max(...larguras)),
+    largura_media_lbs: Number((larguras.reduce((a, b) => a + b, 0) / larguras.length).toFixed(1)),
+    extremos_do_catalogo_lbs: [
+      Math.min(...faixas.map((f) => f.min)),
+      Math.max(...faixas.map((f) => f.max)),
+    ] as const,
+  };
+}
+
+/**
+ * Quantos fatores DIFERENTES o motor de tensão chega a usar, e onde as tensões que ele devolve caem.
+ *
+ * ═══ POR QUE VARRER PERFIS EM VEZ DE CONTAR AS LINHAS DE `tension.ts` ════════════════════════
+ *
+ * O cabeçalho de `tension.ts` diz "base do fabricante + 12 ajustes documentados". Copiar esse 12
+ * para uma arte seria repetir exatamente o defeito do "26 das 47 · 10 g": um número escrito à mão
+ * num comentário, carregado para fora sem ninguém remedir, que fica errado no dia em que o 13º
+ * ajuste entrar — sem nada quebrar.
+ *
+ * Então o número não é lido, é observado: roda-se o motor sobre perfis sintéticos e recolhe-se a
+ * UNIÃO dos `factor` que ele efetivamente emitiu. Se um ajuste for acrescentado, a varredura o
+ * encontra sozinha; se um deixar de disparar para qualquer perfil, ele some da contagem — que é o
+ * comportamento certo, porque um ajuste que nunca dispara não é um ajuste que o produto faz.
+ *
+ * O gerador de perfis é o MESMO de `tests/helpers/varredura.ts`, e não uma cópia local. Dois
+ * geradores divergem, e o dia em que divergirem a skill vai publicar sobre um produto que os testes
+ * não conferem. Ele é semeado, então a contagem é reproduzível.
+ *
+ * `amplitude_lbs` é o brinde da varredura: mostra que a faixa do fabricante não é decorativa —
+ * jogadores reais caem nos dois extremos dela.
+ */
+export async function ajustesDeTensao(quantos = 300) {
+  const { gerar } = await import('../../../../tests/helpers/varredura');
+  const { recommend: rodar, enrichProfileWithCatalog } = await import('@/recommendation');
+  const { buildPlayerProfile } = await import('@/recommendation/profile/build-profile');
+  const { DATASET_VERSION } = await import('@/data/load');
+
+  const marcadas = scoreRackets(rackets);
+  const fatores = new Set<string>();
+  const lbs: number[] = [];
+
+  for (const sim of gerar(quantos)) {
+    const profile = enrichProfileWithCatalog(buildPlayerProfile(sim.answers), marcadas, strings);
+    const res = rodar({
+      profile,
+      rackets: marcadas,
+      strings,
+      datasetVersion: DATASET_VERSION,
+      mode: 'permissive',
+      includeSetup: true,
+    });
+    if (!res.tension) continue;
+    for (const a of res.tension.adjustments) fatores.add(a.factor);
+    lbs.push(res.tension.lbs);
+  }
+
+  return {
+    perfis: quantos,
+    /* A contagem NUNCA sai sem a lista ao lado, pela mesma razão que a inércia não sai sem o
+       limiar: "12 ajustes" sem os nomes é um número que ninguém consegue conferir. */
+    fatores: [...fatores].sort(),
+    quantos_fatores: fatores.size,
+    amplitude_lbs: lbs.length > 0 ? ([Math.min(...lbs), Math.max(...lbs)] as const) : null,
+  };
+}
+
 export function fatos() {
   const specs = rackets.map((r) => r.specs);
   const peso = faixa(specs.map((s) => s.unstrung_weight_g));
@@ -199,6 +311,7 @@ export function fatos() {
     padroes,
     tipos_de_corda: contar(strings.models, (m) => m.string_type),
     peso_vs_inercia: pesoVersusInercia(),
+    tensao_do_fabricante: tensaoDoFabricante(),
     /** Quantas raquetes já podem ter especificação numérica publicada. Ver `temFonte`. */
     raquetes_com_fonte: comFonte,
     pode_publicar_spec_de_modelo: comFonte > 0,
@@ -207,23 +320,44 @@ export function fatos() {
 
 if (require.main === module) {
   const familia = process.argv[2];
-  if (familia) {
-    const d = dispersaoDaFamilia(familia);
-    console.log(
-      d === null
-        ? `Menos de duas raquetes com "${familia}" no nome — não há família para comparar.`
-        : JSON.stringify(d, null, 2),
-    );
-    process.exit(0);
-  }
 
-  const f = fatos();
-  console.log(JSON.stringify(f, null, 2));
-  if (!f.pode_publicar_spec_de_modelo) {
-    console.log(
-      '\n⚠️  Nenhuma raquete tem `source_url` para o peso. Especificação numérica de modelo\n' +
-        '   NOMEADO não pode ser publicada — ver references/limites.md §2.\n' +
-        '   Comparação entre modelos fica em caráter e tipo de jogador, sem número.',
-    );
-  }
+  /*
+    Subcomando reservado ANTES da busca por família. `dispersaoDaFamilia('tensao')` devolveria null
+    e imprimiria "menos de duas raquetes com tensao no nome" — uma mensagem que descreve outra
+    pergunta, e que faria quem rodou achar que a medição não existe.
+  */
+  /*
+    Um `await` de topo em vez do `process.exit(0)` que este bloco usava.
+
+    `ajustesDeTensao` é assíncrona (carrega o gerador de perfis sob demanda, para que o uso comum —
+    ler os fatos do catálogo — não pague uma varredura de 300 perfis). Encadeada num `.then` solto,
+    a execução seguia SÍNCRONA para o bloco de baixo e o subcomando imprimia a varredura junto com
+    o relatório inteiro, um depois do outro. Saída errada, sem erro nenhum.
+  */
+  void (async () => {
+    if (familia === 'tensao') {
+      console.log(JSON.stringify(await ajustesDeTensao(), null, 2));
+      return;
+    }
+
+    if (familia) {
+      const d = dispersaoDaFamilia(familia);
+      console.log(
+        d === null
+          ? `Menos de duas raquetes com "${familia}" no nome — não há família para comparar.`
+          : JSON.stringify(d, null, 2),
+      );
+      return;
+    }
+
+    const f = fatos();
+    console.log(JSON.stringify(f, null, 2));
+    if (!f.pode_publicar_spec_de_modelo) {
+      console.log(
+        '\n⚠️  Nenhuma raquete tem `source_url` para o peso. Especificação numérica de modelo\n' +
+          '   NOMEADO não pode ser publicada — ver references/limites.md §2.\n' +
+          '   Comparação entre modelos fica em caráter e tipo de jogador, sem número.',
+      );
+    }
+  })();
 }
