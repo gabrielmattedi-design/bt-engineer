@@ -79,15 +79,37 @@ export function temFonte(variantId: string, campo: string): boolean {
  * Agora o limiar vem junto com a contagem, no mesmo objeto. Não dá para citar um sem o outro sem
  * que a inconsistência fique visível na hora de escrever.
  *
- * ═══ O QUE `swing_index` É, E O QUE ELE NÃO É ════════════════════════════════════════════════
+ * ═══ AGORA É SWINGWEIGHT DE VERDADE ══════════════════════════════════════════════════════════
  *
- * É o índice de inércia do próprio produto, derivado de peso × balanço. NÃO é swingweight — essa é
- * medição de laboratório que o catálogo não tem, e `limites.md` §1 proíbe citar. A copy fala em
- * "esforço para acelerar" e nunca em número de swingweight.
+ * Este bloco dizia: "NÃO é swingweight — essa é medição de laboratório que o catálogo não tem, e
+ * `limites.md` §1 proíbe citar". Deixou de valer em 07/09/2026: as 47 raquetes ganharam
+ * swingweight ENCORDOADO medido, de fonte única, com `source_url` por raquete. A copy pode citar o
+ * número e dizer que é medido — ver `limites.md` §1, reescrito na mesma data.
  */
 function pesoVersusInercia() {
-  const medidas = scoreRackets(rackets)
-    .map((r) => ({ g: r.variant.specs.unstrung_weight_g, si: r.attributes.swing_index }))
+  /*
+    ═══ ERRATA DE 07/09/2026 — ESTA FUNÇÃO PRODUZIU UM POST FALSO ═════════════════════════════
+
+    Ela lia `attributes.swing_index`, que até 07/09 era `massa × (balanço − 100)²` — um modelo de
+    massa pontual, não uma medição. Com os 47 swingweights medidos em laboratório deu para conferir
+    o que ela vinha afirmando, e o resultado é o pior possível para um post já publicado:
+
+        publicado em 04/09  ·  r(peso, inércia) = 0,029, "praticamente zero"
+        real                ·  r(peso, swingweight medido) = 0,844
+
+        publicado em 04/09  ·  "26 das 47 exigem mais esforço que outra 15 g mais pesada"
+        real                ·  8 das 47
+
+    Não é um número impreciso: é a tese ao contrário. O post dizia que peso quase não prevê esforço
+    de giro, e peso prevê 71% da variação dele.
+
+    Agora a função lê `specs.swingweight_kgcm2`. Enquanto o campo era um proxy, ela não tinha como
+    saber que estava errada — e é exatamente por isso que a regra da skill é ler do catálogo em vez
+    de guardar número: no dia em que o catálogo melhorou, a função melhorou junto, sem ninguém
+    lembrar de voltar aqui.
+  */
+  const medidas = rackets
+    .map((r) => ({ g: r.specs.unstrung_weight_g, si: r.specs.swingweight_kgcm2 }))
     .filter((m): m is { g: number; si: number } => typeof m.g === 'number' && typeof m.si === 'number');
 
   const n = medidas.length;
@@ -312,6 +334,24 @@ export function fatos() {
     tipos_de_corda: contar(strings.models, (m) => m.string_type),
     peso_vs_inercia: pesoVersusInercia(),
     tensao_do_fabricante: tensaoDoFabricante(),
+    /*
+      O swingweight é hoje o ÚNICO campo do catálogo com fonte conferida por raquete, e por isso o
+      único que a §2 de `limites.md` libera para modelo NOMEADO. `pode_publicar` não é escrito à
+      mão: sai da mesma guarda `temFonte` que trava todo o resto, campo a campo.
+    */
+    swingweight: (() => {
+      const v = rackets
+        .map((r) => r.specs.swingweight_kgcm2)
+        .filter((x): x is number => typeof x === 'number');
+      if (v.length === 0) return null;
+      return {
+        medidas: v.length,
+        de: rackets.length,
+        faixa_kgcm2: [Math.min(...v), Math.max(...v)] as const,
+        convencao: 'encordoada',
+        pode_publicar_de_modelo_nomeado: rackets.every((r) => temFonte(r.id, 'swingweight_kgcm2')),
+      };
+    })(),
     /** Quantas raquetes já podem ter especificação numérica publicada. Ver `temFonte`. */
     raquetes_com_fonte: comFonte,
     pode_publicar_spec_de_modelo: comFonte > 0,

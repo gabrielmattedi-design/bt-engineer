@@ -1,7 +1,57 @@
 # 04/09/2026 · Peso não é inércia de swing
 
 **Pilar** P2 Física aplicada · **Formato** carrossel 6 slides + 3 stories ·
-**Arte** Ficha técnica (fundo papel) · **CTA** engajamento · **Status** `gerado`
+**Arte** Ficha técnica (fundo papel) · **CTA** engajamento ·
+**Status** `PUBLICADO — E INCORRETO. Ver a errata abaixo antes de reaproveitar qualquer coisa.`
+
+---
+
+## ⚠️ ERRATA — 07/09/2026
+
+**A tese central deste post está errada, e no sentido oposto.**
+
+Em 07/09 as 47 raquetes ganharam **swingweight encordoado medido em laboratório** (fonte única,
+`source_url` por raquete). Foi a primeira vez que deu para conferir o que este post afirmou.
+
+| Publicado em 04/09 | Real, com swingweight medido |
+|---|---|
+| r(peso, inércia) = **0,029** — "praticamente zero" | r(peso, swingweight) = **0,844** |
+| **26 das 47** exigem mais esforço que outra 15 g mais pesada | **8 das 47** |
+
+O post dizia que o peso quase não prevê o esforço de girar. O peso prevê **71% da variação** dele
+(R² = 0,713). Não é um número impreciso — é a conclusão invertida.
+
+### De onde veio o erro
+
+Não foi de conta e não foi de descuido de redação. `fatos.ts` lia `attributes.swing_index`, que era
+`massa × (balanço − 100 mm)²` — um modelo de **massa pontual**, que trata a raquete inteira como um
+ponto no balanço. A decomposição exata do momento de inércia é `I = M·(balanço − 100)² + M·σ²`, e o
+segundo termo — o espalhamento da massa — nunca era calculado. Ele não é resíduo: numa raquete real
+é **maior** que o primeiro. Medido contra os 47 valores reais, o modelo explicava **R² = 0,119**.
+
+Pior: o "r = 0,029" que virou o slide 04 não media peso contra inércia. Media peso contra um proxy
+cuja parcela dominante é o **quadrado do balanço** — e como quadros pesados são fabricados mais
+cabeça-leves, os dois efeitos se cancelavam. A correlação "praticamente zero" era o cancelamento de
+um artefato, não um fato sobre raquetes.
+
+### O que sobra de verdadeiro
+
+A ideia geral — *peso na balança não é a mesma coisa que esforço para girar* — continua de pé, e as
+**8 de 47** provam que a inversão acontece: existem quadros que giram mais pesado que outros 15 g
+mais pesados. O que não se sustenta é a MAGNITUDE. "Praticamente zero correlação" e "mais da metade
+do catálogo" eram falsos. Uma versão honesta diria *"na maioria das vezes o peso te diz o que
+esperar — em 8 das 47 ele engana"*, que é um post mais fraco e verdadeiro.
+
+### O que fazer
+
+- **Não reaproveitar** o slide 04 (`r = 0,029`) nem a contagem de 26 em nenhuma peça futura.
+- Os stories de 05/09 e 06/09 **não dependem** deste dado — a dispersão da VCORE e a faixa de
+  espessura de corda continuam válidas.
+- `fatos.ts` já lê `specs.swingweight_kgcm2` e devolve os números certos. Quem gerar conteúdo a
+  partir de agora recebe 0,844 e 8/47 automaticamente. **A errata existe porque o post publicado
+  não se corrige — a skill sim.**
+- Se valer a pena publicar uma correção pública, ela é um P7 Bastidor forte: *"medimos, estávamos
+  errados, e o dado que provou isso agora está no produto."*
 
 ---
 

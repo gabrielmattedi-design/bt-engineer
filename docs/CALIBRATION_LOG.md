@@ -9,6 +9,99 @@ Formato de cada entrada: **data · versão · o que mudou · por quê · evidên
 
 ---
 
+## 2026-09-07 · `engine 2.30.0` — swingweight e RA MEDIDOS substituem dois proxies
+
+### C-30 — o `swing_index` explicava 12% do que dizia medir ✅ corrigido
+
+**Encontrado por:** um cliente, com o relatório aberto. Ele recebeu a Wilson Clash 100 Pro v3 (305 g)
+no lugar da Babolat Pure Drive (300 g) e a nota dizia que a mais pesada "gira com MENOS esforço".
+Foi conferir o swingweight publicado das duas e viu o contrário. **Ele estava certo.**
+
+`computeSwingIndex` era `massa × (balanço − 100 mm)²` — um modelo de **massa pontual**. A
+decomposição exata do momento de inércia é
+
+    I = M·(balanço − 100)²  +  M·σ²
+
+e o segundo termo, o espalhamento da massa, nunca era calculado. Ele não é um resíduo: numa raquete
+real é MAIOR que o primeiro. O índice devolvia o equivalente a 152 kg·cm² onde a medição dá 327.
+
+**Evidência (47 swingweights encordoados medidos, fonte única):**
+
+| | r | R² |
+|---|---|---|
+| `swing_index` antigo × swingweight real | 0,344 | **0,119** |
+| peso estático × swingweight real | 0,844 | **0,713** |
+
+O proxy era **pior que não ter proxy**: o peso puro previa melhor. Ele ordenava **32,7% dos pares
+ao contrário** da realidade (353 de 1081), 173 deles com 8+ pontos de diferença. No caso do
+cliente: Clash Pro **327** contra Pure Drive **317** — dez pontos mais pesada de girar, e o
+relatório afirmava o oposto.
+
+**Correção:** `resolveSwingweight()` devolve a medição quando existe e, quando não, uma regressão
+calibrada `SW ≈ −127,2 + 0,816·peso + 0,636·balanço` (R² = 0,816, erro médio 2,9 pontos). A origem
+(`'lab'` / `'modelo'`) viaja junto com o valor, e o texto do relatório só cita número quando os dois
+quadros são medidos.
+
+Detalhe que vale registrar: a correlação **bruta** entre balanço e swingweight neste catálogo é
+NEGATIVA (−0,376), porque quadros pesados são fabricados mais cabeça-leves. Controlando o peso, o
+coeficiente vira **+0,636** — a física certa. O modelo de massa pontual engolia a correlação espúria
+elevada ao quadrado, e era exatamente por isso que invertia um terço dos pares.
+
+### C-31 — o `stiffness_index` era ruído ✅ corrigido
+
+Mesma medição, segundo proxy. `stiffness_index` era o perfil da viga, usado com peso 0,45 em
+`feel_score` e `arm_friendliness_score` e 0,38 em `comfort_score`.
+
+**r(perfil da viga, RA medido) = 0,098 → R² = 0,010.** Um por cento.
+
+O par mais ilustrativo é o mesmo do C-30: viga média de 24,0 mm na Pure Drive contra 24,5 mm na
+Clash Pro, ou seja o proxy dizia que a **Pure Drive era mais amiga do braço**. RA medido: **69**
+contra **57**. O proxy estava invertido no par mais relevante do catálogo para dor no braço.
+
+**Correção:** conforto, toque e afinidade com o braço passam a usar o RA medido. A viga PERMANECE em
+`precision_score` e `launch_angle_score`, onde ela representa geometria (seção do quadro), não
+rigidez. Onde o RA falta, o termo sai da conta e `data_completeness` registra — não há reserva,
+porque a única candidata era a viga e ela é ruído.
+
+**Armadilha encontrada durante a correção:** trocar só `feel` e `arm_friendliness` e deixar
+`comfort_score` na viga **quebrou a monotonicidade do motor na hora** — subir a sensibilidade no
+braço passou a devolver um Top 5 com MENOS afinidade de braço (50,3 contra 51,4). O ranking
+empurrava por `comfort_score` (viga) enquanto a propriedade media `arm_friendliness_score` (RA), e
+as duas grandezas são descorrelacionadas. Os eixos que descrevem como o quadro trata o corpo têm de
+sair todos da mesma medida.
+
+### Impacto medido nas recomendações
+
+Varredura de 400 perfis sintéticos semeados, antes × depois:
+
+| | mudou |
+|---|---|
+| 1ª colocada | **71,5%** (286 de 400) |
+| ordem do pódio | 97,5% |
+| corda recomendada | 29,8% |
+
+Mudança dessa magnitude é o esperado quando o eixo de maior peso da manobrabilidade passa de um
+proxy de R² = 0,119 para a medição.
+
+### Efeito colateral: três pares de "gêmeas idênticas" deixaram de existir
+
+Antes havia **3 grupos** de vetor de atributos idêntico (as duas Babolat de 300 g, as duas Team, e
+HEAD Speed MP com Yonex Percept 100). Depois: **zero**. O último par estava a 11 pontos de
+swingweight de distância — nunca foram gêmeas, o catálogo é que não enxergava.
+
+O card de "empate técnico" e o desempate por posicionamento de linha continuam corretos e continuam
+no código, para qualquer raquete futura que entre sem medição. Os testes que dependiam de o catálogo
+produzir gêmeas por acaso passaram a **construir** o empate.
+
+### Consequência fora do produto
+
+O primeiro post da conta (04/09) foi construído sobre este proxy e está errado no sentido oposto —
+publicou "r = 0,029, praticamente zero" onde o real é 0,844, e "26 das 47" onde o real é 8. Errata
+registrada em `.claude/skills/te-content/pautas/2026-09-04-peso-nao-e-inercia.md`; `fatos.ts` já lê
+o campo medido e não reproduz mais o número.
+
+---
+
 ## 2026-08-14 · `engine 1.0.0` / `weights.v1` — calibração inicial
 
 ### C-01 — `objective_fit` tinha unidades incompatíveis ✅ corrigido

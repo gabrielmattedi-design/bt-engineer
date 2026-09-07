@@ -44,6 +44,35 @@ export type RacketSpecs = {
   readonly recommended_tension_min_lbs: number | null;
   readonly recommended_tension_max_lbs: number | null;
   readonly grip_sizes_available: readonly number[];
+
+  /**
+   * ═══ MEDIÇÕES DE LABORATÓRIO — origem diferente de tudo acima ══════════════════════════════
+   *
+   * Os campos anteriores são publicados pelo FABRICANTE. Estes dois são medidos por um
+   * laboratório de terceiro (hoje Tennis Warehouse, uma fonte só para as 47) e chegam pelo bloco
+   * `measurements` do JSON, com proveniência própria `source: 'lab'` e URL por raquete.
+   *
+   * A separação não é burocracia. Peso e balanço são o que a marca declara; swingweight e RA são
+   * o que alguém mediu. Quando as duas coisas moram no mesmo lugar sem distinção, a primeira
+   * divergência entre fabricante e laboratório vira uma discussão sem árbitro.
+   *
+   * ═══ POR QUE VALEM MAIS QUE OS PROXIES QUE SUBSTITUÍRAM ═══════════════════════════════════
+   *
+   * Medido contra estas 47, em 07/09/2026:
+   *
+   *   • `swing_index` antigo (massa × (balanço − 100)²) explicava R² = 0,119 do swingweight real.
+   *     O peso estático sozinho explicava 0,713 — ou seja, o proxy era PIOR que não ter proxy.
+   *     Ele ordenava 32,7% dos pares ao contrário da realidade.
+   *   • `stiffness_index` antigo (perfil da viga) explicava R² = 0,010 do RA real. Ruído.
+   *
+   * O caso que expôs os dois: o relatório afirmou que a Clash 100 Pro v3 gira com MENOS esforço
+   * que a Pure Drive porque o proxy dava 32 contra 46. Medidas, elas são 327 e 317 — a Clash Pro
+   * é DEZ pontos mais pesada de girar. A frase estava invertida, não só mal fundamentada.
+   */
+  /** Swingweight ENCORDOADO, em kg·cm². Convenção única: ver `strung` no JSON de origem. */
+  readonly swingweight_kgcm2: number | null;
+  /** Rigidez RA medida. Não confundir com `stiffness_index`, que é o atributo 0–100 derivado. */
+  readonly ra_stiffness: number | null;
 };
 
 export type RacketVariant = {

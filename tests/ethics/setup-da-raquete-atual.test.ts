@@ -198,14 +198,24 @@ describe('a leitura do peso', () => {
     }
   });
 
-  it('não é genérica — cita gramas e o índice', () => {
+  it('não é genérica — cita gramas e a grandeza que contradiz o peso', () => {
     const comNota = PERSONAS.map((p) => analisar(p, TUDO).payload.weight_reading).filter(
       (n): n is string => n !== null,
     );
     expect(comNota.length, 'nenhuma persona produz a nota — o teste não prova nada').toBeGreaterThan(0);
     for (const nota of comNota) {
       expect(nota).toMatch(/\d+ g/);
-      expect(nota).toMatch(/inércia/);
+      /*
+        Era `/inércia/`. A palavra mudou para "swingweight" quando a medição entrou no catálogo, e
+        a mudança é o ponto: antes o texto explicava um índice nosso, agora nomeia uma grandeza
+        pública que o leitor confere na mesma fonte que usamos.
+
+        A asserção aceita as duas porque a nota tem duas versões por desenho — cita o swingweight
+        medido quando os dois quadros têm medição, e volta ao índice relativo quando algum deles é
+        estimado pela reserva. Exigir só "swingweight" reprovaria a versão honesta da estimativa.
+      */
+      expect(nota).toMatch(/swingweight|índice de inércia/);
+      expect(nota).toMatch(/\d+/);
     }
   });
 });

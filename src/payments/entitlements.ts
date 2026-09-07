@@ -17,6 +17,7 @@ import { STRING_TYPE_PT } from '@/domain/string';
 import { clamp, clamp01 } from '@/domain/scores';
 import { CONFIDENCE_LABEL_PT } from '@/recommendation/confidence';
 import { RECOMMENDATION_ENGINE_VERSION } from '@/recommendation/config/version';
+import { resolveSwingweight } from '@/recommendation/normalize/racket-attributes';
 import { buildTradeOffs, type TradeOff } from './trade-offs';
 import { buildRadar, type RadarAxis } from './radar';
 import {
@@ -966,7 +967,8 @@ function buildWeightReading(
   const atual = result.full_ranking.find(
     (r) => r.racket.variant.id === profile.current_racket?.variant_id,
   );
-  const pesoAtual = atual?.racket.variant.specs.unstrung_weight_g ?? null;
+  const specsAtual = atual?.racket.variant.specs ?? null;
+  const pesoAtual = specsAtual?.unstrung_weight_g ?? null;
   const inerciaAtual = atual?.racket.attributes.swing_index ?? null;
 
   if (
@@ -975,14 +977,42 @@ function buildWeightReading(
     pesoNovo > pesoAtual &&
     inerciaNova <= inerciaAtual
   ) {
+    /*
+      ═══ POR QUE ESTE PARÁGRAFO GANHOU DUAS VERSÕES ══════════════════════════════════════════
+
+      Ele já saiu errado uma vez, e vale registrar como. Afirmava que a recomendada girava com
+      menos esforço porque o `swing_index` de então — massa × (balanço − 100 mm)², um modelo de
+      massa pontual — assim dizia. Um cliente foi conferir o swingweight publicado e achou o
+      contrário. Estava certo: medidas, as duas raquetes do caso davam 327 e 317, e a frase estava
+      INVERTIDA, não só mal fundamentada. O proxy explicava R² = 0,119 do swingweight real.
+
+      Com a medição no catálogo, a condição acima passou a decidir sobre o número certo, e o caso
+      que gerou a reclamação deixa de disparar sozinho. Mas corrigir a decisão não basta: quando os
+      dois quadros têm swingweight MEDIDO, o texto pode citar os valores e o leitor pode conferir
+      na mesma fonte que a gente usou. É o oposto de pedir confiança no nosso índice.
+
+      Quando um dos dois é ESTIMADO pela reserva (R² = 0,816, erro médio de ~3 pontos), citar
+      número seria emprestar à estimativa a autoridade de uma medição. Aí o texto volta ao índice
+      relativo, que é o que a estimativa sustenta. A origem viaja junto com o valor exatamente para
+      esta decisão poder ser tomada aqui.
+    */
+    const swNova = resolveSwingweight(vencedora);
+    const swAtual = specsAtual === null ? null : resolveSwingweight(specsAtual);
+    const ambasMedidas = swNova?.origem === 'lab' && swAtual?.origem === 'lab';
+
+    const comparacao = ambasMedidas
+      ? `Medido em laboratório, o swingweight da sua é ${Math.round(swAtual.kgcm2)} e o da ` +
+        `recomendada ${Math.round(swNova.kgcm2)} — quanto menor, menos esforço para girar.`
+      : `No nosso índice de inércia (0–100), a sua marca ${Math.round(inerciaAtual)} e a ` +
+        `recomendada ${Math.round(inerciaNova)} — quanto menor, menos esforço para girar.`;
+
     return (
       `A recomendada pesa ${pesoNovo} g contra os ${pesoAtual} g da sua — e ainda assim ela gira ` +
-      `com MENOS esforço, não mais. O que o braço sente ao acelerar não é o peso na balança: é a ` +
-      `inércia, que combina o peso com o quanto dele está longe da mão. Um quadro mais pesado com ` +
-      `a massa concentrada perto do punho é mais fácil de preparar que um leve com a massa na ` +
-      `cabeça. No nosso índice de inércia (0–100), a sua marca ${Math.round(inerciaAtual)} e a ` +
-      `recomendada ${Math.round(inerciaNova)} — quanto menor, menos esforço para girar. É por isso ` +
-      `que a análise pode indicar mais gramas sem indicar mais cansaço.`
+      `com MENOS esforço, não mais. O que o braço sente ao acelerar não é o peso na balança: é o ` +
+      `swingweight, que combina o peso com o quanto dele está longe da mão. Um quadro mais pesado ` +
+      `com a massa concentrada perto do punho é mais fácil de preparar que um leve com a massa na ` +
+      `cabeça. ${comparacao} É por isso que a análise pode indicar mais gramas sem indicar mais ` +
+      `cansaço.`
     );
   }
 

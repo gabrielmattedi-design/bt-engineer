@@ -19,6 +19,23 @@
  * A saída foi declarar o POSICIONAMENTO da linha (`domain/racket-lines.ts`): informação pública do
  * fabricante, sem unidade, que não entra em nenhuma média e não altera score nenhum. Ela só faz
  * duas coisas, e estes testes trancam as duas.
+ *
+ * ═══ EPÍLOGO (07/09/2026) — O EMPATE ERA CEGUEIRA, NÃO SEMELHANÇA ════════════════════════════
+ *
+ * O catálogo ganhou swingweight e RA MEDIDOS em laboratório, e o par que originou este arquivo
+ * deixou de empatar: Pure Aero 320 kg·cm² / RA 66 contra Pure Drive 317 / RA 69. Nunca foram a
+ * mesma raquete — as seis especificações publicadas é que não davam para distinguir.
+ *
+ * Antes da medição havia TRÊS grupos de vetor de atributos idêntico no catálogo (as duas Babolat
+ * de 300 g, as duas Team, e HEAD Speed MP com Yonex Percept 100). Depois: ZERO. O último par
+ * estava a 11 pontos de swingweight de distância.
+ *
+ * Isso muda o que estes testes podem provar. O posicionamento de linha continua certo e continua
+ * valendo para qualquer raquete futura que entre sem medição — mas o catálogo real não produz mais
+ * o cenário sozinho. Por isso os dois testes abaixo passaram a CONSTRUIR o empate em vez de
+ * esperá-lo: um teste que depende de o catálogo ter gêmeas por acaso não testa a regra, testa a
+ * coincidência. Foi assim que ele já quebrou uma vez, e agora quebraria de novo por um motivo que
+ * é uma boa notícia.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -32,6 +49,45 @@ import { TEST_DATASET_VERSION, TEST_MODE, testRackets, testStrings } from '../he
 
 const RACKETS = testRackets();
 const STRINGS = testStrings();
+
+/**
+ * Catálogo com um empate CONSTRUÍDO entre a Pure Drive e a Pure Aero de 300 g.
+ *
+ * Dá à Pure Drive as ESPECIFICAÇÕES e os ATRIBUTOS da Pure Aero, preservando só a identidade —
+ * id, nome e `family`, que é o que o posicionamento de linha consulta. O resultado é exatamente a
+ * situação que o catálogo produzia sozinho antes da medição: duas raquetes de linhas diferentes,
+ * indistinguíveis por dado.
+ *
+ * ═══ POR QUE AS SPECS PRECISAM VIR JUNTO, E NÃO SÓ OS ATRIBUTOS ══════════════════════════════
+ *
+ * A primeira versão copiava apenas `attributes`, e as duas continuaram com fit diferente (84,40
+ * contra 82,88). O motivo é que o `fit_score` não sai só dos atributos: `fit-components` e
+ * `penalties` chamam `computeSwingIndex(specs)` DIRETO nas especificações. Como o swingweight
+ * agora mora ali, a Pure Drive mantinha os seus 317 enquanto os atributos diziam ser a Pure Aero
+ * — uma raquete que não existe, e um empate que nunca se formava.
+ *
+ * Construir em vez de procurar é o ponto. Enquanto o empate vinha do catálogo, estes testes
+ * dependiam de duas raquetes continuarem publicando as mesmas seis especificações — uma condição
+ * que nada garante e que a medição desfez. A regra sob teste ("quando duas linhas têm
+ * posicionamento declarado e ele difere, o card diz qual é qual") não depende disso, e agora o
+ * teste também não.
+ */
+function catalogoComGemeas(): typeof RACKETS {
+  const aero = RACKETS.find((r) => r.variant.product_name === 'Babolat Pure Aero (2026)')!;
+  const drive = RACKETS.find((r) => r.variant.product_name === 'Babolat Pure Drive (2025)')!;
+  const gemea = {
+    ...aero,
+    variant: {
+      ...aero.variant,
+      id: drive.variant.id,
+      slug: drive.variant.slug,
+      product_name: drive.variant.product_name,
+      family: drive.variant.family,
+      model: drive.variant.model,
+    },
+  };
+  return RACKETS.map((r) => (r.variant.id === drive.variant.id ? gemea : r));
+}
 const TUDO: Entitlement[] = ['racket_report_access', 'full_setup_access', 'rank2_access', 'rank3_access'];
 
 /** Jogador com swing formado, para que as duas Babolat de 300 g fiquem no páreo. */
@@ -53,9 +109,10 @@ function jogador(pedido: readonly string[]): QuestionnaireAnswers {
 }
 
 function posicaoDe(answers: QuestionnaireAnswers, family: string): number {
-  const profile = enrichProfileWithCatalog(buildPlayerProfile(answers), RACKETS, STRINGS);
+  const catalogo = catalogoComGemeas();
+  const profile = enrichProfileWithCatalog(buildPlayerProfile(answers), catalogo, STRINGS);
   const r = recommend({
-    profile, rackets: RACKETS, strings: STRINGS,
+    profile, rackets: catalogo, strings: STRINGS,
     datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
   });
   return r.full_ranking.findIndex((x) => x.racket.variant.family === family) + 1;
@@ -140,10 +197,11 @@ describe('o texto do card gêmeo', () => {
       caindo no caso.
     */
     const cards: string[] = [];
+    const catalogo = catalogoComGemeas();
     for (const persona of PERSONAS) {
-      const profile = enrichProfileWithCatalog(buildPlayerProfile(persona.answers), RACKETS, STRINGS);
+      const profile = enrichProfileWithCatalog(buildPlayerProfile(persona.answers), catalogo, STRINGS);
       const r = recommend({
-        profile, rackets: RACKETS, strings: STRINGS,
+        profile, rackets: catalogo, strings: STRINGS,
         datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE, includeSetup: true,
       });
       for (const e of serializeRecommendation(r, profile, TUDO).podium) {

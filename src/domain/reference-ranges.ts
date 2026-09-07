@@ -191,12 +191,20 @@
  * ═══ 2. O MOTIVO DA EXCLUSÃO PROMETIA UMA GRANDEZA E MEDIA OUTRA ═════════════════════════════
  *
  * Ele dizia que acima do teto "o que ela ganha em estabilidade você perde em preparação de golpe".
- * Preparação de golpe é inércia; o filtro compara gramas. Medida a correlação entre as duas nas 47
- * raquetes: r = 0,029. Na prática o teto exclui quadros mais fáceis de girar do que outros que ele
- * mantém — com teto de 301 g, a Clash 100 Pro (305 g, a segunda MENOR inércia do catálogo) é
- * cortada e a Clash 108 (280 g, a MAIOR) passa. O motivo passa a afirmar só o que o peso estático
- * de fato cobra: sustentar o quadro e absorver o choque. A inércia continua cobrada com grau em
- * `physicalFit`, via `massIndex`, que é onde ela pertence.
+ * Preparação de golpe é inércia; o filtro compara gramas.
+ *
+ * A justificativa numérica original — "r = 0,029 entre as duas grandezas, então o teto exclui
+ * quadros MAIS fáceis de girar" — não sobreviveu à medição de 07/09/2026 e foi retirada daqui. Ela
+ * comparava peso com `massa × (balanço − 100)²`, um proxy que explica R² = 0,119 do swingweight
+ * real; contra os 47 swingweights medidos, a correlação com o peso é r = 0,844. O exemplo que a
+ * acompanhava também se inverteu: a Clash 100 Pro não é a segunda MENOR inércia do catálogo, ela
+ * mede 327 kg·cm² e está entre as maiores.
+ *
+ * A CORREÇÃO DO MOTIVO permanece, porque não dependia daquele número: um filtro duro em gramas não
+ * pode se justificar por uma grandeza que ele não mede, e r = 0,844 ainda deixa 29% da variação
+ * fora. O motivo afirma só o que o peso estático de fato cobra — sustentar o quadro e absorver o
+ * choque. A inércia continua cobrada com grau em `physicalFit`, via `massIndex`, que é onde ela
+ * pertence.
  *
  * ═══ 3. AS DUAS FRASES DE POTÊNCIA VIVIAM EM RÉGUAS DIFERENTES ═══════════════════════════════
  *
@@ -813,7 +821,7 @@
  * mesma linha do mesmo gráfico — quem abrir um relatório antigo precisa conseguir saber qual das
  * leituras estava valendo. A 2.12.0 é a primeira da série em que a raquete recomendada pode mudar.
  */
-export const METHODOLOGY_VERSION = '2.42.0';
+export const METHODOLOGY_VERSION = '2.43.0';
 
 export type Range = readonly [lo: number, hi: number];
 
@@ -836,7 +844,16 @@ export const RANGES = {
    * Índice de balanço Tennis Engineer — inércia de swing derivada de peso × balanço.
    * NÃO é swingweight e nunca é exibido como tal. Ver `computeSwingIndex()`.
    */
-  swing_index: [1.25e7, 2.10e7] as Range,
+  /**
+   * Swingweight ENCORDOADO em kg·cm² — a unidade padrão da medição.
+   *
+   * A faixa era [1.25e7, 2.10e7] em g·mm², porque `swing_index` era massa × braço² e não uma
+   * medição. Com as 47 medidas (301 a 332), a escala passa a ser a real. A folga até 295–340
+   * existe para uma raquete futura não saturar a ponta da escala sem ninguém notar.
+   */
+  swing_index: [295, 340] as Range,
+  /** RA medido. As 47 do catálogo caem entre 54 e 69; a faixa tem folga pelo mesmo motivo. */
+  ra_stiffness: [50, 72] as Range,
 } as const;
 
 /**
@@ -850,7 +867,51 @@ export const STRING_SET_MASS_G = 16;
 export const STRING_SET_BALANCE_SHIFT_MM = 8;
 
 /** Eixo do índice de balanço: 10 cm do topo do cabo, convenção da indústria. */
+/**
+ * Eixo do swingweight: 10 cm do fim do cabo, a convenção ITF que os laboratórios usam.
+ *
+ * Deixou de ser consumido pelo motor em 07/09/2026, quando `swing_index` passou a ser a medição em
+ * vez de `massa × (balanço − 100)²`. Fica documentado porque é o eixo em que os valores de
+ * `swingweight_kgcm2` foram medidos — quem for conferir um número contra outra fonte precisa saber
+ * disso, e uma fonte que meça noutro eixo não é comparável.
+ */
 export const SWING_AXIS_MM = 100;
+
+/**
+ * Reserva para estimar swingweight quando a medição de laboratório não existe.
+ *
+ * ═══ POR QUE UMA REGRESSÃO, E NÃO O MODELO DE MASSA PONTUAL ══════════════════════════════════
+ *
+ * O modelo antigo — massa × (balanço − 100 mm)² — parece física e não é: ele trata a raquete
+ * inteira como um ponto no balanço, e o termo que despreza (o espalhamento da massa) é MAIOR que
+ * o que calcula. Medido contra as 47 medições reais, ele explica R² = 0,119 do swingweight. O
+ * peso estático sozinho explica 0,713. O proxy era pior que nenhum proxy.
+ *
+ * Estes coeficientes saem de mínimos quadrados sobre as mesmas 47: R² = 0,816, erro absoluto
+ * médio 2,9 pontos, pior caso 8,1.
+ *
+ * ═══ O SINAL DO BALANÇO, QUE É O PONTO INTERESSANTE ══════════════════════════════════════════
+ *
+ * A correlação BRUTA entre balanço e swingweight neste catálogo é NEGATIVA (r = −0,376): quadros
+ * pesados são fabricados mais cabeça-leves justamente para continuarem giráveis. O modelo de
+ * massa pontual engolia essa correlação espúria elevada ao quadrado, e era por isso que ele
+ * invertia 32,7% dos pares.
+ *
+ * Controlando o peso, o coeficiente do balanço vira POSITIVO (+0,636) — que é a física correta:
+ * para a mesma massa, mais massa longe da mão é mais swingweight. A regressão acerta o sinal que
+ * o modelo "físico" errava.
+ *
+ * Só vale para raquetes adultas parecidas com as do catálogo. Uma raquete fora dessa vizinhança
+ * merece medição, não extrapolação.
+ */
+export const SWINGWEIGHT_FALLBACK = {
+  intercepto: -127.2,
+  por_grama: 0.816,
+  por_mm_de_balanco: 0.636,
+  /** Documentado aqui para nunca ser citado sem a qualidade que o acompanha. */
+  r2: 0.816,
+  erro_medio_pontos: 2.9,
+} as const;
 
 /** Limites físicos absolutos de tensão por tipo de corda. */
 export const TENSION_BOUNDS_LBS = {

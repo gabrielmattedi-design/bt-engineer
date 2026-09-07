@@ -54,6 +54,25 @@ const racketSpecsSchema = z.object({
 });
 
 /**
+ * Medições de laboratório. Bloco SEPARADO de `specs` porque a origem é outra: specs vêm do
+ * fabricante, isto vem de quem mediu.
+ *
+ * `strung` é obrigatório e literal `true`, não um booleano qualquer. Um jogo de cordas soma ~30
+ * pontos de swingweight, e as fontes alternam entre as duas convenções sem avisar — foi o defeito
+ * que travou esta pesquisa na primeira tentativa (`docs/PESQUISA_RA_SWINGWEIGHT.md`). Exigir o
+ * literal significa que o dia em que alguém colar um número sem corda, o parse quebra em vez de o
+ * catálogo passar a comparar duas convenções como se fossem uma.
+ */
+const measurementsSchema = z.object({
+  swingweight_kgcm2: z.number().min(240).max(400),
+  ra_stiffness: z.number().min(40).max(80).nullable().optional(),
+  strung: z.literal(true),
+  measured_by: z.string().min(1),
+  source_url: z.string().url(),
+  collected_at: z.string(),
+});
+
+/**
  * Bloco de verificação — escrito por `/admin/verificacao`, versionado em git.
  *
  * POR QUE NO JSON E NÃO NO BANCO: a trava de release (`npm run build` → `dataset:gate`) roda em
@@ -109,6 +128,7 @@ const racketEntrySchema = z.object({
   product_name: z.string().min(1),
   status: z.enum(['current', 'previous_generation', 'discontinued']),
   specs: racketSpecsSchema,
+  measurements: measurementsSchema.optional(),
   verification: verificationSchema.optional(),
 });
 
@@ -213,6 +233,7 @@ function buildProvenance(
   base: z.infer<typeof provenanceSchema>,
   hasTension: boolean,
   verification?: RacketVerification,
+  measurements?: z.infer<typeof measurementsSchema>,
 ): ProvenanceMap {
   // Depois da conferência humana, a procedência de cada campo passa a apontar para a URL realmente
   // aberta, com `verified_at` preenchido e confiança alta. Antes disso permanece o padrão do seed.
@@ -243,6 +264,33 @@ function buildProvenance(
       };
     }
   }
+
+  /*
+    A medição de laboratório carrega a PRÓPRIA procedência, e é a única do catálogo com
+    `source_url` de verdade preenchida hoje.
+
+    Isso tem uma consequência que vale dizer em voz alta: `temFonte()` — a guarda que a skill de
+    conteúdo consulta antes de publicar qualquer número de modelo nomeado — passa a devolver
+    `true` para estes dois campos e continua `false` para peso, balanço e área. É o comportamento
+    desejado e foi projetado assim: a restrição se destrava sozinha campo a campo, conforme a
+    fonte aparece, sem ninguém editar a regra.
+  */
+  if (measurements) {
+    const labProv: z.infer<typeof provenanceSchema> = {
+      source: 'lab',
+      source_url: measurements.source_url,
+      verified_at: measurements.collected_at,
+      confidence: 'high',
+      notes:
+        `Swingweight ${measurements.strung ? 'ENCORDOADO' : 'sem corda'} e RA medidos por ` +
+        `${measurements.measured_by}. Fonte única para todo o catálogo: laboratórios divergem ` +
+        `entre si, e a consistência entre as raquetes importa mais que a exatidão absoluta de ` +
+        `cada uma, porque o motor as compara.`,
+    };
+    map['swingweight_kgcm2'] = labProv;
+    if (measurements.ra_stiffness != null) map['ra_stiffness'] = labProv;
+  }
+
   return map;
 }
 
@@ -276,8 +324,15 @@ function loadRacketFile(raw: unknown): RacketVariant[] {
         recommended_tension_min_lbs: entry.specs.recommended_tension_min_lbs ?? null,
         recommended_tension_max_lbs: entry.specs.recommended_tension_max_lbs ?? null,
         grip_sizes_available: entry.specs.grip_sizes_available,
+        swingweight_kgcm2: entry.measurements?.swingweight_kgcm2 ?? null,
+        ra_stiffness: entry.measurements?.ra_stiffness ?? null,
       },
-      provenance: buildProvenance(file.default_provenance, hasTension, entry.verification),
+      provenance: buildProvenance(
+        file.default_provenance,
+        hasTension,
+        entry.verification,
+        entry.measurements,
+      ),
       /**
        * Sem bloco `verification`, o estado honesto do seed é `pending_verification`: os dados de
        * catálogo foram carregados, a conferência humana não aconteceu. Nunca `verified` por

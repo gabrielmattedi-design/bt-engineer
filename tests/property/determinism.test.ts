@@ -211,10 +211,31 @@ describe('monotonicidade', () => {
     const a = recommend({ profile: neutral, rackets, datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE });
     const b = recommend({ profile: wantsControl, rackets, datasetVersion: TEST_DATASET_VERSION, mode: TEST_MODE });
 
-    // O frame com maior control_score do catálogo precisa ganhar objective_fit.
-    const target = [...rackets].sort(
-      (x, y) => y.attributes.control_score - x.attributes.control_score,
-    )[0]!;
+    /*
+      O alvo sai de DENTRO do ranking, não do catálogo inteiro.
+
+      A versão anterior pegava o maior `control_score` das 47 e assumia que ele apareceria nos dois
+      resultados. Isso nunca foi verdade por construção: pedir controle estreita o ranking a 11
+      frames para esta persona, e nada garantia que o campeão de controle do catálogo fosse um
+      deles. O teste passava porque, com o `swing_index` antigo, por acaso era.
+
+      Quando a medição de swingweight entrou, o campeão virou a Pure Strike 18x20 — que esta
+      persona não alcança, e que o motor exclui com razão. O teste quebrou com um
+      `Cannot read properties of undefined`, e o defeito não estava no motor: estava em escolher o
+      alvo num universo diferente daquele em que a asserção seria feita.
+
+      A propriedade afirmada é sobre a RESPOSTA do motor ao pedido do jogador. Escolher o alvo
+      entre os frames que os dois resultados contêm afirma exatamente isso, e não depende de qual
+      raquete o catálogo tem no topo hoje.
+    */
+    const nosDois = new Set(
+      a.full_ranking
+        .map((x) => x.racket.variant.id)
+        .filter((id) => b.full_ranking.some((y) => y.racket.variant.id === id)),
+    );
+    const target = [...rackets]
+      .filter((r) => nosDois.has(r.variant.id))
+      .sort((x, y) => y.attributes.control_score - x.attributes.control_score)[0]!;
 
     const objFit = (r: typeof a.full_ranking): number =>
       r.find((x) => x.racket.variant.id === target.variant.id)!.breakdown.components.find(

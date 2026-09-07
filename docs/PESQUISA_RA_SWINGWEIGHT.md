@@ -1,7 +1,34 @@
 # Pesquisa de RA e swingweight — planilha de curadoria
 
-> **Estado: INCOMPLETA E NÃO APLICADA.** Nada aqui entrou no catálogo, no schema ou no motor.
-> Este arquivo é material de trabalho para `/admin/verificacao`, não uma fonte.
+> **Estado: CONCLUÍDA E APLICADA em 07/09/2026.** As 47 raquetes têm swingweight ENCORDOADO e RA no
+> catálogo (bloco `measurements`), com `source_url` por raquete e proveniência `source: 'lab'`. O
+> motor usa os dois. O que segue abaixo é o registro de como a pesquisa parou pela metade e do que
+> ela ensinou — permanece porque as duas armadilhas continuam valendo para qualquer coleta futura.
+
+## Como foi concluída
+
+A coleta que faltava foi feita FORA deste ambiente, contra Tennis Warehouse (41 raquetes) e Tennis
+Warehouse Europe (6) — uma fonte, um laboratório, protocolo constante, que era a condição §1 de
+"Como completar". Voltou numa planilha com convenção declarada linha a linha e URL por raquete.
+
+**Oito raquetes desta tabela serviram de conferência cruzada, e as oito bateram**, inclusive a única
+que exigiu conversão: Wilson Blade 98 16×19 estava aqui com **291 sem corda**, e a coleta trouxe
+**322 encordoada** — 291 + 30 = 321, dentro de um ponto. Confirma a coleta e a regra dos +30 ao
+mesmo tempo. A Pure Drive, que esta tabela marcava com confiança **C** ("fontes em conflito
+aberto"), fechou exatamente nos 317 encordados que a fonte única publica.
+
+## O que a medição revelou sobre o que o motor usava
+
+Os dois proxies que ela substituiu foram conferidos pela primeira vez, e os dois eram ruins:
+
+| Proxy | Contra o quê | R² |
+|---|---|---|
+| `swing_index` = massa × (balanço − 100)² | swingweight medido | **0,119** |
+| peso estático sozinho | swingweight medido | **0,713** |
+| `stiffness_index` = perfil da viga | RA medido | **0,010** |
+
+O proxy de inércia era **pior que o peso estático puro**, e o de rigidez era ruído. Ver
+`CALIBRATION_LOG.md` (07/09/2026) para o efeito nas recomendações.
 
 ## Por que parou pela metade
 

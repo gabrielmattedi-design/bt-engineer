@@ -541,13 +541,27 @@ function applyWeightCeiling(
         de golpe é inércia — massa vezes o quadrado da distância dela até a mão —, e este filtro
         não olha inércia nenhuma: ele compara gramas de balança.
 
-        Medido neste catálogo, as duas grandezas são praticamente independentes: a correlação entre
-        peso estático e `computeSwingIndex` nas 47 raquetes é r = 0,029. Na prática isso significa
-        que um teto em gramas exclui quadros MAIS FÁCEIS de girar do que outros que ele mantém. Com
-        teto de 301 g, a Wilson Clash 100 Pro (305 g, inércia 15,26e6 — a segunda menor do catálogo
-        inteiro) é cortada, enquanto a Wilson Clash 108 (280 g, 17,48e6 — a MAIOR de todas) passa.
-        A frase antiga descrevia esse corte como se ele protegesse a preparação do golpe. Ele faz o
-        contrário.
+        ─── ESTE PARÁGRAFO FOI REESCRITO EM 07/09/2026, E VALE SABER POR QUÊ ──────────────────
+
+        A versão anterior dizia que peso e inércia eram "praticamente independentes, r = 0,029", e
+        ilustrava com a Wilson Clash 100 Pro: 305 g e "a segunda MENOR inércia do catálogo", cortada
+        por um teto de 301 g enquanto a Clash 108, mais leve, passava. A conclusão era que o teto em
+        gramas fazia o contrário do que prometia.
+
+        As duas metades do argumento eram artefato do proxy. Aquele r = 0,029 não media peso contra
+        inércia: media peso contra `massa × (balanço − 100)²`, um modelo de massa pontual que
+        explica só R² = 0,119 do swingweight real. Com os 47 swingweights MEDIDOS, a correlação com
+        o peso estático é r = 0,844. E a Clash 100 Pro, longe de ser a segunda menor, mede 327
+        kg·cm² — está entre as MAIS pesadas de girar do catálogo. O exemplo provava o oposto do que
+        dizia.
+
+        Ou seja: um teto em gramas é, sim, um previsor razoável do esforço de girar. O filtro não é
+        perverso como este comentário afirmava.
+
+        A correção do MOTIVO, porém, continua de pé, e por uma razão que não dependia daquela
+        medição: um filtro duro em gramas não pode se justificar pela preparação de golpe, porque
+        não é isso que ele mede — mesmo agora que as duas grandezas andam juntas, andar junto não é
+        ser a mesma coisa, e 0,844 deixa 29% da variação de fora.
 
         O que o peso estático de fato cobra é real e é outra coisa: sustentar o quadro no alto, e o
         choque que chega ao braço no impacto. É isso, e só isso, que o motivo pode afirmar.

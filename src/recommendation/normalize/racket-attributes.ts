@@ -18,7 +18,7 @@ import {
   RANGES,
   STRING_SET_BALANCE_SHIFT_MM,
   STRING_SET_MASS_G,
-  SWING_AXIS_MM,
+  SWINGWEIGHT_FALLBACK,
 } from '@/domain/reference-ranges';
 import { clamp, clamp01, inv, norm, toScore, weighted, type WeightedTerm } from '@/domain/scores';
 import { averageBeam } from '@/domain/racket';
@@ -75,12 +75,58 @@ export function parseBeamAverage(specs: RacketSpecs): number | null {
  *
  * É por isso que ele não se chama swingweight e nunca é exibido como tal.
  */
-export function computeSwingIndex(specs: RacketSpecs): number | null {
-  const mass = resolveStrungWeight(specs);
-  const balance = resolveStrungBalance(specs);
+export type SwingweightOrigem = 'lab' | 'modelo';
+
+/**
+ * Swingweight encordoado em kg·cm² — MEDIDO quando existe, estimado quando não.
+ *
+ * ═══ O QUE ESTA FUNÇÃO ERA, E POR QUE MUDOU ══════════════════════════════════════════════════
+ *
+ * Era `massa × (balanço − 100 mm)²`: um modelo de massa pontual que finge que o quadro inteiro
+ * está concentrado no ponto de balanço. A decomposição exata do momento de inércia é
+ *
+ *     I = M·(balanço − 100)²  +  M·σ²
+ *
+ * e o segundo termo — o espalhamento da massa — nunca era calculado. Ele não é um resíduo: para
+ * uma raquete real ele é MAIOR que o primeiro. O modelo devolvia o equivalente a 152 kg·cm² onde
+ * a medição dá 327.
+ *
+ * Medido contra as 47 medições de laboratório em 07/09/2026:
+ *
+ *   • r(modelo, swingweight real) = 0,344 → R² = 0,119
+ *   • r(peso estático, swingweight real) = 0,844 → R² = 0,713
+ *   • o modelo ordenava 32,7% dos pares AO CONTRÁRIO da realidade (173 deles com diferença de
+ *     8 pontos ou mais, que é onde a diferença deixa de ser acadêmica)
+ *
+ * Ou seja: era pior que não ter proxy nenhum. O caso que expôs isso está em `RacketSpecs`.
+ *
+ * ═══ POR QUE A ORIGEM VIAJA JUNTO COM O NÚMERO ═══════════════════════════════════════════════
+ *
+ * Um valor medido e um estimado não valem o mesmo, e a diferença precisa sobreviver até quem
+ * escreve a frase do relatório. Devolver só o número deixaria os dois indistinguíveis a jusante —
+ * que é exatamente como uma estimativa vira afirmação categórica sem ninguém decidir isso.
+ */
+export function resolveSwingweight(
+  specs: RacketSpecs,
+): { readonly kgcm2: number; readonly origem: SwingweightOrigem } | null {
+  if (specs.swingweight_kgcm2 !== null) {
+    return { kgcm2: specs.swingweight_kgcm2, origem: 'lab' };
+  }
+  const mass = specs.unstrung_weight_g;
+  const balance = specs.balance_mm;
   if (mass === null || balance === null) return null;
-  const arm = balance - SWING_AXIS_MM;
-  return mass * arm * arm;
+  return {
+    kgcm2:
+      SWINGWEIGHT_FALLBACK.intercepto +
+      SWINGWEIGHT_FALLBACK.por_grama * mass +
+      SWINGWEIGHT_FALLBACK.por_mm_de_balanco * balance,
+    origem: 'modelo',
+  };
+}
+
+/** O valor cru, para quem só compara raquetes entre si. Prefira `resolveSwingweight`. */
+export function computeSwingIndex(specs: RacketSpecs): number | null {
+  return resolveSwingweight(specs)?.kgcm2 ?? null;
 }
 
 type NormalizedSpecs = {
@@ -90,7 +136,8 @@ type NormalizedSpecs = {
   m: number | null; // perfil da viga
   o: number | null; // abertura do padrão
   d: number | null; // densidade = 1 - abertura
-  s: number | null; // índice de balanço
+  s: number | null; // swingweight (medido, ou estimado pela reserva)
+  r: number | null; // rigidez RA medida — `null` quando não há medição, de propósito
 };
 
 function normalizeSpecs(specs: RacketSpecs): NormalizedSpecs {
@@ -107,6 +154,19 @@ function normalizeSpecs(specs: RacketSpecs): NormalizedSpecs {
     o,
     d: o === null ? null : 1 - o,
     s: n(computeSwingIndex(specs), RANGES.swing_index),
+    /*
+      Sem reserva, DE PROPÓSITO — ao contrário do swingweight.
+
+      A reserva do swingweight é uma regressão de R² = 0,816: estimar é melhor que ignorar. Para o
+      RA não existe equivalente. O único candidato era o perfil da viga, que foi o que o
+      `stiffness_index` usou até aqui, e medido contra os 47 RA reais ele dá R² = 0,010. Isso não
+      é um proxy fraco, é ruído com aparência de dado.
+
+      Quando o RA falta, o termo simplesmente sai da conta: `weighted()` redistribui o peso entre
+      os presentes e `data_completeness` registra a ausência. Uma nota com um termo a menos e a
+      falta declarada é honesta; a mesma nota preenchida com ruído não é.
+    */
+    r: n(specs.ra_stiffness, RANGES.ra_stiffness),
   };
 }
 
@@ -122,8 +182,15 @@ const TERM_TO_FIELD: Record<string, string> = {
   balance_inverse: 'balance_mm',
   beam_width: 'beam_width_mm',
   beam_width_inverse: 'beam_width_mm',
-  swing_index: 'balance_mm',
-  swing_index_inverse: 'balance_mm',
+  /*
+    Apontavam para `balance_mm` porque o swing_index NASCIA do balanço. Agora ele é uma medição de
+    laboratório com campo e proveniência próprios — e é esse campo que a tela de "de onde veio este
+    número" precisa citar. Deixar apontando para o balanço mandaria o leitor conferir a fonte
+    errada, que é pior do que não mostrar fonte.
+  */
+  swing_index: 'swingweight_kgcm2',
+  swing_index_inverse: 'swingweight_kgcm2',
+  ra_inverse: 'ra_stiffness',
   pattern_openness: 'string_pattern',
   pattern_density: 'string_pattern',
 };
@@ -134,6 +201,8 @@ export const FIELD_LABEL_PT: Record<string, string> = {
   balance_mm: 'balanço',
   beam_width_mm: 'perfil do quadro',
   string_pattern: 'padrão de cordas',
+  swingweight_kgcm2: 'swingweight medido',
+  ra_stiffness: 'rigidez RA medida',
 };
 
 export function humanizeMissingFields(fields: readonly string[]): string {
@@ -240,8 +309,22 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
 
   // Viga fina = quadro mais flexível = mais conforto. Massa absorve choque. Cabeça grande e padrão
   // aberto produzem um leito de cordas mais macio.
+  /*
+    Conforto também passa a ser RA, e não a viga — pelo mesmo motivo de `feel` e
+    `arm_friendliness`, mas aqui a troca é OBRIGATÓRIA, não opcional.
+
+    Deixar conforto na viga enquanto os outros dois iam para o RA quebrou a monotonicidade do
+    motor na hora: subir a sensibilidade no braço passou a devolver um Top 5 com MENOS afinidade
+    de braço (50,3 contra 51,4). Não é paradoxo — o ranking empurrava por `comfort_score`, medido
+    pela viga, e o teste media `arm_friendliness_score`, medido pelo RA. Como viga e RA são
+    descorrelacionados (R² = 0,010), as duas notas deixaram de falar da mesma coisa.
+
+    A lição para quem mexer nisto depois: os eixos que descrevem COMO O QUADRO TRATA O CORPO
+    — conforto, toque, braço — têm de sair todos da mesma grandeza. Misturar duas medidas de
+    rigidez entre eles não deixa metade do motor certa; deixa o motor incoerente.
+  */
   const comfort_score = build([
-    T('beam_width_inverse', invOrNull(n.m), 0.38),
+    T('ra_inverse', invOrNull(n.r), 0.38),
     T('weight', n.w, 0.3),
     T('pattern_openness', n.o, 0.17),
     T('head_size', n.h, 0.15),
@@ -296,8 +379,26 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
     T('beam_width_inverse', invOrNull(n.m), 0.18),
   ]);
 
+  /**
+   * ─── NOTA DE CALIBRAÇÃO (07/09/2026) — RIGIDEZ MEDIDA NO LUGAR DA VIGA ─────────────────────
+   *
+   * `feel_score` e `arm_friendliness_score` pesavam o perfil da viga em 0,45 como PROXY DE
+   * RIGIDEZ. Com os 47 RA medidos deu para conferir o proxy pela primeira vez:
+   *
+   *     r(perfil da viga, RA real) = 0,098  →  R² = 0,010
+   *
+   * Um por cento. O termo mais pesado dos dois eixos era, na prática, aleatório. Nos dois eixos a
+   * viga sai e entra o RA medido.
+   *
+   * A viga PERMANECE em `precision_score` e `launch_angle_score`, e isso não é inconsistência: lá
+   * ela não está representando rigidez, está representando geometria — quadro largo lança mais
+   * alto e perdoa mais por causa da seção, não por causa do quanto flexiona. O que se corrigiu foi
+   * usar viga onde a pergunta era rigidez.
+   *
+   * Onde o RA falta, o termo sai da conta em vez de cair na viga. Ver a nota em `normalizeSpecs`.
+   */
   const feel_score = build([
-    T('beam_width_inverse', invOrNull(n.m), 0.45),
+    T('ra_inverse', invOrNull(n.r), 0.45),
     T('weight', n.w, 0.32),
     T('pattern_density', n.d, 0.23),
   ]);
@@ -310,7 +411,7 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
   ]);
 
   const arm_friendliness_score = build([
-    T('beam_width_inverse', invOrNull(n.m), 0.45),
+    T('ra_inverse', invOrNull(n.r), 0.45),
     T('weight', n.w, 0.3),
     T('head_size', n.h, 0.15),
     T('pattern_openness', n.o, 0.1),
@@ -389,7 +490,17 @@ export function computeRacketAttributes(specs: RacketSpecs): RacketAttributes {
     arm_friendliness_score,
     demand_index,
     swing_index: n.s === null ? 0 : toScore(n.s),
-    stiffness_index: n.m === null ? 0 : toScore(n.m),
+    /*
+      Passa a ser o RA medido, e não mais o perfil da viga (R² = 0,010 contra o RA real).
+
+      Quando não há RA, cai para a viga em vez de zerar: aqui o índice é EXIBIDO na ficha técnica,
+      e um zero seria lido como "quadro macíssimo" em vez de "não sabemos". A viga é ruim como
+      medida de rigidez, mas como último recurso de exibição ela ao menos ordena quadros grossos
+      acima de finos. Note a diferença de tratamento em relação a `normalizeSpecs`: lá, onde o
+      valor ENTRA numa nota que decide recomendação, o termo some; aqui, onde ele só aparece, a
+      aproximação é preferível ao silêncio enganoso.
+    */
+    stiffness_index: n.r !== null ? toScore(n.r) : n.m === null ? 0 : toScore(n.m),
     data_completeness: totalWeight === 0 ? 0 : clamp01(coveredWeight / totalWeight),
     missing_fields: [...missing].sort(),
     methodology_version: METHODOLOGY_VERSION,

@@ -42,7 +42,8 @@ score(t)          = t * 100                      // t ∈ [0,1] → 0–100
 | `strung_weight_g` (derivado) | 241 | 356 | `unstrung + 16 g` |
 | `balance_mm` (unstrung) | 290 | 385 | 9 pts HL a fortemente head-heavy (frames leves de iniciante) |
 | `beam_width_avg_mm` | 19 | 29 | box beam fino a widebody de iniciante |
-| `swing_index` (derivado) | 1.25e7 | 2.10e7 | ver abaixo |
+| `swingweight_kgcm2` (MEDIDO, encordoado) | 295 | 340 | laboratório único; catálogo real vai de 301 a 332 |
+| `ra_stiffness` (MEDIDO) | 50 | 72 | laboratório único; catálogo real vai de 54 a 69 |
 
 Estas faixas são **constantes do domínio** (`domain/reference-ranges.ts`). Alterá-las muda todos os
 scores e exige nova `methodology_version`.
@@ -52,25 +53,40 @@ scores e exige nova `methodology_version`.
 ```
 strung_weight   = unstrung_weight_g + 16                    // massa de um jogo de cordas
 strung_balance  = balance_mm + 8                            // cordas ficam na cabeça
-swing_index     = strung_weight · (strung_balance − 100)²    // g·mm², eixo a 10 cm do cabo
-stiffness_index = norm(beam_width_avg_mm)                    // proxy de rigidez pelo perfil da viga
+swing_index     = swingweight_kgcm2                          // MEDIDO em laboratório, encordoado
+                  ?? −127,2 + 0,816·peso + 0,636·balanço     // reserva calibrada, R² = 0,816
+stiffness_index = ra_stiffness                               // MEDIDO em laboratório
+                  ?? norm(beam_width_avg_mm)                 // só para EXIBIÇÃO; nunca entra em nota
 ```
 
-**`swing_index` NÃO é swingweight.** Mede a mesma grandeza física — momento de inércia em torno do
-eixo de swing — mas calculada a partir de dados publicados em vez de medida em bancada. Captura bem
-a diferença entre um frame leve head-light e um pesado head-heavy; **não** captura a polarização da
-distribuição de massa: dois frames de mesmo peso e balanço com massa distribuída de formas
-diferentes recebem o mesmo índice. Por isso tem outro nome e nunca é rotulado "swingweight".
+**`swing_index` AGORA É swingweight** — medido, encordoado, fonte única, com `source_url` por
+raquete (bloco `measurements` do JSON, proveniência `source: 'lab'`). Até 07/09/2026 ele era
+`massa × (balanço − 100)²`, e o parágrafo que ficava aqui dizia que isso "captura bem" a inércia e
+só falhava na polarização da massa. Medido contra as 47, capturava **R² = 0,119** — o peso estático
+sozinho capturava 0,713. Não era uma aproximação com uma limitação conhecida; era pior que o dado
+mais simples disponível. Ver `CALIBRATION_LOG.md` C-30.
 
-**`stiffness_index` NÃO é RA.** É a largura média da viga normalizada. A correlação com rigidez é boa
-na média do mercado (viga larga ⇒ mais rígida) e tem exceções conhecidas — a Wilson Clash tem viga
-larga e é notoriamente flexível. Consequência aceita e documentada: a proteção ao braço não pode
-depender deste proxy, e por isso é multicamada (ver §4.4).
+Quando a medição falta, entra a **reserva calibrada** por mínimos quadrados sobre as 47
+(R² = 0,816, erro absoluto médio 2,9 pontos). Ela não é física de primeiros princípios e não
+pretende ser: é o melhor previsor que os dados publicados sustentam. `resolveSwingweight()` devolve
+a ORIGEM junto com o valor, e quem escreve texto para o cliente só cita número quando a origem é
+`'lab'`.
 
-Uma consequência contraintuitiva mas fisicamente correta: frames de iniciante são leves **e**
-fortemente head-heavy, então têm `swing_index` **maior** que muitos frames de tour. É exatamente a
-razão pela qual treinadores criticam a alta inércia dos frames de iniciante — o modelo não maquia
-isso.
+**`stiffness_index` AGORA É RA** — medido, mesma fonte. O parágrafo anterior afirmava que a viga
+correlacionava bem com rigidez "na média do mercado", com a Clash como exceção conhecida. A medição
+desmentiu: **r = 0,098, R² = 0,010**. A Clash não era exceção, era o caso típico. O proxy chegava a
+inverter o par mais sensível do catálogo — dizia que a Pure Drive (RA 69) era mais amiga do braço
+que a Clash Pro (RA 57), porque tem viga 0,5 mm mais fina.
+
+Conforto, toque e afinidade com o braço passaram a usar o RA. A viga permanece em `precision_score`
+e `launch_angle_score`, onde representa geometria e não rigidez. Sem RA, o termo sai da nota e
+`data_completeness` registra a falta — não há reserva, porque a única candidata era a viga.
+
+Frames de iniciante leves e head-heavy podem ter swingweight maior que frames de tour — é a razão
+pela qual treinadores criticam a inércia dos frames de iniciante. Isso agora sai da MEDIÇÃO, não de
+um modelo: no catálogo medido a correlação entre peso e swingweight é r = 0,844, então a inversão é
+minoria (8 das 47 têm mais swingweight que alguma pelo menos 15 g mais pesada) — e não a regra que
+o proxy antigo sugeria.
 
 ### Abertura do padrão de cordas
 

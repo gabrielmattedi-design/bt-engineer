@@ -9,19 +9,30 @@ Auditoria de 03/09/2026, feita contra o catálogo no ar.
 
 ## 1. O que o projeto NÃO tem
 
-### Swingweight e RA — não existem no catálogo
+### Swingweight e RA — EXISTEM desde 07/09/2026
 
-O motor tem `swing_index`, que é **peso × braço de balanço**. O código repete em quatro arquivos que
-isso **NÃO é swingweight**, e `docs/PESQUISA_RA_SWINGWEIGHT.md` está marcado
-**"INCOMPLETA E NÃO APLICADA"** — 12 de 46 raquetes pesquisadas, 4 em confiança alta.
+**Esta seção era uma proibição e virou uma liberação.** As 47 raquetes ganharam **swingweight
+encordoado** e **RA** medidos em laboratório, fonte única (Tennis Warehouse), com `source_url` por
+raquete. `docs/PESQUISA_RA_SWINGWEIGHT.md` saiu de "INCOMPLETA E NÃO APLICADA" para completa.
 
-- ❌ Nunca dar swingweight ou RA de nenhuma raquete.
-- ❌ Nunca sugerir que o Tennis Engineer mede, usa ou considera swingweight.
-- ❌ Nunca comparar dois quadros por esses números.
-- ✅ **Pode** explicar o conceito de swingweight como física geral, sem número e sem ligar ao produto.
+- ✅ **Pode** citar o swingweight de uma raquete NOMEADA, dizendo que é medido e encordoado.
+- ✅ **Pode** comparar dois quadros por swingweight ou RA.
+- ✅ **Pode** dizer que o Tennis Engineer usa swingweight medido — porque usa: ele é o eixo de maior
+  peso da manobrabilidade.
+- ⚠️ **Sempre dizer "encordoada"**. Sem corda o número cai ~30 pontos, e um leitor que compare com
+  uma fonte de outra convenção vai achar que erramos.
+- ❌ Continua proibido citar RA como se fosse "rigidez do quadro" genérica sem dizer que é RA
+  medido — são coisas diferentes para quem sabe.
 
-O documento de pesquisa registra por que: fontes misturam medição com e sem corda (diferença de
-~30 pontos), e laboratórios discordam entre si em até 5 pontos de RA no mesmo modelo.
+Isso é o desenho funcionando, não uma exceção: `temFonte()` libera CAMPO A CAMPO conforme a fonte
+aparece. Peso, balanço e área continuam travados pela §2, porque continuam sem `source_url`. Rode
+`fatos.ts` e olhe `swingweight.pode_publicar_de_modelo_nomeado` — se um dia voltar a `false`,
+a proibição volta sozinha.
+
+**O que essa medição derrubou.** O primeiro post da conta (04/09, "peso não é inércia") foi
+construído sobre o proxy antigo e está errado — ver a errata em
+`pautas/2026-09-04-peso-nao-e-inercia.md`. Antes de reaproveitar qualquer coisa daquele post,
+leia a errata.
 
 ### Fotos de raquete — nenhuma verificada
 
