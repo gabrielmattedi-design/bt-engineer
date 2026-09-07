@@ -8,7 +8,7 @@
  * correspondente. O teste tests/unit/methodology-parity.test.ts existe para lembrar disso.
  */
 
-export const RECOMMENDATION_ENGINE_VERSION = '2.32.0';
+export const RECOMMENDATION_ENGINE_VERSION = '2.33.0';
 /*
   2.3.0 — categoria `polyamide_monofilament` (ago/2026).
 

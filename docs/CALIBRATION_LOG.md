@@ -9,6 +9,46 @@ Formato de cada entrada: **data · versão · o que mudou · por quê · evidên
 
 ---
 
+## 2026-09-08 (2) · `engine 2.33.0` — uma raquete por linha no pódio, sem exceção
+
+### C-36 — o pódio mostrava duas irmãs da mesma linha ✅ corrigido
+
+**Encontrado por:** o dono, com o pódio na tela: **Babolat Pure Drive 81% · Yonex EZONE 100 81% ·
+Yonex EZONE 100L 79%**. Duas EZONE 100 na mesma vitrine, uma delas a versão L. "Não pode
+acontecer."
+
+Varredura de 1000 perfis: **49 pódios com linha repetida**. Duas causas independentes, e uma delas
+é minha.
+
+**Causa 1 (46 casos) — a exceção `wantsWeightChange`.** A regra "uma por linha" existia desde o
+primeiro commit do motor (`083755a`) e tinha uma exceção: quando o jogador pedia mudança forte de
+manobrabilidade ou estabilidade, a segunda da mesma linha podia entrar. A intenção era defensável —
+a versão L e a regular diferem justamente em peso, então mostrar as duas seria oferecer a escolha
+de peso. O efeito na tela é o print acima: o pódio de três vira um pódio de duas linhas, e o
+jogador que pediu variedade recebe menos. Exceção removida.
+
+**Causa 2 (3 casos) — regressão minha, de 07/09.** Quando a raquete atual está acima do teto
+(C-32), a melhor opção dentro do teto é inserida no topo do pódio. A filtragem que montava o resto
+olhava só o **id** repetido, não a família — e o laço que já tinha escolhido as três não sabia que
+a alternativa viria por cima. Introduzida na correção da C-32 e achada na varredura seguinte, não
+por revisão.
+
+| n = 1000 perfis | antes | depois |
+|---|---|---|
+| pódios com linha repetida | 49 | **0** |
+| pódios de três raquetes | 986 (4 de duas, 10 de uma) | **986** (idem) |
+| match médio do 1º colocado | 83,79 | 83,79 |
+| match médio das vagas 2 e 3 | 79,10 | **79,01** |
+
+**O preço medido da regra é 0,09 ponto de match nas vagas 2 e 3, e nada mais.** O 1º colocado não
+se move — a regra só decide quem ocupa as vagas seguintes — e a distribuição de tamanho do pódio é
+idêntica: a diversidade não foi comprada encolhendo a vitrine, que era o risco óbvio. A segunda
+irmã sai e entra a melhor de outra linha, que estava logo atrás dela.
+
+Essas duas coisas ao mesmo tempo — nenhuma linha repetida **e** o pódio continuar cheio — são o que
+`tests/ethics/podio-uma-por-linha.test.ts` trava, varrendo persona × cada raquete do catálogo como
+atual para exercitar também o caminho da alternativa.
+
 ## 2026-09-08 · `engine 2.32.0` — potência e controle deixam de ser o mesmo eixo
 
 ### C-33 — `r(potência, controle) = −0,92` era álgebra nossa, não física ✅ corrigido

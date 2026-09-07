@@ -1138,9 +1138,32 @@ export function selectPodium(
   ranking: readonly RankedRacket[],
   profile: PlayerProfile,
 ): readonly RankedRacket[] {
-  const wantsWeightChange =
-    Math.abs(profile.desired_change_vector.maneuverability) > 15 ||
-    Math.abs(profile.desired_change_vector.stability) > 15;
+  /**
+   * ═══ A EXCEÇÃO QUE DESLIGAVA A DIVERSIDADE FOI REMOVIDA (08/09/2026) ═══════════════════════
+   *
+   * Existia desde o primeiro commit do motor: quando o jogador pedia mudança forte de
+   * manobrabilidade ou estabilidade (`|desired| > 15`), a regra de uma raquete por linha era
+   * DESLIGADA. A intenção era boa e dá para reconstruí-la: dentro de uma linha, a versão L e a
+   * regular diferem justamente em peso, então mostrar as duas seria oferecer a escolha de peso
+   * dentro do quadro que a pessoa gostou.
+   *
+   * Na prática produzia isto, num relatório real:
+   *
+   *     1º Babolat Pure Drive   81%
+   *     2º Yonex EZONE 100      81%
+   *     3º Yonex EZONE 100L     79%
+   *
+   * Duas das três recomendações são a mesma raquete em dois pesos. O pódio tem três vagas; gastar
+   * duas na mesma linha custa uma alternativa de verdade, e é o oposto do que um pódio existe para
+   * fazer. Medido: acontecia em 49 de 1000 perfis, 46 deles por esta exceção.
+   *
+   * A informação que se perde — "esta linha tem uma versão mais leve" — não sumiu do produto: ela
+   * é dita no bloco da raquete atual quando a irmã de linha está no pódio (`family_match`), e o
+   * pódio continua trazendo quadros mais leves, só que de linhas diferentes. O que se ganha é que
+   * as três vagas passam a ser três opções.
+   *
+   * A regra vale sempre. Sem exceção, porque foi a exceção que produziu o defeito.
+   */
 
   const podium: RankedRacket[] = [];
   const familiesUsed = new Set<string>();
@@ -1266,7 +1289,7 @@ export function selectPodium(
     if (alternativa !== undefined && entry === alternativa) continue;
 
     const familyKey = `${entry.racket.variant.brand}::${entry.racket.variant.family}`;
-    if (familiesUsed.has(familyKey) && !wantsWeightChange) continue;
+    if (familiesUsed.has(familyKey)) continue;
 
     familiesUsed.add(familyKey);
     podium.push({ ...entry, rank: podium.length + 1 });
@@ -1281,10 +1304,26 @@ export function selectPodium(
     que a recomendação de verdade ocupe o lugar de recomendação.
   */
   if (alternativa !== undefined) {
-    const semAlternativa = podium.filter((e) => e.racket.variant.id !== alternativa.racket.variant.id);
-    return [alternativa, ...semAlternativa]
-      .slice(0, 3)
-      .map((e, i) => ({ ...e, rank: i + 1 }));
+    /*
+      ─── A ALTERNATIVA TAMBÉM RESPEITA A DIVERSIDADE DE LINHA ──────────────────────────────
+
+      Defeito meu, achado na varredura seguinte à correção que criou este bloco. Eu inseria a
+      alternativa na frente e filtrava apenas a repetição do MESMO id — sem olhar a família. Como o
+      laço acima já tinha montado o pódio sem saber que ela viria, o resultado eram dois quadros da
+      mesma linha em 3 dos 1000 perfis:
+
+          #0608 → Wilson Clash 100L · Wilson Clash 108 · HEAD Radical Team
+
+      A alternativa entra no topo por direito — é a melhor opção que a pessoa pode comprar —, e
+      quem sai é a repetição de linha que vier depois dela, não o contrário.
+    */
+    const famDaAlternativa = `${alternativa.racket.variant.brand}::${alternativa.racket.variant.family}`;
+    const resto = podium.filter(
+      (e) =>
+        e.racket.variant.id !== alternativa.racket.variant.id &&
+        `${e.racket.variant.brand}::${e.racket.variant.family}` !== famDaAlternativa,
+    );
+    return [alternativa, ...resto].slice(0, 3).map((e, i) => ({ ...e, rank: i + 1 }));
   }
 
   return podium;
