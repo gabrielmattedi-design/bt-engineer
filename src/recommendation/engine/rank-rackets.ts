@@ -1209,10 +1209,42 @@ export function selectPodium(
     ? ranking.find((e) => e !== primeiro && !acimaDoTeto(e))
     : undefined;
 
+  /*
+    ═══ A ATUAL ACIMA DO TETO SAI DO PÓDIO (07/09/2026) ══════════════════════════════════════
+
+    Até aqui ela ficava em 1º e a alternativa entrava em 2º. A varredura de mil perfis mostrou o
+    que isso produz na tela, e não é o que o motor quer dizer:
+
+        #0085  mulher, 26 anos, iniciante, sedentária, dor no cotovelo, teto 280 g
+               1º HEAD Extreme Pro · 305 g · 76,3% de compatibilidade
+
+    Os 76,3% são verdadeiros e o aviso de "acima da faixa" existia logo abaixo. Mas a hierarquia da
+    página diz outra coisa: primeiro lugar, número alto, e a alternativa relegada a 2º. Uma pessoa
+    com dor no cotovelo lê "sua raquete é a melhor opção" de um quadro que esta mesma análise
+    calculou ser 25 g pesado demais para ela.
+
+    ─── POR QUE ELA CONTINUA NO `full_ranking` ───────────────────────────────────────────────
+
+    Porque a nota dela é verdadeira e a comparação é o que explica o teto. O que muda é o LUGAR:
+    ela sai da vitrine de recomendação e passa a ser tratada no bloco da raquete atual, com o
+    número, a posição e a distância até o teto. Isentar do filtro nunca significou promover.
+
+    ─── A ARMADILHA QUE ISTO ABRE, E QUEM A FECHA ────────────────────────────────────────────
+
+    O item 2 da nota de diversidade, logo acima, avisa: separar `podium[0]` de `ranking[0]` faz
+    `buildCurrentStanding` calcular `gap = podium[0] − atual` e chegar a um gap NEGATIVO — a
+    pessoa leria "sua raquete ficou em 1º, a −4 pontos da primeira". Aqui isso é inevitável por
+    construção, e por isso `standingCore` ganhou um ramo próprio que roda ANTES dos ramos de gap.
+    Se aquele ramo for removido, este bloco volta a mentir.
+  */
+  const pularAtualAcimaDoTeto = topoAcimaDoTeto && alternativa !== undefined;
+
   for (const entry of ranking) {
     if (podium.length >= 3) break;
 
-    /* Ela entra na 2ª posição pelo bloco abaixo; aqui seria repetida. */
+    if (pularAtualAcimaDoTeto && entry === primeiro) continue;
+
+    /* Ela entra pelo bloco abaixo; aqui seria repetida. */
     if (alternativa !== undefined && entry === alternativa) continue;
 
     const familyKey = `${entry.racket.variant.brand}::${entry.racket.variant.family}`;
@@ -1220,12 +1252,21 @@ export function selectPodium(
 
     familiesUsed.add(familyKey);
     podium.push({ ...entry, rank: podium.length + 1 });
+  }
 
-    if (alternativa !== undefined && podium.length === 1) {
-      const fam = `${alternativa.racket.variant.brand}::${alternativa.racket.variant.family}`;
-      familiesUsed.add(fam);
-      podium.push({ ...alternativa, rank: 2 });
-    }
+  /*
+    A alternativa entra no TOPO, e não mais em 2º.
+
+    Com a atual fora do pódio, ela é a melhor opção que a pessoa pode de fato comprar — e o laço
+    acima pode nem tê-la alcançado, porque a diversidade de família a pularia se outra da mesma
+    linha tivesse entrado antes. Inserir na frente em vez de deixar a ordem decidir é o que garante
+    que a recomendação de verdade ocupe o lugar de recomendação.
+  */
+  if (alternativa !== undefined) {
+    const semAlternativa = podium.filter((e) => e.racket.variant.id !== alternativa.racket.variant.id);
+    return [alternativa, ...semAlternativa]
+      .slice(0, 3)
+      .map((e, i) => ({ ...e, rank: i + 1 }));
   }
 
   return podium;

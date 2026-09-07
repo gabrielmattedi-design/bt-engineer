@@ -1,5 +1,31 @@
 /**
- * A RAQUETE ATUAL PODE VENCER ACIMA DO TETO — MAS NÃO EM SILÊNCIO.
+ * A RAQUETE ATUAL ACIMA DO TETO SAI DO PÓDIO — E É EXPLICADA, NÃO ESCONDIDA.
+ *
+ * ═══ ESTE ARQUIVO JÁ TRANCOU O COMPORTAMENTO OPOSTO. LEIA POR QUÊ ANTES DE MUDAR ═════════════
+ *
+ * Até 07/09/2026 a regra era: a atual PODE vencer acima do teto, desde que o relatório avise e
+ * ofereça a alternativa em 2º. Foi uma escolha explícita do dono, transcrita mais abaixo, e ela
+ * era defensável — o número é verdadeiro, e rebaixá-lo faria o relatório mentir sobre o próprio
+ * cálculo.
+ *
+ * O que mudou não foi a opinião: foi a evidência. Uma varredura de 1000 perfis pôs o resultado na
+ * tela, e o dono leu casos como este:
+ *
+ *     #0085 — mulher, 26 anos, iniciante, sedentária, DOR NO COTOVELO, teto 280 g
+ *             1º HEAD Extreme Pro · 305 g · 76,3% de compatibilidade
+ *
+ * O aviso existia logo abaixo. Mas a hierarquia da página diz outra coisa que o aviso não desfaz:
+ * primeiro lugar, número alto, alternativa relegada a 2º. Alguém com dor no cotovelo lê "esta é a
+ * sua melhor opção" sobre um quadro que a análise acabou de calcular ser 25 g pesado demais.
+ *
+ * A decisão nova, do mesmo dono: "tira a atual do 1º lugar quando acima do teto, e deixa para
+ * falar dela na parte que fala da raquete atual, com os disclaimers necessários."
+ *
+ * A ISENÇÃO DO FILTRO CONTINUA: a atual permanece no `full_ranking` com a nota real, porque a nota
+ * é verdadeira e a comparação é o que explica o teto. O que ela perde é a VITRINE. Isentar do
+ * filtro nunca significou promover — essa equivalência é que era o defeito.
+ *
+ * ═══ O REGISTRO DA DECISÃO ANTERIOR, QUE CONTINUA VALENDO COMO RACIOCÍNIO ════════════════════
  *
  * ═══ O CASO ══════════════════════════════════════════════════════════════════════════════════
  *
@@ -114,19 +140,48 @@ function analisar(extra: Partial<QuestionnaireAnswers> = {}) {
 }
 
 describe('o caso que originou a regra', () => {
-  /** A premissa do teste. Se ela cair, os outros passam por vacuidade — por isso é explícita. */
-  it('a raquete atual vence, e está acima do teto', () => {
+  /**
+   * A premissa. Se ela cair, todo o resto passa por vacuidade — por isso é explícita.
+   *
+   * Note o que ela afirma AGORA: a atual continua vencendo o RANKING (a isenção do filtro não
+   * mudou) e continua acima do teto. É a premissa; o pódio é que deixou de segui-la.
+   */
+  it('a raquete atual vence o ranking, e está acima do teto', () => {
     const { profile, result, atual } = analisar();
-    const primeira = result.podium[0]!;
+    const primeiraDoRanking = result.full_ranking[0]!;
 
     expect(atual, 'a Blade 98 18×20 saiu do catálogo').toBeDefined();
-    expect(primeira.racket.variant.id, 'a atual deixou de vencer').toBe(atual!.variant.id);
+    expect(primeiraDoRanking.racket.variant.id, 'a atual deixou de vencer o ranking').toBe(
+      atual!.variant.id,
+    );
 
     const teto = profile.frame_weight_ceiling_g;
-    const peso = primeira.racket.variant.specs.unstrung_weight_g;
+    const peso = primeiraDoRanking.racket.variant.specs.unstrung_weight_g;
     expect(teto, 'o perfil deixou de ter teto').not.toBeNull();
     expect(peso).not.toBeNull();
     expect(peso!, `${peso} g deixou de exceder o teto de ${teto} g`).toBeGreaterThan(teto!);
+  });
+
+  /** E o pódio NÃO a mostra. É a mudança inteira, numa asserção. */
+  it('mas ela não entra no pódio', () => {
+    const { result, atual } = analisar();
+    expect(
+      result.podium.some((e) => e.racket.variant.id === atual!.variant.id),
+      'a atual acima do teto voltou a ocupar lugar de recomendação',
+    ).toBe(false);
+  });
+
+  /** Todo o pódio cabe no teto — senão trocamos um quadro pesado demais por outro. */
+  it('todas as recomendadas cabem no teto', () => {
+    const { profile, result } = analisar();
+    const teto = profile.frame_weight_ceiling_g!;
+    expect(result.podium.length, 'pódio vazio').toBeGreaterThan(0);
+    for (const e of result.podium) {
+      expect(
+        e.racket.variant.specs.unstrung_weight_g!,
+        `${e.rank}ª (${e.racket.variant.product_name}) está acima do teto de ${teto} g`,
+      ).toBeLessThanOrEqual(teto);
+    }
   });
 });
 
@@ -141,10 +196,17 @@ describe('a natureza da recomendação muda', () => {
    * diferentes, e as duas acontecem na varredura.
    */
   it('o aviso traz os gramas — o peso, o teto e a diferença', () => {
-    const { profile, payload, result } = analisar();
+    const { profile, payload, atual } = analisar();
     const nota = payload.current_above_ceiling!;
     const teto = profile.frame_weight_ceiling_g!;
-    const peso = result.podium[0]!.racket.variant.specs.unstrung_weight_g!;
+    /*
+      O peso citado é o da RAQUETE ATUAL, e não o da 1ª colocada.
+
+      Enquanto a atual ocupava o pódio, os dois eram a mesma raquete e ler de `podium[0]` dava
+      certo por coincidência. Agora `podium[0]` é a recomendada, que cabe no teto por construção —
+      um teste que lesse dali afirmaria que a nota cita um excesso que não existe.
+    */
+    const peso = atual!.variant.specs.unstrung_weight_g!;
 
     expect(nota, 'falta o peso do quadro').toContain(`${peso} g`);
     expect(nota, 'falta o teto calculado').toContain(`${teto} g`);
@@ -161,9 +223,24 @@ describe('a natureza da recomendação muda', () => {
   });
 
   /** E aponta a saída pelo nome, senão levanta um problema sem oferecer alternativa. */
-  it('aponta a alternativa pelo nome', () => {
+  it('aponta a alternativa pelo nome — e ela agora é a 1ª, não a 2ª', () => {
     const { payload, result } = analisar();
-    expect(payload.current_above_ceiling!).toContain(result.podium[1]!.racket.variant.product_name);
+    expect(payload.current_above_ceiling!).toContain(result.podium[0]!.racket.variant.product_name);
+  });
+
+  /**
+   * A nota diz, antes de qualquer outra coisa, que a atual pontuou mais.
+   *
+   * Sem isso o relatório omite o fato que a pessoa descobre sozinha comparando os dois números — e
+   * descobrir sozinha algo que o relatório calou custa mais confiança do que a própria notícia.
+   */
+  it('admite que a atual pontuou mais, quando pontuou', () => {
+    const { payload, result, atual } = analisar();
+    const noRanking = result.full_ranking.find((r) => r.racket.variant.id === atual!.variant.id)!;
+    if (Math.round(noRanking.fit_score) < Math.round(result.podium[0]!.fit_score)) return;
+    expect(payload.current_above_ceiling!, 'a nota esconde que a atual pontuou mais').toMatch(
+      /maior match t\u00e9cnico/,
+    );
   });
 
   it('some quando a atual cabe no teto', () => {
@@ -189,10 +266,10 @@ describe('a alternativa comercial', () => {
    * A metade que o texto sozinho não resolve. Ela precisa CABER no teto — é o único motivo de
    * existir nesta posição.
    */
-  it('a 2ª colocada está dentro do teto', () => {
+  it('a 1ª colocada está dentro do teto', () => {
     const { profile, result } = analisar();
     const teto = profile.frame_weight_ceiling_g!;
-    const segunda = result.podium[1];
+    const segunda = result.podium[0];
 
     expect(segunda, 'não sobrou alternativa nenhuma').toBeDefined();
     expect(
@@ -212,14 +289,22 @@ describe('a alternativa comercial', () => {
    * variedade de marca não vale mais que ser a melhor opção viável.
    */
   it('a melhor alternativa entra mesmo sendo da família da atual', () => {
-    const { result } = analisar();
-    const primeira = result.podium[0]!;
-    const segunda = result.podium[1]!;
+    const { result, atual } = analisar();
+    const recomendada = result.podium[0]!;
 
-    expect(segunda.racket.variant.family, 'a diversidade de família voltou a pular a melhor').toBe(
-      primeira.racket.variant.family,
-    );
-    expect(segunda.racket.variant.product_name).toContain('100L');
+    /*
+      A regra sob teste não mudou: a diversidade de família não pode pular a melhor opção dentro do
+      teto só porque ela é da MESMA linha da raquete atual — justamente a linha que a pessoa já tem.
+
+      O que mudou é onde essa opção aparece. Antes ela era forçada para a 2ª posição, atrás da
+      atual; agora ela É a 1ª, porque a atual saiu do pódio. Comparar `podium[1]` com `podium[0]`,
+      como este teste fazia, passou a comparar duas raquetes que não são nenhuma das duas do caso.
+    */
+    expect(
+      recomendada.racket.variant.family,
+      'a diversidade de família voltou a pular a melhor',
+    ).toBe(atual!.variant.family);
+    expect(recomendada.racket.variant.product_name).toContain('100L');
   });
 
   /** E ela é de fato a melhor dentro do teto, não uma qualquer que coube. */
@@ -255,13 +340,20 @@ describe('a alternativa comercial', () => {
    * ela não é o que este teste tranca — por isso o `low_match_note` não é afirmado. O que importa,
    * e é o que está preso abaixo, é a inversão de spin entre a 1ª e a alternativa.
    */
-  it('a alternativa devolve o spin que a 1ª não entrega', () => {
-    const { result } = analisar();
-    const spinPrimeira = result.podium[0]!.racket.attributes.spin_score;
-    const spinSegunda = result.podium[1]!.racket.attributes.spin_score;
+  it('a alternativa devolve o spin que a atual não entrega', () => {
+    const { result, atual } = analisar();
+    /*
+      A atual não está mais no pódio, então a comparação sai do `full_ranking`. É o mesmo par de
+      raquetes de sempre — o que mudou foi de onde se lê uma delas.
+    */
+    const naRanking = result.full_ranking.find(
+      (e) => e.racket.variant.id === atual!.variant.id,
+    )!;
+    const spinAtual = naRanking.racket.attributes.spin_score;
+    const spinRecomendada = result.podium[0]!.racket.attributes.spin_score;
 
-    expect(spinSegunda, 'a alternativa não é melhor em spin que a atual').toBeGreaterThan(
-      spinPrimeira,
+    expect(spinRecomendada, 'a recomendada não é melhor em spin que a atual').toBeGreaterThan(
+      spinAtual,
     );
   });
 });

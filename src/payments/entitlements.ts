@@ -416,7 +416,7 @@ export type CurrentRacketStanding = {
   readonly fit_score: number;
   readonly gap_to_first: number;
   /** `keep` = trocar não se justifica; `marginal` = ganho pequeno; `upgrade` = ganho real. */
-  readonly verdict: 'keep' | 'marginal' | 'upgrade';
+  readonly verdict: 'keep' | 'marginal' | 'upgrade' | 'above_ceiling';
   readonly message: string;
   /**
    * Presente quando a raquete do jogador é IRMÃ DE LINHA de uma que está no pódio, e por isso foi
@@ -565,6 +565,25 @@ export function buildCurrentStanding(
   const atualId = profile.current_racket?.variant_id;
   const noPodio = result.podium.some((e) => e.racket.variant.id === atualId);
   if (noPodio) return base;
+
+  /*
+    ═══ QUANDO OS DOIS MOTIVOS SE APLICAM, O TETO GANHA ═══════════════════════════════════════
+
+    Uma raquete pode estar fora do pódio por DUAS razões ao mesmo tempo: exceder o teto de peso e
+    ser irmã de linha de outra que entrou. Sem esta guarda, o modo família rodava por cima do ramo
+    `above_ceiling` e reescrevia a mensagem — o relatório explicava a ausência pela regra de uma
+    raquete por linha e calava sobre os gramas, que é a informação que de fato importa para quem
+    recebeu um teto abaixo do quadro que usa.
+
+    Não é hipotético: `p09 + HEAD Speed Tour` cai exatamente nos dois, e foi ele que expôs a
+    sobreposição.
+
+    O teto ganha porque é o motivo mais forte (fala do corpo da pessoa, não da montagem da lista),
+    o mais acionável (traz um número que ela confere na própria raquete) e porque o texto do ramo
+    já resolve sozinho a contradição que o modo família existe para evitar: ele cita a posição do
+    RANKING e diz, na mesma frase, que ela não está entre as recomendadas.
+  */
+  if (base.verdict === 'above_ceiling') return base;
 
   /**
    * A raquete foi PULADA pela regra de família, ou só ficou abaixo do corte?
@@ -833,6 +852,62 @@ function standingCore(
    * expectativa, oferece o setup como caminho de maior retorno e manda olhar os eixos: é lá que
    * está a informação que o número agregado apagou.
    */
+  /*
+    ═══ A ATUAL ESTÁ ACIMA DO TETO — E ESTE RAMO PRECISA VIR ANTES DE TODOS ═══════════════════
+
+    Desde 07/09/2026 `selectPodium` não promove ao pódio a raquete atual quando ela excede o teto
+    de peso. A consequência aritmética é que `first` deixa de ser a melhor nota do ranking, e o
+    `gap` abaixo pode ficar NEGATIVO — a atual pontuou mais.
+
+    Todos os ramos seguintes leem o SINAL do gap para concluir. Um gap negativo cairia em
+    `gap <= 0` e o texto diria "a raquete que você já tem é a melhor opção para o seu jogo", para
+    alguém a quem esta mesma análise acabou de dizer que aquele quadro é pesado demais. Seria a
+    contradição mais cara do relatório, e é por isso que este ramo roda primeiro.
+
+    ─── O QUE ELE DIZ, E O QUE SE RECUSA A DIZER ────────────────────────────────────────────
+
+    Diz a nota real, a posição real e os gramas de excesso — esconder qualquer um dos três seria
+    trocar um problema por outro, e a pessoa consegue conferir o peso na própria raquete.
+
+    NÃO diz que a raquete é ruim, e não diz que ela precisa trocar já. O teto é heurística NOSSA,
+    calibrada por porte, idade e preparo, e a pessoa joga com aquilo hoje. O que o texto afirma é
+    o que a análise de fato sustenta: o quadro está acima da faixa que calculamos, por isso ele
+    não ocupa o lugar de recomendação, e a recomendada é a melhor opção DENTRO da faixa.
+  */
+  const tetoG = profile.frame_weight_ceiling_g;
+  const pesoAtual = current.racket.variant.specs.unstrung_weight_g;
+  const foraDoPodio = !result.podium.some((e) => e.racket.variant.id === variantId);
+  if (tetoG !== null && pesoAtual !== null && pesoAtual > tetoG && foraDoPodio) {
+    const excesso = Math.round(pesoAtual - tetoG);
+    const swAtual = current.racket.variant.specs.swingweight_kgcm2;
+    const swNova = first.racket.variant.specs.swingweight_kgcm2;
+    /* Só entra quando os DOIS são medidos — a mesma regra do resto do relatório. */
+    const notaDeSwing =
+      swAtual !== null && swNova !== null && swAtual > swNova
+        ? ` Não é só o peso na balança: o swingweight medido da sua é ${swAtual} contra ` +
+          `${swNova} da recomendada, e é ele que decide o esforço para acelerar o quadro.`
+        : '';
+
+    return {
+      product_name: name,
+      rank: current.rank,
+      fit_score: Math.round(current.fit_score),
+      gap_to_first: Math.max(0, gap),
+      verdict: 'above_ceiling',
+      family_match: null,
+      message:
+        `Sua ${name} ficou em ${current.rank}º entre as ${result.full_ranking.length} deste ` +
+        `ranking, com ${Math.round(current.fit_score)}% de compatibilidade — uma nota boa, e ela ` +
+        `é sua referência aqui. Mesmo assim ela não aparece entre as recomendadas, e o motivo é ` +
+        `um só: pesa ${pesoAtual} g, ${excesso} g acima da faixa de ${tetoG} g que calculamos ` +
+        `para o seu porte, idade e preparo.${notaDeSwing} Esse teto é um critério nosso, não uma ` +
+        `regra do esporte — e você joga com essa raquete hoje, então ele não diz que ela está ` +
+        `errada. Diz que, para recomendar, preferimos ficar dentro da faixa. As opções acima são ` +
+        `as melhores que cabem nela. Se você está bem com a sua, a alavanca mais barata é a corda ` +
+        `e a tensão; se o incômodo é cansaço no fim do jogo, é justamente aí que o peso aparece.`,
+    };
+  }
+
   if (gap <= 0 && current.rank === 1) {
     return {
       product_name: name,
@@ -1217,26 +1292,54 @@ function buildCurrentAboveCeilingNote(
   const teto = profile.frame_weight_ceiling_g;
   const atualId = profile.current_racket?.variant_id ?? null;
   if (!first || teto === null || atualId === null) return null;
-  if (first.racket.variant.id !== atualId) return null;
 
-  const peso = first.racket.variant.specs.unstrung_weight_g;
+  /*
+    ═══ A CONDIÇÃO MUDOU JUNTO COM O PÓDIO (07/09/2026) ═══════════════════════════════════════
+
+    Antes esta nota exigia que a atual FOSSE a 1ª colocada — era o cenário que ela existia para
+    explicar. Desde que `selectPodium` deixou de promover a atual acima do teto, esse cenário não
+    acontece mais, e a nota passaria a ser sempre `null`: o aviso mais visível do relatório sumiria
+    exatamente quando ele passou a ser mais necessário, porque agora a pessoa procura a própria
+    raquete no pódio e não a encontra.
+
+    A pergunta que a nota responde deixou de ser "por que recomendamos um quadro pesado demais" e
+    passou a ser "cadê a minha raquete". A condição acompanha: ela dispara quando a atual está
+    acima do teto e FORA do pódio.
+  */
+  const atual = result.full_ranking.find((r) => r.racket.variant.id === atualId);
+  if (!atual) return null;
+  if (result.podium.some((e) => e.racket.variant.id === atualId)) return null;
+
+  const peso = atual.racket.variant.specs.unstrung_weight_g;
   if (peso === null || peso <= teto) return null;
 
   const excesso = Math.round(peso - teto);
-  const segunda = result.podium[1];
+  const venceria = Math.round(atual.fit_score) >= Math.round(first.fit_score);
+
+  /*
+    Quando a atual pontuou MAIS que a recomendada, o texto diz isso antes de qualquer outra coisa.
+
+    É o fato que a pessoa descobriria sozinha comparando os números, e descobrir sozinha uma coisa
+    que o relatório omitiu custa mais confiança do que a própria notícia. Dizer primeiro, e depois
+    explicar por que a nota maior não virou recomendação, é a única ordem que sobrevive à leitura
+    atenta.
+  */
+  const abertura = venceria
+    ? `A sua raquete atual, a ${atual.racket.variant.product_name}, obteve o maior match técnico ` +
+      `desta análise — e mesmo assim não está no pódio.`
+    : `A sua raquete atual, a ${atual.racket.variant.product_name}, não está no pódio.`;
 
   return (
-    `A sua raquete atual, a ${first.racket.variant.product_name}, obteve o maior match técnico ` +
-    `desta análise — mas ela está acima da faixa de peso indicada para o seu perfil: ${peso} g ` +
-    `contra um limite calculado de ${teto} g, ${excesso} g a mais. Por isso não recomendamos ` +
-    `mantê-la sem avaliar em quadra três coisas que o peso extra é justamente o que ameaça: ` +
-    `fadiga ao longo de um jogo inteiro, manobrabilidade em bolas rápidas e em cima do corpo, e ` +
-    `conforto no braço depois de algumas horas. Se as três estiverem bem, o número acima vale ` +
-    `pelo que diz e ficar com ela é uma escolha defensável.` +
-    (segunda
-      ? ` Se qualquer uma delas incomodar, a ${segunda.racket.variant.product_name} é a melhor ` +
-        `opção dentro do seu limite de peso, e é ela que aparece logo abaixo.`
-      : '')
+    `${abertura} O motivo é o peso: ${peso} g contra um limite calculado de ${teto} g para o seu ` +
+    `porte, idade e preparo — ${excesso} g a mais. Recomendar um quadro que esta mesma análise ` +
+    `calculou ser pesado demais seria contradizer o próprio cálculo, então ele sai da vitrine e ` +
+    `passa a ser tratado no bloco da sua raquete, mais abaixo, com o número e a posição reais. ` +
+    `O que o peso extra ameaça é concreto e dá para avaliar em quadra: fadiga ao longo de um jogo ` +
+    `inteiro, manobrabilidade em bolas rápidas e em cima do corpo, e conforto no braço depois de ` +
+    `algumas horas. Se as três estiverem bem para você, ficar com ela continua sendo uma escolha ` +
+    `defensável — o teto é um critério nosso, não uma regra do esporte. ` +
+    `A ${first.racket.variant.product_name} é a melhor opção dentro do seu limite, e é ela que ` +
+    `aparece em 1º.`
   );
 }
 

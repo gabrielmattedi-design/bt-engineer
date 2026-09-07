@@ -215,9 +215,30 @@ describe('o card da raquete atual bate com o próprio número', () => {
   });
 
   it('o veredicto é coerente com o gap que o próprio card exibe', () => {
-    for (const { persona, report } of analises) {
+    for (const { persona, report, result } of analises) {
       const atual = report.current_racket_standing;
       if (!atual) continue;
+
+      /*
+        `above_ceiling` fica FORA desta regra, e é a única exceção.
+
+        Os três vereditos abaixo respondem "vale a pena trocar?", e a resposta sai do tamanho do
+        gap. `above_ceiling` responde outra pergunta — "por que a minha raquete não está no pódio?"
+        — e nesse ramo o gap perdeu o significado por construção: desde 07/09/2026 a atual acima do
+        teto sai do pódio, então `podium[0]` pode pontuar MENOS que ela e o gap chega a ser
+        negativo. Cobrar coerência de sinal de um número que o próprio desenho tornou inaplicável
+        reprovaria o comportamento certo.
+
+        A checagem que sobrevive: quando o veredicto é `above_ceiling`, a raquete não pode estar no
+        pódio. Se um dia estiver, o ramo disparou onde não devia.
+      */
+      if (atual.verdict === 'above_ceiling') {
+        expect(
+          result.podium.some((e) => e.racket.variant.id === persona.answers.current_racket_id),
+          `${persona.id}: veredicto above_ceiling com a raquete DENTRO do pódio`,
+        ).toBe(false);
+        continue;
+      }
 
       // `keep` até 3 pontos, `marginal` até 8, `upgrade` daí em diante.
       const esperado = atual.gap_to_first < 4 ? 'keep' : atual.gap_to_first < 9 ? 'marginal' : 'upgrade';

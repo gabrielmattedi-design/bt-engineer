@@ -85,7 +85,23 @@ describe('a posição citada e o pódio exibido', () => {
           percentual — ali não há contradição com o pódio — mas o texto precisa dizer que a regra
           de uma raquete por linha existe, senão a ausência dela continua sem explicação.
         */
-        if (standing.family_match) {
+        if (standing.verdict === 'above_ceiling') {
+          /*
+            A TERCEIRA saída, criada em 07/09/2026.
+
+            A raquete pode estar fora do pódio por um motivo que não é a regra de família nem o
+            corte de nota: ela excede o teto de peso e desde então não ocupa lugar de recomendação.
+            É uma explicação boa — melhor que as outras duas, porque nomeia um número que a pessoa
+            confere na própria raquete — e o teste passaria a reprovar o comportamento certo se
+            continuasse exigindo a frase da regra de família.
+
+            O que se cobra aqui é o mesmo de sempre: que o texto EXPLIQUE. No caso, com os gramas.
+          */
+          expect(
+            standing.message,
+            `${persona.id} + ${racket.variant.product_name}: fora do pódio pelo teto, sem dizer os gramas`,
+          ).toMatch(/\d+ g acima|acima da faixa|limite calculado de \d+ g/);
+        } else if (standing.family_match) {
           expect(standing.message, `${persona.id} + ${racket.variant.product_name}`).toMatch(
             /mesma linha da \d+ª colocada/,
           );

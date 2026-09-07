@@ -9,6 +9,65 @@ Formato de cada entrada: **data · versão · o que mudou · por quê · evidên
 
 ---
 
+## 2026-09-07 (2) · `engine 2.31.0` — a raquete atual acima do teto sai do pódio
+
+### C-32 — isentar do filtro não podia significar promover ✅ corrigido
+
+**Encontrado por:** o dono, lendo a varredura de 1000 perfis gerada logo após a C-30/C-31.
+
+A atual é isenta do teto de peso em `applyWeightCeiling`, e a isenção continua certa: ela é
+referência do relatório, e removê-la esconderia a comparação que explica o teto. O que ninguém
+tinha separado é que a isenção a mantinha CANDIDATA, e do ranking ela saía em 1º.
+
+O caso que decidiu:
+
+    #0085 — mulher, 26 anos, iniciante, sedentária, DOR NO COTOVELO, teto 280 g
+            1º HEAD Extreme Pro · 305 g · 76,3% de compatibilidade
+
+O aviso existia logo abaixo, e não desfazia a hierarquia da página: primeiro lugar, número alto,
+alternativa em 2º. **Esta é a segunda decisão do dono sobre o mesmo ponto** — em 2026-08 ele havia
+escolhido deixar a atual vencer com aviso, e reverteu ao ver o resultado na tela. As duas ficam
+registradas em `tests/ethics/atual-acima-do-teto.test.ts`.
+
+**Correção:** `selectPodium` deixa de promover a atual quando ela excede o teto, e a alternativa
+dentro do teto passa a ocupar o 1º lugar em vez do 2º. A atual permanece no `full_ranking` com a
+nota real, e ganha um ramo próprio em `standingCore` (`verdict: 'above_ceiling'`) que diz a nota, a
+posição, os gramas de excesso e — quando os dois são medidos — o swingweight dos dois quadros.
+
+**Duas armadilhas que a mudança abriu, as duas fechadas:**
+
+1. `standingCore` calcula `gap = podium[0] − atual`, e com a atual fora do pódio o gap pode ficar
+   NEGATIVO. Cairia em `gap <= 0` e o texto diria "a raquete que você já tem é a melhor opção"
+   para quem acabou de ler que o quadro é pesado demais. O ramo novo roda ANTES dos ramos de gap.
+2. Uma raquete pode estar fora do pódio por DOIS motivos ao mesmo tempo — teto e irmã de linha.
+   O modo família rodava por cima e calava sobre os gramas. O teto passa a ganhar: fala do corpo da
+   pessoa, traz um número conferível, e o texto do ramo já resolve a contradição de posição que o
+   modo família existe para evitar. Exposto por `p09 + HEAD Speed Tour`.
+
+### Impacto medido (1000 perfis, antes × depois)
+
+| | antes | depois |
+|---|---|---|
+| 1ª colocada acima do teto do próprio jogador | 119 | **52** |
+| destas, sendo a raquete atual | 67 | **0** |
+| juvenis (≤14) com 1ª acima do teto | 50 | 47 |
+| match médio | 83,35 | 82,62 |
+
+A queda no match médio é esperada e honesta: deixamos de contar a nota alta da própria raquete do
+jogador como topo do pódio.
+
+### O que sobrou, e não é defeito de motor
+
+As 52 restantes são TODAS a mesma coisa: **o catálogo não tem quadro mais leve que 280 g** (a 6ª
+mais leve, que é o piso do afrouxamento). Para uma criança de 11 anos com teto de 263 g, não existe
+o que recomendar. Destas 52, **50 já recebem o aviso de migração juvenil**; as 2 que não recebem são
+jovens de 16 anos, cujo teto vem do porte mas que a nota — restrita a menores de 16 — não alcança.
+
+Isso não se resolve no motor. Resolve-se no catálogo, com quadros juvenis de 25–26 polegadas, ou com
+um aviso explícito de que a faixa calculada está abaixo do que existe.
+
+---
+
 ## 2026-09-07 · `engine 2.30.0` — swingweight e RA MEDIDOS substituem dois proxies
 
 ### C-30 — o `swing_index` explicava 12% do que dizia medir ✅ corrigido
