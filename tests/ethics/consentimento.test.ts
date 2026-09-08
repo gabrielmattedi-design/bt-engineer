@@ -77,6 +77,30 @@ describe('o carregamento do pixel', () => {
     expect(guarda, 'a injeção do pixel passou a acontecer antes da guarda').toBeLessThan(injecao);
   });
 
+  /**
+   * ═══ O PIXEL NÃO PODE ALCANÇAR O QUESTIONÁRIO ══════════════════════════════════════════════
+   *
+   * O questionário pergunta sobre dor no cotovelo e sensibilidade no braço — dado de saúde. Mandar
+   * isso ao Meta quebraria a promessa escrita em /privacidade e violaria a política de dados
+   * sensíveis das ferramentas comerciais, que derruba conta de anúncios.
+   *
+   * A tentação é concreta e parece boa ideia: enviar nível, objetivo ou faixa de preço
+   * "melhoraria a segmentação". Por isso a proibição não fica só no comentário — o módulo do pixel
+   * não pode nem IMPORTAR de onde esses dados moram. Sem acesso, não há descuido possível.
+   */
+  it('o módulo do pixel não tem acesso a perfil, respostas nem resultado', async () => {
+    const { readFileSync } = await import('node:fs');
+    const fonte = readFileSync('src/lib/meta-pixel.ts', 'utf8');
+
+    const proibidos = ['@/recommendation', '@/domain', '@/data', 'player-profile', 'answers'];
+    for (const p of proibidos) {
+      expect(
+        fonte.includes(`from '${p}`) || fonte.includes(`from "${p}`),
+        `meta-pixel.ts não pode importar de ${p} — ver o cabeçalho do arquivo`,
+      ).toBe(false);
+    }
+  });
+
   it('nenhum outro arquivo carrega o script do Meta', async () => {
     const { globSync } = await import('node:fs');
     const arquivos = globSync('src/**/*.{ts,tsx}');

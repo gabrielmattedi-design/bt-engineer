@@ -140,10 +140,29 @@ Depois, nos dois:
    pessoal nem em outro negócio. É onde erra quem tem mais de um, e um pixel no portfólio errado só
    se revela quando a campanha não otimiza.
 2. Nome: `Tennis Engineer — site`.
-3. Se ele oferecer método de instalação, escolha **"Instalar código manualmente"** — ou feche. **Não
+3. A caixa **"Adicione a API de Conversões..."** vem marcada. **Deixe marcada.** Ela não liga nada
+   sozinha — só habilita o conjunto a receber eventos de servidor, e quem teria de enviar é o nosso
+   servidor, que hoje não envia (ver `TRAFEGO_PAGO.md` §5-bis). Marcar não expõe nada e deixa
+   pronto para quando valer a pena construir.
+
+   > O **"17,8% de redução no custo por resultado"** que ele exibe ali é de anunciantes que
+   > implementaram a API de verdade. Marcar a caixa sozinha entrega exatamente zero disso.
+
+4. **"Selecione qualquer categoria aplicável": deixe em branco.** O campo é para categorias
+   reguladas — saúde, crédito, emprego, habitação, questões sociais. Recomendação de raquete não é
+   nenhuma delas.
+
+   > ⚠️ **Mas repare no motivo.** O questionário pergunta sobre dor no cotovelo e sensibilidade no
+   > braço, o que É dado de saúde. O campo fica em branco porque **esse dado nunca chega ao Meta** —
+   > o pixel manda só "visitou uma página" e "começou o questionário", sem nenhum parâmetro sobre a
+   > pessoa. Se um dia alguém enriquecer os eventos com as respostas, esta resposta muda e a conta
+   > de anúncios passa a correr risco. `tests/ethics/consentimento.test.ts` impede isso proibindo o
+   > módulo do pixel de importar perfil, respostas ou resultado.
+
+5. Se ele oferecer método de instalação, escolha **"Instalar código manualmente"** — ou feche. **Não
    copie o código que ele mostra**: ele já está no site, e colar de novo faria o pixel disparar
    duas vezes por página.
-4. **Copie o ID**, ~15 dígitos. Ele aparece na listagem logo abaixo do nome do conjunto; se não
+6. **Copie o ID**, ~15 dígitos. Ele aparece na listagem logo abaixo do nome do conjunto; se não
    aparecer, clique no conjunto e ele fica no topo da tela de detalhes.
 
 > Se ele insistir em verificar a instalação, pule. O pixel só vai responder depois da Parte 2 — o

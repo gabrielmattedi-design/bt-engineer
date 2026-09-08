@@ -22,6 +22,29 @@
  * silêncio quando alguém esquece.
  */
 
+/**
+ * ═══ NENHUM EVENTO DAQUI PODE CARREGAR RESPOSTA DO QUESTIONÁRIO ══════════════════════════════
+ *
+ * Esta é a regra mais importante deste arquivo, e ela não é sobre marketing.
+ *
+ * O questionário pergunta sobre **dor no cotovelo e sensibilidade no braço**. Isso é dado de saúde.
+ * Mandar para o Meta seria, ao mesmo tempo:
+ *
+ *   - uma quebra do que a página de privacidade promete por escrito ("nós nunca enviamos ao Meta o
+ *     que você respondeu, o seu resultado, o seu e-mail ou o seu nome");
+ *   - uma violação da política de dados sensíveis das ferramentas comerciais do Meta, que pode
+ *     derrubar a conta de anúncios inteira.
+ *
+ * A tentação é real e tem cara de boa ideia: mandar o nível do jogador, o objetivo ou a faixa de
+ * preço "melhoraria a segmentação". O ganho é marginal e o risco não é.
+ *
+ * **Os eventos daqui carregam apenas constantes escritas neste arquivo.** Nada que venha do perfil,
+ * das respostas ou do resultado. `tests/ethics/consentimento.test.ts` trava isso estruturalmente:
+ * este módulo não pode importar nada de `recommendation/` nem de `domain/`.
+ *
+ * Se algum dia for preciso mandar valor de compra, mande o VALOR — nunca o que foi comprado.
+ */
+
 export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? '';
 
 /** `true` quando existe um id configurado. Sem id, nada é carregado nem em desenvolvimento. */
