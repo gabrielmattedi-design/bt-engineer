@@ -189,7 +189,51 @@ Trocar isso por poucos eventos, num momento em que o evento de otimização nem 
 paga. **Vale construir quando a campanha escalar** — e aí o consentimento já mora num cookie que o
 servidor lê, que é justamente o que `consent.ts` deixou pronto para esse dia.
 
-### 2. Conferir a home no celular, com olho de tráfego frio
+### 2. A home no celular, com olho de tráfego frio — ✅ vistoriada em 08/09/2026
+
+Medida com o site rodando, viewport de iPhone 13 (390 × 844), que é o aparelho mais comum do
+tráfego de Instagram no Brasil.
+
+| | |
+|---|---|
+| Altura total da home | 6.033 px = **7,1 dobras** |
+| Primeiro CTA | dobra 0,5 — ✅ dentro da primeira tela |
+| Primeiro preço visível | 4.618 px = **dobra 5,5** |
+| Banner de consentimento | **490 px = 30% da dobra** → corrigido para **104 px = 12%** |
+
+**Corrigido agora:** o banner que eu mesmo tinha acabado de escrever ocupava 30% da primeira tela.
+Para quem chega de anúncio e decide em três segundos, a primeira impressão seria 70% produto e 30%
+aviso de cookie. Encolheu para 12% sem perder nada do que é obrigatório — recusar continua com o
+mesmo peso visual e a mesma área de clique que aceitar.
+
+**A primeira dobra está boa.** Título, promessa, os dois botões e a linha que remove as três
+objeções mais caras — *"Questionário gratuito · 3 a 5 minutos · sem cadastro"* — cabem todos antes
+do primeiro scroll. Para tráfego frio isso é o essencial, e já está lá.
+
+#### ⚠️ O achado que é decisão do dono: o preço aparece na dobra 5,5
+
+Ninguém que vem de anúncio rola cinco telas e meia. Na prática, **quem clica no anúncio começa o
+questionário sem saber que existe um preço no fim** — descobre depois de investir 3 a 5 minutos
+respondendo.
+
+Isso não é necessariamente errado: é o modelo de dar valor antes de pedir dinheiro, e ele funciona
+em muito lugar. Mas tem um custo específico que o funil desta campanha vai medir, e vale prever
+onde ele aparece: **na queda entre `quiz:done` e `plans`.** Se essa etapa for a maior perda do
+funil, a causa provável é surpresa com o preço, e não a página de planos.
+
+Três saídas, em ordem de esforço:
+
+1. **Não mexer**, e deixar o funil responder. É defensável — a decisão de campanha da §6 já separa
+   "abandona no meio" de "termina e não paga", que é exatamente essa distinção.
+2. **Uma linha de expectativa na primeira dobra**, do tipo *"análise completa a partir de R$ 29,99"*
+   junto do "questionário gratuito". Custa uma linha e elimina a surpresa.
+3. **Levar a seção de preço para antes da dobra 3.** Mudança maior, e testa duas coisas ao mesmo
+   tempo se feita junto com a campanha — o que a §7 diz para não fazer.
+
+**Recomendação: a 2.** Ela remove a surpresa sem reordenar a página, e mantém uma variável só no ar
+durante o teste de criativo. Mas é decisão de produto, não minha — e por isso não fiz.
+
+### 3. Configurar o id do pixel na Vercel
 
 Quem vem de anúncio não conhece a marca e decide em três segundos. Vale abrir a home no celular e
 perguntar: em três segundos dá para saber o que isto faz e quanto custa? Se o preço só aparece

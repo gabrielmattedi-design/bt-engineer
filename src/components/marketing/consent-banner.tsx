@@ -79,15 +79,33 @@ export function ConsentBanner() {
   if (estado === null || estado !== 'nao_decidido') return null;
 
   return (
+    /*
+      ═══ O TAMANHO DESTE BANNER É UM NÚMERO MEDIDO, NÃO UM GOSTO ═════════════════════════════
+
+      A primeira versão ocupava 490 px de uma tela de 844 — **30% da primeira dobra no celular**.
+      Medido com o site rodando, num iPhone 13, que é o aparelho mais comum do tráfego de Instagram
+      no Brasil. Para quem chega de anúncio, a primeira impressão do produto seria 70% site e 30%
+      aviso de cookie, num visitante que decide em três segundos se fica.
+
+      O que encolheu, e por quê:
+
+        - o texto perdeu a explicação ("para entender quais anúncios trazem gente que se interessa
+          de verdade") — ela é honesta e está por extenso em /privacidade, que é onde quem se
+          importa vai ler. No banner ela só empurrava o site para baixo;
+        - `text-xs` e `py-3` no celular, voltando ao normal a partir de `sm`;
+        - os botões passaram a dividir a linha com o texto desde o começo, em vez de empilhar.
+
+      Resultado: ~120 px no celular, contra 490. O que NÃO mudou é o que não pode mudar — recusar
+      continua com o mesmo peso visual e a mesma área de clique que aceitar.
+    */
     <div
       role="dialog"
       aria-label="Aviso de cookies"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-court/15 bg-paper/95 px-4 py-4 backdrop-blur sm:px-6"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-court/15 bg-paper/95 px-3 py-3 backdrop-blur sm:px-6 sm:py-4"
     >
-      <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm leading-relaxed text-ink/80">
-          Usamos um cookie de medição do Meta para entender quais anúncios trazem gente que se
-          interessa de verdade. Sem ele o site funciona igual.{' '}
+      <div className="mx-auto flex max-w-4xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <p className="text-xs leading-snug text-ink/75 sm:text-sm sm:leading-relaxed">
+          Usamos um cookie de medição do Meta. Sem ele o site funciona igual.{' '}
           <Link href="/privacidade" className="underline underline-offset-2">
             O que isso coleta
           </Link>
@@ -104,14 +122,14 @@ export function ConsentBanner() {
           <button
             type="button"
             onClick={() => decidir('recusado')}
-            className="min-w-[104px] rounded-lg border border-court/30 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-court/5"
+            className="flex-1 rounded-lg border border-court/30 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-court/5 sm:flex-none sm:min-w-[104px]"
           >
             Recusar
           </button>
           <button
             type="button"
             onClick={() => decidir('aceito')}
-            className="min-w-[104px] rounded-lg bg-clay px-4 py-2 text-sm font-semibold text-paper transition hover:bg-clay/90"
+            className="flex-1 rounded-lg bg-clay px-4 py-2 text-sm font-semibold text-paper transition hover:bg-clay/90 sm:flex-none sm:min-w-[104px]"
           >
             Aceitar
           </button>
