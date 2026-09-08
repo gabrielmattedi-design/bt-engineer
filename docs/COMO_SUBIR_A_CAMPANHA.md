@@ -28,14 +28,43 @@
    - **a Página do Facebook** do Tennis Engineer — ver o aviso abaixo;
    - **uma conta de anúncios** (criar nova, dentro deste portfólio).
 
-### ⚠️ Você provavelmente vai precisar de uma Página do Facebook
+### ⚠️ A Página do Facebook — confirmado em 08/09: não existia
 
 Para anunciar no Instagram, o Meta em geral exige uma **Página do Facebook** vinculada, mesmo que
-você nunca vá publicar nada nela. Se o Tennis Engineer não tiver uma, crie: `facebook.com/pages/create`,
-categoria "Produto/Serviço", com a mesma logo e o mesmo nome do Instagram.
+você nunca vá publicar nada nela. O Tennis Engineer não tinha, e é o bloqueio mais comum de quem só
+mantém Instagram.
 
-Isso costuma ser o bloqueio mais chato para quem só tem Instagram, e é melhor descobrir agora do que
-no meio da criação do anúncio.
+**Onde:** `facebook.com/pages/create`
+
+| Campo | O que por |
+|---|---|
+| Nome da Página | `Tennis Engineer` — **igual ao Instagram**, sem variação |
+| Categoria | `Produto/serviço` (ou `Site de esportes`) |
+| Bio | `Seu jogo. Seu setup. Sob medida.` |
+| Site | `tennisengineer.com.br` |
+| Foto de perfil | `fb-perfil.png` — 1024×1024 |
+| Capa | `fb-capa.png` — 1640×856 |
+
+Depois de criar: **Configurações da Página → Contas vinculadas → conectar o Instagram.**
+
+**Sobre as imagens.** A logo do produto é um componente React (`components/marketing/logo.tsx`), não
+um arquivo — então não havia nada para subir. As duas imagens foram geradas extraindo o SVG do
+monograma do próprio site em execução e compondo sobre o verde da marca. Não foram redesenhadas, e
+por isso não divergem do que está no ar. Se precisar refazer, o caminho é esse: renderizar o site e
+capturar `svg[aria-label="Tennis Engineer"]`.
+
+O brand book manda a marca ser aplicada só em preto ou branco (nunca colorida) — as duas peças usam
+branco sobre o `court #0E3D2E`, que é aplicação de fundo e não coloração da marca.
+
+**Uma ressalva:** a Página nasce vazia, e uma Página sem nenhuma publicação às vezes chama revisão
+do Meta na primeira campanha. Vale publicar duas ou três coisas nela antes — pode ser o mesmo
+conteúdo do Instagram. Não precisa manter depois.
+
+### E se o Instagram não for conta profissional
+
+Para anunciar, o Instagram precisa ser **Conta Comercial** ou **Criador de Conteúdo**, não pessoal.
+No app: Configurações → Tipo de conta e ferramentas → Mudar para conta profissional. É gratuito e
+não muda nada para quem já te segue.
 
 ### Por que um portfólio novo, e não os que já existem
 
