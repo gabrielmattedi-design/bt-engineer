@@ -314,8 +314,18 @@ Desligar não afeta `PageView`, `Lead` nem `Purchase`: os três são explícitos
 2. Objetivo: **Vendas**. (Não é "Tráfego" — tráfego compra cliques, e cliques são baratos justamente
    porque não valem nada.)
 3. Nome da campanha: `teste-set-01`
-4. **Orçamento da campanha (CBO): DESLIGADO.** Vamos por o orçamento no conjunto.
-5. Continuar.
+4. **Tipo de compra: Leilão** — não "Reserva".
+5. **Orçamento da campanha (CBO): DESLIGADO.** Vamos por o orçamento no conjunto.
+6. Continuar.
+
+> **Por que Leilão e não Reserva.** Reserva (Alcance e Frequência) é outro produto: compra um número
+> garantido de impressões, com CPM fixo, contratado com antecedência. Serve para campanha de marca.
+>
+> Ela **não otimiza por conversão** — entrega impressões, não procura quem compra —, então todo o
+> trabalho de fazer o `Purchase` disparar direito não teria onde ser usado. E como a entrega é fixada
+> na hora da compra, ela também não aprende: o teste de 4 criativos depende exatamente do contrário,
+> do algoritmo concentrar a verba no que responde. O piso de verba, ainda por cima, costuma ficar bem
+> acima de R$ 490.
 
 ### 4.2 O conjunto de anúncios
 
