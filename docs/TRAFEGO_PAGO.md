@@ -89,13 +89,38 @@ Não é o CPA, é o **custo por início de questionário**. E o limiar sai do se
 custo máximo por início  =  R$ 45,60  ×  (taxa de quem inicia o questionário e paga)
 ```
 
-Com 5% de início-para-pagante, o teto é **R$ 2,28 por início**. Com 10%, é **R$ 4,56**. Você não
-sabe qual é a taxa hoje — **e é exatamente isso que a campanha vai medir**. Rode duas semanas, abra
-o `/admin/funil`, e a divisão dá o limiar real. A partir daí a decisão de escalar deixa de ser
-palpite.
+### A taxa foi medida — 08/09/2026, antes da campanha
 
-R$ 2,28 por início de questionário é uma meta confortável no Meta brasileiro; R$ 1,42, que era o
-teto na conta errada, seria apertado. Foi a correção do ticket que abriu esse espaço.
+O dono trouxe o funil real: **111 abriram o questionário, 27 pagaram = 24,3%.**
+
+```
+teto de custo por início  =  R$ 45,60  ×  0,243  =  R$ 11,08
+```
+
+**R$ 11 por início de questionário é folgadíssimo.** No Meta brasileiro, com CPC entre R$ 0,50 e
+R$ 1,50 e uma fração razoável dos cliques começando o questionário, o custo por início deve cair
+entre R$ 1 e R$ 5. Sobre esse teto, a campanha tem espaço de sobra.
+
+#### ⚠️ Mas esses 111 NÃO são tráfego frio
+
+É a ressalva que decide se este número serve para planejar. Essas 111 pessoas chegaram por
+orgânico, indicação e rede do dono — gente que já tinha algum motivo para confiar. **Tráfego frio de
+anúncio converte tipicamente uma fração disso**, porque não tem nenhum.
+
+Não dá para saber a fração sem rodar. O que dá para fazer é decidir antes o que cada cenário
+significa, e é isso que o critério de parada da §6 passa a usar:
+
+| Se o frio converter... | taxa | teto por início | veredicto |
+|---|---|---|---|
+| igual ao atual | 24,3% | R$ 11,08 | improvável, e ótimo |
+| metade | 12% | R$ 5,47 | confortável |
+| um terço | 8% | R$ 3,65 | funciona |
+| um quinto | 5% | R$ 2,28 | apertado, mas de pé |
+| um décimo | 2,4% | R$ 1,09 | não fecha |
+
+**A campanha só não fecha se o tráfego frio converter dez vezes pior que o atual.** Isso é possível,
+e é o risco real — mas quatro dos cinco cenários fecham a conta. Era o oposto disso quando a §1
+usava o ticket errado.
 
 ---
 
@@ -238,6 +263,59 @@ durante o teste de criativo. Mas é decisão de produto, não minha — e por is
 Quem vem de anúncio não conhece a marca e decide em três segundos. Vale abrir a home no celular e
 perguntar: em três segundos dá para saber o que isto faz e quanto custa? Se o preço só aparece
 depois do questionário inteiro, parte do abandono vai ser por isso e não pelo anúncio.
+
+---
+
+## 5-bis. O funil de 08/09, e o vazamento que vale mais que a campanha
+
+| Etapa | Pessoas | Da anterior |
+|---|---|---|
+| Abriu o questionário | 111 | — |
+| Terminou o questionário | 93 | 84% |
+| Viu a prévia da análise | 95 | *102%* ⚠️ |
+| **Abriu os planos** | **38** | **40%** ← |
+| Iniciou o pagamento | 29 | 76% |
+| Pagou | 27 | 93% |
+| Abriu o relatório | 27 | 100% |
+
+**O funil inteiro está saudável, menos um degrau.** Pagamento converte 93%, plano→checkout 76%, e
+todo mundo que pagou abriu o relatório — o produto entrega. O questionário segura 84%, o que é bom
+para um formulário de 3 a 5 minutos.
+
+### O degrau: 95 → 38
+
+**Seis em cada dez pessoas que viram a prévia não chegam nem a olhar os planos.** É de longe a maior
+perda, e é o momento exato em que o pagamento aparece.
+
+É o mesmo achado da §5.2 chegando pelo outro lado: o preço só aparece na dobra 5,5 da home, então
+quem responde o questionário inteiro descobre que é pago **depois** de investir 3 a 5 minutos. A
+prévia é onde essa descoberta acontece, e 60% saem ali.
+
+**Quanto vale consertar.** Se esse degrau fosse de 40% para 55% — nada de extraordinário —, seriam
+52 pessoas nos planos, ~37 pagantes, **33% de conversão total contra 24,3%**. Isso é 37% a mais de
+receita sem um centavo de mídia e sem um visitante a mais.
+
+> **Este conserto vale mais que a campanha inteira**, e é mais barato. Uma campanha de R$ 490 com
+> 24,3% de conversão traz na casa de dez a vinte vendas; melhorar esse degrau melhora TODAS as
+> vendas, para sempre, inclusive as orgânicas.
+
+A recomendação da §5.2 (uma linha de expectativa de preço na primeira dobra) continua sendo o passo
+mais barato, e agora tem número atrás: ela move a descoberta do preço para antes do investimento de
+tempo, que é onde a frustração não existe.
+
+### ⚠️ Um defeito de medição, não de produto: os 102%
+
+95 pessoas viram a prévia e apenas 93 terminaram o questionário. **É impossível** — ninguém vê a
+prévia sem terminar.
+
+A explicação está no cabeçalho de `funnel-repo.ts`: visitantes anteriores à criação do marco
+`quiz:done` chegaram às etapas seguintes sem ele. São dados de antes da instrumentação estar
+completa, e o efeito tende a zero conforme entram visitantes novos.
+
+**O que fazer com isso:** nada no código, mas tratar as duas primeiras linhas como aproximadas por
+enquanto. As de baixo (planos, pagamento) são confiáveis, e são justamente as que sustentam as
+conclusões acima. Se em duas semanas os 102% não tiverem sumido, aí é defeito de verdade e vale
+investigar.
 
 ---
 
