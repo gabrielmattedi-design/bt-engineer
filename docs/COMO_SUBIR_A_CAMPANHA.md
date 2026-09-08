@@ -285,9 +285,67 @@ em **Recusar**, e confira na extensão que **nada** é carregado.
 > verba. Com "Compra" ele nunca junta exemplos suficientes e entrega no escuro. "Lead" é o início do
 > questionário, que acontece muito mais vezes e já exige intenção real.
 
-### 4.3 Os dois anúncios
+### 4.3 Os anúncios
 
-Crie **dois anúncios dentro do mesmo conjunto** (não crie um segundo conjunto).
+Crie **todos dentro do MESMO conjunto**. Criar um conjunto por criativo é o erro caro: eles passam a
+disputar o mesmo público, encarecem o leilão entre si, e a verba se divide à força.
+
+#### Não é preciso publicar nada no feed
+
+O Meta oferece duas origens para a mídia do anúncio:
+
+| | O que faz |
+|---|---|
+| **Criar anúncio** (padrão) | você sobe a mídia ali. Ela roda como anúncio e **nunca aparece no seu perfil** |
+| Usar publicação existente | impulsiona um post que já está no feed; curtidas e comentários acumulam nele |
+
+**Use a primeira.** Isso é o "dark post", e é o que permite adaptar um criativo especificamente para
+a campanha — trocar um CTA, cortar uma versão mais curta — sem poluir o feed com variações que só
+existem para o anúncio. A prova social que a segunda acumula só passa a valer com volume que esta
+campanha não tem.
+
+#### Quantos, e por que 4 e não 2
+
+A primeira versão deste guia mandava rodar 2, com a conta de que 4 anúncios dariam ~150 cliques cada
+contra ~300 de dois. **A conta estava errada**: ela pressupunha divisão igual da verba, e o Meta não
+divide igual — dentro de um conjunto único ele concentra a entrega em um ou dois nos primeiros dias
+e praticamente para de servir o resto.
+
+Então a escolha real não é entre 150 e 300 cliques por peça; é entre dar ao algoritmo 2 ou 4 opções
+para achar o vencedor. Com 4 ele acha mais rápido, os perdedores param sozinhos e custam quase nada,
+e as peças já estão produzidas — deixá-las de fora não economiza dinheiro, só informação.
+
+#### O critério para uma peça ENTRAR
+
+Não é "vender ou não vender". É:
+
+> **Todo criativo tem de apontar para o mesmo lugar que a campanha mede.**
+
+O caso que criou esta regra: havia um vídeo de 6s terminando em *"leia a legenda"*. Ele manda a
+pessoa para DENTRO do Instagram; a campanha otimiza por alguém que SAI do Instagram e começa o
+questionário. São direções opostas no mesmo anúncio — o Meta serviria, ninguém clicaria, o custo por
+`Lead` explodiria e o algoritmo o mataria em dois dias, ao custo de uns R$ 30 para descobrir algo
+previsível.
+
+A peça não era ruim: 6 segundos é ótimo formato para Reels. **Estava a uma frase de servir** — trocar
+"leia a legenda" por "descubra a sua no link". Criativo de engajamento tem lugar no orgânico, onde
+engajamento é a moeda; em pago você compra uma ação específica, e quem pede outra ação está
+comprando a coisa errada com o seu dinheiro.
+
+#### Retenção de vídeo não é o critério aqui
+
+O vídeo institucional de 30s tinha ~5s de tempo médio de visualização no orgânico. Isso parece
+reprovação e não é, por dois motivos:
+
+- **a campanha compra clique, não visualização.** Se o gancho está entregue nos primeiros 5
+  segundos, 5 segundos de média significam que a mensagem chegou inteira;
+- **orgânico e pago entregam para públicos diferentes** — a retenção medida com seguidores não
+  transfere para tráfego frio.
+
+O sinal que sobra é outro, e esse é real: a parte mais valiosa do vídeo — a demonstração do
+questionário — quase ninguém está vendo. A saída não é descartar o vídeo, é **cortar uma versão de
+10 a 15 segundos** com gancho + relance da demonstração + CTA. Como não é preciso publicar nada,
+cortar variações custa só o tempo de edição.
 
 **Anúncio 1 — o reel:**
 - Formato: vídeo único
