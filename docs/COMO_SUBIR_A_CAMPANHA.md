@@ -23,10 +23,43 @@
 
 1. Na tela de escolha, clique em **"Criar um portfólio empresarial"** (canto inferior esquerdo).
 2. Nome: `Tennis Engineer`. Seu nome e seu e-mail de trabalho.
-3. Dentro do portfólio novo, vá em **Configurações** (ícone de engrenagem) e conecte:
-   - **a conta do Instagram** do Tennis Engineer;
-   - **a Página do Facebook** do Tennis Engineer — ver o aviso abaixo;
-   - **uma conta de anúncios** (criar nova, dentro deste portfólio).
+3. Dentro do portfólio novo, vá em **Configurações** (engrenagem) → **Contas**, e faça os três na
+   ordem abaixo. Cada um é um item do menu da esquerda.
+
+#### 3.1 Contas do Instagram
+
+`+ Adicionar` → entrar com o login do Instagram do Tennis Engineer.
+
+#### 3.2 Páginas
+
+`+ Adicionar` abre um menu de três opções, e **duas delas causam problema**:
+
+| Opção | O que faz | |
+|---|---|---|
+| **Adicionar uma Página** | traz para o portfólio a Página que você já criou | ✅ |
+| Solicitar acesso a uma Página | pede permissão ao dono — você pediria a você mesmo | ❌ |
+| Criar uma nova Página | cria uma **segunda** Página com o mesmo nome | ❌ o erro mais comum |
+
+Como a Página foi criada pelo seu perfil pessoal, ela aparece na busca e entra sem aprovação de
+ninguém. **Isso transfere a POSSE da Página para o portfólio** — é o que se quer aqui, mas não é um
+vínculo solto e desfazer é trabalhoso.
+
+#### 3.3 Contas de anúncios
+
+`+ Adicionar` → **Criar uma nova conta de anúncios**.
+
+| Campo | Valor |
+|---|---|
+| Nome | `Tennis Engineer` |
+| Fuso horário | `América/São_Paulo (Brasília)` |
+| Moeda | `BRL` |
+
+> ⚠️ **Fuso e moeda não podem ser alterados depois da criação.** Uma conta em fuso errado reporta
+> "gasto de ontem" com um recorte de dia que não é o seu, e o número nunca bate com o do
+> `/admin/funil`. Conferir aqui custa dez segundos; corrigir depois exige criar outra conta e perder
+> o histórico.
+
+Adicione a forma de pagamento nessa mesma tela.
 
 ### ⚠️ A Página do Facebook — confirmado em 08/09: não existia
 
@@ -88,6 +121,8 @@ desfazer.
 1. Confira, no alto da tela, que você está **dentro do portfólio Tennis Engineer** — não na conta
    pessoal nem em outro negócio. É onde erra quem tem mais de um.
 2. Clique em **"Conectar fontes de dados"** → **"Web"** → **"Conectar"**.
+   *(Dá para chegar no mesmo lugar pelas Configurações do portfólio → **Fontes de dados** →
+   **Conjuntos de dados**, que é o menu logo abaixo de "Contas".)*
 3. Dê um nome: `Tennis Engineer — site`.
 4. Ele vai perguntar como instalar. Escolha **"Instalar código manualmente"**.
    Não precisa copiar o código que ele mostra — ele já está no site.
