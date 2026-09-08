@@ -9,17 +9,60 @@
 
 ---
 
+## Parte 0 — Criar o portfólio empresarial do Tennis Engineer
+
+> **Esta parte foi escrita depois, em 08/09/2026, porque a Parte 1 original assumia que o negócio já
+> existia no Meta.** O dono abriu o Gerenciador e caiu numa tela de escolha de "ativo de negócios"
+> com dois portfólios de OUTROS negócios dele e a conta pessoal — e nenhum Tennis Engineer.
+>
+> A confusão é razoável e vale nomear: **aquela tela não lista o que existe do seu produto, ela
+> pergunta debaixo de qual negócio você quer criar as coisas.** O Tennis Engineer não aparece
+> porque ninguém criou. Não há nada quebrado.
+
+**Onde:** `business.facebook.com`
+
+1. Na tela de escolha, clique em **"Criar um portfólio empresarial"** (canto inferior esquerdo).
+2. Nome: `Tennis Engineer`. Seu nome e seu e-mail de trabalho.
+3. Dentro do portfólio novo, vá em **Configurações** (ícone de engrenagem) e conecte:
+   - **a conta do Instagram** do Tennis Engineer;
+   - **a Página do Facebook** do Tennis Engineer — ver o aviso abaixo;
+   - **uma conta de anúncios** (criar nova, dentro deste portfólio).
+
+### ⚠️ Você provavelmente vai precisar de uma Página do Facebook
+
+Para anunciar no Instagram, o Meta em geral exige uma **Página do Facebook** vinculada, mesmo que
+você nunca vá publicar nada nela. Se o Tennis Engineer não tiver uma, crie: `facebook.com/pages/create`,
+categoria "Produto/Serviço", com a mesma logo e o mesmo nome do Instagram.
+
+Isso costuma ser o bloqueio mais chato para quem só tem Instagram, e é melhor descobrir agora do que
+no meio da criação do anúncio.
+
+### Por que um portfólio novo, e não os que já existem
+
+Você já tem "Lupo Aracruz" e "Porquês do Mercado". **Não coloque o Tennis Engineer dentro deles.**
+Pixel, conta de anúncios e página ficam amarrados ao portfólio, e misturar negócios diferentes cria
+uma bagunça que só aparece quando você quiser separar — dar acesso a alguém, vender, encerrar um.
+Dois minutos agora evitam isso.
+
+**Um risco real a conhecer:** conta de anúncios recém-criada não tem histórico, e o Meta às vezes
+limita ou revisa a primeira entrega. Se a conta nova travar, use a sua conta pessoal
+(`890049998322150`) só para este teste de R$ 490 — é um teste, não uma estrutura definitiva. Não
+faça o contrário (mover a conta pessoal para dentro do portfólio): essa mudança é difícil de
+desfazer.
+
+---
+
 ## Parte 1 — Criar o pixel
 
 **Onde:** `business.facebook.com/events_manager`
 
-1. Entre com a conta do Facebook que administra o Instagram do Tennis Engineer.
-2. Se pedir para criar uma **conta comercial** (Business Manager), crie. Nome: `Tennis Engineer`.
-3. No Gerenciador de Eventos, clique em **"Conectar fontes de dados"** → **"Web"** → **"Conectar"**.
-4. Dê um nome: `Tennis Engineer — site`.
-5. Ele vai perguntar como você quer instalar. Escolha **"Instalar código manualmente"**.
+1. Confira, no alto da tela, que você está **dentro do portfólio Tennis Engineer** — não na conta
+   pessoal nem em outro negócio. É onde erra quem tem mais de um.
+2. Clique em **"Conectar fontes de dados"** → **"Web"** → **"Conectar"**.
+3. Dê um nome: `Tennis Engineer — site`.
+4. Ele vai perguntar como instalar. Escolha **"Instalar código manualmente"**.
    Não precisa copiar o código que ele mostra — ele já está no site.
-6. **Copie o número do pixel.** São ~15 dígitos, aparece no topo da tela. É isso que você precisa.
+5. **Copie o número do pixel.** São ~15 dígitos, aparece no topo da tela. É só isso que você precisa.
 
 > Se ele insistir em verificar a instalação, pule. O pixel só vai responder depois da Parte 2.
 
@@ -180,7 +223,8 @@ Escrito antes de começar, porque depois de gastar é tarde para ser imparcial:
 
 | # | Onde | O quê |
 |---|---|---|
-| 1 | business.facebook.com/events_manager | criar o pixel, copiar o número |
+| 0 | business.facebook.com | criar o portfólio **Tennis Engineer**, conectar Instagram + Página do Facebook + conta de anúncios |
+| 1 | business.facebook.com/events_manager | **dentro do portfólio novo**: criar o pixel, copiar o número |
 | 2 | vercel.com | `NEXT_PUBLIC_META_PIXEL_ID` + **redeploy** |
 | 3 | seu site, aba anônima | conferir com o Meta Pixel Helper (aceitar **e** recusar) |
 | 4 | adsmanager.facebook.com | campanha Vendas → conjunto com evento **Lead** → 2 anúncios com `utm_content` diferente |
