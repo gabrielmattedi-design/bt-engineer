@@ -101,8 +101,14 @@ Antes de publicar um quiz, meça as duas pontas:
 - as opções descartadas são de fato erradas — se uma delas é defensável, quem a
   escolher vai ver "errado" numa resposta que não era.
 
-E nunca use como distrator algo que o catálogo não tem. "Rigidez do quadro" parece um
-distrator inocente e sugere que o produto avalia RA, que ele não avalia (§1).
+E nunca use como distrator algo que o catálogo não tem — um distrator sugere que o
+produto avalia aquilo.
+
+> **Atualizado em 08/09/2026.** O exemplo original desta regra era "rigidez do quadro",
+> proibido porque o produto não avaliava RA. Desde 07/09 ele avalia: o RA medido é o
+> termo de maior peso do conforto e entrou na potência. O exemplo morreu; **a regra
+> não** — ela agora vale para qualquer atributo que o catálogo ainda não tenha, e a
+> forma de conferir é a mesma de sempre, `fatos.ts` antes de escrever a opção.
 
 ## 3. Heurística nossa ≠ lei da física
 

@@ -123,10 +123,22 @@ function pesoVersusInercia() {
   const invertidas = (limiar: number) =>
     medidas.filter((m) => medidas.some((o) => o.g >= m.g + limiar && o.si < m.si)).length;
 
+  const r = cov / (dg * ds);
+
   return {
     de: n,
     /** Correlação de Pearson entre peso na balança e inércia de swing. Perto de zero = não prevê. */
-    correlacao: Number((cov / (dg * ds)).toFixed(3)),
+    correlacao: Number(r.toFixed(3)),
+    /*
+      R², em pontos percentuais — "o peso explica X% da variação do swingweight".
+
+      É só o quadrado da correlação, e mesmo assim sai daqui em vez de ser feito de cabeça na hora
+      de escrever a copy. A regra da skill é que todo número publicado venha deste arquivo, e uma
+      conta de uma linha é exatamente o tipo de coisa que passa despercebida: 0,844² é 71%, mas
+      "correlação de 84%" também soa plausível numa legenda e diria outra coisa. Quem lê a copy não
+      tem como distinguir as duas, então a distinção mora aqui.
+    */
+    explica_pct: Math.round(r * r * 100),
     /*
       A contagem NUNCA sai sem o limiar ao lado. Publicar "26 das 47" sem dizer "15 g" é publicar
       um número que não se pode conferir — e foi assim que ele se descolou do limiar errado.

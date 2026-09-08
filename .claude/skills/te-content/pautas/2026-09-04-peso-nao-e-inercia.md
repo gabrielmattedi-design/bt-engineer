@@ -2,7 +2,21 @@
 
 **Pilar** P2 Física aplicada · **Formato** carrossel 6 slides + 3 stories ·
 **Arte** Ficha técnica (fundo papel) · **CTA** engajamento ·
-**Status** `PUBLICADO — E INCORRETO. Ver a errata abaixo antes de reaproveitar qualquer coisa.`
+**Status** `NÃO PUBLICADO — E INCORRETO. Ver a errata abaixo antes de reaproveitar qualquer coisa.`
+
+> **Correção de status, 08/09/2026.** Esta linha dizia `PUBLICADO`, e estava errada: o dono
+> confirmou que a peça ficou pronta e **não foi ao feed**. `historico/publicado.jsonl` sempre trouxe
+> `"status":"gerado"` — quem estava errado era este arquivo.
+>
+> A diferença não é de arquivo: ela decide o que se pode dizer em público. Com `PUBLICADO`, uma
+> correção seria uma **errata pública** ("o nosso post estava errado"); sem, essa frase inventaria
+> um post que ninguém viu.
+>
+> **E nenhuma das duas versões vira conteúdo.** Uma pauta de bastidor sobre o erro chegou a ser
+> escrita em 08/09 e o dono a recusou, em uma frase que vale como regra: *"ninguém precisa saber
+> disso"*. O raciocínio é dele e está certo — o público não ganha nada sabendo do que quase
+> publicamos, e a página não existe para narrar o próprio processo. A errata continua valendo aqui
+> dentro, para impedir que este post seja reaproveitado; ela não é assunto de Instagram.
 
 ---
 
