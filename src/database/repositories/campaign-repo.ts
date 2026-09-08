@@ -51,6 +51,20 @@ export async function recordCampaign(visitorToken: string, campanha: Campanha): 
 export type LinhaDeOrigem = {
   readonly source: string;
   readonly campaign: string | null;
+  /**
+   * `utm_content` — QUAL CRIATIVO. `null` quando o link do anúncio não trouxe o parâmetro.
+   *
+   * ═══ POR QUE ESTA COLUNA PRECISOU EXISTIR (08/09/2026) ═══════════════════════════════════
+   *
+   * O campo era gravado desde o primeiro dia e NUNCA era lido. O relatório agrupava por origem e
+   * campanha, então quatro criativos da mesma campanha somavam numa linha só — e a pergunta que
+   * um teste de criativo existe para responder ("qual dos quatro traz gente que termina?") não
+   * tinha como ser respondida, mesmo com o dado inteiro no banco.
+   *
+   * É o pior tipo de lacuna: não dá erro, não some do painel, e a tabela parece completa. Só
+   * quando alguém vai decidir qual anúncio desligar é que a coluna que falta aparece.
+   */
+  readonly content: string | null;
   readonly visitors: number;
   readonly finished: number;
   readonly paid: number;
@@ -87,6 +101,7 @@ export async function campaignReport(sinceDays: number | null = null): Promise<L
     .select({
       source: visitorCampaigns.source,
       campaign: visitorCampaigns.campaign,
+      content: visitorCampaigns.content,
       visitors: sql<number>`count(distinct ${visitorCampaigns.visitorHash})::int`,
       finished: sql<number>`count(distinct ${funnelMarkers.visitorHash}) filter (where ${funnelMarkers.marker} = 'quiz:done')::int`,
       paid: sql<number>`count(distinct ${funnelMarkers.visitorHash}) filter (where ${funnelMarkers.marker} = 'paid')::int`,
@@ -94,12 +109,13 @@ export async function campaignReport(sinceDays: number | null = null): Promise<L
     .from(visitorCampaigns)
     .leftJoin(funnelMarkers, eq(funnelMarkers.visitorHash, visitorCampaigns.visitorHash))
     .where(filtros.length > 0 ? and(...filtros) : undefined)
-    .groupBy(visitorCampaigns.source, visitorCampaigns.campaign);
+    .groupBy(visitorCampaigns.source, visitorCampaigns.campaign, visitorCampaigns.content);
 
   return computeCampaigns(
     rows.map((r) => ({
       source: r.source,
       campaign: r.campaign,
+      content: r.content,
       visitors: Number(r.visitors),
       finished: Number(r.finished),
       paid: Number(r.paid),
@@ -109,7 +125,14 @@ export async function campaignReport(sinceDays: number | null = null): Promise<L
 
 /** O cálculo, separado da consulta — mesmo motivo de `computeFunnel`: é onde mora a divisão por zero. */
 export function computeCampaigns(
-  rows: readonly { source: string; campaign: string | null; visitors: number; finished: number; paid: number }[],
+  rows: readonly {
+    source: string;
+    campaign: string | null;
+    content: string | null;
+    visitors: number;
+    finished: number;
+    paid: number;
+  }[],
 ): LinhaDeOrigem[] {
   return rows
     .map((r) => ({

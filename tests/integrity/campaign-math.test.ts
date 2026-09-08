@@ -18,7 +18,7 @@ import { computeCampaigns } from '@/database/repositories/campaign-repo';
 describe('desempenho por origem', () => {
   it('origem sem visitante não divide por zero', () => {
     const linhas = computeCampaigns([
-      { source: 'instagram', campaign: null, visitors: 0, finished: 0, paid: 0 },
+      { source: 'instagram', campaign: null, content: null, visitors: 0, finished: 0, paid: 0 },
     ]);
     expect(Number.isFinite(linhas[0]!.conversion)).toBe(true);
     expect(linhas[0]!.conversion).toBe(0);
@@ -34,8 +34,8 @@ describe('desempenho por origem', () => {
    */
   it('ordena por volume, e não deixa amostra minúscula encabeçar a lista', () => {
     const linhas = computeCampaigns([
-      { source: 'boca-a-boca', campaign: null, visitors: 3, finished: 2, paid: 1 },
-      { source: 'instagram', campaign: 'agosto', visitors: 300, finished: 120, paid: 12 },
+      { source: 'boca-a-boca', campaign: null, content: null, visitors: 3, finished: 2, paid: 1 },
+      { source: 'instagram', campaign: 'agosto', content: null, visitors: 300, finished: 120, paid: 12 },
     ]);
 
     expect(linhas[0]!.source, 'a campanha de 300 pessoas precisa vir primeiro').toBe('instagram');
@@ -49,7 +49,7 @@ describe('desempenho por origem', () => {
    */
   it('origem com zero pagantes continua na tabela', () => {
     const linhas = computeCampaigns([
-      { source: 'anuncio-ruim', campaign: 'teste', visitors: 200, finished: 10, paid: 0 },
+      { source: 'anuncio-ruim', campaign: 'teste', content: null, visitors: 200, finished: 10, paid: 0 },
     ]);
     expect(linhas).toHaveLength(1);
     expect(linhas[0]!.paid).toBe(0);
@@ -65,8 +65,8 @@ describe('desempenho por origem', () => {
    */
   it('distingue quem abandona o questionário de quem termina e não paga', () => {
     const [publico_errado, oferta_errada] = computeCampaigns([
-      { source: 'a', campaign: null, visitors: 100, finished: 5, paid: 1 },
-      { source: 'b', campaign: null, visitors: 100, finished: 90, paid: 1 },
+      { source: 'a', campaign: null, content: null, visitors: 100, finished: 5, paid: 1 },
+      { source: 'b', campaign: null, content: null, visitors: 100, finished: 90, paid: 1 },
     ]);
 
     expect(publico_errado!.conversion).toBeCloseTo(oferta_errada!.conversion, 5);
@@ -76,8 +76,8 @@ describe('desempenho por origem', () => {
   it('a mesma origem com campanhas diferentes são linhas separadas', () => {
     // Sem isso, duas campanhas do mesmo canal se somariam e a pior esconderia a melhor.
     const linhas = computeCampaigns([
-      { source: 'instagram', campaign: 'agosto', visitors: 100, finished: 40, paid: 8 },
-      { source: 'instagram', campaign: 'setembro', visitors: 90, finished: 30, paid: 1 },
+      { source: 'instagram', campaign: 'agosto', content: null, visitors: 100, finished: 40, paid: 8 },
+      { source: 'instagram', campaign: 'setembro', content: null, visitors: 90, finished: 30, paid: 1 },
     ]);
     expect(linhas).toHaveLength(2);
     expect(linhas.map((l) => l.campaign)).toEqual(['agosto', 'setembro']);

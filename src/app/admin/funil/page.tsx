@@ -262,6 +262,7 @@ export default async function FunilPage({
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-graphite">
                     <th className="px-4 py-3 font-semibold">Origem</th>
                     <th className="px-4 py-3 font-semibold">Campanha</th>
+                    <th className="px-4 py-3 font-semibold">Criativo</th>
                     <th className="px-4 py-3 text-right font-semibold">Chegaram</th>
                     <th className="px-4 py-3 text-right font-semibold">Terminaram</th>
                     <th className="px-4 py-3 text-right font-semibold">Pagaram</th>
@@ -271,11 +272,12 @@ export default async function FunilPage({
                 <tbody>
                   {origens.map((o) => (
                     <tr
-                      key={`${o.source}|${o.campaign ?? ''}`}
+                      key={`${o.source}|${o.campaign ?? ''}|${o.content ?? ''}`}
                       className="border-b border-line/60 last:border-0"
                     >
                       <td className="px-4 py-3 font-medium">{o.source}</td>
                       <td className="px-4 py-3 text-graphite">{o.campaign ?? '—'}</td>
+                      <td className="px-4 py-3 text-graphite">{o.content ?? '—'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{o.visitors}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-graphite">
                         {o.finished}
