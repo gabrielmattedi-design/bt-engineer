@@ -203,7 +203,33 @@ Depois, nos dois:
 5. **⚠️ Agora o passo que quase todo mundo esquece:** variável nova só vale depois de um novo
    deploy. Vá em **Deployments**, ache o mais recente no topo, clique nos três pontinhos (`···`) e
    escolha **Redeploy**.
+
+   > **Desmarque "Use existing Build Cache".** Com o cache ligado a Vercel pode reaproveitar o
+   > pacote anterior — o mesmo que não tem a variável — e o problema se repete com a aparência de
+   > ter sido refeito.
+
 6. Espere terminar (uns 2 minutos).
+
+### ⚠️ A ORDEM importa, e foi o que travou o dono por uma hora
+
+`NEXT_PUBLIC_*` é embutido no pacote no momento da **compilação**, não lido em tempo de execução.
+Então a sequência tem de ser, nesta ordem:
+
+```
+salvar a variável   →   DEPOIS   →   deploy
+```
+
+O que aconteceu em 08/09 foi o contrário: os deploys estavam com "4m ago" e a variável com "Added
+just now". O pacote em produção tinha sido compilado antes de a variável existir, carregava string
+vazia, e `pixelConfigurado()` devolvia `false` — o script nunca era injetado.
+
+**O sintoma é indistinguível de um pixel quebrado:** nenhum erro, nenhum log, o site inteiro
+funcionando, e zero eventos no Gerenciador. Foram descartadas nesta ordem, todas erradas: CSP
+bloqueando o script, bloqueador de anúncio, ferramenta de teste do Meta, `www` no endereço. A causa
+era a diferença de quatro minutos entre dois carimbos de hora na mesma tela.
+
+Antes de procurar defeito em qualquer outro lugar, **compare o horário da variável com o do último
+deploy.** Se a variável for mais nova, é isso — e nada mais precisa ser investigado.
 
 **Enquanto essa variável estiver vazia, o pixel fica desligado** — inclusive para quem aceitar o
 banner. É de propósito: o padrão seguro é não rastrear.
