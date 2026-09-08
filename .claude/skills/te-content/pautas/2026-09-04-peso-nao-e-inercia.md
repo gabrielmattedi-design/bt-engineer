@@ -77,12 +77,12 @@ arquivadas, não a peça de trabalho.
 
 | | Etiqueta | Título | Apoio | Canva |
 |---|---|---|---|---|
-| 01 | FÍSICA APLICADA · 01 | **Mais leve nem sempre é mais fácil de girar.** | A balança mede uma coisa. Seu braço sente outra. | [`DAHUMJjnaYs`](https://www.canva.com/d/NbCt8JtCJ-RhHbP) |
-| 02 | O QUE A BALANÇA MEDE | **Ela pesa a raquete parada.** | Só que você nunca joga com a raquete parada. O que o seu braço sente é o quanto ela resiste a girar — e isso é outra conta. | [`DAHUMLLD-40`](https://www.canva.com/d/KSnhQRGD3uiO2On) |
-| 03 | ONDE ESTÁ A MASSA | **A mesma massa, mais longe da mão, custa muito mais.** | Massa perto do cabo gira fácil. A mesma massa perto da cabeça resiste bem mais — porque a distância até a sua mão conta ao quadrado. | [`DAHUMBOkfu0`](https://www.canva.com/d/UA0mJOZew14YiSX) |
-| 04 | NAS 47 QUE ANALISAMOS | **Em 39 delas, uma raquete 10 g mais pesada gira mais fácil.** | Quatro em cada cinco do nosso catálogo. Saber os gramas quase não ajuda a prever o esforço: a relação entre os dois números é praticamente zero. | [`DAHUMCmGCOY`](https://www.canva.com/d/Upv7Y_hsp__Ou-p) |
-| 05 | O QUE ISSO MUDA | **"Quero uma mais leve" resolve menos do que parece.** | Trocar 300 g por 285 g pode não aliviar nada, se na nova a massa estiver mais longe da sua mão. | [`DAHUMDO9Y94`](https://www.canva.com/d/sUene6Z2iubUXig) |
-| 06 | TESTE DE 5 SEGUNDOS | **Segure pelo cabo e gire o punho.** | A que resistir mais é a que vai cobrar mais de você no terceiro set — não importa o que diz a etiqueta. Você escolheu a sua olhando os gramas? | [`DAHUMEvaYEE`](https://www.canva.com/d/UlXNAVoxZfzYuRC) |
+| 01 | FÍSICA APLICADA · 01 | **Mais leve nem sempre é mais fácil de girar.** | A balança mede uma coisa. Seu braço sente outra. | [`DAHUMJjnaYs`](https://www.canva.com/design/DAHUMJjnaYs/edit) |
+| 02 | O QUE A BALANÇA MEDE | **Ela pesa a raquete parada.** | Só que você nunca joga com a raquete parada. O que o seu braço sente é o quanto ela resiste a girar — e isso é outra conta. | [`DAHUMLLD-40`](https://www.canva.com/design/DAHUMLLD-40/edit) |
+| 03 | ONDE ESTÁ A MASSA | **A mesma massa, mais longe da mão, custa muito mais.** | Massa perto do cabo gira fácil. A mesma massa perto da cabeça resiste bem mais — porque a distância até a sua mão conta ao quadrado. | [`DAHUMBOkfu0`](https://www.canva.com/design/DAHUMBOkfu0/edit) |
+| 04 | NAS 47 QUE ANALISAMOS | **Em 39 delas, uma raquete 10 g mais pesada gira mais fácil.** | Quatro em cada cinco do nosso catálogo. Saber os gramas quase não ajuda a prever o esforço: a relação entre os dois números é praticamente zero. | [`DAHUMCmGCOY`](https://www.canva.com/design/DAHUMCmGCOY/edit) |
+| 05 | O QUE ISSO MUDA | **"Quero uma mais leve" resolve menos do que parece.** | Trocar 300 g por 285 g pode não aliviar nada, se na nova a massa estiver mais longe da sua mão. | [`DAHUMDO9Y94`](https://www.canva.com/design/DAHUMDO9Y94/edit) |
+| 06 | TESTE DE 5 SEGUNDOS | **Segure pelo cabo e gire o punho.** | A que resistir mais é a que vai cobrar mais de você no terceiro set — não importa o que diz a etiqueta. Você escolheu a sua olhando os gramas? | [`DAHUMEvaYEE`](https://www.canva.com/design/DAHUMEvaYEE/edit) |
 
 ## Legenda
 

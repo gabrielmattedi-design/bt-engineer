@@ -229,6 +229,30 @@ original é a rede de segurança se a costura sair torta.
 
 Entregar ao dono o `edit_url` e o PNG. **A skill nunca publica.**
 
+### O `edit_url` que as ferramentas devolvem é DESCARTÁVEL
+
+Medido em 08/09/2026. O mesmo design `DAHUnMlsp4Y` devolveu três endereços diferentes em três
+chamadas seguidas, sem nenhuma edição entre elas:
+
+```
+merge-designs   → canva.com/d/hoHmNnM-0nrbEf2
+read-design     → canva.com/d/EVBwDssvXysgOPf
+search-designs  → canva.com/d/ZIJtimgO1gToq9h
+```
+
+O formato `canva.com/d/<token>` é um link curto rotativo. Entregar um deles ao dono é entregar um
+link que não abre depois — foi o que aconteceu na pauta de 08/09, e a peça pareceu não existir
+quando ela estava lá, com as 6 páginas prontas.
+
+> **Sempre entregar `https://www.canva.com/design/<DESIGN_ID>/edit`.** O `DESIGN_ID` é o que começa
+> com `DA...` e não muda nunca. É o formato que a pauta de 04/09 já usava — a regressão foi colar o
+> link curto que a resposta da ferramenta traz pronto, que é justamente o mais fácil de copiar.
+
+O caminho que não depende de link nenhum: **buscar pelo nome da pauta no Canva.** Por isso o
+`update_title` de toda página carrega a data e o nome (`TE · 08-09 · A 4,7ª colocada · 03`) — é o
+que faz a peça ser encontrável quando o link falha. `search-designs` funciona normalmente, ao
+contrário de `search-brand-templates` (abaixo).
+
 ### Duas armadilhas medidas
 
 **`search-brand-templates` devolve lista vazia** mesmo com o template existindo — a permissão de
