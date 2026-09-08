@@ -37,6 +37,22 @@
 
 export const CONSENT_COOKIE = 'te_consent';
 
+/**
+ * Evento disparado quando a decisão muda, para quem já está na tela reagir sem recarregar.
+ *
+ * ═══ POR QUE UM EVENTO, E NÃO CADA COMPONENTE LENDO O COOKIE ═════════════════════════════════
+ *
+ * Dois componentes leem esta decisão: o banner e o link de "mudar de ideia" no rodapé. Os dois a
+ * leem numa montagem, o que basta para uma carga de página e falha no instante que importa — o
+ * clique. Quem acabou de responder o banner via o link do rodapé continuar dizendo o valor antigo
+ * até a navegação seguinte.
+ *
+ * É o mesmo defeito de estado duplicado que já tinha derrubado o evento `Lead` neste projeto: dois
+ * lugares guardando a mesma verdade e discordando por um render. O evento faz a decisão ser
+ * anunciada uma vez e ouvida por quem precisar, sem ninguém guardando cópia.
+ */
+export const CONSENT_EVENT = 'te:consent-mudou';
+
 export type ConsentState = 'aceito' | 'recusado' | 'nao_decidido';
 
 /**

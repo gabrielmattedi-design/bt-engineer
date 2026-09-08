@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   CONSENT_COOKIE,
   CONSENT_MAX_AGE_SECONDS,
+  CONSENT_EVENT,
   parseConsent,
   type ConsentState,
 } from '@/lib/consent';
@@ -86,6 +87,8 @@ export function ConsentBanner() {
     document.cookie =
       `${CONSENT_COOKIE}=${valor}; path=/; max-age=${CONSENT_MAX_AGE_SECONDS}; SameSite=Lax`;
     setEstado(valor);
+    /* Avisa o link do rodapé, que também depende desta decisão. Ver `CONSENT_EVENT`. */
+    window.dispatchEvent(new Event(CONSENT_EVENT));
   }
 
   if (estado === null || estado !== 'nao_decidido') return null;

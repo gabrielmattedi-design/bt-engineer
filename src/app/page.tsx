@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ConsentReset } from '@/components/marketing/consent-reset';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { AccountLink } from '@/components/marketing/site-header';
 import { Logo } from '@/components/marketing/logo';
@@ -489,6 +490,11 @@ export default async function HomePage() {
           <Link href="/termos" className="underline">
             Termos e reembolso
           </Link>
+          {/*
+            Revogar tem de ser tão fácil quanto consentir — ver `consent-reset.tsx`. Some sozinho
+            para quem ainda não respondeu ao banner.
+          */}
+          <ConsentReset />
           {/*
             ═══ O ENDEREÇO ESCRITO, E NÃO UM LINK QUE ABRE OUTRO PROGRAMA ═══════════════════════
 

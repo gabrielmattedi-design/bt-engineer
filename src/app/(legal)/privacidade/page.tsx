@@ -104,8 +104,13 @@ export default function PrivacidadePage() {
       </p>
       <p>
         Existe um único cookie de terceiro, o do Meta descrito acima, e ele só passa a existir se
-        você aceitar. Para mudar de ideia depois, apague os cookies deste site no seu navegador: o
-        aviso aparece de novo e você responde outra coisa.
+        você aceitar.
+      </p>
+      <p>
+        <strong>Para mudar de ideia a qualquer momento</strong>, use o link no rodapé da página
+        inicial — ele mostra a sua escolha atual (&quot;medição ativa&quot; ou &quot;medição
+        desativada&quot;) e, ao ser clicado, traz o aviso de volta para você responder outra coisa.
+        Revogar é tão simples quanto aceitar, e não exige apagar nada no navegador.
       </p>
 
       <h2>Com quem compartilhamos</h2>
