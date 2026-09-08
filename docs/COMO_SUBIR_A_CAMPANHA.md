@@ -185,6 +185,21 @@ Depois, nos dois:
    | Environments | deixe as três marcadas |
 
 4. **Save**.
+
+> ### ⚠️ A Vercel vai avisar "Keep This Value Private"
+>
+> Ela mostra isso para **qualquer** variável `NEXT_PUBLIC_`, sem olhar o conteúdo. Aqui está tudo
+> certo: expor é o ponto. O pixel roda no navegador, então o id precisa chegar lá — e ele não é
+> segredo, fica visível no HTML de todo site que anuncia. O que seria segredo é o token da API de
+> Conversões, que não usamos.
+>
+> **Não aceite a sugestão "Remove the prefix".** Sem o `NEXT_PUBLIC_`, o Next não entrega o valor ao
+> navegador, `pixelConfigurado()` passa a devolver `false` e o pixel não carrega — **sem erro, sem
+> log, sem nada quebrado na tela**. O sintoma só apareceria semanas depois, na campanha que não
+> otimiza. O nome tem de ser exatamente `NEXT_PUBLIC_META_PIXEL_ID`.
+>
+> O botão "Change to Config" é só uma classificação para ela parar de avisar. Clicar ou ignorar dá
+> no mesmo.
 5. **⚠️ Agora o passo que quase todo mundo esquece:** variável nova só vale depois de um novo
    deploy. Vá em **Deployments**, ache o mais recente no topo, clique nos três pontinhos (`···`) e
    escolha **Redeploy**.
