@@ -45,6 +45,8 @@
  * Se algum dia for preciso mandar valor de compra, mande o VALOR — nunca o que foi comprado.
  */
 
+import { parseConsent, podeRastrear } from '@/lib/consent';
+
 export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? '';
 
 /** `true` quando existe um id configurado. Sem id, nada é carregado nem em desenvolvimento. */
@@ -61,18 +63,41 @@ declare global {
 }
 
 /**
- * Dispara um evento, se — e somente se — o pixel estiver carregado.
+ * ═══ A CORRIDA QUE FAZIA O EVENTO DA CAMPANHA SUMIR ══════════════════════════════════════════
  *
- * Não recebe o estado de consentimento de propósito: `window.fbq` só existe se o consentimento
- * já foi dado, então a presença dele É a verificação. Passar o estado junto criaria duas fontes
- * de verdade que podem discordar.
+ * A primeira versão desta função era: "se `window.fbq` não existe, não faz nada". O raciocínio
+ * parecia sólido — `fbq` só nasce depois do aceite, então a ausência dele é a própria verificação
+ * de consentimento, sem segunda fonte de verdade.
+ *
+ * Estava errado, e o defeito foi medido em 08/09/2026 com o site rodando: ao abrir `/questionario`
+ * direto, a fila do `fbq` continha `init` e `PageView` e **não continha o `Lead`**.
+ *
+ * A causa é a ordem dos efeitos no React: os efeitos dos FILHOS rodam antes dos do pai. O
+ * `ConsentBanner` mora no layout e precisa de dois renders — um para ler o cookie, outro para
+ * injetar o script. O questionário monta e chama `Lead` antes disso. `fbq` ainda não existe, o
+ * evento era descartado em silêncio, e a ausência de `fbq` estava significando duas coisas
+ * diferentes: "a pessoa recusou" e "ainda não carregou".
+ *
+ * O efeito prático era o pior possível: **o evento pelo qual a campanha inteira otimiza quase
+ * nunca dispararia**, sem erro em lugar nenhum. O Meta receberia PageView e concluiria que o site
+ * não gera intenção.
+ *
+ * A correção separa as duas perguntas. Consentimento passa a ser lido do COOKIE, que é a fonte de
+ * verdade real; a presença do `fbq` passa a ser só "já dá para enviar agora". Quem chega antes
+ * espera numa fila e é despachado quando o script entra.
  */
-export function metaEvento(evento: string, parametros?: Record<string, unknown>): void {
-  if (typeof window === 'undefined') return;
+const pendentes: { evento: string; parametros?: Record<string, unknown> }[] = [];
 
-  const fbq = window.fbq;
-  if (typeof fbq !== 'function') return;
+/**
+ * Teto da fila.
+ *
+ * Ela só cresce na janela entre o aceite e o script entrar — uns poucos milissegundos, um punhado
+ * de eventos. Um teto existe porque uma fila sem limite, num caso que ninguém previu (script
+ * bloqueado por extensão e navegação longa numa SPA), vira vazamento de memória silencioso.
+ */
+const LIMITE_DA_FILA = 20;
 
+function enviar(fbq: Fbq, evento: string, parametros?: Record<string, unknown>): void {
   try {
     fbq('track', evento, parametros);
   } catch (error) {
@@ -82,6 +107,46 @@ export function metaEvento(evento: string, parametros?: Record<string, unknown>)
       alguém de responder o questionário.
     */
     console.error('[pixel] falha ao enviar evento', evento, error);
+  }
+}
+
+/** Dispara um evento — agora, ou assim que o pixel entrar. Sem consentimento, descarta. */
+export function metaEvento(evento: string, parametros?: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+
+  /*
+    O consentimento é lido do cookie, e não inferido da existência do `fbq`.
+
+    É o que garante que a fila NUNCA guarde evento de quem recusou. Sem esta linha, alguém que
+    recusa e depois muda de ideia na mesma visita veria os eventos anteriores ao "sim" serem
+    enviados retroativamente — consentimento aplicado ao passado, que não é consentimento.
+  */
+  if (!podeRastrear(parseConsent(document.cookie))) return;
+
+  const fbq = window.fbq;
+  if (typeof fbq !== 'function') {
+    if (pendentes.length < LIMITE_DA_FILA) pendentes.push({ evento, parametros });
+    return;
+  }
+
+  enviar(fbq, evento, parametros);
+}
+
+/**
+ * Despacha o que ficou na fila. Chamada pelo banner logo depois de injetar o pixel.
+ *
+ * Segura sozinha se o script não tiver entrado: nesse caso não faz nada e a fila continua
+ * esperando, em vez de perder os eventos.
+ */
+export function metaDescarregarFila(): void {
+  if (typeof window === 'undefined') return;
+
+  const fbq = window.fbq;
+  if (typeof fbq !== 'function') return;
+
+  while (pendentes.length > 0) {
+    const p = pendentes.shift();
+    if (p) enviar(fbq, p.evento, p.parametros);
   }
 }
 

@@ -8,7 +8,7 @@ import {
   parseConsent,
   type ConsentState,
 } from '@/lib/consent';
-import { META_PIXEL_ID, pixelConfigurado } from '@/lib/meta-pixel';
+import { META_PIXEL_ID, metaDescarregarFila, pixelConfigurado } from '@/lib/meta-pixel';
 
 /**
  * O banner de consentimento e o carregador do pixel, no mesmo componente.
@@ -63,6 +63,18 @@ export function ConsentBanner() {
       fbq('track', 'PageView');
     `;
     document.head.appendChild(script);
+
+    /*
+      Despacha o que chegou antes do script existir.
+
+      Um `<script>` embutido executa de forma SÍNCRONA no `appendChild`, então `window.fbq` já
+      existe nesta linha. Sem esta chamada, todo evento disparado antes deste efeito é perdido — e
+      é o caso normal, não a exceção: os efeitos dos filhos rodam antes dos do pai, e este
+      componente ainda precisa de dois renders para chegar aqui.
+
+      Foi assim que o `Lead` sumia. Ver o cabeçalho de `meta-pixel.ts`.
+    */
+    metaDescarregarFila();
   }, [estado]);
 
   function decidir(valor: 'aceito' | 'recusado') {
