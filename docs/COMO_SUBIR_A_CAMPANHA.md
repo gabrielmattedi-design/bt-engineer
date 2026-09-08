@@ -315,8 +315,33 @@ Desligar não afeta `PageView`, `Lead` nem `Purchase`: os três são explícitos
    porque não valem nada.)
 3. Nome da campanha: `teste-set-01`
 4. **Tipo de compra: Leilão** — não "Reserva".
-5. **Orçamento da campanha (CBO): DESLIGADO.** Vamos por o orçamento no conjunto.
-6. Continuar.
+5. **Anúncios de catálogo Advantage+: DESATIVADO.** Ver abaixo.
+6. **Orçamento: tanto faz** — R$ 70/dia, na campanha ou no conjunto. Ver abaixo.
+7. **Estratégia de lance: Volume mais alto.** É a que manda o Meta buscar o máximo de conversões
+   dentro da verba.
+8. Continuar.
+
+> **Anúncios de catálogo Advantage+ tem de ficar desativado.** Não há catálogo de produtos aqui, e
+> ligá-lo mandaria informação de página e preço para a Meta por fora do nosso código — exatamente o
+> que a Parte 3-ter desliga, e pelo mesmo motivo.
+
+> ### ⚠️ Sobre o CBO, esta linha dizia "DESLIGADO" e afirmava mais do que os fatos permitem
+>
+> O orçamento de campanha (CBO) só importa quando há **mais de um conjunto**, porque aí é ele que
+> decide sozinho qual conjunto leva a verba. Este plano tem **um conjunto só**, com os 4 anúncios
+> dentro: com um conjunto, campanha e conjunto dão no mesmo, e os R$ 70 vão para o mesmo lugar.
+>
+> Então deixe onde o Meta já colocou e siga. A única consequência prática é que, com o orçamento na
+> campanha, o campo não reaparece dentro do conjunto — **o período de 7 dias continua sendo definido
+> lá**, na programação.
+>
+> Isto passa a importar no dia em que houver um segundo conjunto: aí o CBO divide a verba entre os
+> dois por conta própria, e a escolha volta a ser uma decisão.
+
+> **O "gasto diário máximo" maior que o orçamento não é erro.** Com R$ 70/dia o Meta anuncia um teto
+> diário de R$ 122,50 e um teto semanal de R$ 490. Ele gasta mais nos dias em que encontra
+> oportunidade boa e menos nos outros, respeitando o total da semana. Ver R$ 100 num dia é normal e
+> não é motivo para mexer em nada — e mexer reinicia o aprendizado.
 
 > **Por que Leilão e não Reserva.** Reserva (Alcance e Frequência) é outro produto: compra um número
 > garantido de impressões, com CPM fixo, contratado com antecedência. Serve para campanha de marca.
@@ -334,7 +359,7 @@ Desligar não afeta `PageView`, `Lead` nem `Purchase`: os três são explícitos
 | Nome | `teste-criativo` | — |
 | Local de conversão | **Site** | — |
 | Evento de conversão | **Compra** | ver abaixo — esta linha mudou em 08/09 |
-| Orçamento | **Diário, R$ 70** | 7 dias = R$ 490 |
+| Orçamento | **Diário, R$ 70** | não aparece aqui se já estiver na campanha — ver 4.1 |
 | Programação | começa amanhã, termina em 7 dias | — |
 | Público — Local | Brasil | — |
 | Público — Idade | 25 a 55 | — |
