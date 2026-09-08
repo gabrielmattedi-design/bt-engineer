@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { valorPagoEmReais } from '@/database/repositories/commerce-repo';
 import { markFunnelBySessionId } from '@/database/repositories/funnel-repo';
 import { BrandSignature } from '@/components/marketing/wordmark';
 import { SiteHeader } from '@/components/marketing/site-header';
@@ -9,6 +10,7 @@ import { CompatibilityRadar } from '@/components/result/radar';
 import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
 import { BaixarPdf } from '@/components/result/baixar-pdf';
+import { PurchasePixel } from '@/components/marketing/purchase-pixel';
 import { brl } from '@/payments/catalogo';
 import { precosPublicados } from '@/payments/precos';
 import { getReport } from '@/app/questionario/actions';
@@ -96,6 +98,17 @@ export default async function ResultadoPage({
   const compradorId = await paidOwnerSessionId(sessionId);
   if (compradorId) await markFunnelBySessionId(compradorId, 'report');
 
+  /*
+    O valor pago, para o evento de compra do pixel.
+
+    Lido aqui, no servidor, e não no componente: o cliente não tem — nem pode ter — acesso ao
+    pedido. Vai um número por props, e mais nada.
+
+    `null` quando não houve compra (relatório aberto por convite ou cupom) ou quando o banco não
+    está configurado. Nos dois casos o componente não dispara nada.
+  */
+  const valorPago = compradorId ? await valorPagoEmReais(sessionId) : null;
+
   const first = report.podium[0];
   const winner = first && !first.locked ? first : null;
 
@@ -116,6 +129,12 @@ export default async function ResultadoPage({
 
   return (
     <main className="min-h-screen pb-20">
+      {/*
+        Não renderiza nada. Dispara o evento de compra do pixel na PRIMEIRA visita vinda do
+        pagamento, e só nela — ver `purchase-pixel.tsx` para as duas travas.
+      */}
+      <PurchasePixel publicId={sessionId} valorEmReais={valorPago} />
+
       {/* Cabeçalho com a marca em destaque (§64) — fixo e clicável de volta ao início. */}
       <SiteHeader tone="dark" />
 

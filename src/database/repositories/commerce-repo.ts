@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
-import { db } from '@/database/client';
+import { db, isDatabaseConfigured } from '@/database/client';
 import {
   entitlements,
   orders,
@@ -359,6 +359,39 @@ export async function processPaymentEvent(
 }
 
 /** Revoga os entitlements de um pedido reembolsado (§7 do MONETIZATION). */
+/**
+ * Quanto foi pago por esta análise, em reais — para o evento de compra do pixel.
+ *
+ * ═══ POR QUE O VALOR REAL, E NÃO O TICKET MÉDIO ══════════════════════════════════════════════
+ *
+ * O Meta calcula retorno sobre o número que recebe. Mandar R$ 48 (a média) em toda compra faria o
+ * painel dele exibir um retorno que não existe em pedido nenhum: quem comprou o relatório simples
+ * apareceria valendo mais do que pagou, e quem comprou o setup completo, menos.
+ *
+ * Pior que impreciso, seria autoconfirmatório — a decisão de escalar sairia de uma média que a
+ * própria campanha não teria como mover.
+ *
+ * ═══ SOMA, PORQUE UMA ANÁLISE PODE TER MAIS DE UM PEDIDO ═════════════════════════════════════
+ *
+ * Existem upsells (desbloquear 2ª, 3ª, completar com corda e tensão). Quem compra o relatório e
+ * depois o upgrade fez dois pedidos pagos para a mesma análise. O valor da conversão é o total, e
+ * não o do primeiro.
+ */
+export async function valorPagoEmReais(publicId: string): Promise<number | null> {
+  if (!isDatabaseConfigured()) return null;
+
+  const rows = await db()
+    .select({ amountCents: orders.amountCents })
+    .from(orders)
+    .innerJoin(recommendationSessions, eq(recommendationSessions.id, orders.recommendationSessionId))
+    .where(and(eq(recommendationSessions.publicId, publicId), eq(orders.status, 'paid')));
+
+  if (rows.length === 0) return null;
+
+  const centavos = rows.reduce((total, r) => total + r.amountCents, 0);
+  return Number((centavos / 100).toFixed(2));
+}
+
 export async function revokeForOrder(orderId: string): Promise<void> {
   await db()
     .update(entitlements)

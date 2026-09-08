@@ -49,45 +49,104 @@ da fase de aprendizado e otimizar de verdade. A R$ 48 de ticket médio, 50 compr
 R$ 2.400 de receita — muito além do que R$ 500 de verba total produz. **Nenhum conjunto vai sair da
 fase de aprendizado**, e um teste de quatro braços com R$ 125 em cada mede sobretudo ruído.
 
-| | Como | Cliques por criativo (a R$ 0,80) | O que se aprende |
-|---|---|---|---|
-| A | 4 anúncios | ~150 | quase nada: 150 cliques não distinguem 2% de 4% |
-| **B** | **2 anúncios** | **~300** | **qual dos dois traz gente que termina o questionário** |
+> **REVISTO em 08/09.** Esta seção mandava rodar 2, com a conta de que 4 anúncios dariam ~150
+> cliques cada contra ~300 de dois. **A conta pressupunha divisão igual da verba, e o Meta não
+> divide igual** — num conjunto único ele concentra a entrega em um ou dois nos primeiros dias e
+> praticamente para de servir o resto. Aquele "R$ 122 para cada" nunca aconteceria.
 
-**Rode 2, não 4.** O dono já concordou em não testar todos, e isso é o que torna o teste legível:
-dobrar a verba por criativo é a única forma de sair do ruído com R$ 490.
+**Rode os 4, todos no mesmo conjunto.** A escolha real não é entre 150 e 300 cliques por peça: é
+entre dar ao algoritmo 2 ou 4 opções para achar o vencedor. Com 4 ele acha mais rápido, os
+perdedores param de ser servidos sozinhos e custam quase nada, e as peças já estão produzidas —
+deixá-las de fora não economiza dinheiro, só informação.
 
-**Quais 2: o melhor reel e o melhor estático.** Assim o teste responde formato e gancho ao mesmo
-tempo. É verdade que isso confunde as duas variáveis — se o reel ganhar, não dá para saber se foi
-o vídeo ou a mensagem. Com R$ 490 não existe desenho que separe as duas, e saber *"o vídeo com
-aquela mensagem funciona"* já decide a próxima campanha. Os outros dois entram na rodada seguinte,
-contra o vencedor desta.
+**O que não pode mudar: um conjunto só.** Quatro conjuntos separados forçam a divisão da verba, os
+quatro disputam o mesmo público e encarecem o leilão entre si. Esse é o erro caro.
 
-Os dois vão no **mesmo conjunto**, não em conjuntos separados: com verba pequena, dois conjuntos
-disputam o mesmo público e encarecem os dois leilões.
+**Critério para uma peça entrar:** ela tem de apontar para o mesmo lugar que a campanha mede. Um
+criativo terminando em "leia a legenda" manda a pessoa para dentro do Instagram, enquanto a campanha
+mede quem sai e compra — direções opostas no mesmo anúncio. Ver `COMO_SUBIR_A_CAMPANHA.md` §4.3.
 
 ---
 
-## 3. Por qual evento otimizar — e por que não é a compra
+## 3. Por qual evento otimizar — REVISTO em 08/09/2026 para COMPRA
 
-Otimizar por compra exige volume de compra, que R$ 500 não geram. Otimizar por clique compra
-cliques baratos de quem não faz nada depois.
+> **Esta seção recomendava `Lead` (início do questionário). Mudou depois de uma crítica externa, e
+> a mudança se sustenta num dado do próprio funil que nem eu nem o crítico tínhamos olhado.**
 
-**Otimize pelo meio do funil: "iniciou o questionário".** Ele acontece dezenas de vezes mais que a
-compra, o que dá ao algoritmo sinal suficiente para aprender, e ainda assim exige uma intenção real
-— ninguém começa um questionário técnico de raquete por acidente.
+O argumento original: compra não teria volume para o algoritmo aprender, então usar um evento do
+meio do funil que acontece muito mais vezes. A aritmética estava certa e a conclusão, errada.
+
+### O que derruba o `Lead`: o questionário não filtra ninguém
+
+| Etapa | Pessoas | Vira compra em |
+|---|---|---|
+| Abriu o questionário | 111 | 24,3% |
+| Terminou o questionário | 93 | 29% |
+| **Abriu os planos** | **38** | **71%** |
+| Pagou | 27 | — |
+
+**84% de quem abre o questionário termina.** O evento "iniciou o questionário" é praticamente
+"clicou no anúncio e não fechou a aba" — ele não separa quem compra de quem não compra.
+
+Um evento de otimização só serve se DISCRIMINA. Treinar o Meta por um evento que quase todo mundo
+dispara é pedir que ele encontre gente que clica em anúncio — e ele é ótimo nisso, o que é
+exatamente o problema. O custo por `Lead` ficaria excelente e a receita não viria, com todas as
+métricas da campanha parecendo boas.
+
+O que filtra de verdade é o **paywall** (38 → 27, 71%), e não há volume para otimizar por ele.
+
+### O custo da escolha, dito por inteiro
+
+| Evento | Volume estimado em 14 dias | Limiar do Meta (~50/semana) |
+|---|---|---|
+| `Lead` | ~244 (≈122/semana) | ✅ acima |
+| `Purchase` | ~20 a 60 (≈10–30/semana) | ❌ abaixo |
+
+Otimizar por compra fica em **aprendizado limitado** o tempo todo. Limitado não é quebrado — os
+modelos atuais lidam melhor com conversão esparsa do que a regra dos 50 sugere —, mas é o preço, e
+ele é real.
+
+### A concentração de verba, que ninguém tinha proposto
+
+**R$ 70/dia × 7 dias, e não R$ 35/dia × 14.** Mesma verba.
+
+A fase de aprendizado conta **50 conversões numa janela de 7 dias**, não 50 no total. Espalhar em 14
+dias garante nunca chegar perto; concentrar em 7 dobra a taxa semanal e dá chance real de
+convergir. Custa tempo de respiro para o teste de criativo — com otimização por compra, vale.
+
+### Gatilho de desistência, escrito antes de começar
+
+**Menos de 60 cliques nos primeiros 3 dias** significa que a entrega colapsou por falta de sinal.
+Aí troca para `Lead` e aceita o teste mais fraco. Trocar reinicia o aprendizado, então é decisão de
+uma vez só — não de ficar alternando.
+
+### Duas correções factuais na crítica que motivou a mudança
+
+Ela dizia "você já tem 31 compras registradas nesse período". São **27**, e — o que importa — elas
+estão **no nosso banco, não no pixel**. O pixel foi criado em 08/09 com histórico zero; o Meta não
+aprende com conversões que nunca viu.
+
+E o evento de compra **não existia no código**: `metaCompra` estava escrito e nunca era chamado.
+Otimizar por compra teria sido otimizar por um evento que nunca dispara. Construído no mesmo dia —
+ver §5.3.
 
 O funil interno já marca as seis etapas (`start`, `analysis`, `plans`, `checkout`, `paid`,
 `report`), então a leitura de verdade continua sendo nossa; o evento no Meta existe para o
 algoritmo, não para o relatório.
 
-### O número que define sucesso
+### O número que define sucesso: o CAC
 
-Não é o CPA, é o **custo por início de questionário**. E o limiar sai do seu próprio funil:
+Com a otimização por compra, a métrica é direta — **quanto custou cada venda**:
 
 ```
-custo máximo por início  =  R$ 45,60  ×  (taxa de quem inicia o questionário e paga)
+CAC  =  valor gasto  ÷  compras
 ```
+
+**Teto: R$ 45,60**, que é o líquido por venda. Abaixo disso a campanha se paga; acima, não.
+
+O custo por início de questionário continua valendo como leitura SECUNDÁRIA — ele separa "o anúncio
+não traz ninguém" de "traz e não compra", que exigem consertos diferentes (§6). Mas não é mais o
+número que decide.
 
 ### A taxa foi medida — 08/09/2026, antes da campanha
 
@@ -214,7 +273,39 @@ Trocar isso por poucos eventos, num momento em que o evento de otimização nem 
 paga. **Vale construir quando a campanha escalar** — e aí o consentimento já mora num cookie que o
 servidor lê, que é justamente o que `consent.ts` deixou pronto para esse dia.
 
-### 2. A home no celular, com olho de tráfego frio — ✅ vistoriada em 08/09/2026
+### 3. O evento de COMPRA — ✅ construído em 08/09/2026
+
+Sem ele, otimizar por compra seria otimizar por um evento que nunca dispara. `metaCompra` estava
+escrito em `meta-pixel.ts` e **nunca era chamado de lugar nenhum**.
+
+| | |
+|---|---|
+| `commerce-repo.ts` → `valorPagoEmReais` | soma os pedidos **pagos** da análise, em reais |
+| `retorno/[sessionId]` | redireciona com `?compra=1` — o sinal de "acabou de pagar" |
+| `purchase-pixel.tsx` | dispara na primeira visita vinda do pagamento, e só nela |
+| `tests/ethics/evento-de-compra.test.ts` | trava as duas defesas contra contagem dupla |
+
+**Por que na volta do pagamento e não no webhook.** Quem confirma o pagamento é o Mercado Pago
+chamando o nosso servidor, e ali o navegador não está — o pixel é código de navegador. Mandar do
+servidor exigiria a API de Conversões, adiada em §5.1-bis.
+
+**O que se perde:** quem paga e fecha o navegador antes de voltar não gera evento. O número do Meta
+será sempre um pouco MENOR que o do `/admin/funil`. Os dois estão certos, contando coisas
+diferentes — e saber disso antes evita procurar defeito onde não há.
+
+**Duas travas contra contar a mesma venda duas vezes**, porque contagem dupla infla o retorno e
+ninguém investiga um número que veio bom:
+
+1. o `?compra=1` só nasce no redirecionamento pós-pagamento — reabrir o relatório depois não traz;
+2. uma marca no `localStorage` cobre o recarregamento com o parâmetro ainda na barra.
+
+**O valor é o real, e a soma dos pedidos.** Nunca o ticket médio: o Meta calcula retorno sobre o
+número que recebe, e uma média produziria um retorno que nenhum pedido sustenta. A soma existe
+porque há upsells — quem compra o relatório e depois o setup fez dois pedidos para a mesma análise.
+Sem valor legível o evento **não vai**: um evento a menos deixa o número menor; um com valor
+inventado deixa o número errado, que é pior porque não parece.
+
+### 4. A home no celular, com olho de tráfego frio — ✅ vistoriada em 08/09/2026
 
 Medida com o site rodando, viewport de iPhone 13 (390 × 844), que é o aparelho mais comum do
 tráfego de Instagram no Brasil.
@@ -258,7 +349,7 @@ Três saídas, em ordem de esforço:
 **Recomendação: a 2.** Ela remove a surpresa sem reordenar a página, e mantém uma variável só no ar
 durante o teste de criativo. Mas é decisão de produto, não minha — e por isso não fiz.
 
-### 3. Configurar o id do pixel na Vercel
+### 5. Configurar o id do pixel na Vercel
 
 Quem vem de anúncio não conhece a marca e decide em três segundos. Vale abrir a home no celular e
 perguntar: em três segundos dá para saber o que isto faz e quanto custa? Se o preço só aparece

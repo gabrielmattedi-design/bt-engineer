@@ -81,7 +81,15 @@ export default async function RetornoPage({
   const tentativa = Math.min(TENTATIVAS, Math.max(0, Number(t ?? 0) || 0));
 
   const granted = await grantedEntitlements(sessionId);
-  if (granted.length > 0) redirect(`/resultado/${sessionId}`);
+  /*
+    `?compra=1` marca que esta chegada ao relatório vem DE UM PAGAMENTO que acabou de ser
+    confirmado — e não de alguém reabrindo o que já comprou.
+
+    É a trava principal contra contar a mesma venda duas vezes no pixel. Este redirecionamento é o
+    único lugar do sistema que produz o parâmetro, e ele acontece uma vez por compra.
+    Ver `components/marketing/purchase-pixel.tsx`.
+  */
+  if (granted.length > 0) redirect(`/resultado/${sessionId}?compra=1`);
 
   const aindaEsperando = tentativa < TENTATIVAS;
 
