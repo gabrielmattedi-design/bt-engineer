@@ -118,17 +118,36 @@ desfazer.
 
 **Onde:** `business.facebook.com/events_manager`
 
-1. Confira, no alto da tela, que você está **dentro do portfólio Tennis Engineer** — não na conta
-   pessoal nem em outro negócio. É onde erra quem tem mais de um.
-2. Clique em **"Conectar fontes de dados"** → **"Web"** → **"Conectar"**.
-   *(Dá para chegar no mesmo lugar pelas Configurações do portfólio → **Fontes de dados** →
-   **Conjuntos de dados**, que é o menu logo abaixo de "Contas".)*
-3. Dê um nome: `Tennis Engineer — site`.
-4. Ele vai perguntar como instalar. Escolha **"Instalar código manualmente"**.
-   Não precisa copiar o código que ele mostra — ele já está no site.
-5. **Copie o número do pixel.** São ~15 dígitos, aparece no topo da tela. É só isso que você precisa.
+> ### ⚠️ "Pixel" agora se chama "conjunto de dados"
+>
+> O Meta renomeou, e a palavra "pixel" quase sumiu da interface. **Criar um conjunto de dados É
+> criar o pixel** — não são coisas diferentes, e não existe um botão "criar pixel" para procurar.
+>
+> Foi o que travou o dono em 08/09: ele chegou na tela certa, viu "Conjuntos de dados e pixels" e
+> não reconheceu que era ali.
 
-> Se ele insistir em verificar a instalação, pule. O pixel só vai responder depois da Parte 2.
+Dois caminhos chegam no mesmo lugar. O segundo é o que você já tem aberto se veio das Configurações:
+
+**Caminho A — pelo Gerenciador de Eventos:** `business.facebook.com/events_manager` →
+**"Conectar fontes de dados"** → **"Web"** → **"Conectar"**.
+
+**Caminho B — pelas Configurações do portfólio:** **Fontes de dados** → **Conjuntos de dados e
+pixels** → botão **`+ Adicionar`**.
+
+Depois, nos dois:
+
+1. Confira no alto da tela que você está **dentro do portfólio Tennis Engineer** — não na conta
+   pessoal nem em outro negócio. É onde erra quem tem mais de um, e um pixel no portfólio errado só
+   se revela quando a campanha não otimiza.
+2. Nome: `Tennis Engineer — site`.
+3. Se ele oferecer método de instalação, escolha **"Instalar código manualmente"** — ou feche. **Não
+   copie o código que ele mostra**: ele já está no site, e colar de novo faria o pixel disparar
+   duas vezes por página.
+4. **Copie o ID**, ~15 dígitos. Ele aparece na listagem logo abaixo do nome do conjunto; se não
+   aparecer, clique no conjunto e ele fica no topo da tela de detalhes.
+
+> Se ele insistir em verificar a instalação, pule. O pixel só vai responder depois da Parte 2 — o
+> site ainda não sabe o número.
 
 ---
 
