@@ -252,6 +252,58 @@ em **Recusar**, e confira na extensão que **nada** é carregado.
 
 ---
 
+## Parte 3-bis — Conferir o evento de COMPRA
+
+Esta parte não existia no plano original: ela nasceu quando a otimização mudou de `Lead` para
+`Compra` (ver 4.2). Sem ela, a campanha otimizaria por um evento não verificado.
+
+**O que se está provando aqui não é que o evento dispara — é que ele dispara UMA vez.** Contar a
+mesma venda duas vezes dobra o retorno aparente, e ninguém investiga um número que veio bom.
+
+1. Aba anônima, **Aceitar** o banner. Console (F12) → **Network** → filtro `tr/?`.
+2. Questionário + pagamento com cartão de teste do Mercado Pago.
+3. Na volta, deve surgir **um** `tr/?id=<pixel>&ev=Purchase` com **status 200**.
+4. O `?compra=1` deve **sumir sozinho** da barra de endereço, sem recarregar.
+5. Em **Payload**, conferir `cd[value]` com o valor real e `cd[currency]=BRL`.
+6. **F5 na página do relatório: não pode aparecer outro `Purchase`.**
+7. Fechar a aba e reabrir o link do relatório: também não pode.
+
+> **Passou em 08/09/2026.** `Purchase` com 200 no retorno do pagamento; F5 devolveu só `PageView`.
+> As duas travas — o parâmetro na URL e a marca no `localStorage` — funcionam em produção.
+
+**Observação sobre o valor:** o código não envia evento sem valor legível
+(`purchase-pixel.tsx`: `if (valorEmReais === null || valorEmReais <= 0) return`). Então um `Purchase`
+que aparece já é, por construção, um evento com valor positivo. A alternativa — mandar zero ou o
+ticket médio — envenenaria a única conta que decide escalar.
+
+---
+
+## Parte 3-ter — Desligar o que o Meta liga sozinho
+
+**Onde:** Gerenciador de Eventos → seu pixel → **Configurações**
+
+Desative **"Incluir automaticamente informações mais detalhadas de páginas e produtos"** e qualquer
+detecção automática de eventos que houver ali.
+
+**Por quê.** O recurso "usa IA para identificar e enviar mais detalhes do site, como informações
+básicas da página, avaliações e preços" — ou seja, o Meta lê a página e manda o que achar relevante,
+sem passar pelo nosso código.
+
+Isso quebra por fora uma garantia que o projeto sustenta por dentro: `src/lib/meta-pixel.ts` diz que
+os eventos daqui carregam **apenas constantes escritas naquele arquivo**, e
+`tests/ethics/consentimento.test.ts` proíbe estruturalmente que o módulo do pixel importe perfil,
+respostas ou resultado. O motivo é concreto — uma das perguntas do questionário é sobre **dor no
+cotovelo**, que é dado de saúde. Nenhum teste nosso impede uma IA da Meta de raspar a página; a
+única trava disponível para esse caminho é o botão desligado.
+
+A detecção automática de eventos tem ainda um efeito prático: ela inventa eventos a partir de
+cliques em botões — foi a origem provável dos `Subscribe` fantasmas vistos em 08/09, com o botão de
+plano virando "assinatura" na cabeça do detector.
+
+Desligar não afeta `PageView`, `Lead` nem `Purchase`: os três são explícitos no nosso código.
+
+---
+
 ## Parte 4 — Criar a campanha
 
 **Onde:** `adsmanager.facebook.com`
@@ -271,19 +323,44 @@ em **Recusar**, e confira na extensão que **nada** é carregado.
 |---|---|---|
 | Nome | `teste-criativo` | — |
 | Local de conversão | **Site** | — |
-| Evento de conversão | **Lead** | ⚠️ **não** use "Compra" — ver abaixo |
-| Orçamento | **Diário, R$ 35** | 14 dias = R$ 490 |
-| Programação | começa amanhã, termina em 14 dias | — |
+| Evento de conversão | **Compra** | ver abaixo — esta linha mudou em 08/09 |
+| Orçamento | **Diário, R$ 70** | 7 dias = R$ 490 |
+| Programação | começa amanhã, termina em 7 dias | — |
 | Público — Local | Brasil | — |
 | Público — Idade | 25 a 55 | — |
 | Público — Detalhamento | **Tênis** (interesse) | e só isso |
 | Advantage+ / público avançado | pode deixar ligado | dá espaço para o algoritmo achar quem responde |
 | Posicionamentos | **Automático** | — |
 
-> **Por que "Lead" e não "Compra".** O Meta precisa de umas 50 conversões por semana para aprender.
-> A R$ 48 de ticket, 50 compras semanais seriam R$ 2.400 de receita — muito acima de R$ 490 de
-> verba. Com "Compra" ele nunca junta exemplos suficientes e entrega no escuro. "Lead" é o início do
-> questionário, que acontece muito mais vezes e já exige intenção real.
+> ### ⚠️ Esta escolha era "Lead" até 08/09, e foi trocada
+>
+> O argumento antigo estava escrito aqui: o Meta precisa de ~50 conversões por semana para aprender,
+> e não há verba para 50 compras semanais — então otimizar por `Lead`, que acontece muito mais vezes.
+>
+> **O que derrubou o argumento foi o nosso próprio funil.** 84% de quem abre o questionário termina.
+> Ou seja, `Lead` é praticamente "clicou no anúncio e não fechou a aba" — ele não separa quem compra
+> de quem não compra. Um evento de otimização só serve se DISCRIMINA. Treinar o Meta por um evento
+> que quase todo mundo dispara é pedir que ele ache gente que clica em anúncio, e ele é ótimo nisso:
+> o custo por `Lead` ficaria excelente, a receita não viria, e todas as métricas da campanha
+> pareceriam boas.
+>
+> **O preço da troca, dito por inteiro:** com `Compra` a campanha fica em *aprendizado limitado* o
+> tempo todo (~10 a 30 compras/semana contra as 50 do limiar). Limitado não é quebrado, mas é real.
+>
+> **Por isso R$ 70/dia × 7 dias, e não R$ 35 × 14** — mesma verba. A fase de aprendizado conta 50
+> conversões numa **janela de 7 dias**, não 50 no total. Espalhar em 14 dias garante nunca chegar
+> perto. Custa tempo de respiro para o teste de criativo; com otimização por compra, vale.
+>
+> **Gatilho de desistência, escrito antes de começar:** menos de **60 cliques nos primeiros 3 dias**
+> significa que a entrega colapsou por falta de sinal. Aí troca para `Lead` e aceita o teste mais
+> fraco. Trocar reinicia o aprendizado, então é decisão de uma vez só — não de ficar alternando.
+>
+> Raciocínio completo, com os números: `docs/TRAFEGO_PAGO.md` §5.
+>
+> **Pré-requisito que não é óbvio:** o evento `Purchase` não existia no código até 08/09 —
+> `metaCompra` estava escrito e nunca era chamado. Otimizar por compra teria sido otimizar por um
+> evento que nunca dispara. Antes de escolher "Compra" aqui, o teste da Parte 3-bis tem que ter
+> passado.
 
 ### 4.3 Os anúncios
 
@@ -324,7 +401,7 @@ Não é "vender ou não vender". É:
 O caso que criou esta regra: havia um vídeo de 6s terminando em *"leia a legenda"*. Ele manda a
 pessoa para DENTRO do Instagram; a campanha otimiza por alguém que SAI do Instagram e começa o
 questionário. São direções opostas no mesmo anúncio — o Meta serviria, ninguém clicaria, o custo por
-`Lead` explodiria e o algoritmo o mataria em dois dias, ao custo de uns R$ 30 para descobrir algo
+conversão explodiria e o algoritmo o mataria em dois dias, ao custo de uns R$ 30 para descobrir algo
 previsível.
 
 A peça não era ruim: 6 segundos é ótimo formato para Reels. **Estava a uma frase de servir** — trocar
@@ -377,13 +454,22 @@ Revise e publique. O Meta leva algumas horas para aprovar.
 
 ## Parte 5 — Depois de ligar
 
-### Os primeiros 4 dias: não toque em nada
+### Os primeiros 3 dias: não toque em nada
 
-Qualquer alteração — orçamento, público, criativo, texto — **reinicia a fase de aprendizado**, e com
-R$ 35/dia não há verba para reaprender. A vontade de mexer no dia 2 é o erro mais caro que existe em
-campanha pequena.
+Qualquer alteração — orçamento, público, criativo, texto — **reinicia a fase de aprendizado**, e uma
+campanha de 7 dias não tem tempo para reaprender. A vontade de mexer no dia 2 é o erro mais caro que
+existe em campanha pequena.
 
-Se o resultado do dia 1 parecer horrível, é normal. O algoritmo está explorando.
+Se o resultado do dia 1 parecer horrível, é normal. O algoritmo está explorando — e com otimização
+por compra ele explora mais, porque tem menos exemplos.
+
+### No dia 3: o único gatilho
+
+**Menos de 60 cliques acumulados** significa que a entrega colapsou por falta de sinal de conversão.
+Aí, e só aí, troque o evento do conjunto para **Lead** e aceite um teste mais fraco.
+
+É decisão de uma vez só: trocar reinicia o aprendizado, então alternar entre os dois eventos garante
+nunca sair da exploração. Com 60 cliques ou mais, deixe como está mesmo que ainda não haja compras.
 
 ### A partir do dia 7
 
@@ -396,25 +482,35 @@ coluna **Criativo**. Anote por criativo:
 
 E no Gerenciador de Anúncios, anote o **valor gasto por anúncio**.
 
-Com esses dois lados dá para fechar a conta:
+Com esses dois lados dá para fechar a conta que decide:
 
 ```
-custo por início  =  valor gasto  ÷  pessoas que chegaram
+CAC  =  valor gasto  ÷  compras
 ```
 
-**Compare com R$ 11,08**, que é o teto calculado a partir da sua conversão real de 24,3%
-(`TRAFEGO_PAGO.md` §3). Abaixo disso, a campanha se paga.
+**Teto: R$ 45,60** — o líquido por venda (`TRAFEGO_PAGO.md` §3). Abaixo disso a campanha se paga.
+
+O **custo por início** (`valor gasto ÷ chegaram`, teto R$ 11,08) continua valendo como leitura
+secundária: ele separa "o anúncio não traz ninguém" de "traz e não compra", que exigem consertos
+diferentes. Mas não é mais o número que decide.
+
+> **Cuidado com o número do Meta contra o nosso.** Quem paga e fecha o navegador antes de voltar do
+> gateway não gera evento no pixel — o total do Meta será sempre um pouco MENOR que o do
+> `/admin/funil`. Os dois estão certos, contando coisas diferentes. Para calcular CAC, use as
+> compras do **`/admin/funil`**, que é o registro completo.
 
 ### Quando parar
 
 Escrito antes de começar, porque depois de gastar é tarde para ser imparcial:
 
-- **Custo por início abaixo de R$ 5** → funcionou. Escale devagar (+20% de orçamento por semana,
-  nunca dobrando).
-- **Entre R$ 5 e R$ 11** → funciona, mas apertado. Vale mais consertar o degrau da prévia
+- **CAC abaixo de R$ 25** → funcionou. Escale devagar (+20% de orçamento por semana, nunca
+  dobrando).
+- **Entre R$ 25 e R$ 45,60** → funciona, mas apertado. Vale mais consertar o degrau da prévia
   (`TRAFEGO_PAGO.md` §5-bis) do que por mais verba.
-- **Acima de R$ 11** → tráfego frio não fecha a conta com este funil. A saída não é mais verba: é
+- **Acima de R$ 45,60** → tráfego frio não fecha a conta com este funil. A saída não é mais verba: é
   ticket maior, funil mais curto, ou outro canal.
+- **Zero compras, mas custo por início abaixo de R$ 5** → o anúncio funciona e o site não converte
+  frio. O conserto é no funil, não na campanha.
 - **Ninguém inicia o questionário** → o problema é a home, não o anúncio. Pause e conserte antes de
   gastar o resto.
 
@@ -428,6 +524,9 @@ Escrito antes de começar, porque depois de gastar é tarde para ser imparcial:
 | 1 | business.facebook.com/events_manager | **dentro do portfólio novo**: criar o pixel, copiar o número |
 | 2 | vercel.com | `NEXT_PUBLIC_META_PIXEL_ID` + **redeploy** |
 | 3 | seu site, aba anônima | conferir com o Meta Pixel Helper (aceitar **e** recusar) |
-| 4 | adsmanager.facebook.com | campanha Vendas → conjunto com evento **Lead** → 2 anúncios com `utm_content` diferente |
-| 5 | — | **não mexer por 4 dias** |
-| 6 | /admin/funil + Gerenciador | do dia 7: custo por início vs. R$ 11,08 |
+| 3-bis | seu site + Network | compra de teste: **um** `ev=Purchase`, e o F5 **não** repete ✅ 08/09 |
+| 3-ter | Gerenciador de Eventos → Configurações | **desligar** os eventos automáticos e a raspagem de página |
+| 4 | adsmanager.facebook.com | campanha Vendas → conjunto com evento **Compra**, R$ 70/dia × 7 dias → 4 anúncios com `utm_content` diferente |
+| 5 | — | **não mexer por 3 dias** |
+| 5-bis | Gerenciador | dia 3: menos de 60 cliques → trocar para `Lead`, uma vez só |
+| 6 | /admin/funil + Gerenciador | dia 7: **CAC vs. R$ 45,60** |
