@@ -424,27 +424,26 @@ questionário — quase ninguém está vendo. A saída não é descartar o víde
 10 a 15 segundos** com gancho + relance da demonstração + CTA. Como não é preciso publicar nada,
 cortar variações custa só o tempo de edição.
 
-**Anúncio 1 — o reel:**
-- Formato: vídeo único
-- Mídia: o reel escolhido
-- Texto principal e título: os da pauta
-- **URL do site:**
-  ```
-  https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=reel-3-erros
-  ```
-- Chamada para ação: **Saiba mais**
+Os quatro são iguais em tudo — formato conforme a mídia, chamada para ação **Saiba mais**, texto e
+título vindos da pauta — e diferem **só no `utm_content` da URL**:
 
-**Anúncio 2 — o estático:**
-- Formato: imagem única
-- **URL do site:**
-  ```
-  https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=estatico-4-7
-  ```
+| Anúncio | Formato | `utm_content` |
+|---|---|---|
+| 1 — reel dos 3 erros | vídeo único | `reel-3-erros` |
+| 2 — reel de 6s (com o CTA trocado) | vídeo único | `reel-6s` |
+| 3 — estático da posição 4,7 | imagem única | `estatico-4-7` |
+| 4 — estático do preço | imagem única | `estatico-preco` |
 
-> ⚠️ **O `utm_content` diferente em cada um é o que faz o teste existir.** Se os dois anúncios
-> tiverem a mesma URL, eles viram uma linha só na coluna "Criativo" do `/admin/funil` e não há como
-> saber qual funcionou. É o único passo desta lista que, se você errar, não dá para consertar
-> depois — o dado do clique só existe no instante do clique.
+A URL de cada um, trocando só a última palavra:
+
+```
+https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=reel-3-erros
+```
+
+> ⚠️ **O `utm_content` diferente em cada um é o que faz o teste existir.** Se dois anúncios tiverem
+> a mesma URL, eles viram uma linha só na coluna "Criativo" do `/admin/funil` e não há como saber
+> qual funcionou. É o único passo desta lista que, se você errar, não dá para consertar depois — o
+> dado do clique só existe no instante do clique.
 
 ### 4.4 Publicar
 
