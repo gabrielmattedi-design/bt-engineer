@@ -11,10 +11,22 @@ import { visitorToken } from './visitor';
  *
  * ═══ POR QUE UMA SERVER ACTION, E NÃO UM SCRIPT DE ANALYTICS ═════════════════════════════════
  *
- * Porque não há script de rastreamento neste produto e não vai haver. O avanço de etapa é uma
- * chamada ao próprio servidor, com o cookie que já existe, gravando numa tabela que já é nossa. O
- * navegador do visitante não fala com ninguém além de nós — que é a única razão pela qual dá para
- * prometer isso na política de privacidade e cumprir.
+ * Porque o avanço de etapa é uma chamada ao próprio servidor, com o cookie que já existe, gravando
+ * numa tabela que já é nossa. Esta medição não depende de terceiro nenhum.
+ *
+ * ─── ATUALIZADO EM 08/09/2026 ──────────────────────────────────────────────────────────────
+ *
+ * Este parágrafo dizia "não há script de rastreamento neste produto e não vai haver". A segunda
+ * metade deixou de ser verdade: entrou o pixel do Meta, para poder comprar tráfego
+ * (`docs/TRAFEGO_PAGO.md` §5). A primeira metade continua valendo AQUI, e a distinção é o ponto:
+ *
+ *   - esta server action é a medição que DECIDE, e funciona para todo mundo — inclusive para quem
+ *     recusou o cookie de rastreamento;
+ *   - o pixel é medição para o ALGORITMO da campanha, só existe com consentimento, e some junto
+ *     com a campanha.
+ *
+ * Se um dia o pixel sair, o funil continua inteiro. É por isso que ele nunca foi construído em
+ * cima do pixel, mesmo sendo mais fácil.
  *
  * ═══ O QUE ELA NÃO PODE FAZER ════════════════════════════════════════════════════════════════
  *

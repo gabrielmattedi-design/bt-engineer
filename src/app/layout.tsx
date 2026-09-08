@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Sora } from 'next/font/google';
 import './globals.css';
 import { TestModeBanner } from '@/components/marketing/test-mode-banner';
+import { ConsentBanner } from '@/components/marketing/consent-banner';
 import { SITE_URL } from '@/lib/site';
 
 /** Tipografia do brand book: Sora nos títulos e números, Inter no texto de interface. */
@@ -52,6 +53,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <TestModeBanner />
         {children}
+        {/*
+          Por último no body de propósito: o banner é `fixed`, então a posição no DOM não muda onde
+          ele aparece — muda a ORDEM DE FOCO. Aqui, quem navega por teclado percorre a página
+          inteira antes de chegar nele, em vez de esbarrar num aviso de cookie antes do conteúdo
+          que veio ver.
+        */}
+        <ConsentBanner />
       </body>
     </html>
   );

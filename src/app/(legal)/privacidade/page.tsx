@@ -64,10 +64,30 @@ export default function PrivacidadePage() {
 
       <h2>O que não guardamos</h2>
       <p>
-        Não registramos endereço de IP, tipo de navegador, localização, nem de onde você veio ao
-        chegar. Não usamos Google Analytics, pixel de rede social, nem qualquer script de
-        rastreamento de terceiros — a medição de uso é feita no nosso próprio banco, e registra
-        apenas que alguém alcançou uma etapa, sem nada que identifique a pessoa.
+        Nós não registramos endereço de IP, tipo de navegador, localização, nem de onde você veio ao
+        chegar. Não usamos Google Analytics. A nossa medição de uso é feita no nosso próprio banco e
+        registra apenas que alguém alcançou uma etapa, sem nada que identifique a pessoa — e ela
+        funciona assim para todo mundo, inclusive para quem recusa o cookie de medição abaixo.
+      </p>
+
+      <h2>O cookie de medição do Meta</h2>
+      <p>
+        Quando anunciamos, precisamos saber quais anúncios trazem pessoas que se interessam de
+        verdade. Para isso usamos o <strong>pixel do Meta</strong> (Facebook e Instagram), que só é
+        carregado <strong>depois de você aceitar</strong> — se você recusar, ou simplesmente não
+        responder, ele não é carregado em momento nenhum.
+      </p>
+      <p>
+        Quando você aceita, o Meta recebe que alguém visitou uma página do site e que começou o
+        questionário. Quem faz esse registro é o Meta, com as próprias regras dele, e por isso ele
+        pode relacionar essa visita à sua conta do Facebook ou do Instagram, se você tiver uma. Esse
+        é o ponto em que o nosso &quot;não guardamos nada sobre você&quot; passa a ter uma exceção, e
+        é por isso que perguntamos antes em vez de simplesmente ligar.
+      </p>
+      <p>
+        Nós nunca enviamos ao Meta o que você respondeu no questionário, o seu resultado, o seu
+        e-mail ou o seu nome. Recusar não muda nada no site: o questionário, a análise e o relatório
+        funcionam igual.
       </p>
       <p>
         Quando você chega por um link de anúncio, guardamos os parâmetros de campanha que o próprio
@@ -77,16 +97,23 @@ export default function PrivacidadePage() {
 
       <h2>Cookies</h2>
       <p>
-        Usamos apenas cookies próprios e necessários: o identificador anônimo da sua análise, a
-        sessão de quem faz login e, quando você vem de um anúncio, o nome da campanha. Nenhum deles
-        segue você em outros sites, porque nenhum é de terceiro.
+        Os cookies necessários são todos nossos: o identificador anônimo da sua análise, a sessão de
+        quem faz login, o nome da campanha quando você vem de um anúncio, e a sua resposta ao aviso
+        de medição — esta última guardada justamente para não perguntarmos de novo a cada visita.
+        Nenhum deles segue você em outros sites.
+      </p>
+      <p>
+        Existe um único cookie de terceiro, o do Meta descrito acima, e ele só passa a existir se
+        você aceitar. Para mudar de ideia depois, apague os cookies deste site no seu navegador: o
+        aviso aparece de novo e você responde outra coisa.
       </p>
 
       <h2>Com quem compartilhamos</h2>
       <p>
-        Com dois fornecedores, e só com o mínimo que cada um precisa: o <strong>Mercado Pago</strong>{' '}
-        processa o pagamento, e o <strong>Resend</strong> entrega os e-mails. Não vendemos, alugamos
-        nem cedemos dados para ninguém, em nenhuma hipótese.
+        Com o mínimo que cada fornecedor precisa: o <strong>Mercado Pago</strong> processa o
+        pagamento, o <strong>Resend</strong> entrega os e-mails e o <strong>Meta</strong> recebe as
+        visitas de quem aceitou o cookie de medição, como descrito acima. Não vendemos, alugamos nem
+        cedemos dados para ninguém, em nenhuma hipótese.
       </p>
 
       <h2>Por quanto tempo</h2>

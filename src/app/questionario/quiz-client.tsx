@@ -1,6 +1,7 @@
 'use client';
 
 import { trackQuizStep } from './funnel-actions';
+import { metaInicioDeQuestionario } from '@/lib/meta-pixel';
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -94,7 +95,22 @@ export function QuizClient({ rackets }: { rackets: readonly RacketOption[] }) {
     <QuizForm
       onComplete={handleComplete}
       rackets={rackets}
-      onStep={(i) => void trackQuizStep(i)}
+      /*
+        Duas medições no mesmo evento, e elas NÃO são redundantes.
+
+        `trackQuizStep` grava no nosso banco e alimenta o /admin/funil — é a medição que decide.
+        `metaInicioDeQuestionario` avisa o Meta, e existe só para o algoritmo da campanha ter por
+        que otimizar (`docs/TRAFEGO_PAGO.md` §3). Uma sobrevive sem a outra: quem recusa o cookie
+        de rastreamento continua contado no nosso funil, e o dia em que a campanha acabar o funil
+        continua de pé.
+
+        O evento do Meta é no-op quando não há consentimento — `metaEvento` checa a existência do
+        `fbq`, que só nasce depois do aceite. Por isso a chamada aqui é incondicional.
+      */
+      onStep={(i) => {
+        void trackQuizStep(i);
+        if (i === 0) metaInicioDeQuestionario();
+      }}
     />
   );
 }
