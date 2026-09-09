@@ -480,7 +480,34 @@ https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste
 > qual funcionou. É o único passo desta lista que, se você errar, não dá para consertar depois — o
 > dado do clique só existe no instante do clique.
 
-### 4.4 Publicar
+### 4.4 Antes de publicar: o teste das quatro URLs
+
+É a única conferência que testa a coisa sem conserto. `estatico-4-7` e `estatico-47` parecem iguais
+numa olhada e produzem linhas diferentes — e o dado do clique só existe no instante do clique.
+
+Para **cada** uma das quatro URLs:
+
+1. **Janela anônima nova** — uma por URL. A atribuição é de primeiro toque, com cookie de 30 dias:
+   na mesma janela, as quatro visitas seriam creditadas só à primeira.
+2. Cole a URL do campo de destino do anúncio (copie, não redigite) e abra.
+3. **Comece o questionário** e responda a primeira tela.
+4. Feche a janela inteira.
+
+> ⚠️ **O passo 3 não é opcional, e foi onde este teste falhou na primeira vez.** Visitar a home com
+> o link só grava um cookie no navegador; a linha no banco nasce na etapa 0 do questionário
+> (`funnel-actions.ts`, `if (stepIndex === 0) await recordVisitorCampaign(token)`). Abrir as quatro
+> URLs e parar na home não produz linha nenhuma — o que parece "a medição está quebrada" e não é.
+
+Depois abra `/admin/funil` → **"De onde vieram"**. Têm de aparecer **quatro linhas** com
+`meta` / `teste-set-01` / os quatro criativos.
+
+- Menos de quatro linhas → dois anúncios estão com a mesma URL.
+- Coluna Criativo vazia (`—`) → faltou o `utm_content` em alguma.
+- Nenhuma linha → faltou o `utm_source`: sem ele o middleware não grava nada (`middleware.ts:58`).
+
+Some 4 ao "Abriu o questionário" do funil geral. É ruído seu, e dilui assim que a campanha rodar.
+
+### 4.5 Publicar
 
 Revise e publique. O Meta leva algumas horas para aprovar.
 
@@ -510,7 +537,15 @@ nunca sair da exploração. Com 60 cliques ou mais, deixe como está mesmo que a
 Abra `tennisengineer.com.br/admin/funil`, janela de 7 dias, e olhe a tabela de baixo — a que tem a
 coluna **Criativo**. Anote por criativo:
 
-- **Chegaram** (visitantes)
+- **Chegaram** — ⚠️ **não são visitantes: é quem ABRIU o questionário.** A linha de origem só nasce
+  na etapa 0 do questionário (`funnel-actions.ts`, `if (stepIndex === 0)`); visitar a home com o
+  link só grava um cookie no navegador. Quem clica no anúncio e sai da home é invisível nesta
+  tabela — e um criativo que traga 100 cliques sem nenhuma abertura não aparece aqui de forma
+  alguma, o que se leria erradamente como "não trouxe ninguém".
+
+  Isso dá de graça o melhor diagnóstico da campanha: **cliques do Meta ÷ Chegaram**. Se o Meta
+  marcar 300 cliques e a tabela mostrar 60, o problema é a home, não o criativo — e nenhum ajuste
+  de campanha conserta isso.
 - **Terminaram** (o questionário)
 - **Pagaram**
 
