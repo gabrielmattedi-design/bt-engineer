@@ -465,7 +465,7 @@ título vindos da pauta — e diferem **só no `utm_content` da URL**:
 | Anúncio | Formato | `utm_content` |
 |---|---|---|
 | 1 — reel dos 3 erros | vídeo único | `reel-3-erros` |
-| 2 — reel de 6s (com o CTA trocado) | vídeo único | `reel-6s` |
+| 2 — vídeo de 30s, mostra a plataforma e o relatório | vídeo único | `reel-30s` |
 | 3 — estático da posição 4,7 | imagem única | `estatico-4-7` |
 | 4 — estático do preço | imagem única | `estatico-preco` |
 
