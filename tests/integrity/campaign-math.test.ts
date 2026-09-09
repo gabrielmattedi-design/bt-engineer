@@ -83,3 +83,31 @@ describe('desempenho por origem', () => {
     expect(linhas.map((l) => l.campaign)).toEqual(['agosto', 'setembro']);
   });
 });
+
+/**
+ * ═══ A JUNÇÃO NÃO PODE CREDITAR O PASSADO AO ANÚNCIO ═════════════════════════════════════════
+ *
+ * `computeCampaigns` só faz a aritmética sobre números já contados. Quem os conta é a consulta, e
+ * é lá que mora o defeito que este bloco tranca.
+ *
+ * O caso que revelou, em 09/09/2026: o dono fez uma compra de teste e, horas depois, abriu o
+ * questionário por um link `utm_content=reel-3-erros`. A tabela mostrou aquele criativo com uma
+ * venda — anterior ao anúncio existir.
+ *
+ * Na campanha real não é caso de teste: é o cliente que já comprou, vê o anúncio, clica e começa
+ * outro questionário. A compra velha vai para a coluna do criativo, o criativo parece o vencedor, e
+ * a verba seguinte vai para ele. Nenhum teste de aritmética pega isso, porque a aritmética está
+ * certa — o número que entra nela é que está errado.
+ */
+describe('a junção entre marcadores e campanha', () => {
+  it('só conta marcador posterior à linha de campanha', async () => {
+    const { readFileSync } = await import('node:fs');
+    const fonte = readFileSync('src/database/repositories/campaign-repo.ts', 'utf8');
+    const juncao = fonte.slice(fonte.indexOf('.leftJoin('), fonte.indexOf('.where('));
+
+    expect(
+      juncao.includes('gte(funnelMarkers.createdAt, visitorCampaigns.createdAt)'),
+      'sem a restrição de tempo, uma compra anterior ao clique é creditada ao criativo',
+    ).toBe(true);
+  });
+});

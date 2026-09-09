@@ -107,7 +107,31 @@ export async function campaignReport(sinceDays: number | null = null): Promise<L
       paid: sql<number>`count(distinct ${funnelMarkers.visitorHash}) filter (where ${funnelMarkers.marker} = 'paid')::int`,
     })
     .from(visitorCampaigns)
-    .leftJoin(funnelMarkers, eq(funnelMarkers.visitorHash, visitorCampaigns.visitorHash))
+    /*
+      ─── POR QUE A JUNÇÃO TEM RESTRIÇÃO DE TEMPO ─────────────────────────────────────────────
+
+      Ligar só pelo visitante creditava ao criativo QUALQUER marcador daquela pessoa, inclusive os
+      anteriores ao clique no anúncio.
+
+      O caso real que revelou isto, em 09/09/2026: o dono fez uma compra de teste, e horas depois
+      abriu o questionário por um link `utm_content=reel-3-erros`. A tabela mostrou o criativo com
+      1 chegada, 1 conclusão e **1 venda** — uma venda que aconteceu antes de o anúncio existir.
+
+      Na campanha isso não seria um caso de teste: é o cliente que já comprou, vê o anúncio, clica
+      e começa outro questionário. A compra velha dele vai para a coluna do criativo. Com quatro
+      criativos e poucas vendas, um ou dois desses elegem o vencedor errado — e o número vem bonito,
+      que é o pior jeito de estar errado.
+
+      `gte` e não `gt` porque o marcador `quiz:start` e a linha de campanha nascem na mesma ação
+      (etapa 0), e podem gravar o mesmo instante.
+    */
+    .leftJoin(
+      funnelMarkers,
+      and(
+        eq(funnelMarkers.visitorHash, visitorCampaigns.visitorHash),
+        gte(funnelMarkers.createdAt, visitorCampaigns.createdAt),
+      ),
+    )
     .where(filtros.length > 0 ? and(...filtros) : undefined)
     .groupBy(visitorCampaigns.source, visitorCampaigns.campaign, visitorCampaigns.content);
 
