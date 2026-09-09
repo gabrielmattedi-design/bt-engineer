@@ -524,10 +524,49 @@ existe em campanha pequena.
 Se o resultado do dia 1 parecer horrível, é normal. O algoritmo está explorando — e com otimização
 por compra ele explora mais, porque tem menos exemplos.
 
+**Resultado ruim é normal. Resultado ZERO não é** — e a diferença está na seção seguinte.
+
+### ⚠️ Entrega zero no dia 1 — o caso que aconteceu em 09/09/2026
+
+Entrega lenta produz *poucas* impressões. **Zero impressões é bloqueio, não lentidão**, e a distinção
+importa porque leva a ações opostas: lentidão se espera, bloqueio se investiga.
+
+Às 07:31 do primeiro dia, com início às 00:00, o painel mostrava tudo "Ativo" nos três níveis
+(campanha, conjunto, anúncio) e **Alcance 0 · Impressões — · R$ 0,00**.
+
+**A ordem de conferência, da mais barata para a mais cara** — todas passaram naquele dia, e é por
+isso que valem estar escritas: elimina-se o verificável antes de recorrer a palpite.
+
+| # | Onde | O que tem de aparecer |
+|---|---|---|
+| 1 | Filtro de data do painel | **"Hoje"**. Ele guarda a janela anterior entre visitas e mostra R$ 0,00 de uma campanha que está rodando — já custou tempo duas vezes neste projeto |
+| 2 | Os três interruptores | Campanha, conjunto **e** anúncio. Anúncio "Ativo" sob conjunto pausado não entrega, e o painel não avisa |
+| 3 | `adsmanager.facebook.com/ads/manage/billing` | "Conta ativa" + forma de pagamento cadastrada. Sem cobrança válida a conta bloqueia a entrega **sem marcar nada de vermelho no anúncio** |
+| 4 | `business.facebook.com/accountquality` | "Nenhum problema com a conta ou ativo" |
+| 5 | `business.facebook.com/settings/pixels` → Ativos conectados | A conta de anúncios precisa estar conectada ao pixel — mesma ligação ativo-com-ativo que faltou no Instagram na véspera |
+| 6 | Conjunto → Editar → Programação | A data de início. Se for amanhã, o "Ativo" é só a campanha esperando, e não há nada errado |
+
+**Se as seis passarem**, o que sobra não é constatação, é julgamento: a otimização por **Compra** num
+pixel com **um** evento de compra. Sem exemplos, o Meta não monta público inicial, e conta nova não
+tem histórico próprio para compensar — ele não entra em leilão nenhum. Zero impressão é compatível
+com isso, e a madrugada é a pior janela para o caso.
+
+**A ação é puxar o gatilho da seção seguinte mais cedo**, trocando o evento para `Lead`
+(134 eventos no histórico contra 1 de compra). Sem gasto e sem entrega, **não há aprendizado para
+reiniciar** — a regra dos 3 dias só passa a valer quando a campanha efetivamente roda, então a troca
+sai de graça.
+
+Se mesmo com `Lead` a entrega continuar zerada depois de uma ou duas horas, não é o evento: é algo
+estrutural, e o caminho é o suporte — em Qualidade da Conta, **"Resolva meus problemas de veiculação
+de anúncio"**.
+
 ### No dia 3: o único gatilho
 
 **Menos de 60 cliques acumulados** significa que a entrega colapsou por falta de sinal de conversão.
 Aí, e só aí, troque o evento do conjunto para **Lead** e aceite um teste mais fraco.
+
+> Este gatilho foi escrito prevendo entrega *fraca*. Entrega **zero** no dia 1 é a mesma falha em
+> forma mais grave, e antecipa a troca — ver a seção acima.
 
 É decisão de uma vez só: trocar reinicia o aprendizado, então alternar entre os dois eventos garante
 nunca sair da exploração. Com 60 cliques ou mais, deixe como está mesmo que ainda não haja compras.
