@@ -524,18 +524,36 @@ existe em campanha pequena.
 Se o resultado do dia 1 parecer horrível, é normal. O algoritmo está explorando — e com otimização
 por compra ele explora mais, porque tem menos exemplos.
 
-**Resultado ruim é normal. Resultado ZERO não é** — e a diferença está na seção seguinte.
+### ⚠️ Entrega zero no dia 1 — o caso de 09/09/2026, e a coluna que resolvia em 5 segundos
 
-### ⚠️ Entrega zero no dia 1 — o caso que aconteceu em 09/09/2026
+Às 07:31 do primeiro dia, com início às 00:00, o aplicativo mostrava tudo **"Ativo"** nos três níveis
+e **Alcance 0 · Impressões — · R$ 0,00**.
 
-Entrega lenta produz *poucas* impressões. **Zero impressões é bloqueio, não lentidão**, e a distinção
-importa porque leva a ações opostas: lentidão se espera, bloqueio se investiga.
+**A resposta estava numa coluna que o aplicativo do celular não mostra.** No computador, a coluna
+**Veiculação** dizia:
 
-Às 07:31 do primeiro dia, com início às 00:00, o painel mostrava tudo "Ativo" nos três níveis
-(campanha, conjunto, anúncio) e **Alcance 0 · Impressões — · R$ 0,00**.
+> **Preparando para veicular.** Todos os anúncios nesta campanha passaram com sucesso pela análise.
+> Agora, nosso sistema de veiculação está fazendo a correspondência deles com o lance e o público
+> certos. *Normalmente 2 horas, mas pode levar até 12 horas.*
 
-**A ordem de conferência, da mais barata para a mais cara** — todas passaram naquele dia, e é por
-isso que valem estar escritas: elimina-se o verificável antes de recorrer a palpite.
+**"Ativo" e "Veiculação" são coisas diferentes.** "Ativo" é o estado do INTERRUPTOR — você ligou.
+"Veiculação" é o estado da ENTREGA, e tem pelo menos três valores que produzem zero impressão:
+`Em análise`, `Preparando` e `Ativo`-mas-sem-leilão. O aplicativo mostra o primeiro; só o desktop
+mostra o segundo.
+
+> **Antes de investigar qualquer coisa, abra o `adsmanager.facebook.com` NO COMPUTADOR e leia a
+> coluna Veiculação.** Se disser "Preparando", não há nada a fazer além de esperar até 12 horas a
+> contar do horário de início. Foi o que aconteceu aqui, e custou uma manhã de investigação de seis
+> itens que estavam todos certos.
+
+**A conclusão que este documento chegou a afirmar — "zero impressão é bloqueio, não lentidão" — está
+errada** e ficou registrada aqui de propósito: existe um terceiro estado, e ele é o mais comum no
+primeiro dia de uma conta nova.
+
+#### Se a coluna Veiculação NÃO disser "Preparando"
+
+Aí sim vale a investigação, nesta ordem — todas passaram em 09/09, e é justamente por isso que valem
+estar escritas: elimina-se o verificável antes de recorrer a palpite.
 
 | # | Onde | O que tem de aparecer |
 |---|---|---|
@@ -546,15 +564,18 @@ isso que valem estar escritas: elimina-se o verificável antes de recorrer a pal
 | 5 | `business.facebook.com/settings/pixels` → Ativos conectados | A conta de anúncios precisa estar conectada ao pixel — mesma ligação ativo-com-ativo que faltou no Instagram na véspera |
 | 6 | Conjunto → Editar → Programação | A data de início. Se for amanhã, o "Ativo" é só a campanha esperando, e não há nada errado |
 
-**Se as seis passarem**, o que sobra não é constatação, é julgamento: a otimização por **Compra** num
-pixel com **um** evento de compra. Sem exemplos, o Meta não monta público inicial, e conta nova não
-tem histórico próprio para compensar — ele não entra em leilão nenhum. Zero impressão é compatível
-com isso, e a madrugada é a pior janela para o caso.
+**Se as seis passarem e já tiverem se passado mais de 12 horas do início**, o que sobra não é
+constatação, é julgamento: a otimização por **Compra** num pixel com **um** evento de compra. Sem
+exemplos, o Meta não monta público inicial, e conta nova não tem histórico próprio para compensar.
 
 **A ação é puxar o gatilho da seção seguinte mais cedo**, trocando o evento para `Lead`
 (134 eventos no histórico contra 1 de compra). Sem gasto e sem entrega, **não há aprendizado para
 reiniciar** — a regra dos 3 dias só passa a valer quando a campanha efetivamente roda, então a troca
 sai de graça.
+
+⚠️ **Espere a janela das 12 horas fechar com folga antes de trocar.** Agir na borda do prazo que o
+próprio Meta anuncia é matar a campanha no minuto em que ela ia começar — e a troca reinicia o
+aprendizado, então não é uma decisão de ida e volta.
 
 Se mesmo com `Lead` a entrega continuar zerada depois de uma ou duas horas, não é o evento: é algo
 estrutural, e o caminho é o suporte — em Qualidade da Conta, **"Resolva meus problemas de veiculação
