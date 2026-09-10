@@ -11,6 +11,7 @@ import { ShareCard } from '@/components/result/share-card';
 import { ShareCardDownload } from '@/components/result/share-card-download';
 import { BaixarPdf } from '@/components/result/baixar-pdf';
 import { PurchasePixel } from '@/components/marketing/purchase-pixel';
+import { capiConfigurada } from '@/lib/meta-capi';
 import { brl } from '@/payments/catalogo';
 import { precosPublicados } from '@/payments/precos';
 import { getReport } from '@/app/questionario/actions';
@@ -109,6 +110,20 @@ export default async function ResultadoPage({
   */
   const valorPago = compradorId ? await valorPagoEmReais(sessionId) : null;
 
+  /*
+    ═══ UMA FONTE DE COMPRA POR VEZ ═════════════════════════════════════════════════════════════
+
+    Desde 10/09/2026 a compra também sai do SERVIDOR, pela API de Conversões, no webhook de
+    pagamento. As duas fontes ligadas ao mesmo tempo contariam a mesma venda duas vezes — e o
+    retorno dobrado é o número que faria escalar uma campanha que não se paga.
+
+    Quando o envio pelo servidor está configurado, ele é a fonte: alcança quem fechou o navegador,
+    quem tem bloqueador e quem usa navegador com prevenção de rastreamento — casos que o pixel do
+    navegador perde por construção. Sem a chave configurada, o pixel continua sendo a única fonte,
+    e nada regride.
+  */
+  const compraSaiDoServidor = capiConfigurada();
+
   const first = report.podium[0];
   const winner = first && !first.locked ? first : null;
 
@@ -133,7 +148,9 @@ export default async function ResultadoPage({
         Não renderiza nada. Dispara o evento de compra do pixel na PRIMEIRA visita vinda do
         pagamento, e só nela — ver `purchase-pixel.tsx` para as duas travas.
       */}
-      <PurchasePixel publicId={sessionId} valorEmReais={valorPago} />
+      {!compraSaiDoServidor && (
+        <PurchasePixel publicId={sessionId} valorEmReais={valorPago} />
+      )}
 
       {/* Cabeçalho com a marca em destaque (§64) — fixo e clicável de volta ao início. */}
       <SiteHeader tone="dark" />

@@ -57,6 +57,13 @@
       "when": 1788296171004,
       "tag": "0007_heavy_brood",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789067892998,
+      "tag": "0008_chemical_expediter",
+      "breakpoints": true
     }
   ]
 }

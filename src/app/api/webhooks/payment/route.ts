@@ -5,6 +5,8 @@ import { processPaymentEvent } from '@/database/repositories/commerce-repo';
 import { sendEmail } from '@/email/send';
 import { reportReadyEmail } from '@/email/templates';
 import { SITE_URL } from '@/lib/site';
+import { contextoDoPedido } from '@/database/repositories/meta-repo';
+import { enviarCompra } from '@/lib/meta-capi';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,7 +100,43 @@ export async function POST(request: Request): Promise<NextResponse> {
         ok: true,
         ignored: `transição ilegal ${outcome.from} → ${outcome.to}`,
       });
-    case 'processed':
+    case 'processed': {
+      /*
+        ═══ A COMPRA VAI PARA O META DAQUI, E NÃO DO NAVEGADOR ══════════════════════════════════
+
+        Este é o único ponto do sistema em que temos certeza de que a compra aconteceu — o gateway
+        acabou de confirmar. O navegador do comprador pode nunca voltar, pode ter bloqueador, pode
+        ser um iPhone com prevenção de rastreamento; nada disso alcança uma chamada entre
+        servidores.
+
+        Foi medido: em 10/09/2026 o funil contava 16 compras da campanha e o Meta enxergava 2.
+
+        `enviarCompra` nunca lança e recusa sozinha quem não consentiu. O `await` é deliberado —
+        sem ele a função serverless pode encerrar antes de a requisição sair, e o evento se perde
+        justamente nos dias de maior volume.
+      */
+      const ctx = await contextoDoPedido(event.orderId);
+      if (ctx) {
+        const envio = await enviarCompra({
+          orderId: event.orderId,
+          valorEmReais: ctx.amountCents / 100,
+          consent: ctx.consent,
+          fbc: ctx.fbc,
+          fbp: ctx.fbp,
+          sourceUrl: ctx.sourceUrl,
+        });
+        /*
+          O motivo da NÃO-ida também vira log.
+
+          "Não enviou" tem causas que exigem consertos opostos — sem consentimento é o sistema
+          funcionando, token expirado é incidente. Sem distinguir as duas no log, a única saída
+          seria adivinhar, que é o erro que este arquivo inteiro tenta não repetir.
+        */
+        if (!envio.enviado) {
+          console.info(`[capi] compra ${event.orderId} não enviada: ${envio.motivo}`);
+        }
+      }
+
       /*
         ═══ O RECIBO SAI DEPOIS DA CONCESSÃO, E SUA FALHA NÃO DERRUBA O WEBHOOK ═══════════════
 
@@ -120,5 +158,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
       }
       return NextResponse.json({ ok: true, granted: outcome.granted });
+    }
   }
 }

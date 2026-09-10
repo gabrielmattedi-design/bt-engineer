@@ -40,6 +40,9 @@ const PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'] as co
  */
 const MAX = 80;
 
+/** Teto próprio do `fbclid`, que é longo por natureza — ver o comentário no ponto de captura. */
+const MAX_FBCLID = 400;
+
 function limpar(valor: string | null): string | null {
   if (!valor) return null;
   const limpo = valor.trim().slice(0, MAX);
@@ -62,6 +65,36 @@ export function middleware(request: NextRequest): NextResponse {
     const v = limpar(request.nextUrl.searchParams.get(p));
     if (v) dados[p] = v;
   }
+
+  /*
+    ═══ `fbclid` — O IDENTIFICADOR DO CLIQUE NO ANÚNCIO ═══════════════════════════════════════
+
+    O Meta acrescenta este parâmetro na URL de destino quando alguém clica num anúncio. Ele é o
+    único elo entre uma compra e o clique que a originou.
+
+    **Por que capturamos nós, em vez de deixar para o pixel.** O pixel escreve o mesmo dado no
+    cookie `_fbc`, mas só quando roda — e ele não roda para quem tem bloqueador, para quem usa
+    navegador com prevenção de rastreamento, nem para quem recusou o banner. Capturado aqui, ele
+    existe sempre; o que decide se ele SAI daqui é o consentimento, no momento do envio
+    (`schema/meta.ts`), e não a sorte de o script ter carregado.
+
+    **Guardar não é enviar.** Este valor fica no nosso cookie de primeiro toque, do mesmo jeito que
+    o `utm_content`, e só é usado por `meta-capi.ts` — que se recusa a mandar qualquer coisa de
+    quem não aceitou. Um `fbclid` parado no nosso banco não conta nada a ninguém.
+
+    **Por que o `fbc` inteiro é montado AQUI.** O formato que a API exige é
+    `fb.1.<instante do clique>.<fbclid>`, e o instante do clique só é conhecido neste ponto: quando
+    o checkout for capturar isto, horas podem ter passado, e carimbar a hora do checkout como hora
+    do clique degradaria a correspondência exatamente na janela que mais importa.
+  */
+  /*
+    O teto de 80 caracteres de `limpar` NÃO serve aqui, e essa foi uma armadilha real: um `fbclid`
+    tem tipicamente de 100 a 200 caracteres, então cortá-lo em 80 produziria um identificador
+    plausível, aceito pela API e correspondente a ninguém — pior que não mandar nada, porque
+    pareceria funcionar.
+  */
+  const fbclid = request.nextUrl.searchParams.get('fbclid')?.trim().slice(0, MAX_FBCLID);
+  if (fbclid) dados.fbc = `fb.1.${Date.now()}.${fbclid}`;
 
   resposta.cookies.set(CAMPAIGN_COOKIE, JSON.stringify(dados), {
     httpOnly: true,

@@ -260,18 +260,72 @@ segredo (fica visível no HTML de qualquer site que anuncia), então pode ir por
 não haverá volume para otimizar por compra de qualquer jeito. O que ele faz é **começar a acumular
 histórico** — é a próxima campanha, e não esta, que colhe o benefício.
 
-### 1-bis. API de Conversões — deliberadamente NÃO construída
+### 1-bis. API de Conversões — adiada em 08/09, ✅ construída em 10/09
 
-Ela estava no escopo aprovado e ficou de fora. O motivo, para a decisão poder ser revista:
+**O argumento do adiamento, preservado porque estava certo na hora em que foi feito:**
 
-A API de Conversões serve para recuperar eventos que o bloqueador de anúncio e o iOS derrubam. Isso
-importa **em escala**. Com R$ 490 e algo entre dez e vinte compras, o que ela recupera é da ordem de
-poucos eventos — enquanto o custo é um token secreto novo, envio de dado pessoal com hash a partir
-do servidor, e uma segunda superfície de privacidade para descrever e manter.
+> A API de Conversões serve para recuperar eventos que o bloqueador de anúncio e o iOS derrubam.
+> Isso importa **em escala**. Com R$ 490 e algo entre dez e vinte compras, o que ela recupera é da
+> ordem de poucos eventos — enquanto o custo é um token secreto novo, envio de dado pessoal com hash
+> a partir do servidor, e uma segunda superfície de privacidade para descrever e manter.
+>
+> Trocar isso por poucos eventos, num momento em que o evento de otimização nem é a compra, não se
+> paga. **Vale construir quando a campanha escalar.**
 
-Trocar isso por poucos eventos, num momento em que o evento de otimização nem é a compra, não se
-paga. **Vale construir quando a campanha escalar** — e aí o consentimento já mora num cookie que o
-servidor lê, que é justamente o que `consent.ts` deixou pronto para esse dia.
+**O que derrubou o argumento, no segundo dia de campanha:**
+
+| | |
+|---|---|
+| Compras no `/admin/funil`, vindas da campanha | **16** |
+| Compras que o Gerenciador de Anúncios mostrava | **2** |
+
+O pixel do navegador estava enxergando **12,5%** das vendas. Não era "da ordem de poucos eventos":
+era a maioria delas. E a campanha estava otimizando por compra em cima disso — procurando gente
+parecida com dois compradores, quando dezesseis tinham comprado.
+
+A previsão errada foi de tamanho, não de natureza: o mecanismo descrito era o certo, a escala é que
+foi subestimada em oito vezes. Vale registrar porque o mesmo erro se repete em toda estimativa de
+perda de rastreamento — a intuição diz "alguns por cento" e a medição diz outra coisa.
+
+#### O que foi construído
+
+| Arquivo | Papel |
+|---|---|
+| `middleware.ts` | captura o `fbclid` e monta o `fbc` **na hora do clique** — o instante importa, e só existe ali |
+| `schema/meta.ts` | `meta_conversion_context`: o que o envio vai precisar, guardado por pedido |
+| `planos/[id]/actions.ts` | captura no checkout — o último momento com o navegador do outro lado |
+| `lib/meta-capi.ts` | o envio, com as travas |
+| `webhooks/payment/route.ts` | dispara na confirmação do gateway |
+
+#### As três decisões que valem mais que o código
+
+**1. Quem recusou o banner não é enviado.** O envio sai do servidor, onde nada do navegador o
+impede — nem bloqueador, nem cookie recusado. A única coisa entre a compra de quem disse "não" e o
+Meta é uma linha nossa que decide não mandar. Mandar seria responder "sim" por essa pessoa, e o
+banner deixaria de significar coisa alguma. Custa sinal, e o custo é aceito.
+
+**2. Nem IP, nem user-agent, nem e-mail com hash.** Todos aumentariam a correspondência, todos são
+aceitos pela API. `schema/campaigns.ts` diz que esta medição não guarda impressão digital, e a API
+de Conversões não vira a exceção que reabre isso pela porta dos fundos. Vão só `fbc` e `fbp` — que
+são justamente os dois identificadores que ligam uma compra a um CLIQUE DE ANÚNCIO, que é a única
+pergunta que este envio existe para responder.
+
+**3. Uma fonte por vez, e não deduplicação.** Servidor e navegador mandando a mesma compra dobram o
+retorno aparente — o número que decide escalar. A defesa não é o `event_id` do Meta e sim algo mais
+simples de garantir: com a chave configurada, o pixel do navegador **não dispara**. O `event_id` vai
+junto assim mesmo, como cinto além do suspensório.
+
+#### O que ela NÃO recupera
+
+Quem recusou o banner. E hoje ninguém sabe quantos são — a taxa de aceite nunca foi medida. Se o
+buraco de 14 vendas for majoritariamente recusa, a API recupera pouco; se for bloqueador e navegador
+fechado, recupera quase tudo. **Medir a taxa de aceite é o próximo passo**, e é o que diz qual dos
+dois mundos é o real.
+
+#### Para ligar
+
+`META_CAPI_ACCESS_TOKEN` na Vercel — gerado no Gerenciador de Eventos, no próprio pixel. Enquanto ele
+não existir, nada muda: o pixel do navegador continua sendo a fonte única, exatamente como antes.
 
 ### 3. O evento de COMPRA — ✅ construído em 08/09/2026
 

@@ -22,6 +22,26 @@ import { claimAnalysis, ensureUser } from '@/database/repositories/auth-repo';
 import { sendEmail } from '@/email/send';
 import { reportReadyEmail } from '@/email/templates';
 import { SITE_URL } from '@/lib/site';
+import { CAMPAIGN_COOKIE } from '@/middleware';
+import { CONSENT_COOKIE, parseConsent } from '@/lib/consent';
+import { guardarContextoDeCompra } from '@/database/repositories/meta-repo';
+
+/**
+ * O `fbc` guardado no cookie de campanha pelo middleware — ver `middleware.ts`.
+ *
+ * Lido com desconfiança, pelo mesmo motivo de `recordVisitorCampaign`: o cookie vive no navegador e
+ * pode voltar corrompido, truncado ou editado à mão. JSON inválido aqui não pode derrubar um
+ * checkout — a compra vale infinitamente mais que a atribuição dela.
+ */
+function fbcDoCookie(bruto: string | undefined): string | null {
+  if (!bruto) return null;
+  try {
+    const dados = JSON.parse(bruto) as { fbc?: unknown };
+    return typeof dados.fbc === 'string' && dados.fbc.length > 0 ? dados.fbc : null;
+  } catch {
+    return null;
+  }
+}
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -217,6 +237,27 @@ export async function startCheckout(
     const provider = paymentProvider();
     const host = (await headers()).get('host') ?? 'localhost:3000';
     const scheme = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+
+    /*
+      ═══ O ÚLTIMO INSTANTE EM QUE O NAVEGADOR ESTÁ DO OUTRO LADO ═════════════════════════════
+
+      Daqui em diante a pessoa vai para o Mercado Pago, e quem volta a falar com a gente é o
+      gateway — uma chamada servidor a servidor, sem cookie nenhum do comprador. Se a API de
+      Conversões precisar de alguma coisa que só o navegador tem, tem que ser capturada AGORA.
+
+      É por isso que a captura mora no checkout e não no webhook. Ver `schema/meta.ts`.
+
+      Falhar aqui não pode impedir a compra: `guardarContextoDeCompra` engole os próprios erros, e
+      um pedido sem contexto simplesmente não gera envio depois.
+    */
+    await guardarContextoDeCompra({
+      orderId: order.orderId,
+      consent: parseConsent(`${CONSENT_COOKIE}=${jar.get(CONSENT_COOKIE)?.value ?? ''}`),
+      fbc: fbcDoCookie(jar.get(CAMPAIGN_COOKIE)?.value),
+      /* `_fbp` é escrito pelo próprio pixel; nulo quando ele nunca rodou. */
+      fbp: jar.get('_fbp')?.value ?? null,
+      sourceUrl: `${scheme}://${host}/planos/${publicId}`,
+    });
 
     const checkout = await provider.createCheckout({
       orderId: order.orderId,
