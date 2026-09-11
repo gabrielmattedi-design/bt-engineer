@@ -234,3 +234,32 @@ describe('reconhecer um banco desatualizado', () => {
     expect(isMissingTable('texto solto')).toBe(false);
   });
 });
+
+/**
+ * ═══ O BOTÃO QUE CRIA AS TABELAS NÃO PODE SUMIR ══════════════════════════════════════════════
+ *
+ * Em 11/09/2026 uma tabela nova chegou ao bootstrap e não chegou ao banco: o painel escondia o
+ * botão porque `tablesReady` era verdadeiro — e `tablesReady` responde a uma pergunta só, "a
+ * tabela `products` existe?". Tudo criado depois dela ficava invisível para essa checagem.
+ *
+ * O dono não tem terminal. Sem o botão, não havia caminho nenhum.
+ *
+ * Ensinar `tablesReady` a conhecer cada tabela nova quebraria de novo na próxima. A correção é o
+ * botão existir sempre, o que a idempotência da DDL — garantida pelos testes acima — torna seguro.
+ */
+describe('o caminho de recuperação do dono não-técnico', () => {
+  it('o painel oferece o botão mesmo com as tabelas prontas', () => {
+    const panel = readFileSync(
+      join(__dirname, '..', '..', 'src', 'app', 'admin', 'setup', 'panel.tsx'),
+      'utf8',
+    );
+
+    const passo = panel.slice(panel.indexOf('title="Criar as tabelas"'), panel.indexOf('n={3}'));
+
+    expect(
+      passo.includes('!status.tablesReady && status.databaseConfigured'),
+      'o botão voltou a sumir quando as tabelas existem — uma tabela nova vira beco sem saída',
+    ).toBe(false);
+    expect(passo, 'o botão sumiu do passo 2').toContain('action={prepareDatabase}');
+  });
+});

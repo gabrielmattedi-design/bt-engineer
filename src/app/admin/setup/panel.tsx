@@ -79,14 +79,34 @@ export function SetupPanel({
         blocked={!status.databaseConfigured}
         description={
           status.tablesReady
-            ? 'Tabelas prontas.'
+            ? 'Tabelas prontas. Clique de novo depois de uma atualização do sistema — é seguro, e é assim que tabelas novas aparecem.'
             : 'Cria a estrutura onde ficam as análises, os pedidos e os acessos.'
         }
+        /*
+          ═══ O BOTÃO FICA SEMPRE DISPONÍVEL — E ESCONDÊ-LO ERA UM DEFEITO ═══════════════════════
+
+          Ele sumia quando `tablesReady` era verdadeiro. E `tablesReady` responde a UMA pergunta:
+          "a tabela `products` existe?". Qualquer tabela criada DEPOIS dela ficava fora da conta —
+          o painel dizia "tabelas prontas", escondia a única forma de criá-la, e o dono não-técnico
+          não tinha saída nenhuma, porque não há terminal neste produto.
+
+          Aconteceu em 11/09/2026 com `meta_conversion_context`, a tabela da API de Conversões: o
+          deploy subiu, a DDL estava no bootstrap, e o botão que a executaria não existia na tela.
+
+          A DDL é idempotente por construção — `IF NOT EXISTS` em tudo, constraints dentro de um
+          `DO $$` que consulta `pg_constraint`, e um teste inteiro garantindo isso
+          (`tests/integrity/schema-bootstrap.test.ts`). Clicar num banco pronto não duplica, não
+          apaga e não corrompe nada.
+
+          Ou seja: esconder o botão não protegia contra risco nenhum, e criava um beco sem saída.
+          A correção não é ensinar `tablesReady` a conhecer cada tabela nova — isso quebraria de
+          novo na próxima. É parar de esconder.
+        */
         action={
-          !status.tablesReady && status.databaseConfigured ? (
+          status.databaseConfigured ? (
             <ActionButton
               action={prepareDatabase}
-              label="Criar tabelas"
+              label={status.tablesReady ? 'Atualizar tabelas' : 'Criar tabelas'}
               pendingLabel="Criando…"
               onResult={setResult}
             />
