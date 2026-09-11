@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { janelaDoPeriodo } from '@/lib/periodo';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
 import {
@@ -38,8 +39,7 @@ export default async function FunilPage({
   if (!(await isAuthenticated())) redirect('/admin');
 
   const { periodo } = await searchParams;
-  const dias = periodo === 'tudo' ? null : Number(periodo ?? 30);
-  const janela = Number.isFinite(dias) ? (dias as number | null) : 30;
+  const janela = janelaDoPeriodo(periodo);
 
   /*
     `withAutoBootstrap` aqui pelo mesmo motivo de todo o resto do sistema — e a ausência dele foi um
@@ -100,8 +100,10 @@ export default async function FunilPage({
           a página não infla o número.
         </p>
 
-        <nav className="mt-6 flex gap-2 text-sm" aria-label="Período">
+        <nav className="mt-6 flex flex-wrap gap-2 text-sm" aria-label="Período">
           {[
+            ['hoje', 'Hoje'],
+            ['ontem', 'Ontem'],
             ['7', '7 dias'],
             ['30', '30 dias'],
             ['90', '90 dias'],
@@ -121,6 +123,24 @@ export default async function FunilPage({
             );
           })}
         </nav>
+
+        {/*
+          ═══ POR QUE "HOJE" E "ONTEM" SÃO DIFERENTES DOS OUTROS ═══════════════════════════════
+
+          Eles são dias de CALENDÁRIO no fuso de Brasília — os mesmos dias que o Gerenciador de
+          Anúncios usa para reportar gasto. É isso que torna possível dividir um pelo outro.
+
+          "7 dias", "30" e "90" continuam ROLANTES: as últimas N×24 horas a partir de agora. Serve
+          para tendência e NÃO serve para fechar CAC — dividir o gasto de um dia de calendário pelas
+          vendas de uma janela rolante é dividir duas coisas que não se sobrepõem, e o resultado sai
+          plausível, que é o que o torna perigoso.
+        */}
+        {(periodo === 'hoje' || periodo === 'ontem') && (
+          <p className="mt-3 max-w-prose text-xs text-graphite">
+            Dia fechado no horário de Brasília — o mesmo corte que o Gerenciador de Anúncios usa.
+            Dá para dividir o gasto do dia por estas vendas e ter o CAC.
+          </p>
+        )}
 
         {topo === 0 ? (
           /*

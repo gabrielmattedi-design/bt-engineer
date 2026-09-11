@@ -6,6 +6,8 @@ import { funnelMarkers } from '../schema/funnel';
 import { anonymousSessions, recommendationSessions } from '../schema/sessions';
 import { accessCoupons, couponRedemptions } from '../schema/coupons';
 import { visitorCampaigns } from '../schema/campaigns';
+import { recorte, SEM_LIMITE } from '../recorte';
+import type { Janela } from '@/lib/periodo';
 
 /**
  * Registro e leitura do funil — §16 da lista de lançamento.
@@ -144,14 +146,10 @@ export function computeFunnel(contagem: ReadonlyMap<string, number>): FunnelRow[
   });
 }
 
-export async function funnelReport(sinceDays: number | null = null): Promise<FunnelRow[]> {
+export async function funnelReport(janela: Janela = SEM_LIMITE): Promise<FunnelRow[]> {
   if (!isDatabaseConfigured()) return [];
 
-  const filtros = [];
-  if (sinceDays !== null) {
-    const desde = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
-    filtros.push(gte(funnelMarkers.createdAt, desde));
-  }
+  const filtros = recorte(funnelMarkers.createdAt, janela);
 
   const rows = await db()
     .select({
@@ -209,14 +207,13 @@ export type QuizDropoff = {
  * dá para reescrever, encurtar ou explicar melhor. Sem o recorte por etapa, o que sobra é o número
  * agregado de abandono, que diz que existe um problema e não diz onde.
  */
-export async function quizDropoff(sinceDays: number | null = null): Promise<QuizDropoff[]> {
+export async function quizDropoff(janela: Janela = SEM_LIMITE): Promise<QuizDropoff[]> {
   if (!isDatabaseConfigured()) return [];
 
-  const filtros = [sql`${funnelMarkers.marker} like 'quiz:%'`];
-  if (sinceDays !== null) {
-    const desde = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
-    filtros.push(gte(funnelMarkers.createdAt, desde));
-  }
+  const filtros = [
+    sql`${funnelMarkers.marker} like 'quiz:%'`,
+    ...recorte(funnelMarkers.createdAt, janela),
+  ];
 
   const rows = await db()
     .select({

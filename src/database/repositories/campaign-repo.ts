@@ -4,6 +4,8 @@ import { and, eq, gte, sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '../client';
 import { visitorCampaigns } from '../schema/campaigns';
 import { funnelMarkers } from '../schema/funnel';
+import { recorte, SEM_LIMITE } from '../recorte';
+import type { Janela } from '@/lib/periodo';
 
 /**
  * Gravação e leitura da origem do visitante — §15.
@@ -88,14 +90,10 @@ export type LinhaDeOrigem = {
  * por não ter conversão é o pior desfecho possível: o anúncio que só queima dinheiro é justamente
  * o que fica invisível.
  */
-export async function campaignReport(sinceDays: number | null = null): Promise<LinhaDeOrigem[]> {
+export async function campaignReport(janela: Janela = SEM_LIMITE): Promise<LinhaDeOrigem[]> {
   if (!isDatabaseConfigured()) return [];
 
-  const filtros = [];
-  if (sinceDays !== null) {
-    const desde = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
-    filtros.push(gte(visitorCampaigns.createdAt, desde));
-  }
+  const filtros = recorte(visitorCampaigns.createdAt, janela);
 
   const rows = await db()
     .select({
