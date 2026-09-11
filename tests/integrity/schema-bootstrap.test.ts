@@ -111,6 +111,35 @@ describe('o schema e o bootstrap contam a mesma história', () => {
     }
   });
 
+  /**
+   * ═══ TODA TABELA DO SCHEMA PRECISA CHEGAR AO BOOTSTRAP ═════════════════════════════════════
+   *
+   * O irmão do defeito nº 2, e ele aconteceu de verdade em 11/09/2026.
+   *
+   * `meta_conversion_context` — a tabela da API de Conversões — nasceu no schema, gerou a migração
+   * `0008` normalmente, e **não entrou aqui**. Num projeto que roda `drizzle-kit migrate` isso
+   * bastaria; neste não, porque o dono não tem terminal e o banco é preparado por esta lista.
+   *
+   * O sintoma teria sido cruel: nenhum erro visível, o checkout funcionando, e a compra nunca
+   * chegando ao Meta — porque a gravação do contexto engole os próprios erros de propósito, para
+   * não derrubar uma venda por causa de medição. Um recurso morto parecendo vivo.
+   *
+   * O teste de índice acima não pegava, porque a tabela não tem índice nenhum além da chave.
+   */
+  it('toda tabela declarada no schema chega ao bootstrap', () => {
+    const declaradas = [...SCHEMA_SOURCE.matchAll(/pgTable\(\s*'([^']+)'/g)].map((m) => m[1]!);
+
+    expect(declaradas.length, 'nenhuma tabela encontrada — o teste está olhando no lugar errado').toBeGreaterThan(0);
+
+    const joined = BOOTSTRAP_STATEMENTS.join('\n');
+    for (const nome of declaradas) {
+      expect(
+        joined,
+        `a tabela "${nome}" existe no schema e não seria criada pelo botão do /admin/setup`,
+      ).toContain(`CREATE TABLE IF NOT EXISTS "${nome}"`);
+    }
+  });
+
   /** E o caminho inverso: um índice no bootstrap sem origem no schema é uma edição manual. */
   it('todo índice do bootstrap tem origem no schema', () => {
     const inBootstrap = [
