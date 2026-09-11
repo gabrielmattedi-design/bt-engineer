@@ -154,8 +154,22 @@ mais rápida e mais barata não é o quadro — o que é verdade e não nega o r
 
 ## Canva
 
-✅ **Arte pronta.** Seis designs a partir de `EAHUMHdg-_0`, um por página, todos comitados e
-exportados em PNG 1080 × 1350.
+✅ **Arte pronta.** Seis designs a partir de `EAHUMHdg-_0`, um por página, todos comitados,
+juntados num projeto único e exportados em PNG 1080 × 1350.
+
+### O projeto para publicar
+
+**`DAHU6k6hkEM`** — `canva.com/design/DAHU6k6hkEM/edit` — *TE · Carrossel 11/09 · O caso que pediu
+potência*, 6 páginas na ordem 01 → 06.
+
+É daqui que se baixa e se publica. A ordem foi conferida pelo rodapé de cada página (`01 / 06` …
+`06 / 06`) depois da junção, e não pela ordem em que as chamadas foram feitas — `merge-designs`
+aceita **uma operação por chamada**, então são seis inserções em sequência e o resultado só é
+confiável se for lido de volta.
+
+### As páginas de origem
+
+Seguem existindo, e é nelas que se corrige uma página sem desmontar o projeto.
 
 | Slide | `design_id` | Abrir |
 |---|---|---|
@@ -174,11 +188,11 @@ exportados em PNG 1080 × 1350.
 em algumas horas; guardar no repositório produziria um documento que parece completo e não abre. O
 `design_id` é o que sobrevive — exportar de novo a partir dele leva um clique.
 
-**Falta juntar as 6 páginas num projeto único** (`merge-designs`, uma operação por chamada). É
-conveniência de edição e publicação, não requisito da arte: os seis PNGs já estão prontos para
-subir na ordem.
+> **Nota de ambiente.** A sessão que gerou esta arte não consegue BAIXAR os PNGs: o proxy de rede
+> nega `export-download.canva.com` (403 no CONNECT). O `export-design` funciona e devolve as URLs
+> — o que falha é buscá-las daqui. O download sai do Canva, pelo projeto acima.
 
 ---
 
-**Status:** copy fechada, arte pronta, merge pendente. Não entra em `historico/publicado.jsonl`
-antes da aprovação do dono.
+**Status:** copy fechada, arte pronta e reunida em projeto único. Não entra em
+`historico/publicado.jsonl` antes da aprovação do dono.
