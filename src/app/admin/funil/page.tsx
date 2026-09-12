@@ -12,6 +12,7 @@ import {
 import { dataCurta } from '@/lib/datas';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
+import { contarVendas } from '@/database/repositories/commerce-repo';
 import { explicarMotivo } from '@/lib/motivo-do-envio';
 import { withAutoBootstrap } from '@/database/setup';
 import { ResetFunnelForm } from './reset-form';
@@ -62,6 +63,7 @@ export default async function FunilPage({
     relatoriosSemPagamento,
     convidadosNoFunil,
     envios,
+    vendas,
   ] = await withAutoBootstrap(
     () =>
       Promise.all([
@@ -80,6 +82,7 @@ export default async function FunilPage({
         contarRelatoriosSemPagamento(),
         contarJornadasDeCupomNoFunil(),
         envioDeCompras(janela),
+        contarVendas(janela),
       ]),
   );
 
@@ -232,6 +235,42 @@ export default async function FunilPage({
               </strong>{' '}
               de quem abre o questionário chega a pagar ({pagaram} de {topo}).
             </p>
+
+            {/*
+              ═══ PESSOAS × VENDAS, NA MESMA TELA ══════════════════════════════════════════════
+
+              Em 12/09/2026 o dono leu "Pagou: 5" aqui, contou 7 na lista de vendas e perguntou
+              qual estava errada. Nenhuma — e o painel não dizia isso em lugar nenhum.
+
+              `funnel_markers` tem única em (visitante, marco): um visitante só tem UM marco `paid`
+              na vida. O funil conta PESSOAS que pagaram pela primeira vez na janela. A lista conta
+              PEDIDOS. Quem já era cliente e comprou de novo aparece lá e não aqui.
+
+              Mostrar só um dos dois obriga a escolher entre uma taxa de conversão errada (se
+              contasse pedidos) e um número de vendas errado (se contasse só pessoas). Os dois
+              lado a lado, com o nome do que cada um mede, é a única forma que fecha.
+
+              E o de vendas é o que vale para CAC. O `COMO_SUBIR_A_CAMPANHA.md` mandava usar o do
+              funil, chamando-o de "registro completo" — estava errado, e errado para menos, que é
+              o pior lado: CAC inflado manda cortar orçamento de campanha que está indo bem.
+            */}
+            {vendas !== pagaram && (
+              <p className="mt-2 max-w-prose text-sm text-graphite">
+                <strong className="text-ink">{vendas}</strong>{' '}
+                {vendas === 1 ? 'venda no período' : 'vendas no período'}, de{' '}
+                <strong className="text-ink">{pagaram}</strong>{' '}
+                {pagaram === 1 ? 'pessoa' : 'pessoas'} — a diferença é quem já tinha comprado antes
+                e comprou de novo. O funil conta <strong className="text-ink">pessoas</strong>,
+                porque é o que faz a taxa de conversão ser verdade; a lista de vendas conta{' '}
+                <strong className="text-ink">pedidos</strong>.{' '}
+                {(periodo === 'hoje' || periodo === 'ontem') && (
+                  <>
+                    Para o CAC, divida o gasto do dia por{' '}
+                    <strong className="text-ink">{vendas}</strong>.
+                  </>
+                )}
+              </p>
+            )}
 
             {etapas.length > 1 && (
               <section className="mt-10">

@@ -1,5 +1,7 @@
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '@/database/client';
+import { recorte, SEM_LIMITE } from '@/database/recorte';
+import type { Janela } from '@/lib/periodo';
 import {
   entitlements,
   orders,
@@ -462,6 +464,58 @@ export type Vendas = {
  * apareceria como receita de R$ 0,00 e o dono veria clientes onde tem convidados. O cupom tem
  * contador próprio em `/admin/codigos`.
  */
+/**
+ * Quantos PEDIDOS pagos existem na janela. Não é o mesmo número do funil, e a diferença importa.
+ *
+ * ═══ O DEFEITO QUE ISTO CONSERTA (12/09/2026) ════════════════════════════════════════════════
+ *
+ * O dono abriu o `/admin/funil` com o filtro "Hoje", leu **5** em "Pagou", abriu a lista de vendas
+ * e contou **7**. Perguntou qual estava errada. Nenhuma: elas contam coisas diferentes, e a tela
+ * não dizia isso em lugar nenhum.
+ *
+ * `funnel_markers` tem restrição única em (visitante, marco). Um visitante só pode ter UM marco
+ * `paid` na vida. Então o funil conta **pessoas que pagaram pela primeira vez** dentro da janela —
+ * e some inteiramente com:
+ *
+ *   - quem já tinha comprado antes e comprou de novo hoje (o marco é de outro dia);
+ *   - quem comprou duas vezes hoje (um marco, dois pedidos);
+ *   - o upsell, que é pedido novo do mesmo dono de análise.
+ *
+ * ─── POR QUE ISSO ERA CARO, E NÃO SÓ CONFUSO ─────────────────────────────────────────────────
+ *
+ * `docs/COMO_SUBIR_A_CAMPANHA.md` mandava, por escrito, calcular o CAC com as compras do funil,
+ * chamando-o de "o registro completo". Ele não é: o registro completo de venda é `orders`. Dividir
+ * o gasto do dia por um número de vendas MENOR que o real infla o CAC — e CAC inflado é
+ * exatamente o sinal que manda reduzir orçamento numa campanha que está indo bem.
+ *
+ * O funil continua certo para o que ele existe: medir CONVERSÃO de pessoas ao longo das etapas.
+ * Contar a mesma pessoa duas vezes ali é que estragaria a taxa. As duas contas são necessárias, e
+ * agora as duas aparecem na tela, com o nome do que cada uma mede.
+ */
+export async function contarVendas(janela: Janela = SEM_LIMITE): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  /*
+    A janela corta por `paid_at`, o instante do pagamento — e não por `created_at` do pedido.
+
+    Um pedido criado às 23h50 e pago às 00h05 pertence ao dia do PAGAMENTO, que é o dia em que o
+    dinheiro entrou e o mesmo critério do funil (`paid` é gravado quando o webhook confirma).
+  */
+  const filtros = recorte(orders.paidAt, janela);
+
+  try {
+    const rows = await db()
+      .select({ n: sql<number>`count(*)::int` })
+      .from(orders)
+      .where(and(eq(orders.status, 'paid'), ...filtros));
+
+    return Number(rows[0]?.n ?? 0);
+  } catch (error) {
+    console.error('[vendas] não foi possível contar os pedidos pagos', error);
+    return 0;
+  }
+}
+
 export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
   const conn = db();
 

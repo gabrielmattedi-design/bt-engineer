@@ -624,9 +624,25 @@ secundária: ele separa "o anúncio não traz ninguém" de "traz e não compra",
 diferentes. Mas não é mais o número que decide.
 
 > **Cuidado com o número do Meta contra o nosso.** Quem paga e fecha o navegador antes de voltar do
-> gateway não gera evento no pixel — o total do Meta será sempre um pouco MENOR que o do
-> `/admin/funil`. Os dois estão certos, contando coisas diferentes. Para calcular CAC, use as
-> compras do **`/admin/funil`**, que é o registro completo.
+> gateway não gera evento no pixel — o total do Meta será sempre um pouco MENOR que o nosso. Os
+> dois estão certos, contando coisas diferentes.
+>
+> ⚠️ **Correção de 12/09/2026.** Esta linha mandava usar as compras do `/admin/funil` para o CAC,
+> chamando-o de "o registro completo". **Estava errado.**
+>
+> `funnel_markers` tem restrição única em (visitante, marco): um visitante só tem UM marco `paid`
+> na vida. O funil conta **pessoas que pagaram pela primeira vez** na janela — e não conta quem já
+> era cliente e comprou de novo, nem quem comprou duas vezes no mesmo dia, nem o upsell.
+>
+> Foi encontrado pelo dono, que leu **5** no funil e contou **7** na lista de vendas no mesmo dia.
+>
+> **Para CAC, use o número de VENDAS**, que o `/admin/funil` agora mostra ao lado do de pessoas, e
+> que a lista de `/admin/vendas` confirma. O erro era para MENOS, que é o pior lado: menos vendas
+> na conta infla o CAC, e CAC inflado é exatamente o sinal que manda cortar orçamento de uma
+> campanha que está indo bem.
+>
+> O funil continua certo para o que ele existe — medir conversão de PESSOAS ao longo das etapas.
+> Contar a mesma pessoa duas vezes ali é que estragaria a taxa.
 
 ### Quando parar
 
