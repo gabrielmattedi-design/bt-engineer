@@ -257,16 +257,21 @@ export default async function FunilPage({
             {vendas !== pagaram && (
               <p className="mt-2 max-w-prose text-sm text-graphite">
                 <strong className="text-ink">{vendas}</strong>{' '}
-                {vendas === 1 ? 'venda no período' : 'vendas no período'}, de{' '}
+                {vendas === 1 ? 'pedido pago' : 'pedidos pagos'} no período, contra{' '}
                 <strong className="text-ink">{pagaram}</strong>{' '}
-                {pagaram === 1 ? 'pessoa' : 'pessoas'} — a diferença é quem já tinha comprado antes
-                e comprou de novo. O funil conta <strong className="text-ink">pessoas</strong>,
-                porque é o que faz a taxa de conversão ser verdade; a lista de vendas conta{' '}
-                <strong className="text-ink">pedidos</strong>.{' '}
+                {pagaram === 1 ? 'pessoa' : 'pessoas'} no funil. O funil conta{' '}
+                <strong className="text-ink">pessoas</strong> — e cada uma só pode contar uma vez
+                na vida, o que é o que faz a taxa de conversão ser verdade. A lista conta{' '}
+                <strong className="text-ink">pedidos</strong>.
                 {(periodo === 'hoje' || periodo === 'ontem') && (
                   <>
-                    Para o CAC, divida o gasto do dia por{' '}
-                    <strong className="text-ink">{vendas}</strong>.
+                    {' '}
+                    <strong className="text-warn">
+                      Confira contra os e-mails do gateway antes de usar qualquer um dos dois no
+                      CAC.
+                    </strong>{' '}
+                    Cliente que volta explica a diferença; duas linhas sem e-mail correspondente,
+                    não.
                   </>
                 )}
               </p>

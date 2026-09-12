@@ -1,26 +1,33 @@
 /**
  * Pessoas ≠ vendas, e o painel precisa dizer qual é qual.
  *
- * ═══ O DEFEITO QUE ISTO TRAVA (12/09/2026) ═══════════════════════════════════════════════════
+ * ═══ A DIVERGÊNCIA QUE ORIGINOU ISTO, E QUE CONTINUA ABERTA (12/09/2026) ═════════════════════
  *
- * O dono leu "Pagou: 5" no `/admin/funil` com o filtro "Hoje", contou **7** na lista de vendas do
- * mesmo dia e perguntou qual estava errada. Nenhuma das duas.
+ * O dono leu "Pagou: 5" no `/admin/funil` com filtro "Hoje" e contou **7** na lista de
+ * `/admin/vendas` no mesmo dia. **Não se sabe qual está certo.**
  *
- * `funnel_markers` tem restrição única em (visitante, marco). Um visitante só pode ter UM marco
- * `paid` na vida inteira. Então o funil conta PESSOAS que pagaram pela primeira vez dentro da
- * janela; a lista conta PEDIDOS. Quem já era cliente e comprou de novo aparece numa e não na
- * outra — por construção, não por bug.
+ * ─── A HIPÓTESE QUE EU DEI COMO CERTA, E QUE NÃO SE SUSTENTOU ────────────────────────────────
  *
- * ─── POR QUE ISSO CUSTAVA DINHEIRO ───────────────────────────────────────────────────────────
+ * `funnel_markers` tem restrição única em (visitante, marco): um visitante só tem UM marco `paid`
+ * na vida. Daí o funil não contar cliente que volta — logo o número real seria 7, e o funil
+ * subestimaria. Escrevi isso num commit e num documento **sem ter verificado dado nenhum**.
  *
- * `COMO_SUBIR_A_CAMPANHA.md` mandava, por escrito, calcular o CAC com as compras do funil,
- * chamando-o de "o registro completo". Dividir o gasto do dia por um número de vendas menor que o
- * real INFLA o CAC — e CAC inflado é o sinal que manda cortar o orçamento de uma campanha que está
- * indo bem. O erro era invisível: os dois números existem, a divisão funciona, e o resultado sai
- * plausível.
+ * O dono derrubou com duas coisas: chegaram **5 e-mails do Mercado Pago**, um por pagamento
+ * recebido — um terceiro independente também dizendo 5 — e o produto é de compra única, então
+ * dois clientes recomprando no mesmo dia é improvável.
  *
- * Estes testes travam as duas pontas: a restrição que produz a diferença, e a instrução que
- * mandava usar o número errado.
+ * E o código não fecha com nenhum dos lados: o único caminho para um pedido virar `paid` é um
+ * evento do gateway, e com `PAYMENT_PROVIDER` real o adapter simulado nem é construído. Em tese,
+ * 7 pedidos pagos exigiriam 7 eventos e 7 e-mails.
+ *
+ * ─── O QUE ESTES TESTES TRAVAM, ENTÃO ────────────────────────────────────────────────────────
+ *
+ * Não a explicação — ela não existe ainda. Travam o MECANISMO que torna os dois números
+ * legitimamente diferentes (a restrição única), o fato de a contagem de vendas contar pedidos e
+ * não pessoas, e que a tela diga qual é qual em vez de mostrar dois números sem nome.
+ *
+ * E travam que o documento **não volte a afirmar** qual dos dois usar para CAC enquanto a
+ * divergência estiver aberta. Foi assim que o erro nasceu: hipótese virando instrução escrita.
  */
 
 import { readFileSync } from 'node:fs';
@@ -123,7 +130,7 @@ describe('o documento não manda mais calcular CAC pelo número errado', () => {
       Corrigir sem deixar rastro faria a próxima pessoa refazer a mesma conta errada e concluir de
       novo que o funil é o registro completo. O motivo do erro vale mais que a correção.
     */
-    expect(DOC_DA_CAMPANHA).toMatch(/Correção de 12\/09\/2026/);
-    expect(DOC_DA_CAMPANHA).toMatch(/infla o CAC/);
+    expect(DOC_DA_CAMPANHA).toMatch(/Em aberto desde 12\/09\/2026/);
+    expect(DOC_DA_CAMPANHA).toMatch(/sem ter\n> verificado dado nenhum/);
   });
 });

@@ -627,22 +627,31 @@ diferentes. Mas não é mais o número que decide.
 > gateway não gera evento no pixel — o total do Meta será sempre um pouco MENOR que o nosso. Os
 > dois estão certos, contando coisas diferentes.
 >
-> ⚠️ **Correção de 12/09/2026.** Esta linha mandava usar as compras do `/admin/funil` para o CAC,
-> chamando-o de "o registro completo". **Estava errado.**
+> ⚠️ **Em aberto desde 12/09/2026 — não use nenhum dos dois às cegas.**
 >
-> `funnel_markers` tem restrição única em (visitante, marco): um visitante só tem UM marco `paid`
-> na vida. O funil conta **pessoas que pagaram pela primeira vez** na janela — e não conta quem já
-> era cliente e comprou de novo, nem quem comprou duas vezes no mesmo dia, nem o upsell.
+> O dono leu **5** em "Pagou" no `/admin/funil` e contou **7** na lista de `/admin/vendas`, no
+> mesmo dia. **Ainda não se sabe qual está certo.**
 >
-> Foi encontrado pelo dono, que leu **5** no funil e contou **7** na lista de vendas no mesmo dia.
+> **A hipótese que eu levantei e que NÃO se sustentou.** `funnel_markers` tem restrição única em
+> (visitante, marco), então um visitante só tem um marco `paid` na vida — logo o funil não contaria
+> cliente que volta, e o número real seria 7. Escrevi isso como se fosse a explicação, **sem ter
+> verificado dado nenhum.**
 >
-> **Para CAC, use o número de VENDAS**, que o `/admin/funil` agora mostra ao lado do de pessoas, e
-> que a lista de `/admin/vendas` confirma. O erro era para MENOS, que é o pior lado: menos vendas
-> na conta infla o CAC, e CAC inflado é exatamente o sinal que manda cortar orçamento de uma
-> campanha que está indo bem.
+> **O que derruba a hipótese:** chegaram **5 e-mails do Mercado Pago**, um por pagamento recebido.
+> Um terceiro, independente dos nossos dois números, também diz 5. E o produto é de compra única —
+> dois clientes recomprando no mesmo dia é improvável.
 >
-> O funil continua certo para o que ele existe — medir conversão de PESSOAS ao longo das etapas.
-> Contar a mesma pessoa duas vezes ali é que estragaria a taxa.
+> **O que o código diz, e que não fecha com nada disso:** o único caminho para um pedido virar
+> `paid` é um evento do gateway (`processPaymentEvent`). Com `PAYMENT_PROVIDER` real, o adapter
+> simulado nem é construído. Em tese, 7 pedidos pagos exigiriam 7 eventos — e 7 e-mails.
+>
+> **Como resolver:** abrir `/admin/vendas`, olhar as linhas do dia e comparar e-mail, valor e SKU
+> de cada uma contra os e-mails do Mercado Pago. Duas linhas sem correspondência apontam o
+> problema; dois e-mails iguais confirmariam a recompra. Enquanto isso não for feito, **os dois
+> números ficam sob suspeita** e o CAC do dia é uma faixa, não um valor.
+>
+> O que continua valendo sem dúvida: o funil mede conversão de PESSOAS, e é para isso que a
+> restrição única existe. Contar a mesma pessoa duas vezes ali estragaria a taxa.
 
 ### Quando parar
 
