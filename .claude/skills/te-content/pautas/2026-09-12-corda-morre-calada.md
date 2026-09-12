@@ -177,7 +177,11 @@ Ids dos campos, prefixo de página `PB217X2Lkn1WJxbg`:
   `[física]` genérica. **Não temos medição própria disso.** Qualquer número — quantos graus, quantas
   libras perdidas — seria inventado. A pauta só pode ir em linguagem qualitativa.
 
-O dono pediu para puxar esta quando ele pedir de novo.
+~~O dono pediu para puxar esta quando ele pedir de novo.~~
+
+✅ **Puxada e produzida em 12/09** → `pautas/2026-09-13-raquete-no-carro.md`. O "risco já
+identificado" acima foi resolvido lá: o segundo beat que faltava saiu justamente desta pauta —
+o porta-malas é o acelerador da morte silenciosa que os stories de hoje descrevem.
 
 ---
 
