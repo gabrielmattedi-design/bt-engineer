@@ -11,6 +11,8 @@ import {
 } from '@/database/repositories/funnel-repo';
 import { dataCurta } from '@/lib/datas';
 import { campaignReport } from '@/database/repositories/campaign-repo';
+import { envioDeCompras } from '@/database/repositories/meta-repo';
+import { explicarMotivo } from '@/lib/motivo-do-envio';
 import { withAutoBootstrap } from '@/database/setup';
 import { ResetFunnelForm } from './reset-form';
 import { ReconciliarFunilForm } from './reconciliar-form';
@@ -52,8 +54,15 @@ export default async function FunilPage({
     tela e ver o erro. Bootstrap sob demanda cria a estrutura e a tela passa a funcionar sozinha, no
     primeiro acesso.
   */
-  const [funil, etapas, origens, medindoDesde, relatoriosSemPagamento, convidadosNoFunil] =
-    await withAutoBootstrap(
+  const [
+    funil,
+    etapas,
+    origens,
+    medindoDesde,
+    relatoriosSemPagamento,
+    convidadosNoFunil,
+    envios,
+  ] = await withAutoBootstrap(
     () =>
       Promise.all([
         funnelReport(janela),
@@ -70,6 +79,7 @@ export default async function FunilPage({
         */
         contarRelatoriosSemPagamento(),
         contarJornadasDeCupomNoFunil(),
+        envioDeCompras(janela),
       ]),
   );
 
@@ -324,6 +334,75 @@ export default async function FunilPage({
               oscila demais para decidir. As colunas do meio dizem ONDE a origem falha — quem não
               termina o questionário veio pelo anúncio errado; quem termina e não paga é público
               certo com oferta errada.
+            </p>
+          </section>
+        )}
+
+        {/*
+          ═══ O QUE O META RECEBEU — E POR QUE ISTO MORA AQUI ══════════════════════════════════
+
+          Esta seção nasceu de um problema que não era técnico: por dois dias, a única resposta que
+          eu sabia dar para "a API de Conversões está funcionando?" era "abra o Gerenciador de
+          Eventos num computador". O dono opera do celular. A pergunta ficou sem resposta enquanto
+          a campanha gastava, e as decisões do período foram tomadas no escuro.
+
+          O dado sempre existiu — no log do servidor, que ninguém lê do celular. Trazê-lo para cá
+          não mediu nada de novo; só o pôs onde ele é procurado.
+
+          A tabela some quando não há nenhum contexto no período. Um bloco zerado num dia sem venda
+          nenhuma leria como falha, e não é.
+        */}
+        {(envios.aceitas > 0 || envios.recusadas.length > 0) && (
+          <section className="mt-12">
+            <h2 className="font-display text-lg font-semibold">O que o Meta recebeu</h2>
+            <p className="mt-1 max-w-prose text-sm text-graphite">
+              Compras que o nosso servidor conseguiu entregar ao Meta pela API de Conversões.
+            </p>
+
+            <div className="mt-4 rounded border border-line bg-white p-5">
+              <p className="text-sm">
+                <strong className="text-lg tabular-nums text-ink">{envios.aceitas}</strong>{' '}
+                <span className="text-graphite">
+                  {envios.aceitas === 1 ? 'compra aceita pelo Meta' : 'compras aceitas pelo Meta'}
+                </span>
+              </p>
+
+              {envios.recusadas.length > 0 && (
+                <ul className="mt-4 space-y-1.5 border-t border-line pt-4 text-sm">
+                  {envios.recusadas.map((r) => {
+                    const { texto, esperado } = explicarMotivo(r.motivo);
+                    return (
+                      <li key={r.motivo} className="flex gap-3">
+                        <span className="shrink-0 font-semibold tabular-nums">{r.quantidade}</span>
+                        <span className={esperado ? 'text-graphite' : 'font-medium text-warn'}>
+                          {texto}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {envios.semDesfecho > 0 && (
+                <p className="mt-4 border-t border-line pt-4 text-xs text-graphite">
+                  {envios.semDesfecho} chegaram ao checkout e não pagaram — sem pagamento não há o
+                  que enviar.
+                </p>
+              )}
+            </div>
+
+            {/*
+              A ressalva que evita a conclusão errada mais provável desta seção.
+
+              "Aceitas" e o número do Gerenciador de Anúncios medem coisas diferentes, e o primeiro
+              é quase sempre maior. Sem esta linha, a diferença leria como defeito da API — e o
+              conserto seria mexer em algo que está certo.
+            */}
+            <p className="mt-3 max-w-prose text-xs text-graphite">
+              Este número não é o do Gerenciador de Anúncios. Aqui conta tudo que o Meta{' '}
+              <strong className="text-ink">aceitou</strong>; lá conta só o que ele{' '}
+              <strong className="text-ink">atribui ao anúncio</strong>, que exige a pessoa ter
+              clicado num anúncio dentro da janela dele. Este ser maior é o normal.
             </p>
           </section>
         )}

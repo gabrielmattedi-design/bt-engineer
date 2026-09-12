@@ -140,6 +140,43 @@ describe('o schema e o bootstrap contam a mesma história', () => {
     }
   });
 
+  /**
+   * ═══ E TODA COLUNA TAMBÉM ══════════════════════════════════════════════════════════════════
+   *
+   * O mesmo defeito uma camada abaixo, e o mais provável de repetir: a tabela já existe em
+   * produção, alguém acrescenta uma coluna no schema, e a migração sai certa — mas se o
+   * `ALTER TABLE` não chegar a esta lista, o botão "Atualizar tabelas" não a cria.
+   *
+   * O sintoma seria pior que o da tabela faltando, porque metade funciona: o checkout grava o
+   * contexto, o webhook tenta gravar o desfecho, a gravação falha, o erro é engolido de propósito
+   * — e o painel mostra zero envios num sistema que está enviando. Um número errado e plausível,
+   * que é a categoria de defeito que este projeto mais tenta evitar.
+   *
+   * A verificação é textual: basta o nome da coluna aparecer em algum comando. Não prova o tipo,
+   * prova a PRESENÇA, que é o que falha na prática.
+   */
+  it('toda coluna declarada no schema chega ao bootstrap', () => {
+    /*
+      Casa `nome: tipo('nome_no_banco')` — a forma como o Drizzle nomeia colunas neste projeto.
+      O nome do banco é o que importa: é ele que aparece no SQL.
+    */
+    const colunas = [
+      ...SCHEMA_SOURCE.matchAll(
+        /\b(?:text|uuid|integer|boolean|jsonb|timestamp|real|numeric)\(\s*'([a-z0-9_]+)'/g,
+      ),
+    ].map((m) => m[1]!);
+
+    expect(colunas.length, 'nenhuma coluna encontrada — o teste está olhando no lugar errado').toBeGreaterThan(50);
+
+    const joined = BOOTSTRAP_STATEMENTS.join('\n');
+    for (const nome of new Set(colunas)) {
+      expect(
+        joined,
+        `a coluna "${nome}" existe no schema e não seria criada pelo botão do /admin/setup`,
+      ).toContain(`"${nome}"`);
+    }
+  });
+
   /** E o caminho inverso: um índice no bootstrap sem origem no schema é uma edição manual. */
   it('todo índice do bootstrap tem origem no schema', () => {
     const inBootstrap = [

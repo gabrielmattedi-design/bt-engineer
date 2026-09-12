@@ -76,4 +76,33 @@ export const metaConversionContext = pgTable('meta_conversion_context', {
   sourceUrl: text('source_url'),
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+
+  /**
+   * Quando o Meta ACEITOU esta compra. Nulo enquanto não foi aceita.
+   *
+   * ═══ POR QUE ESTAS DUAS COLUNAS EXISTEM (12/09/2026) ═══════════════════════════════════════
+   *
+   * O envio já registrava o desfecho — no log do servidor. E log de servidor, na prática deste
+   * projeto, é o mesmo que não registrar: o dono opera do celular, e a única resposta que eu sabia
+   * dar para "a API de Conversões está funcionando?" era "abra o Gerenciador de Eventos num
+   * computador". Ele nunca estava perto de um. A pergunta ficou dias sem resposta enquanto a
+   * campanha gastava.
+   *
+   * Pior que isso: sem o desfecho gravado, "o Meta não contou a venda" tem causas que exigem
+   * consertos opostos — recusa de cookie é o sistema funcionando, token expirado é incidente — e
+   * as duas produzem exatamente o mesmo silêncio.
+   *
+   * Guardar o desfecho ao lado do contexto transforma a pergunta numa linha do `/admin/funil`, que
+   * abre no celular. A resposta passa a existir no lugar onde ela é procurada.
+   */
+  enviadoEm: timestamp('enviado_em', { withTimezone: true }),
+
+  /**
+   * O motivo, quando NÃO foi enviada: `sem_consentimento`, `sem_identificador`, `nao_configurada`,
+   * `http_400`, `erro_de_rede`…
+   *
+   * Nulo em dois casos opostos — deu certo, ou o webhook ainda não passou por aqui. `enviadoEm`
+   * desempata: com data é sucesso, sem data e sem motivo é pedido que nunca chegou a ser pago.
+   */
+  motivoDoEnvio: text('motivo_do_envio'),
 });

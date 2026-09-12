@@ -294,4 +294,6 @@ END $$`,
     ALTER TABLE "meta_conversion_context" ADD CONSTRAINT "meta_conversion_context_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE no action ON UPDATE no action;
   END IF;
 END $$`,
+  `ALTER TABLE "meta_conversion_context" ADD COLUMN IF NOT EXISTS "enviado_em" timestamp with time zone`,
+  `ALTER TABLE "meta_conversion_context" ADD COLUMN IF NOT EXISTS "motivo_do_envio" text`,
 ];

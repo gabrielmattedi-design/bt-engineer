@@ -5,7 +5,7 @@ import { processPaymentEvent } from '@/database/repositories/commerce-repo';
 import { sendEmail } from '@/email/send';
 import { reportReadyEmail } from '@/email/templates';
 import { SITE_URL } from '@/lib/site';
-import { contextoDoPedido } from '@/database/repositories/meta-repo';
+import { contextoDoPedido, registrarEnvio } from '@/database/repositories/meta-repo';
 import { enviarCompra } from '@/lib/meta-capi';
 
 export const dynamic = 'force-dynamic';
@@ -135,6 +135,15 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (!envio.enviado) {
           console.info(`[capi] compra ${event.orderId} não enviada: ${envio.motivo}`);
         }
+        /*
+          E o desfecho vai para o BANCO, não só para o log.
+
+          Log de servidor só é lido por quem está num computador com acesso à Vercel. O dono opera
+          do celular, e por dois dias a única resposta que existia para "a API de Conversões está
+          funcionando?" foi "abra o Gerenciador de Eventos num desktop". Gravado aqui, o mesmo fato
+          vira uma linha do `/admin/funil`.
+        */
+        await registrarEnvio(event.orderId, envio);
       }
 
       /*
