@@ -516,6 +516,54 @@ export async function contarVendas(janela: Janela = SEM_LIMITE): Promise<number>
   }
 }
 
+/**
+ * Quantas PESSOAS DISTINTAS estão por trás dos pedidos pagos da janela.
+ *
+ * ═══ POR QUE ESTE TERCEIRO NÚMERO PRECISOU EXISTIR (12/09/2026) ══════════════════════════════
+ *
+ * O funil mostrou **5** e a lista **7**, e o extrato do Mercado Pago confirmou que **7 é o real**.
+ * Restava a pergunta que decide se há bug: os 7 pedidos são de 7 pessoas ou de 5?
+ *
+ *   - **5 pessoas** → o funil está certo no que ele mede. Duas pessoas fizeram dois pedidos
+ *     (upsell, ou segunda análise), e o marco `paid` é único por visitante de propósito. O
+ *     problema é só de rótulo.
+ *   - **7 pessoas** → o funil PERDEU dois marcos. Aí é defeito, e o suspeito está em
+ *     `markFunnelBySessionId`: quando a sessão anônima não é encontrada, ele desiste em silêncio.
+ *
+ * Eu tinha respondido isso por dedução, sem dado, e errei o motivo. Este número existe para que a
+ * próxima vez que os dois divergirem a resposta esteja na tela, e não numa hipótese minha.
+ *
+ * ─── POR QUE `coalesce`, E NA MESMA ORDEM DO MARCO ───────────────────────────────────────────
+ *
+ * A comparação só vale se contar a MESMA chave que o funil usa. `processPaymentEvent` marca por
+ * `donoDaAnalise ?? sessionId`, onde `donoDaAnalise` é a sessão dona da análise — a pessoa pode
+ * ter comprado de outro aparelho. Contar por `orders.session_id` puro daria um número maior e
+ * inventaria uma divergência que não existe.
+ */
+export async function contarCompradoresDistintos(janela: Janela = SEM_LIMITE): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  const filtros = recorte(orders.paidAt, janela);
+
+  try {
+    const rows = await db()
+      .select({
+        n: sql<number>`count(distinct coalesce(${recommendationSessions.sessionId}, ${orders.sessionId}))::int`,
+      })
+      .from(orders)
+      .leftJoin(
+        recommendationSessions,
+        eq(recommendationSessions.id, orders.recommendationSessionId),
+      )
+      .where(and(eq(orders.status, 'paid'), ...filtros));
+
+    return Number(rows[0]?.n ?? 0);
+  } catch (error) {
+    console.error('[vendas] não foi possível contar os compradores distintos', error);
+    return 0;
+  }
+}
+
 export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
   const conn = db();
 

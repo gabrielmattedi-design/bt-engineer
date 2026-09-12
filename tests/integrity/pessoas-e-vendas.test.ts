@@ -1,33 +1,34 @@
 /**
  * Pessoas ≠ vendas, e o painel precisa dizer qual é qual.
  *
- * ═══ A DIVERGÊNCIA QUE ORIGINOU ISTO, E QUE CONTINUA ABERTA (12/09/2026) ═════════════════════
+ * ═══ A DIVERGÊNCIA QUE ORIGINOU ISTO (12/09/2026) ════════════════════════════════════════════
  *
  * O dono leu "Pagou: 5" no `/admin/funil` com filtro "Hoje" e contou **7** na lista de
- * `/admin/vendas` no mesmo dia. **Não se sabe qual está certo.**
+ * `/admin/vendas`. O **extrato do Mercado Pago** fechou a questão: 7 pagamentos, nos mesmos
+ * horários da nossa lista. **7 é o real; a lista está certa.**
  *
- * ─── A HIPÓTESE QUE EU DEI COMO CERTA, E QUE NÃO SE SUSTENTOU ────────────────────────────────
+ * ─── O CAMINHO ATÉ AÍ, QUE VALE MAIS QUE A CONCLUSÃO ─────────────────────────────────────────
  *
- * `funnel_markers` tem restrição única em (visitante, marco): um visitante só tem UM marco `paid`
- * na vida. Daí o funil não contar cliente que volta — logo o número real seria 7, e o funil
- * subestimaria. Escrevi isso num commit e num documento **sem ter verificado dado nenhum**.
+ * Eu respondi duas vezes sem dado, e errei as duas de formas opostas.
  *
- * O dono derrubou com duas coisas: chegaram **5 e-mails do Mercado Pago**, um por pagamento
- * recebido — um terceiro independente também dizendo 5 — e o produto é de compra única, então
- * dois clientes recomprando no mesmo dia é improvável.
+ * Primeiro afirmei que a diferença era cliente recomprando, deduzido da restrição única em
+ * (visitante, marco). Escrevi isso na tela, no documento e num commit **sem verificar nada**.
  *
- * E o código não fecha com nenhum dos lados: o único caminho para um pedido virar `paid` é um
- * evento do gateway, e com `PAYMENT_PROVIDER` real o adapter simulado nem é construído. Em tese,
- * 7 pedidos pagos exigiriam 7 eventos e 7 e-mails.
+ * Depois o dono citou **5 e-mails do Mercado Pago** e eu recuei demais — tratei a divergência como
+ * insolúvel e pus o número da lista sob suspeita. O extrato mostrou que os e-mails é que estavam
+ * incompletos: 2 não chegaram.
  *
- * ─── O QUE ESTES TESTES TRAVAM, ENTÃO ────────────────────────────────────────────────────────
+ * A lição não é sobre qual número era certo. É que **dois números discordando não se resolvem por
+ * dedução**, e que recuar para "não dá para saber" é tão inútil quanto chutar.
  *
- * Não a explicação — ela não existe ainda. Travam o MECANISMO que torna os dois números
- * legitimamente diferentes (a restrição única), o fato de a contagem de vendas contar pedidos e
- * não pessoas, e que a tela diga qual é qual em vez de mostrar dois números sem nome.
+ * ─── O QUE FALTAVA, E QUE ESTES TESTES TRAVAM ────────────────────────────────────────────────
  *
- * E travam que o documento **não volte a afirmar** qual dos dois usar para CAC enquanto a
- * divergência estiver aberta. Foi assim que o erro nasceu: hipótese virando instrução escrita.
+ * Um TERCEIRO número. Com "pedidos" e "pessoas no funil" apenas, *o funil está errado* e *o funil
+ * mede outra coisa* são indistinguíveis. Contar as pessoas distintas por trás dos pedidos decide
+ * na hora, e a tela passa a dar o veredito em vez de deixá-lo para a próxima dedução.
+ *
+ * Travam também o log em `markFunnelBySessionId`: o `return` mudo quando a sessão anônima não é
+ * encontrada é o suspeito de marco perdido, e sem rastro a investigação não começa.
  */
 
 import { readFileSync } from 'node:fs';
@@ -70,7 +71,7 @@ describe('a contagem de vendas conta PEDIDOS, e não pessoas', () => {
   it('não agrupa por pessoa', () => {
     const corpo = COMMERCE_REPO.slice(
       COMMERCE_REPO.indexOf('export async function contarVendas'),
-      COMMERCE_REPO.indexOf('export async function vendasDesde'),
+      COMMERCE_REPO.indexOf('export async function contarCompradoresDistintos'),
     );
     expect(corpo).not.toMatch(/count\(distinct/i);
   });
@@ -85,7 +86,7 @@ describe('a contagem de vendas conta PEDIDOS, e não pessoas', () => {
   it('recorta pela data do PAGAMENTO', () => {
     const corpo = COMMERCE_REPO.slice(
       COMMERCE_REPO.indexOf('export async function contarVendas'),
-      COMMERCE_REPO.indexOf('export async function vendasDesde'),
+      COMMERCE_REPO.indexOf('export async function contarCompradoresDistintos'),
     );
     expect(corpo).toContain('recorte(orders.paidAt');
   });
@@ -94,15 +95,54 @@ describe('a contagem de vendas conta PEDIDOS, e não pessoas', () => {
   it('só conta pedido com status `paid`', () => {
     const corpo = COMMERCE_REPO.slice(
       COMMERCE_REPO.indexOf('export async function contarVendas'),
-      COMMERCE_REPO.indexOf('export async function vendasDesde'),
+      COMMERCE_REPO.indexOf('export async function contarCompradoresDistintos'),
     );
     expect(corpo).toMatch(/eq\(orders\.status,\s*'paid'\)/);
   });
 });
 
-describe('a tela mostra os dois números com o nome do que medem', () => {
-  it('o painel do funil pede a contagem de vendas', () => {
+describe('o terceiro número, que é o que desempata', () => {
+  /**
+   * Com só "pedidos" e "pessoas no funil", *o funil está errado* e *o funil mede outra coisa* são
+   * indistinguíveis — e foi exatamente aí que eu respondi por dedução e errei o motivo.
+   *
+   * Contar as pessoas distintas por trás dos pedidos decide: se bate com o funil, ele está certo
+   * e a diferença é segunda compra; se não bate, faltou marco e é defeito.
+   */
+  it('conta compradores distintos pela MESMA chave que o marco usa', () => {
+    expect(COMMERCE_REPO).toContain('export async function contarCompradoresDistintos');
+    /*
+      `coalesce(recommendationSessions.sessionId, orders.sessionId)`, na mesma ordem de
+      `donoDaAnalise ?? sessionId` em `processPaymentEvent`. Contar por `orders.session_id` puro
+      daria um número maior e INVENTARIA uma divergência que não existe — a pessoa pode ter
+      comprado de outro aparelho.
+    */
+    expect(COMMERCE_REPO).toMatch(
+      /count\(distinct coalesce\(\$\{recommendationSessions\.sessionId\}, \$\{orders\.sessionId\}\)\)/,
+    );
+  });
+
+  it('a marcação por sessão deixa rastro quando descarta', () => {
+    /*
+      O `return` mudo quando a sessão não é encontrada era um dos dois suspeitos da divergência de
+      12/09: pedido pago, marco descartado, nada em lugar nenhum. Sem log, a investigação não tem
+      por onde começar.
+    */
+    const repo = ler('src/database/repositories/funnel-repo.ts');
+    expect(repo).toMatch(/console\.error\([^)]*sessão anônima/s);
+  });
+});
+
+describe('a tela mostra os números com o nome do que medem', () => {
+  it('o painel do funil pede as duas contagens', () => {
     expect(PAGINA_DO_FUNIL).toContain('contarVendas');
+    expect(PAGINA_DO_FUNIL).toContain('contarCompradoresDistintos');
+  });
+
+  /** A tela precisa dar o veredito, e não deixar a comparação para quem lê. */
+  it('diz explicitamente quando o funil perdeu marco', () => {
+    expect(PAGINA_DO_FUNIL).toMatch(/O funil perdeu \{compradores - pagaram\}/);
+    expect(PAGINA_DO_FUNIL).toMatch(/Os números fecham/);
   });
 
   /**
@@ -110,9 +150,10 @@ describe('a tela mostra os dois números com o nome do que medem', () => {
    * números diferentes lado a lado leem como defeito — que foi exatamente a pergunta que originou
    * tudo isto.
    */
-  it('a tela distingue pessoas de pedidos em texto', () => {
-    expect(PAGINA_DO_FUNIL).toMatch(/pessoas<\/strong>/);
-    expect(PAGINA_DO_FUNIL).toMatch(/pedidos<\/strong>/);
+  it('a tela distingue pedidos de pessoas em texto', () => {
+    expect(PAGINA_DO_FUNIL).toContain('pedidos pagos');
+    expect(PAGINA_DO_FUNIL).toContain('pessoas por trás');
+    expect(PAGINA_DO_FUNIL).toContain('no funil');
   });
 });
 
@@ -130,7 +171,7 @@ describe('o documento não manda mais calcular CAC pelo número errado', () => {
       Corrigir sem deixar rastro faria a próxima pessoa refazer a mesma conta errada e concluir de
       novo que o funil é o registro completo. O motivo do erro vale mais que a correção.
     */
-    expect(DOC_DA_CAMPANHA).toMatch(/Em aberto desde 12\/09\/2026/);
-    expect(DOC_DA_CAMPANHA).toMatch(/sem ter\n> verificado dado nenhum/);
+    expect(DOC_DA_CAMPANHA).toMatch(/Correção de 12\/09\/2026/);
+    expect(DOC_DA_CAMPANHA).toMatch(/O ERRO DE MÉTODO/);
   });
 });

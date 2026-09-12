@@ -91,7 +91,22 @@ export async function markFunnelBySessionId(sessionId: string, marker: FunnelMar
       .limit(1);
 
     const hash = rows[0]?.hash;
-    if (!hash) return;
+    if (!hash) {
+      /*
+        ═══ ESTE `return` ERA MUDO, E FOI SUSPEITO DE ENGOLIR VENDA (12/09/2026) ═══════════════
+
+        O funil mostrou 5 pagamentos num dia em que o extrato do Mercado Pago tinha 7. Uma das
+        duas explicações possíveis era esta linha: sessão anônima não encontrada, marco descartado,
+        nada registrado em lugar nenhum. O pedido existe, o dinheiro entrou, e o funil nunca soube.
+
+        Não engolir mais. Continua sem lançar — medição não derruba o webhook de pagamento —, mas
+        agora deixa rastro com o id, que é o que permite ir atrás do pedido específico.
+      */
+      console.error(
+        `[funil] marco "${marker}" descartado: sessão anônima ${sessionId} não encontrada`,
+      );
+      return;
+    }
 
     await db().insert(funnelMarkers).values({ visitorHash: hash, marker }).onConflictDoNothing();
   } catch (error) {

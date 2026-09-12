@@ -12,7 +12,7 @@ import {
 import { dataCurta } from '@/lib/datas';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
-import { contarVendas } from '@/database/repositories/commerce-repo';
+import { contarCompradoresDistintos, contarVendas } from '@/database/repositories/commerce-repo';
 import { explicarMotivo } from '@/lib/motivo-do-envio';
 import { withAutoBootstrap } from '@/database/setup';
 import { ResetFunnelForm } from './reset-form';
@@ -64,6 +64,7 @@ export default async function FunilPage({
     convidadosNoFunil,
     envios,
     vendas,
+    compradores,
   ] = await withAutoBootstrap(
     () =>
       Promise.all([
@@ -83,6 +84,7 @@ export default async function FunilPage({
         contarJornadasDeCupomNoFunil(),
         envioDeCompras(janela),
         contarVendas(janela),
+        contarCompradoresDistintos(janela),
       ]),
   );
 
@@ -254,27 +256,49 @@ export default async function FunilPage({
               funil, chamando-o de "registro completo" — estava errado, e errado para menos, que é
               o pior lado: CAC inflado manda cortar orçamento de campanha que está indo bem.
             */}
+            {/*
+              ═══ TRÊS NÚMEROS, PORQUE DOIS NÃO DECIDEM NADA ═══════════════════════════════════
+
+              Em 12/09/2026 o funil mostrou 5 e a lista 7, e o extrato do gateway confirmou 7. Com
+              só esses dois números na mão, "o funil está errado" e "o funil mede outra coisa" são
+              indistinguíveis — e eu respondi por dedução, sem dado, e errei o motivo.
+
+              O terceiro número desempata. `compradores` conta as PESSOAS distintas por trás dos
+              pedidos pagos, pela mesma chave que o marco `paid` usa:
+
+                compradores == pagaram  → o funil está certo. Pedidos a mais são segunda compra
+                                          da mesma pessoa, e o marco é único por visitante.
+                compradores >  pagaram  → o funil PERDEU marco. Aí é defeito, e o rastro está no
+                                          log de `markFunnelBySessionId`.
+
+              A tela diz qual dos dois é, em vez de deixar para a próxima dedução.
+            */}
             {vendas !== pagaram && (
-              <p className="mt-2 max-w-prose text-sm text-graphite">
-                <strong className="text-ink">{vendas}</strong>{' '}
-                {vendas === 1 ? 'pedido pago' : 'pedidos pagos'} no período, contra{' '}
-                <strong className="text-ink">{pagaram}</strong>{' '}
-                {pagaram === 1 ? 'pessoa' : 'pessoas'} no funil. O funil conta{' '}
-                <strong className="text-ink">pessoas</strong> — e cada uma só pode contar uma vez
-                na vida, o que é o que faz a taxa de conversão ser verdade. A lista conta{' '}
-                <strong className="text-ink">pedidos</strong>.
-                {(periodo === 'hoje' || periodo === 'ontem') && (
-                  <>
-                    {' '}
-                    <strong className="text-warn">
-                      Confira contra os e-mails do gateway antes de usar qualquer um dos dois no
-                      CAC.
-                    </strong>{' '}
-                    Cliente que volta explica a diferença; duas linhas sem e-mail correspondente,
-                    não.
-                  </>
+              <div className="mt-3 max-w-prose rounded border border-line bg-white p-4 text-sm">
+                <p className="text-graphite">
+                  <strong className="tabular-nums text-ink">{vendas}</strong> pedidos pagos ·{' '}
+                  <strong className="tabular-nums text-ink">{compradores}</strong> pessoas por trás
+                  deles · <strong className="tabular-nums text-ink">{pagaram}</strong> no funil
+                </p>
+
+                {compradores === pagaram ? (
+                  <p className="mt-2 text-graphite">
+                    <strong className="text-ink">Os números fecham.</strong> Cada pessoa conta uma
+                    vez no funil, e {vendas - compradores}{' '}
+                    {vendas - compradores === 1 ? 'pedido é' : 'pedidos são'} segunda compra de
+                    alguém que já estava na conta. Para o CAC, use{' '}
+                    <strong className="text-ink">{vendas}</strong>.
+                  </p>
+                ) : (
+                  <p className="mt-2 font-medium text-warn">
+                    O funil perdeu {compradores - pagaram}{' '}
+                    {compradores - pagaram === 1 ? 'marco' : 'marcos'}. São {compradores} pessoas
+                    compradoras e só {pagaram} no funil — não é diferença de contagem, é registro
+                    faltando. O motivo está no log do servidor, em{' '}
+                    <code>[funil] marco &quot;paid&quot; descartado</code>.
+                  </p>
                 )}
-              </p>
+              </div>
             )}
 
             {etapas.length > 1 && (

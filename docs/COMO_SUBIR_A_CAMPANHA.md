@@ -627,31 +627,33 @@ diferentes. Mas não é mais o número que decide.
 > gateway não gera evento no pixel — o total do Meta será sempre um pouco MENOR que o nosso. Os
 > dois estão certos, contando coisas diferentes.
 >
-> ⚠️ **Em aberto desde 12/09/2026 — não use nenhum dos dois às cegas.**
+> ⚠️ **Correção de 12/09/2026 — para CAC, use o número de PEDIDOS, não o do funil.**
 >
-> O dono leu **5** em "Pagou" no `/admin/funil` e contou **7** na lista de `/admin/vendas`, no
-> mesmo dia. **Ainda não se sabe qual está certo.**
+> O dono leu **5** em "Pagou" no `/admin/funil` e contou **7** em `/admin/vendas`. O **extrato do
+> Mercado Pago** decidiu: 7 pagamentos, nos mesmos horários da nossa lista. **A lista está certa.**
 >
-> **A hipótese que eu levantei e que NÃO se sustentou.** `funnel_markers` tem restrição única em
-> (visitante, marco), então um visitante só tem um marco `paid` na vida — logo o funil não contaria
-> cliente que volta, e o número real seria 7. Escrevi isso como se fosse a explicação, **sem ter
-> verificado dado nenhum.**
+> A instrução que estava aqui — "use as compras do `/admin/funil`, que é o registro completo" —
+> estava errada, e errada para MENOS. Menos vendas na conta infla o CAC, e CAC inflado é o sinal
+> que manda cortar orçamento de uma campanha que está indo bem.
 >
-> **O que derruba a hipótese:** chegaram **5 e-mails do Mercado Pago**, um por pagamento recebido.
-> Um terceiro, independente dos nossos dois números, também diz 5. E o produto é de compra única —
-> dois clientes recomprando no mesmo dia é improvável.
+> **Por que o funil mostra menos.** `funnel_markers` tem restrição única em (visitante, marco): um
+> visitante só tem um marco `paid` na vida. O funil conta PESSOAS, e isso é proposital — é o que
+> faz a taxa de conversão significar alguma coisa.
 >
-> **O que o código diz, e que não fecha com nada disso:** o único caminho para um pedido virar
-> `paid` é um evento do gateway (`processPaymentEvent`). Com `PAYMENT_PROVIDER` real, o adapter
-> simulado nem é construído. Em tese, 7 pedidos pagos exigiriam 7 eventos — e 7 e-mails.
+> **O que o painel agora mostra, e por quê.** Três números: pedidos pagos, pessoas por trás deles,
+> e pessoas no funil. Os dois primeiros vêm de `orders`; o terceiro do funil. Se as pessoas por
+> trás dos pedidos baterem com o funil, ele está certo e a diferença é segunda compra. Se não
+> baterem, o funil perdeu marco — e aí é defeito, com rastro no log
+> (`[funil] marco "paid" descartado`).
 >
-> **Como resolver:** abrir `/admin/vendas`, olhar as linhas do dia e comparar e-mail, valor e SKU
-> de cada uma contra os e-mails do Mercado Pago. Duas linhas sem correspondência apontam o
-> problema; dois e-mails iguais confirmariam a recompra. Enquanto isso não for feito, **os dois
-> números ficam sob suspeita** e o CAC do dia é uma faixa, não um valor.
+> ─── O ERRO DE MÉTODO, QUE VALE MAIS QUE A CORREÇÃO ───
 >
-> O que continua valendo sem dúvida: o funil mede conversão de PESSOAS, e é para isso que a
-> restrição única existe. Contar a mesma pessoa duas vezes ali estragaria a taxa.
+> Eu respondi duas vezes sem olhar dado. Primeiro afirmei que a diferença era cliente recomprando,
+> deduzido do código. Depois, diante dos e-mails do Mercado Pago (que eram **5**, porque 2 não
+> chegaram), recuei e tratei tudo como insolúvel. As duas respostas eram igualmente inúteis.
+>
+> O que faltava não era mais dedução: era o terceiro número. **Dois números discordando não se
+> resolvem por raciocínio sobre o código** — se resolvem instrumentando a diferença.
 
 ### Quando parar
 
