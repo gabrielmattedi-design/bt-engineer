@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { janelaDoPeriodo } from '@/lib/periodo';
+import { ehDiaDeCalendario, janelaDoPeriodo } from '@/lib/periodo';
 import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
 import {
@@ -43,6 +43,14 @@ export default async function FunilPage({
 
   const { periodo } = await searchParams;
   const janela = janelaDoPeriodo(periodo);
+
+  /* Um dia de calendário — por botão ou pelo seletor — é o único recorte que fecha CAC. */
+  const diaFechado = ehDiaDeCalendario(periodo);
+  const ehData = diaFechado && periodo !== 'hoje' && periodo !== 'ontem';
+  /* `max` do seletor: hoje em Brasília, e não em UTC, senão depois das 21h ele libera amanhã. */
+  const hojeEmBrasilia = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date());
 
   /*
     `withAutoBootstrap` aqui pelo mesmo motivo de todo o resto do sistema — e a ausência dele foi um
@@ -137,6 +145,38 @@ export default async function FunilPage({
               </a>
             );
           })}
+
+          {/*
+            ═══ O CALENDÁRIO, E POR QUE ELE NÃO É LUXO ═══════════════════════════════════════
+
+            Os botões cobriam hoje, ontem, e pulavam para 7 dias. Anteontem ficava inalcançável —
+            a janela de 7 dias soma tudo e não separa nada.
+
+            Isso travava exatamente o trabalho que o painel existe para permitir: montar a série de
+            CAC dia a dia contra o gasto do Meta, que o dono tem por dia no aplicativo. Metade da
+            série não tinha como ser lida.
+
+            `<form method="get">` com `<input type="date">`: sem JavaScript nosso, e no celular abre
+            o seletor nativo do sistema. `max` impede escolher um dia que ainda não aconteceu.
+          */}
+          <form method="get" className="flex items-center gap-2">
+            <input
+              type="date"
+              name="periodo"
+              defaultValue={ehData ? periodo : ''}
+              max={hojeEmBrasilia}
+              aria-label="Escolher um dia"
+              className={`rounded border px-3 py-1.5 ${
+                ehData ? 'border-ink bg-ink text-paper' : 'border-line'
+              }`}
+            />
+            <button
+              type="submit"
+              className="rounded border border-line px-3 py-1.5 hover:border-ink"
+            >
+              Ver o dia
+            </button>
+          </form>
         </nav>
 
         {/*
@@ -150,7 +190,7 @@ export default async function FunilPage({
           vendas de uma janela rolante é dividir duas coisas que não se sobrepõem, e o resultado sai
           plausível, que é o que o torna perigoso.
         */}
-        {(periodo === 'hoje' || periodo === 'ontem') && (
+        {diaFechado && (
           <p className="mt-3 max-w-prose text-xs text-graphite">
             Dia fechado no horário de Brasília — o mesmo corte que o Gerenciador de Anúncios usa.
             Dá para dividir o gasto do dia por estas vendas e ter o CAC.
@@ -304,7 +344,7 @@ export default async function FunilPage({
                     */}
                     <p className="mt-2 text-graphite">
                       Para <strong className="text-ink">CAC</strong> — custo por cliente — divida o
-                      gasto do dia por <strong className="text-ink">{compradores}</strong>. Para
+                      gasto do período por <strong className="text-ink">{compradores}</strong>. Para
                       custo por venda, por <strong className="text-ink">{vendas}</strong>. E
                       compare o CAC com a receita por cliente do dia, que com{' '}
                       {vendas - compradores} {vendas - compradores === 1 ? 'pedido' : 'pedidos'} a

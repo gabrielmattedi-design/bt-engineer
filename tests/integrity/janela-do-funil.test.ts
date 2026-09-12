@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { inicioDoDia, janelaDoPeriodo } from '@/lib/periodo';
+import { ehDiaDeCalendario, inicioDoDia, janelaDaData, janelaDoPeriodo } from '@/lib/periodo';
 
 /** Brasília está 3 horas atrás de UTC. */
 const TRES_HORAS = 3 * 60 * 60 * 1000;
@@ -118,6 +118,85 @@ describe('as janelas rolantes continuam rolantes', () => {
       expect(Number.isFinite(desde!.getTime()), `"${lixo}" produziu data inválida`).toBe(true);
       expect(desde!.getTime()).toBe(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
+  });
+});
+
+describe('escolher um dia no calendário', () => {
+  /**
+   * ═══ POR QUE ISTO EXISTE (12/09/2026) ══════════════════════════════════════════════════════
+   *
+   * Os botões cobriam hoje, ontem, e pulavam para 7 dias. Anteontem era inalcançável — e o dono
+   * estava justamente montando a série de CAC dia a dia contra o gasto do Meta, que ele tem por
+   * dia. Metade da série não tinha como ser lida.
+   */
+  it('devolve o dia fechado de Brasília, meia-noite a meia-noite', () => {
+    const { desde, ate } = janelaDaData('2026-09-10')!;
+    expect(desde?.toISOString()).toBe('2026-09-10T03:00:00.000Z');
+    expect(ate?.toISOString()).toBe('2026-09-11T03:00:00.000Z');
+  });
+
+  it('dura exatamente 24 horas', () => {
+    const { desde, ate } = janelaDaData('2026-09-10')!;
+    expect(ate!.getTime() - desde!.getTime()).toBe(24 * 60 * 60 * 1000);
+  });
+
+  /**
+   * A data escolhida sai pela `janelaDoPeriodo`, que é quem a página chama.
+   *
+   * A ordem importa: `Number('2026-09-10')` é NaN, então se a data fosse avaliada DEPOIS do
+   * `Number` ela cairia no padrão de 30 dias — a tela mostraria um mês inteiro com a data escrita
+   * no campo. Erro que ninguém percebe, porque a tela não fica vazia.
+   */
+  it('a data escolhida não cai no padrão de 30 dias', () => {
+    const agora = new Date('2026-09-12T15:00:00Z');
+    const { desde, ate } = janelaDoPeriodo('2026-09-10', agora);
+
+    expect(desde?.toISOString()).toBe('2026-09-10T03:00:00.000Z');
+    expect(ate?.toISOString(), 'sem fim, virou janela rolante').toBe('2026-09-11T03:00:00.000Z');
+  });
+
+  it('encosta em "ontem" sem sobrepor', () => {
+    /*
+      Escolher no calendário o dia que o botão "Ontem" mostra tem de dar exatamente a mesma janela.
+      Dois caminhos para o mesmo dia que discordassem por uma hora produziriam dois CAC diferentes
+      para o mesmo dia — e nenhum jeito de saber qual.
+    */
+    const agora = new Date('2026-09-12T15:00:00Z');
+    expect(janelaDoPeriodo('2026-09-11', agora)).toEqual(janelaDoPeriodo('ontem', agora));
+  });
+
+  describe('data que não existe não vira janela', () => {
+    /*
+      O parâmetro vem da barra de endereço. `2026-02-31` transbordando para março produziria uma
+      janela silenciosamente deslocada — que é pior que um erro na tela.
+    */
+    it.each(['2026-02-31', '2026-13-01', '10/09/2026', '2026-9-10', 'banana', ''])(
+      '"%s" é recusada',
+      (lixo) => {
+        expect(janelaDaData(lixo)).toBeNull();
+      },
+    );
+
+    it('e cai no padrão de 30 dias em vez de quebrar', () => {
+      const agora = new Date('2026-09-12T15:00:00Z');
+      const { desde } = janelaDoPeriodo('2026-02-31', agora);
+      expect(desde!.getTime()).toBe(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+    });
+  });
+});
+
+describe('quais períodos fecham CAC', () => {
+  /**
+   * Só dia de calendário serve para dividir gasto por vendas. A janela rolante de 7 dias não se
+   * sobrepõe a dia nenhum do Gerenciador de Anúncios, e o resultado dessa divisão sai plausível —
+   * que é o que o torna perigoso.
+   */
+  it.each(['hoje', 'ontem', '2026-09-10'])('"%s" é dia fechado', (p) => {
+    expect(ehDiaDeCalendario(p)).toBe(true);
+  });
+
+  it.each(['7', '30', '90', 'tudo', undefined])('"%s" não é', (p) => {
+    expect(ehDiaDeCalendario(p)).toBe(false);
   });
 });
 
