@@ -126,6 +126,16 @@ exatamente a autoridade que a pauta acabou de construir.
 
 ✅ **Arte pronta.** Arquétipo **D · Story** (`EAHUMDWWwI4`), 1080 × 1920, os três comitados.
 
+### O projeto para publicar
+
+**`DAHVAtBJJQ0`** — `canva.com/design/DAHVAtBJJQ0/edit` — *TE · Stories 12/09 · A corda morre
+calada*, 3 páginas na ordem 1 → 3.
+
+É daqui que se baixa e se posta. Ordem conferida lendo o projeto de volta depois da junção, e não
+assumida da sequência das chamadas.
+
+### As páginas de origem
+
 | Story | `design_id` | Abrir |
 |---|---|---|
 | 1 · A corda não avisa | `DAHVAiYIYXk` | `canva.com/design/DAHVAiYIYXk/edit` |
