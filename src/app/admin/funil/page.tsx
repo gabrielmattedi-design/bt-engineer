@@ -10,6 +10,7 @@ import {
   quizDropoff,
 } from '@/database/repositories/funnel-repo';
 import { dataCurta } from '@/lib/datas';
+import { brl } from '@/payments/catalogo';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
 import { contarCompradoresDistintos, contarVendas } from '@/database/repositories/commerce-repo';
@@ -427,6 +428,13 @@ export default async function FunilPage({
                     <th className="px-4 py-3 text-right font-semibold">Terminaram</th>
                     <th className="px-4 py-3 text-right font-semibold">Pagaram</th>
                     <th className="px-4 py-3 text-right font-semibold">Conversão</th>
+                    {/*
+                      As três de dinheiro vêm de `orders`, não do funil. "Pagaram" conta pessoas
+                      uma vez na vida; "Clientes" e "Pedidos" contam caixa. Ver `campaign-repo`.
+                    */}
+                    <th className="px-4 py-3 text-right font-semibold">Clientes</th>
+                    <th className="px-4 py-3 text-right font-semibold">Pedidos</th>
+                    <th className="px-4 py-3 text-right font-semibold">Receita</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -446,6 +454,15 @@ export default async function FunilPage({
                       <td className="px-4 py-3 text-right tabular-nums">
                         {o.conversion.toFixed(1)}%
                       </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {o.clientes}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
+                        {o.pedidos}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {brl(o.receitaCentavos)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -464,6 +481,30 @@ export default async function FunilPage({
               oscila demais para decidir. As colunas do meio dizem ONDE a origem falha — quem não
               termina o questionário veio pelo anúncio errado; quem termina e não paga é público
               certo com oferta errada.
+            </p>
+
+            {/*
+              ═══ OS DOIS RELÓGIOS DA MESMA LINHA, DITOS EM VOZ ALTA ═══════════════════════════
+
+              "Chegaram", "Terminaram", "Pagaram" e "Conversão" recortam pela data em que a pessoa
+              CHEGOU. "Clientes", "Pedidos" e "Receita" recortam pela data do PAGAMENTO.
+
+              Não é descuido: para casar com o gasto diário do Meta, o que importa é quando o
+              dinheiro caiu. Mas duas metades da mesma linha medindo dias diferentes é exatamente o
+              tipo de coisa que faz alguém somar errado sem perceber — então está escrito aqui.
+            */}
+            <p className="mt-2 max-w-prose text-xs text-graphite">
+              <strong className="text-ink">As três últimas colunas medem outro dia.</strong>{' '}
+              Chegaram, Terminaram e Pagaram contam por quando a pessoa <em>chegou</em>; Clientes,
+              Pedidos e Receita contam por quando o <em>pagamento entrou</em> — que é o corte que
+              casa com o gasto diário do Gerenciador de Anúncios.
+              {diaFechado && (
+                <>
+                  {' '}
+                  Neste dia: <strong className="text-ink">CAC = gasto ÷ Clientes</strong> e{' '}
+                  <strong className="text-ink">ROAS = Receita ÷ gasto</strong>, na linha da origem.
+                </>
+              )}
             </p>
           </section>
         )}
