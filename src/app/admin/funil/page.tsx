@@ -282,13 +282,35 @@ export default async function FunilPage({
                 </p>
 
                 {compradores === pagaram ? (
-                  <p className="mt-2 text-graphite">
-                    <strong className="text-ink">Os números fecham.</strong> Cada pessoa conta uma
-                    vez no funil, e {vendas - compradores}{' '}
-                    {vendas - compradores === 1 ? 'pedido é' : 'pedidos são'} segunda compra de
-                    alguém que já estava na conta. Para o CAC, use{' '}
-                    <strong className="text-ink">{vendas}</strong>.
-                  </p>
+                  <>
+                    <p className="mt-2 text-graphite">
+                      <strong className="text-ink">Os números fecham.</strong> Cada pessoa conta
+                      uma vez no funil, e {vendas - compradores}{' '}
+                      {vendas - compradores === 1 ? 'pedido é' : 'pedidos são'} compra adicional de
+                      quem já estava na conta — o upgrade é o caso mais comum.
+                    </p>
+                    {/*
+                      ═══ OS DOIS DIVISORES, PORQUE ELES DECIDEM COISAS DIFERENTES ═════════════
+
+                      Eu tinha escrito aqui "para o CAC, use o número de pedidos". Errado por
+                      descuido de nome: CAC é custo de aquisição de CLIENTE, e o denominador é
+                      gente, não pedido.
+
+                      A distinção não é preciosismo — ela vira dinheiro. Quando uma pessoa compra
+                      duas ou três vezes, a receita por cliente ADQUIRIDO fica acima do ticket
+                      médio, e o teto do que se pode pagar para trazer um cliente sobe junto.
+                      Dividir por pedidos esconde exatamente isso: dá um custo por venda menor e
+                      um teto que parece o mesmo de sempre.
+                    */}
+                    <p className="mt-2 text-graphite">
+                      Para <strong className="text-ink">CAC</strong> — custo por cliente — divida o
+                      gasto do dia por <strong className="text-ink">{compradores}</strong>. Para
+                      custo por venda, por <strong className="text-ink">{vendas}</strong>. E
+                      compare o CAC com a receita por cliente do dia, que com{' '}
+                      {vendas - compradores} {vendas - compradores === 1 ? 'pedido' : 'pedidos'} a
+                      mais está <strong className="text-ink">acima</strong> do ticket médio.
+                    </p>
+                  </>
                 ) : (
                   <p className="mt-2 font-medium text-warn">
                     O funil perdeu {compradores - pagaram}{' '}

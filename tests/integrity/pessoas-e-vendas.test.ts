@@ -4,22 +4,24 @@
  * ═══ A DIVERGÊNCIA QUE ORIGINOU ISTO (12/09/2026) ════════════════════════════════════════════
  *
  * O dono leu "Pagou: 5" no `/admin/funil` com filtro "Hoje" e contou **7** na lista de
- * `/admin/vendas`. O **extrato do Mercado Pago** fechou a questão: 7 pagamentos, nos mesmos
- * horários da nossa lista. **7 é o real; a lista está certa.**
+ * `/admin/vendas`. O extrato do Mercado Pago confirmou 7 pagamentos, e o dono conferiu os e-mails
+ * da lista: **uma pessoa fez 3 compras no mesmo dia.** 7 pedidos, 5 pessoas. **Os dois números
+ * estavam certos** — o funil conta gente, a lista conta pedido.
  *
  * ─── O CAMINHO ATÉ AÍ, QUE VALE MAIS QUE A CONCLUSÃO ─────────────────────────────────────────
  *
- * Eu respondi duas vezes sem dado, e errei as duas de formas opostas.
+ * A conclusão estava certa e o método não. Respondi duas vezes sem dado, e errei as duas.
  *
- * Primeiro afirmei que a diferença era cliente recomprando, deduzido da restrição única em
- * (visitante, marco). Escrevi isso na tela, no documento e num commit **sem verificar nada**.
+ * Primeiro dei a explicação como fato — deduzida da restrição única em (visitante, marco) — e a
+ * escrevi na tela, no documento e num commit **sem verificar nada**. Ela acabou se confirmando, o
+ * que é sorte, não acerto: eu não tinha como saber.
  *
  * Depois o dono citou **5 e-mails do Mercado Pago** e eu recuei demais — tratei a divergência como
- * insolúvel e pus o número da lista sob suspeita. O extrato mostrou que os e-mails é que estavam
- * incompletos: 2 não chegaram.
+ * insolúvel e pus a lista sob suspeita. Eram os e-mails que estavam incompletos: 2 não chegaram.
  *
  * A lição não é sobre qual número era certo. É que **dois números discordando não se resolvem por
- * dedução**, e que recuar para "não dá para saber" é tão inútil quanto chutar.
+ * dedução**, e que recuar para "não dá para saber" é tão inútil quanto chutar. O que resolve é
+ * instrumentar a diferença — que é o que este arquivo trava.
  *
  * ─── O QUE FALTAVA, E QUE ESTES TESTES TRAVAM ────────────────────────────────────────────────
  *
@@ -157,7 +159,7 @@ describe('a tela mostra os números com o nome do que medem', () => {
   });
 });
 
-describe('o documento não manda mais calcular CAC pelo número errado', () => {
+describe('o documento distingue os dois divisores', () => {
   /**
    * A frase exata que estava errada. Ela chamava o funil de "o registro completo" de compras, e o
    * registro completo é `orders`.
@@ -171,7 +173,13 @@ describe('o documento não manda mais calcular CAC pelo número errado', () => {
       Corrigir sem deixar rastro faria a próxima pessoa refazer a mesma conta errada e concluir de
       novo que o funil é o registro completo. O motivo do erro vale mais que a correção.
     */
-    expect(DOC_DA_CAMPANHA).toMatch(/Correção de 12\/09\/2026/);
+    expect(DOC_DA_CAMPANHA).toMatch(/Resolvido em 12\/09\/2026/);
     expect(DOC_DA_CAMPANHA).toMatch(/O ERRO DE MÉTODO/);
+    /*
+      CAC é custo de aquisição de CLIENTE — o divisor é gente, não pedido. Confundir os dois não é
+      preciosismo: quando alguém compra três vezes, a receita por cliente adquirido sobe, e com ela
+      o teto do que se pode pagar para trazer o próximo. Dividir tudo por pedidos esconde isso.
+    */
+    expect(DOC_DA_CAMPANHA).toMatch(/receita por\n> cliente adquirido fica acima do ticket médio/);
   });
 });

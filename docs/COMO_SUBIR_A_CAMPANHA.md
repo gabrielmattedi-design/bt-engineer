@@ -627,18 +627,27 @@ diferentes. Mas não é mais o número que decide.
 > gateway não gera evento no pixel — o total do Meta será sempre um pouco MENOR que o nosso. Os
 > dois estão certos, contando coisas diferentes.
 >
-> ⚠️ **Correção de 12/09/2026 — para CAC, use o número de PEDIDOS, não o do funil.**
+> ⚠️ **Resolvido em 12/09/2026 — e são DOIS divisores, não um.**
 >
-> O dono leu **5** em "Pagou" no `/admin/funil` e contou **7** em `/admin/vendas`. O **extrato do
-> Mercado Pago** decidiu: 7 pagamentos, nos mesmos horários da nossa lista. **A lista está certa.**
+> O dono leu **5** em "Pagou" no `/admin/funil` e contou **7** em `/admin/vendas`. O extrato do
+> Mercado Pago confirmou 7 pagamentos. **Os dois números estavam certos:** ele conferiu os e-mails
+> da lista e achou **uma pessoa com 3 compras no mesmo dia** — 7 pedidos, 5 pessoas.
 >
 > A instrução que estava aqui — "use as compras do `/admin/funil`, que é o registro completo" —
-> estava errada, e errada para MENOS. Menos vendas na conta infla o CAC, e CAC inflado é o sinal
-> que manda cortar orçamento de uma campanha que está indo bem.
+> estava errada de qualquer forma. O funil conta PESSOAS, de propósito: `funnel_markers` tem
+> restrição única em (visitante, marco), e é isso que faz a taxa de conversão significar algo.
 >
-> **Por que o funil mostra menos.** `funnel_markers` tem restrição única em (visitante, marco): um
-> visitante só tem um marco `paid` na vida. O funil conta PESSOAS, e isso é proposital — é o que
-> faz a taxa de conversão significar alguma coisa.
+> **A conta certa depende do que se quer decidir:**
+>
+> | Pergunta | Divisor |
+> |---|---|
+> | **CAC** — quanto custou trazer um cliente | **pessoas** (5) |
+> | Custo por venda | pedidos (7) |
+>
+> E a consequência que interessa: quando uma pessoa compra duas ou três vezes, a **receita por
+> cliente adquirido fica acima do ticket médio**, e o teto do que se pode pagar para trazer um
+> cliente sobe junto. Dividir tudo por pedidos esconde exatamente isso — dá um custo por venda
+> menor e um teto que parece o de sempre.
 >
 > **O que o painel agora mostra, e por quê.** Três números: pedidos pagos, pessoas por trás deles,
 > e pessoas no funil. Os dois primeiros vêm de `orders`; o terceiro do funil. Se as pessoas por
