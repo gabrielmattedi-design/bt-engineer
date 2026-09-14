@@ -515,6 +515,11 @@ Revise e publique. O Meta leva algumas horas para aprovar.
 
 ## Parte 5 — Depois de ligar
 
+> **A partir daqui o assunto muda de arquivo.** Este documento vai até o primeiro gatilho do dia 3.
+> Operar uma campanha que já está rodando — orçamento, fase de aprendizado, leitura de número,
+> quando NÃO mexer — está em **`OPERACAO_DA_CAMPANHA.md`**, escrito durante a campanha de setembro
+> e quase todo derivado de erro cometido ao vivo.
+
 ### Os primeiros 3 dias: não toque em nada
 
 Qualquer alteração — orçamento, público, criativo, texto — **reinicia a fase de aprendizado**, e uma

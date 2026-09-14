@@ -2,6 +2,11 @@
 
 > Plano da primeira compra de mídia do Tennis Engineer. Orçamento aprovado: **R$ 500**.
 > Escrito em 08/09/2026, contra os preços e o rastreamento que estão no ar hoje.
+>
+> **Os três arquivos, e a ordem deles:** este decide *o que* anunciar e *por quê*;
+> `COMO_SUBIR_A_CAMPANHA.md` é o passo a passo de montar; **`OPERACAO_DA_CAMPANHA.md`** é o que
+> vem depois que ela está rodando — e traz a série medida dos primeiros 5 dias, que substitui
+> várias estimativas feitas aqui antes de existir dado.
 
 ---
 
