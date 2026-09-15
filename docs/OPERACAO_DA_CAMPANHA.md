@@ -197,6 +197,69 @@ Em 12/09 o funil mostrou **5** e a lista **7**. Os dois estavam certos: uma pess
 no mesmo dia. O `/admin/funil` hoje mostra os três números — pedidos, pessoas por trás deles, e
 pessoas no funil — e dá o veredito.
 
+**Como ler os três, com o dia 14 de exemplo — 10 no funil · 12 pedidos · 12 clientes:**
+
+| Número | O que conta exatamente | Vem de |
+|---|---|---|
+| **Pedidos** (12) | Linhas em `orders` pagas, recortadas por `paid_at` | `contarVendas` |
+| **Clientes** (12) | `count(distinct coalesce(recommendationSessions.sessionId, orders.sessionId))` | `contarCompradoresDistintos` |
+| **Pagaram** (10) | Visitantes distintos com marco `paid` criado na janela | `funnelReport` |
+
+**Pedidos = clientes** significa que ninguém comprou duas vezes em cima da MESMA análise — nenhum
+upgrade, nenhuma segunda compra do mesmo laudo.
+
+> ⚠️ **"Clientes" não é "pessoas".** A chave é a sessão dona da análise, não o e-mail. A mesma
+> pessoa fazendo duas análises separadas conta como dois clientes — foi literalmente o caso de
+> 13/09, um e-mail com 3 compras. Então 12 clientes são 12 análises distintas, e *provavelmente*
+> 12 pessoas, mas o número não prova isso. Quem prova é a lista de vendas, que tem o e-mail.
+
+**Clientes > pagaram** significa marcos faltando — 2, no dia 14. Duas causas possíveis, e elas
+pedem ações opostas:
+
+| Causa | Mecanismo | É defeito? |
+|---|---|---|
+| **(a) Comprador repetido de outro dia** | O marco `paid` é único por visitante **na vida**. Quem já comprou em 13/09 com o mesmo cookie não gera marco novo em 14/09 — o `onConflictDoNothing` engole. O pedido e o cliente contam hoje; o marco está datado lá atrás. | **Não.** É o desenho. |
+| **(b) Marco descartado** | `markFunnelBySessionId` desiste quando a sessão anônima não é encontrada. Era o `return` mudo que fez o funil parecer engolir venda em 12/09. | **Sim.** |
+
+**Como separar as duas, sem deduzir:** procurar nos logs da Vercel, no dia em questão, a linha
+
+```
+[funil] marco "paid" descartado: sessão anônima <id> não encontrada
+```
+
+Duas linhas → causa (b), e o log traz o id para achar o pedido exato. Zero linhas → causa (a), o
+funil está certo e o rótulo é que engana: "Pagaram" quer dizer *pessoas que pagaram pela primeira
+vez*.
+
+O log entrou em `795b789` (12/09) justamente porque, da primeira vez, **eu deduzi a causa em vez de
+medir, e errei** — ver §5.3. Não deduzir de novo.
+
+### 3.3-bis O Meta sempre vê MAIS que o nosso funil — e nenhum dos dois está errado
+
+Medido em 14/09: o Meta contou **16 compras**; o nosso funil, **12 pedidos**. A diferença não é
+defeito, é definição, e ela nunca vai fechar:
+
+| O que o Meta conta a mais | Por que nós não vemos |
+|---|---|
+| **Visualização de 1 dia** | Quem viu o anúncio e não clicou não deixa rastro nenhum aqui — não existe clique, não existe `visitorCampaigns`. |
+| **Clique de até 7 dias** | Nós pegamos isso quando o cookie sobrevive; quando não sobrevive, some. |
+| **Entre aparelhos** | Clicou no celular, comprou no computador. O Meta casa pela conta; nós casamos por cookie, e são dois cookies. |
+| **Quem recusou cookies** | Decisão nossa de LGPD: sem consentimento não há registro de campanha. O Meta não tem essa limitação do lado dele. |
+
+**A regra de uso, e ela tem duas metades opostas:**
+
+> **Para decidir DINHEIRO — usar o nosso.** É o piso conservador, é o que reconcilia com o extrato,
+> e se o negócio fecha nele, fecha de verdade. Foi o que o dono já vinha fazendo.
+>
+> **Para julgar o ESTADO DO ALGORITMO — usar o do Meta.** O limiar de ~50 conversões da fase de
+> aprendizado (§1) é contado pelo Meta, com a régua do Meta. Medir isso com o nosso número faz
+> parecer que falta mais sinal do que falta de verdade, e empurra para uma decisão errada de
+> orçamento.
+
+**O que nunca fazer: misturar as duas fontes dentro da mesma série.** Um dia dividido pelo número do
+Meta e o seguinte pelo nosso produz uma variação que é só de fonte, e que vai ser lida como
+resultado. A série da §4 usa o nosso nos seis dias, do primeiro ao último.
+
 ### 3.4 Dia parcial não é leitura. Nunca.
 
 Medido em 13/09:
@@ -224,20 +287,55 @@ Fluxo Meta apenas. Fonte: `/admin/funil`, recorte por dia de calendário de Bras
 | 11 | sex | 57,91 | 27 | 4 | 199,96 | 2,14 | 14,8% | 14,48 | 3,45× |
 | 12 | sáb | 105,84 | 40 | 6 | 299,94 | **2,65** | 15,0% | 17,64 | 2,83× |
 | 13 | dom | 156,82 | 87 | 22 | 919,80 | **1,80** | 25,3% | 7,13 | 5,87× |
-| **Σ** | | **432,14** | **217** | **52** | **2.399,50** | **1,99** | **24,0%** | **8,31** | **5,55×** |
+| 14 | seg | 164,89 | 86 | 10 | 579,88 | 1,92 | **11,6%** | 16,49 | 3,52× |
+| **Σ** | | **597,03** | **303** | **62** | **2.979,38** | **1,97** | **20,5%** | **9,63** | **4,99×** |
 
-**Lucro líquido dos 5 dias: ~R$ 1.847.**
+**Lucro líquido dos 6 dias: ~R$ 2.218** (receita × 0,9447 de líquido, menos o gasto). O dia 14
+sozinho deu ~R$ 383.
+
+> **O dia 14 é o primeiro com os três números separados**, porque foi quando o painel passou a
+> mostrá-los: **10 pessoas no funil · 12 pedidos · 12 clientes**. A coluna "Pagaram" da tabela usa
+> o número do FUNIL nos seis dias, porque é o único que existe para os cinco primeiros — trocar de
+> métrica no meio da série inventaria uma variação que é só de definição. Pelo divisor de clientes,
+> o CAC do dia 14 é **R$ 13,74**, não 16,49.
 
 ### O V, e o que ele diz
 
 ```
-Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80
-Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3%
+Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92
+Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6%
 ```
 
 As duas pioram juntas até o dia 12 e se recuperam juntas no 13. Pela §3.1, isso significa que mudou
 **quem chegava** — e coincide com a transição do pixel para a API (11 e 12), quando o sinal ficou
 instável.
+
+### O dia 14 separa as duas metades pela primeira vez
+
+Até aqui as duas métricas sempre andaram juntas, o que é conveniente e pouco informativo. No dia 14
+elas divergem, e é o caso que a §3.1 foi escrita para ler:
+
+| | 13/09 | 14/09 | |
+|---|---|---|---|
+| Chegaram | 87 | 86 | praticamente idêntico |
+| Custo por chegada | 1,80 | 1,92 | **entrega intacta** |
+| Conversão | 25,3% | 11,6% | **caiu pela metade** |
+
+**A entrega não piorou — a qualidade de quem chegou piorou.** Mesmo volume, mesmo preço, metade da
+conversão.
+
+Isso é o que o reinício do aprendizado faz, e é o comportamento esperado: às 07:21 do dia 14 o
+conjunto voltou à fase de aprendizado (§1) e perdeu o modelo de quem compra. Ele continua comprando
+impressão barata; ele só não sabe mais para quem. A recuperação depende de acumular conversão, não
+de mexer em nada.
+
+> **Um dia não é tendência**, e este é o dia 1 de 3 ou 4 previstos. O combinado continua de pé: não
+> mexer em nada até 17–18/09 e só então ler a série. Mexer agora reinicia de novo o relógio que
+> está justamente correndo — é a §5.1 inteira.
+>
+> A régua de emergência não é a conversão, é o lucro do dia: ROAS 3,52× e ~R$ 383 de lucro num dia
+> de reinício é um piso confortável. Se o ROAS cair abaixo de ~1,4× (o ponto em que o líquido
+> empata com o gasto), aí sim a conversa muda antes do prazo.
 
 **Não está provado.** É a única hipótese que sobreviveu e a única com mecanismo. As duas anteriores
 morreram:
@@ -250,10 +348,17 @@ morreram:
 | Dia | Orçamento | Custo/chegada |
 |---|---|---|
 | 13 | R$ 125 | R$ 1,80 |
-| 14 | R$ 125 | R$ 1,81 |
+| 14 | R$ 125 | R$ 1,92 (fechado) |
 
-Dois dias com 49% mais orçamento e **o preço do leilão não se moveu**. O público não ofereceu
-resistência — é permissão para escalar, e é o tipo de evidência que justifica um passo a mais.
+Dois dias com 49% mais orçamento e o preço do leilão **subiu 7 centavos**. O público não ofereceu
+resistência relevante — continua sendo permissão para escalar.
+
+> ⚠️ **Esta tabela já trouxe R$ 1,81 para o dia 14, e era um dia PELA METADE** — a leitura das
+> 16:00, quando tinham entrado 52 das 86 chegadas. Fechado, o número é 1,92. É a §5.4 acontecendo
+> dentro do arquivo que a documenta: dia parcial lido como fechado.
+>
+> Não muda a conclusão aqui (7 centavos em 49% de orçamento continua sendo barato), e é exatamente
+> por isso que é perigoso: o erro que não muda a conclusão é o que ninguém vai atrás de corrigir.
 
 ---
 
