@@ -501,6 +501,64 @@ coisas diferentes. E quando existir um medidor na ferramenta (§1.3), ele vence 
 8. **O conjunto que funciona não se toca.** Criativo novo entra em conjunto NOVO, por duplicação: o
    duplicado aprende do zero, o original continua faturando.
 
+### 6.1 Quando cabe um segundo criativo — a conta, não o palpite
+
+Perguntado em 15/09: *"faz sentido criar outra campanha com outro reel, ou vai aumentar meu custo e
+fazer um trabalho que o outro já faz?"*
+
+**A unidade certa é CONJUNTO, não campanha.** Campanha nova separa orçamento e aprendizado sem
+nenhum ganho: mesmo público, mesmo objetivo, mesmo leilão. O que se quer isolar é o criativo, e o
+criativo mora no conjunto.
+
+**E não adianta pôr no conjunto que já roda.** Medido em 13/09, com 4 anúncios no mesmo conjunto:
+
+| Criativo | Gasto | Compras |
+|---|---|---|
+| reel-30s | R$ 221,19 | 10 |
+| reel-3-erros | — | 0 |
+| estatico-preco | R$ 1,47 | 0 |
+| estatico-4-7 | R$ 0,49 | 0 |
+
+O Meta concentrou ~100% em um. **Anúncio dentro de conjunto vencedor não é testado, é sufocado** — e
+ainda por cima entrar com criativo novo reinicia o aprendizado do conjunto que está faturando.
+
+#### O limiar, em reais por dia
+
+Cada conjunto precisa de ~50 conversões em 7 dias para sair do aprendizado (§1) — **~7,1 por dia,
+por conjunto.** Logo:
+
+```
+orçamento mínimo por conjunto = 7,1 × CAC
+```
+
+| CAC | Mínimo por conjunto/dia | Dois conjuntos |
+|---|---|---|
+| R$ 7,84 (dia 13) | R$ 56 | **R$ 112/dia** |
+| R$ 13,74 (dia 14) | R$ 98 | **R$ 196/dia** |
+
+**Com R$ 125/dia divididos em dois**, cada conjunto fica com R$ 62,50:
+
+- a CAC de R$ 7,84 → 7,97/dia → **56 por semana**. Passa, no fio.
+- a CAC de R$ 13,74 → 4,55/dia → **32 por semana**. **Não passa** — os DOIS conjuntos travam em
+  aprendizado permanente, e é o pior dos mundos.
+
+> **A decisão é derivada, não é de gosto:** ela depende de onde o CAC fechar quando o aprendizado
+> atual terminar. Ler em 17–18/09. CAC em ~8 → cabe testar com orçamento atual. CAC em ~14 → só
+> depois de subir o orçamento para a faixa de R$ 200/dia.
+
+#### Fadiga de criativo não é o motivo aqui
+
+O motivo normal para criativo novo é a peça cansar. **A medição diz que não cansou:** público de
+15,5–18,2 milhões, frequência **1,14–1,20**, alcance abaixo de 0,1%. Em média cada pessoa viu o
+anúncio uma vez. Não há desgaste a combater — o reel atual não está no fim da vida útil.
+
+#### A regra geral que fica
+
+| O que varia | Onde vai |
+|---|---|
+| **Criativo** | Conjunto novo, por duplicação, no mesmo objetivo |
+| **Público, região, objetivo** | Aí sim, campanha nova — são leilões diferentes |
+
 ---
 
 ## 7. O que ficou em aberto
@@ -508,7 +566,8 @@ coisas diferentes. E quando existir um medidor na ferramenta (§1.3), ele vence 
 - **A causa do V dos dias 11–12.** Provavelmente a transição do sinal. Não será resolvido.
 - **O segundo criativo.** O teste de 4 peças nunca aconteceu: no mesmo conjunto, o Meta deu R$0,49 a
   um dos anúncios e 95% a outro. Testar criativo exige conjunto separado — e conjunto separado exige
-  orçamento que sustente os dois. **Escalar primeiro, testar depois.**
+  orçamento que sustente os dois. **Escalar primeiro, testar depois.** A conta do limiar está na
+  §6.1; deixou de ser opinião.
 - **Hash de e-mail na API de Conversões.** Subiria a qualidade da correspondência (hoje 4,4/10, só
   `fbc`/`fbp`). Custa uma atualização da política de privacidade e é decisão do dono. Ver
   `lib/meta-capi.ts`.
