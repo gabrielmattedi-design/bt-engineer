@@ -213,26 +213,66 @@ upgrade, nenhuma segunda compra do mesmo laudo.
 > 13/09, um e-mail com 3 compras. Então 12 clientes são 12 análises distintas, e *provavelmente*
 > 12 pessoas, mas o número não prova isso. Quem prova é a lista de vendas, que tem o e-mail.
 
-**Clientes > pagaram** significa marcos faltando — 2, no dia 14. Duas causas possíveis, e elas
-pedem ações opostas:
+**Mas "Clientes ≠ Pagaram" quase nunca é defeito** — e a causa principal é a §3.3-ter abaixo, que
+eu esqueci de considerar quando o dono perguntou pela primeira vez. As outras duas, que existem e
+são mais raras:
 
 | Causa | Mecanismo | É defeito? |
 |---|---|---|
-| **(a) Comprador repetido de outro dia** | O marco `paid` é único por visitante **na vida**. Quem já comprou em 13/09 com o mesmo cookie não gera marco novo em 14/09 — o `onConflictDoNothing` engole. O pedido e o cliente contam hoje; o marco está datado lá atrás. | **Não.** É o desenho. |
+| **(a) Comprador repetido de outro dia** | O marco `paid` é único por visitante **na vida**. Quem já comprou com o mesmo cookie não gera marco novo — o `onConflictDoNothing` engole. O pedido e o cliente contam hoje; o marco está datado lá atrás. | **Não.** É o desenho. |
 | **(b) Marco descartado** | `markFunnelBySessionId` desiste quando a sessão anônima não é encontrada. Era o `return` mudo que fez o funil parecer engolir venda em 12/09. | **Sim.** |
 
-**Como separar as duas, sem deduzir:** procurar nos logs da Vercel, no dia em questão, a linha
+Para (b) existe rastro desde `795b789`: a linha `[funil] marco "paid" descartado: sessão anônima
+<id> não encontrada` nos logs da Vercel. **Só vale a pena ir atrás dela quando a diferença não se
+explicar pela §3.3-ter** — e, no dia 14, ela se explicava.
 
-```
-[funil] marco "paid" descartado: sessão anônima <id> não encontrada
-```
+### 3.3-ter Os dois relógios: a linha de origem mede DOIS dias diferentes
 
-Duas linhas → causa (b), e o log traz o id para achar o pedido exato. Zero linhas → causa (a), o
-funil está certo e o rótulo é que engana: "Pagaram" quer dizer *pessoas que pagaram pela primeira
-vez*.
+Isto está escrito no próprio `/admin/funil` e eu ainda assim li errado. Na tabela "De onde vieram":
 
-O log entrou em `795b789` (12/09) justamente porque, da primeira vez, **eu deduzi a causa em vez de
-medir, e errei** — ver §5.3. Não deduzir de novo.
+| Colunas | Recortam por | Consulta |
+|---|---|---|
+| Chegaram · Terminaram · **Pagaram** | quando a pessoa **CLICOU no anúncio** | `recorte(visitorCampaigns.createdAt, janela)` |
+| **Clientes** · Pedidos · Receita | quando o **PAGAMENTO entrou** | `recorte(orders.paidAt, janela)` |
+
+O `paid` da primeira metade só exige `gte(funnelMarkers.createdAt, visitorCampaigns.createdAt)` —
+**qualquer data depois do clique**. Então, lendo o dia 14:
+
+- **86 chegaram** = 86 pessoas clicaram no anúncio em 14/09;
+- **10 pagaram** = dessas 86, 10 já pagaram — em qualquer data;
+- **12 pedidos · R$ 579,88** = pagamentos que entraram em 14/09, de quem clicou em **qualquer** dia.
+
+**São duas populações.** Quem clicou dia 13 e pagou dia 14 entra nos 12 e não nos 10.
+
+> ⚠️ **Eu afirmei que "Pagaram ≤ Clientes sempre". É FALSO.** Medido em 13/09: **Pagaram 22,
+> Clientes 20.** Das 87 pessoas que clicaram naquele domingo, 22 acabaram pagando; mas só 20
+> pagamentos caíram no próprio domingo. Entre coortes diferentes, qualquer um dos dois pode ser
+> maior — a desigualdade só vale dentro da MESMA coorte.
+
+**A consequência que assusta, e a medição que a desarma.** Se "Pagaram" do dia D aceita pagamento
+de qualquer data posterior, ele deveria crescer depois que D fecha, e nenhum dia estaria fechado de
+verdade antes de ~7 dias.
+
+Testado em 15/09, relendo 13/09 no calendário: **continuou 22**, o mesmo valor lido em 14/09. Entre
+D+1 e D+2 não se moveu.
+
+> **O que isso libera:** ler um dia em D+1 é legítimo, desde que a série inteira seja lida sempre no
+> MESMO atraso. 13/09 (22) e 14/09 (10) foram ambos lidos em D+1 — a comparação entre eles é
+> honesta, e a queda de conversão do dia 14 é real, não artefato de maturação.
+>
+> **O que NÃO está provado:** que não há crescimento entre D+0 e D+1. Ninguém mediu. Por isso a
+> regra continua sendo nunca ler o dia corrente (§3.4).
+
+### Qual divisor para qual pergunta
+
+| Pergunta | Fórmula | Por quê |
+|---|---|---|
+| Quão boa foi a audiência que comprei hoje? | **Pagaram ÷ Chegaram** | Mesma coorte, pessoa dividida por pessoa. É a conversão de verdade. |
+| Quanto custou trazer um cliente? | **Gasto ÷ Clientes** | CAC é por cliente. Estável no fechamento e casa com o extrato. |
+| Quanto custou gerar uma transação? | Gasto ÷ Pedidos | Só isto. Não é CAC. |
+
+**Pedidos nunca entra em conversão** — conta transação, não gente. Uma pessoa com 3 compras vira 3,
+e a razão pode passar de 100%.
 
 ### 3.3-bis O Meta sempre vê MAIS que o nosso funil — e nenhum dos dois está errado
 
@@ -280,24 +320,37 @@ Isso me fez errar o diagnóstico do dia 12 duas vezes. Ver §5.2.
 
 Fluxo Meta apenas. Fonte: `/admin/funil`, recorte por dia de calendário de Brasília.
 
-| Dia | | Gasto | Chegaram | Pagaram | Receita | Custo/chegada | Conversão | CAC | ROAS |
-|---|---|---|---|---|---|---|---|---|---|
-| 09 | qua | 23,41 | 17 | 6 | 279,94 | 1,38 | 35,3% | 3,90 | 11,96× |
-| 10 | qui | 88,16 | 46 | 14 | 699,86 | 1,92 | 30,4% | 6,30 | 7,94× |
-| 11 | sex | 57,91 | 27 | 4 | 199,96 | 2,14 | 14,8% | 14,48 | 3,45× |
-| 12 | sáb | 105,84 | 40 | 6 | 299,94 | **2,65** | 15,0% | 17,64 | 2,83× |
-| 13 | dom | 156,82 | 87 | 22 | 919,80 | **1,80** | 25,3% | 7,13 | 5,87× |
-| 14 | seg | 164,89 | 86 | 10 | 579,88 | 1,92 | **11,6%** | 16,49 | 3,52× |
-| **Σ** | | **597,03** | **303** | **62** | **2.979,38** | **1,97** | **20,5%** | **9,63** | **4,99×** |
+Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
+
+| Dia | | Gasto | Chegaram | Pagaram | Conversão | Clientes | Receita | Custo/chegada | CAC | ROAS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 09 | qua | 23,41 | 17 | 6 | 35,3% | — | 279,94 | 1,38 | — | 11,96× |
+| 10 | qui | 88,16 | 46 | 14 | 30,4% | — | 699,86 | 1,92 | — | 7,94× |
+| 11 | sex | 57,91 | 27 | 4 | 14,8% | — | 199,96 | 2,14 | — | 3,45× |
+| 12 | sáb | 105,84 | 40 | 6 | 15,0% | — | 299,94 | **2,65** | — | 2,83× |
+| 13 | dom | 156,82 | 87 | 22 | 25,3% | 20 | 919,80 | **1,80** | **7,84** | 5,87× |
+| 14 | seg | 164,89 | 86 | 10 | **11,6%** | 12 | 579,88 | 1,92 | **13,74** | 3,52× |
+| **Σ** | | **597,03** | **303** | **62** | **20,5%** | — | **2.979,38** | **1,97** | — | **4,99×** |
 
 **Lucro líquido dos 6 dias: ~R$ 2.218** (receita × 0,9447 de líquido, menos o gasto). O dia 14
 sozinho deu ~R$ 383.
 
-> **O dia 14 é o primeiro com os três números separados**, porque foi quando o painel passou a
-> mostrá-los: **10 pessoas no funil · 12 pedidos · 12 clientes**. A coluna "Pagaram" da tabela usa
-> o número do FUNIL nos seis dias, porque é o único que existe para os cinco primeiros — trocar de
-> métrica no meio da série inventaria uma variação que é só de definição. Pelo divisor de clientes,
-> o CAC do dia 14 é **R$ 13,74**, não 16,49.
+> **`CAC = gasto ÷ Clientes`, e por isso ele só existe de 13/09 em diante** — o painel só passou a
+> mostrar Clientes depois. A versão anterior desta tabela dividia por "Pagaram" e publicava
+> R$ 9,63 de CAC acumulado; era o divisor errado, e o número saía **inflado**. O CAC real dos
+> quatro primeiros dias fica em branco até alguém reler 09–12 no calendário. Em branco, e não
+> estimado.
+
+**A composição confere com o catálogo de preços**, o que é uma verificação independente de que a
+receita não é número solto:
+
+| Dia | Pedidos | Decomposição única em R$ 49,99 / R$ 29,99 |
+|---|---|---|
+| 13 | 20 | **16** setups completos + **4** laudos de raquete = R$ 919,80 |
+| 14 | 12 | **11** setups completos + **1** laudo de raquete = R$ 579,88 |
+
+Cada receita admite **uma só** combinação inteira dos dois preços. Se o valor estivesse errado por
+digitação, quase certamente não fecharia em inteiros.
 
 ### O V, e o que ele diz
 
@@ -323,6 +376,14 @@ elas divergem, e é o caso que a §3.1 foi escrita para ler:
 
 **A entrega não piorou — a qualidade de quem chegou piorou.** Mesmo volume, mesmo preço, metade da
 conversão.
+
+> **Esta leitura chegou a ficar sob suspeita e sobreviveu.** Ao descobrir a §3.3-ter, levantei a
+> hipótese de que a queda fosse só maturação — o 13 teria tido mais tempo de acumular pagamento que
+> o 14. O teste de 15/09 derrubou a hipótese: 13/09 relido continuou em 22, e os dois dias foram
+> lidos no mesmo atraso de D+1. A queda é real.
+>
+> Pelo outro divisor a conclusão é a mesma, o que é o melhor sinal de que não é artefato de
+> definição: **CAC de R$ 7,84 para R$ 13,74** e **ROAS de 5,87× para 3,52×**.
 
 Isso é o que o reinício do aprendizado faz, e é o comportamento esperado: às 07:21 do dia 14 o
 conjunto voltou à fase de aprendizado (§1) e perdeu o modelo de quem compra. Ele continua comprando
