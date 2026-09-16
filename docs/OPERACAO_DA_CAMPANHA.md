@@ -85,24 +85,48 @@ obrigatoriamente estava em aprendizado.
 **Conclusão: não use essa coluna para isso.** Use §1.3 + a coluna Resultados com o período recortado
 a partir da última edição significativa.
 
-### 1.5 Orçamento diário é MÉDIA, não teto
+### 1.5 Orçamento diário é MÉDIA, não teto — e o teto NÃO é 125%
 
-O Meta pode gastar até **125% do orçamento diário num único dia**, compensando nos outros para
-manter a média da janela de 7 dias.
+Esta seção afirmava: *"o Meta pode gastar até 125% do orçamento diário num único dia"*, com duas
+medições que davam exatamente 1,25×.
 
-Medido duas vezes nesta conta:
+**Está errado.** Em 16/09 o dono mandou o print do gerenciador: **orçamento diário R$ 125,00, valor
+gasto R$ 164,89** — e confirmou que não mexeu em nada. Isso é **131,9%**, e o suposto teto teria
+dado R$ 156,25.
 
-| Orçamento | Gasto no dia | Razão |
-|---|---|---|
-| R$ 84,00 | R$ 105,00 | **1,25×** |
-| R$ 125,00 | R$ 156,82 | **1,25×** |
+Duas medições que batem não provam a regra; provam que as duas caíram perto do mesmo lugar. É a
+§5.5 de novo, com um agravante: eu tinha escrito "1,25×" numa coluna, e 105,84/84 = 1,26 e
+156,82/125 = 1,2546 já não eram 1,25. Arredondei a favor da minha própria regra.
 
-**Consequência operacional:** quando o dia está indo bem e o orçamento parece estar acabando, **o
-espaço já existe** — 25% a mais, sem precisar editar nada. Editar para "aproveitar o dia" compra
-algo que você já tem e ainda arrisca um reinício.
+#### O que explica os três dias, e fecha em três centavos
 
-E o inverso: **subgasto é informação.** No dia 11 o Meta gastou R$57,91 de R$84. Ele não achou
-leilões que valessem o preço — não é falha de configuração.
+A semana do Meta vai de **domingo a sábado**, e o compromisso dele é com o TOTAL da semana —
+7 × orçamento diário —, não com cada dia.
+
+Semana de 13/09 (dom) a 19/09 (sáb), orçamento R$ 125 → **teto semanal R$ 875,00**:
+
+| Dia | Gasto | Acumulado | Sobra | Dias restantes | Sobra ÷ dias |
+|---|---|---|---|---|---|
+| 13 dom | 156,82 | 156,82 | 718,18 | 6 | 119,70 |
+| 14 seg | 164,89 | 321,71 | 553,29 | 5 | **110,66** |
+| 15 ter | **110,63** | 432,34 | 442,66 | 4 | **110,67** |
+
+**Previsto para 15/09: R$ 110,66. Gasto real: R$ 110,63.** Três centavos.
+
+> **Isto é HIPÓTESE, com um ponto de confirmação — não é regra.** Um encaixe bom demais é
+> exatamente quando eu erro, e a §5.3 existe por isso. Mas ela é **falsificável hoje**: se o padrão
+> vale, 16/09 fecha em **~R$ 110,67**, e 17, 18 e 19 seguem no mesmo valor enquanto o gasto bater o
+> previsto. Um dia fora disso derruba a hipótese.
+
+**Consequência operacional, que muda em relação ao que estava escrito:** o espaço extra de um dia
+bom **não é 25% fixos** — é o que sobrou da semana dividido pelos dias que faltam. Num domingo de
+semana zerada isso é quase 20% a mais; numa quinta depois de dois dias fortes, pode ser menos que
+o próprio orçamento diário.
+
+E o inverso continua valendo, com uma ressalva nova: **subgasto pode ser informação OU pode ser
+pacing.** No dia 11 o Meta gastou R$ 57,91 de R$ 84 — ali era falta de leilão que valesse o preço.
+No dia 15 ele gastou R$ 110,63 de R$ 125, e **isso não é fraqueza de entrega**: é a semana se
+ajustando depois de domingo e segunda fortes. Ler os dois do mesmo jeito leva a conclusões opostas.
 
 ### 1.6 Atribuição: os números passados do Meta NÃO são finais
 
@@ -330,10 +354,18 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 12 | sáb | 105,84 | 40 | 6 | 15,0% | — | 299,94 | **2,65** | — | 2,83× |
 | 13 | dom | 156,82 | 87 | 22 | 25,3% | 20 | 919,80 | **1,80** | **7,84** | 5,87× |
 | 14 | seg | 164,89 | 86 | 10 | **11,6%** | 12 | 579,88 | 1,92 | **13,74** | 3,52× |
-| **Σ** | | **597,03** | **303** | **62** | **20,5%** | — | **2.979,38** | **1,97** | — | **4,99×** |
+| 15 | ter | 110,63 | 54 | 9 | 16,7% | 9 | 429,91 | **2,05** | 12,29 | 3,89× |
+| **Σ** | | **707,66** | **357** | **71** | **19,9%** | — | **3.409,29** | **1,98** | — | **4,82×** |
 
-**Lucro líquido dos 6 dias: ~R$ 2.218** (receita × 0,9447 de líquido, menos o gasto). O dia 14
-sozinho deu ~R$ 383.
+**Lucro líquido dos 7 dias: ~R$ 2.513** (receita × 0,9447 de líquido, menos o gasto). O dia 14 deu
+~R$ 383; o dia 15, ~R$ 296.
+
+> **O dia 15 teve receita maior no painel — R$ 529,89 — e ela NÃO entrou aqui.** A diferença de
+> R$ 99,98 veio do link da bio e de contatos pessoais, não do anúncio. Esta série é fluxo Meta
+> apenas, do primeiro dia ao último; misturar a origem inflaria o ROAS de um canal com a venda de
+> outro. O dono separou por conta própria, e é a leitura certa.
+>
+> No dia 15 os três números coincidiram pela primeira vez: **9 no funil · 9 pedidos · 9 clientes**.
 
 > **`CAC = gasto ÷ Clientes`, e por isso ele só existe de 13/09 em diante** — o painel só passou a
 > mostrar Clientes depois. A versão anterior desta tabela dividia por "Pagaram" e publicava
@@ -355,8 +387,8 @@ digitação, quase certamente não fecharia em inteiros.
 ### O V, e o que ele diz
 
 ```
-Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92
-Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6%
+Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05
+Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7%
 ```
 
 As duas pioram juntas até o dia 12 e se recuperam juntas no 13. Pela §3.1, isso significa que mudou
@@ -384,6 +416,23 @@ conversão.
 >
 > Pelo outro divisor a conclusão é a mesma, o que é o melhor sinal de que não é artefato de
 > definição: **CAC de R$ 7,84 para R$ 13,74** e **ROAS de 5,87× para 3,52×**.
+
+#### Dia 15: as duas metades andam em direções OPOSTAS
+
+```
+Conversão:      25,3% → 11,6% → 16,7%    recuperando
+Custo/chegada:   1,80 →  1,92 →  2,05    piorando
+```
+
+A conversão subiu 5 pontos — é o aprendizado reconstruindo o modelo de quem compra, no ritmo
+previsto. O custo por chegada subiu de novo e já é o **segundo pior da série**.
+
+**E o gasto menor do dia 15 não entra nessa leitura**: R$ 110,63 de R$ 125 é o pacing semanal da
+§1.5, não entrega fraca. Foi por isso que essa distinção precisou ser medida antes de ler o dia —
+sem ela, o subgasto viraria "o Meta desistiu", e seria falso.
+
+O que resta para decidir é se a conversão continua subindo. Dois pontos numa reta (11,6 → 16,7) não
+são tendência; **o dia 16 é o terceiro ponto, e é o que decide.**
 
 Isso é o que o reinício do aprendizado faz, e é o comportamento esperado: às 07:21 do dia 14 o
 conjunto voltou à fase de aprendizado (§1) e perdeu o modelo de quem compra. Ele continua comprando
