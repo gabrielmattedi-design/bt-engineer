@@ -98,7 +98,47 @@ Duas medições que batem não provam a regra; provam que as duas caíram perto 
 §5.5 de novo, com um agravante: eu tinha escrito "1,25×" numa coluna, e 105,84/84 = 1,26 e
 156,82/125 = 1,2546 já não eram 1,25. Arredondei a favor da minha própria regra.
 
-#### ❌ A hipótese do rateio semanal — proposta em 15/09, MORTA em 16/09
+#### ✅ RESOLVIDO em 17/09 — pelo próprio Meta, escrito na tela
+
+Depois de eu errar duas vezes tentando deduzir a regra, o dono mandou o print da caixa de orçamento
+do conjunto. A resposta estava escrita ali o tempo todo, abaixo do campo:
+
+> *"Gastaremos cerca de R$ 125,00 por dia. Seu gasto diário máximo é de **R$ 218,75**, e seu gasto
+> semanal máximo é de **R$ 875,00**."*
+
+```
+218,75 = 125 × 1,75      teto de UM DIA  = 175% do orçamento diário
+875,00 = 125 × 7         teto da SEMANA  = 7 × o orçamento diário
+```
+
+**As duas regras que eu tinha escrito estavam erradas, e da pior forma: eu deduzi das medições em
+vez de ler o que o produto informa.** O teto nunca foi 125%, e o rateio diário nunca foi
+"sobra ÷ dias restantes" — o Meta gasta livremente dentro dos dois limites.
+
+Toda a série agora fecha sem exceção:
+
+| Dia | Orçamento | Gasto | % do dia | Teto do dia (175%) |
+|---|---|---|---|---|
+| 12 | 84 | 105,84 | 126% | 147,00 ✓ |
+| 13 | 125 | 156,82 | 125% | 218,75 ✓ |
+| 14 | 125 | **164,89** | **132%** | 218,75 ✓ |
+| 15 | 125 | 110,63 | 89% | 218,75 ✓ |
+| 16 | 125 | 126,17 | 101% | 218,75 ✓ |
+
+E a semana de 13 a 16: R$ 558,51 de R$ 875. Dentro.
+
+> **A lição de método, e é a mais barata de todas:** eu gastei dois dias construindo e derrubando
+> hipóteses sobre uma regra que o Meta escreve por extenso, em português, embaixo do campo que o
+> dono edita toda semana. **Antes de deduzir comportamento de plataforma a partir de dados, ler o
+> que a plataforma diz na tela.** Era uma linha de texto cinza.
+
+**Consequência operacional, agora com número confiável:** com orçamento X, um dia pode chegar a
+**1,75X**, e a semana nunca passa de **7X**. Um dia forte não precisa de edição nenhuma para
+aproveitar — a folga já está lá, e é muito maior do que eu vinha dizendo.
+
+---
+
+#### ❌ A hipótese do rateio semanal — proposta em 15/09, MORTA em 16/09 *(mantida como registro do erro)*
 
 Eu propus que a semana do Meta (domingo a sábado) tem teto de 7 × orçamento e que o gasto do dia é
 **sobra ÷ dias restantes**. O ajuste no dia 15 foi de três centavos:
