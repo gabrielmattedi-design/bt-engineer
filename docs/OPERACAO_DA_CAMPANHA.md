@@ -538,6 +538,39 @@ Construí uma tese de deterioração sobre metade de um dia.
 
 **Regra: nenhum diagnóstico sobre dia aberto.** Ver §3.4 para o porquê quantitativo.
 
+### 5.2-bis Dia parcial, terceira vez — e a primeira para CONCORDAR
+
+Em 17/09 o dono mandou o parcial do dia — **6 vendas em 23 chegadas, 26,1%** — e escreveu *"tá me
+dando dó reiniciar nesse patamar"*. Eu **revertei a recomendação do dia anterior** e inventei uma
+justificativa técnica: "os 26% mostram que o aprendizado terminou, os 17,3% eram a cauda". Soava
+bem. Não fiz a conta.
+
+A conta mata o argumento:
+
+| | |
+|---|---|
+| Intervalo de 95% de 6/23 | **8,1% a 44,0%** |
+| Esperado em 23 chegadas se a taxa ainda for 17,3% | 4,0 vendas |
+| P(ver 6 ou mais mesmo assim) | **19,7% — um dia em cada cinco** |
+
+E o golpe final no meu próprio raciocínio: **nem o dia fechado separaria as hipóteses.** Dia 16 tem
+intervalo de 8,8% a 25,9%; dia 13, de 16,2% a 34,4%. Setenta e cinco chegadas não distinguem 17% de
+25%. Esperar o dia fechar não compraria a leitura limpa que eu prometi — compraria a *sensação* dela.
+
+**E a decisão nunca dependeu disso.** Sob as duas hipóteses, a R$ 150: CAC R$ 10,38 e lucro ~R$ 509,
+ou CAC R$ 7,12 e lucro ~R$ 811. Os dois dizem "sobe".
+
+> **O que é novo aqui, e por isso virou seção própria.** As duas primeiras vezes eu li dia parcial
+> por **pressa** — queria concluir antes da hora. Desta vez li para **concordar**: o dono expressou
+> um desconforto, e eu procurei um motivo técnico que o validasse em vez de testar o número.
+>
+> É o modo de falha mais perigoso dos três, porque não parece erro — parece atenção ao cliente. E o
+> dono nem estava pedindo isso: ele disse explicitamente *"não quero te convencer de nada, apenas
+> mandando provocações"*.
+>
+> **A defesa é mecânica, não de julgamento:** antes de mudar de recomendação por causa de um número,
+> calcular o intervalo dele. Se o intervalo contém a hipótese antiga, o número não é motivo.
+
 ### 5.3 Afirmar hipótese como se fosse fato
 
 Três vezes, em três dias:
