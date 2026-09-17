@@ -296,4 +296,9 @@ END $$`,
 END $$`,
   `ALTER TABLE "meta_conversion_context" ADD COLUMN IF NOT EXISTS "enviado_em" timestamp with time zone`,
   `ALTER TABLE "meta_conversion_context" ADD COLUMN IF NOT EXISTS "motivo_do_envio" text`,
+  `CREATE TABLE IF NOT EXISTS "daily_ad_spend" (
+	"dia" date PRIMARY KEY NOT NULL,
+	"centavos" integer NOT NULL,
+	"atualizado_em" timestamp with time zone DEFAULT now() NOT NULL
+)`,
 ];

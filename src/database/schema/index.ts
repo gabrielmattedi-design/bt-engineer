@@ -9,3 +9,4 @@ export * from './funnel';
 export * from './campaigns';
 export * from './meta';
 export * from './throttle';
+export * from './financeiro';

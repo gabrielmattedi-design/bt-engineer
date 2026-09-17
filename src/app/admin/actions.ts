@@ -13,6 +13,8 @@ import {
   LIMITE_JANELA_MINUTOS,
 } from '@/database/repositories/throttle-repo';
 import { withAutoBootstrap } from '@/database/setup';
+import { salvarGasto } from '@/database/repositories/financeiro-repo';
+import { lerDinheiroEmCentavos } from '@/lib/lucro';
 import {
   removerJornadasDeCupomDoFunil,
   removerRelatoriosSemPagamento,
@@ -227,5 +229,43 @@ export async function reconciliarFunil(): Promise<
   } catch (error) {
     console.error('[admin] falha ao reconciliar o funil', error);
     return { error: 'O banco recusou a limpeza. Nada foi apagado — confira o log do servidor.' };
+  }
+}
+
+/**
+ * Grava o gasto de anúncio de um dia, pela tela financeira.
+ *
+ * ═══ POR QUE NÃO VALIDA APENAS NO CLIENTE ════════════════════════════════════════════════════
+ *
+ * Server Action é endpoint HTTP: dá para chamá-la sem passar por tela nenhuma, com qualquer corpo.
+ * A leitura do valor acontece aqui, com `lerDinheiroEmCentavos`, que é a mesma função testada em
+ * `tests/integrity/lucro-do-dia.test.ts` — e é ela que impede `"1.234"` de entrar no banco como
+ * R$ 1,23. Um gasto mil vezes menor gravado em silêncio produziria lucro inflado por semanas.
+ *
+ * Campo vazio APAGA o dia, e isso é decisão: a alternativa era gravar zero, e zero significa
+ * "campanha pausada, não gastei nada", que é informação diferente de "ainda não informei".
+ */
+export async function salvarGastoDoDia(
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ error: string } | { ok: true }> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const dia = String(formData.get('dia') ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return { error: 'Dia inválido.' };
+
+  const bruto = String(formData.get('gasto') ?? '').trim();
+  const centavos = bruto === '' ? null : lerDinheiroEmCentavos(bruto);
+  if (bruto !== '' && centavos === null) {
+    return { error: `Não consegui ler "${bruto}" como valor. Use 126,17 — e 1.234 é mil e duzentos.` };
+  }
+
+  try {
+    await withAutoBootstrap(() => salvarGasto(dia, centavos));
+    revalidatePath('/admin/financeiro');
+    return { ok: true };
+  } catch (error) {
+    console.error('[admin] falha ao salvar o gasto do dia', error);
+    return { error: 'O banco recusou a gravação. Confira o log do servidor.' };
   }
 }
