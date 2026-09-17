@@ -730,11 +730,47 @@ aprendizado é conceito de conjunto.
 **O que foi feito em 17/09:** orçamento R$ 125 → **R$ 149** na campanha, data de término removida no
 conjunto E na campanha. Três mudanças, duas publicações, um dia.
 
-**Resultado — pendente de confirmação:** logo depois, `teste-criativo` ainda marcava **14/09** em
-"Última edição significativa". Se amanhã continuar 14/09, então **+19% de orçamento e remoção de
-data de término NÃO são edições significativas neste nível** — que é exatamente o número que a
-documentação do Meta se recusa a dar. Não concluir antes de confirmar: a edição estava em
-processamento e o carimbo pode atualizar com atraso.
+**Resultado — CONFIRMADO em 17/09, depois da revisão concluir:** orçamento em R$ 149, campanha e
+conjunto contínuos, status **Ativo**, e "Última edição significativa" **continuou em 14/09**.
+
+> ### As três mudanças NÃO reiniciaram o aprendizado
+>
+> | Mudança | Onde | Reiniciou? |
+> |---|---|---|
+> | Orçamento R$ 125 → R$ 149 (**+19,2%**) | campanha, sob CBO | **Não** |
+> | Remoção da data de término | conjunto | **Não** |
+> | Remoção da data de término | campanha | **Não** |
+>
+> É a primeira medição direta que este projeto tem sobre o que o Meta considera "significativo" —
+> a documentação dele só diz *"dependendo da magnitude"* e nunca dá número.
+
+**O que NÃO se pode concluir daqui, e é importante não inventar:**
+
+Seria tentador fechar um intervalo — *"+19,2% não reinicia, +48,8% reinicia (o R$ 84 → R$ 125 de
+antes), logo o limiar está entre os dois"*. **Não fecha**, por um detalhe de horário: o orçamento
+foi para R$ 125 por volta de 13/09 (o dia 13 já gastou R$ 156,82, que é 125% de 125), e o carimbo de
+reinício é de **14/09 às 07:21**. As datas não batem.
+
+Então o saldo honesto é:
+
+- ✅ **Eliminada** a hipótese de que mudar data de término reinicia — medido nos dois níveis.
+- ⚠️ **A causa do reinício de 14/09 07:21 continua desconhecida.** Os dois suspeitos naturais caíram
+  ou não encaixam no horário.
+- ❌ **Não existe limiar medido.** Só existe um ponto: **+19,2% é seguro.** Um ponto não é curva.
+
+**Consequência operacional, que é o que interessa:** passos de até ~19% podem ser dados **sem custo
+de reinício**, o que muda a estratégia de escala — em vez de poucos saltos grandes e caros,
+uma escada de degraus pequenos e frequentes, na cadência de amostra da regra 5 (a ~13 clientes/dia,
+um degrau a cada 3 dias):
+
+| Degrau | Δ/dia | Clientes extras | Lucro extra/dia | Teto da semana |
+|---|---|---|---|---|
+| 149 → 177 | +28 | 2,88 | ~R$ 103 | R$ 1.239 |
+| 177 → 211 | +34 | 3,50 | ~R$ 126 | R$ 1.477 |
+| 211 → 251 | +40 | 4,12 | ~R$ 148 | R$ 1.757 |
+
+**A escada só é válida enquanto o CAC segurar.** Ela supõe R$ 9,71, e o CAC sobe conforme o público
+bom se esgota. A regra 6 continua sendo o juiz: subiu o lucro do dia, dá outro degrau; caiu, volta um.
 
 ### 6.4 A conta que decide qualquer passo de orçamento
 
