@@ -89,11 +89,11 @@ export default async function FinanceiroPage() {
           </p>
         ) : (
           <>
-            <dl className="mt-8 grid gap-4 sm:grid-cols-4">
+            <dl className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {[
-                { rotulo: 'Faturamento', valor: resumo.faturamentoCentavos, destaque: true },
-                { rotulo: 'Gasto com anúncio', valor: resumo.gastoCentavos, destaque: false },
-                { rotulo: 'Lucro', valor: resumo.lucroCentavos, destaque: true },
+                { rotulo: 'Faturamento', valor: resumo.faturamentoCentavos },
+                { rotulo: 'Gasto com anúncio', valor: resumo.gastoCentavos },
+                { rotulo: 'Lucro', valor: resumo.lucroCentavos },
               ].map((c) => (
                 <div key={c.rotulo} className="rounded border border-line bg-white p-4">
                   <dt className="text-xs text-graphite">{c.rotulo}</dt>
@@ -107,12 +107,34 @@ export default async function FinanceiroPage() {
                 </div>
               ))}
               <div className="rounded border border-line bg-white p-4">
-                <dt className="text-xs text-graphite">Pedidos</dt>
+                <dt className="text-xs text-graphite">Compras</dt>
                 <dd className="mt-1 font-display text-xl font-semibold tabular-nums text-ink">
                   {resumo.pedidos}
                 </dd>
               </div>
+              <div className="rounded border border-line bg-white p-4">
+                <dt className="text-xs text-graphite">Ticket médio</dt>
+                <dd className="mt-1 font-display text-xl font-semibold tabular-nums text-ink">
+                  {resumo.ticketMedioCentavos === null
+                    ? '—'
+                    : `R$ ${emReais(resumo.ticketMedioCentavos)}`}
+                </dd>
+              </div>
             </dl>
+
+            {/*
+              O ticket médio do topo é ponderado, e a nota diz isso.
+
+              Quem lê uma coluna de ticket por dia espera que o total seja a média daquela coluna, e
+              não é — é faturamento total ÷ compras totais. A diferença aparece justamente quando um
+              dia magro de produto barato entra no meio de domingos cheios: a média das médias
+              afundaria o número dando a esse dia o mesmo peso.
+            */}
+            <p className="mt-3 max-w-prose text-xs text-graphite">
+              O ticket médio do topo é <strong className="text-ink">ponderado</strong>: faturamento
+              total ÷ compras totais. Não é a média da coluna ao lado, que daria o mesmo peso a um
+              dia de 20 compras e a um de 1.
+            </p>
 
             {resumo.diasSemGasto > 0 && (
               <p className="mt-3 max-w-prose text-xs text-clay">
@@ -128,8 +150,9 @@ export default async function FinanceiroPage() {
                 <thead className="border-b border-line text-xs text-graphite">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Dia</th>
-                    <th className="px-4 py-3 text-right font-semibold">Pedidos</th>
+                    <th className="px-4 py-3 text-right font-semibold">Compras</th>
                     <th className="px-4 py-3 text-right font-semibold">Faturamento</th>
+                    <th className="px-4 py-3 text-right font-semibold">Ticket médio</th>
                     <th className="px-4 py-3 text-right font-semibold">Gasto (R$)</th>
                     <th className="px-4 py-3 text-right font-semibold">Lucro</th>
                   </tr>
@@ -151,6 +174,9 @@ export default async function FinanceiroPage() {
                         >
                           {emReais(d.faturamentoCentavos)}
                           {melhorFat && <span className="ml-1 text-xs text-clay">máx</span>}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-graphite">
+                          {d.ticketMedioCentavos === null ? '—' : emReais(d.ticketMedioCentavos)}
                         </td>
                         <td className="px-4 py-2">
                           <GastoForm

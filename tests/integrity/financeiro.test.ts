@@ -69,6 +69,41 @@ describe('montarFinanceiro', () => {
     expect(r.diasSemGasto).toBe(1);
   });
 
+  it('ticket médio do dia é faturamento ÷ pedidos', () => {
+    const r = montarFinanceiro(
+      [dia('2026-09-16', 13, 64987), dia('2026-09-13', 20, 91980)],
+      new Map(),
+    );
+
+    // 13 pedidos de R$ 49,99 — o dia que vendeu só o produto caro
+    expect(r.dias[0]?.ticketMedioCentavos).toBe(4999);
+    // 16 × 49,99 + 4 × 29,99 = R$ 45,99 de média
+    expect(r.dias[1]?.ticketMedioCentavos).toBe(4599);
+  });
+
+  it('⚠️ ticket médio do TOTAL é faturamento total ÷ pedidos totais, não média das médias', () => {
+    /*
+      A média das médias daria (49,99 + 29,99) / 2 = R$ 39,99 — dando ao dia de 1 pedido o mesmo
+      peso do dia de 20. O certo pondera pelo volume: 20 compras caras e 1 barata valem R$ 49,04.
+    */
+    const r = montarFinanceiro(
+      [dia('2026-09-13', 20, 99980), dia('2026-09-11', 1, 2999)],
+      new Map(),
+    );
+
+    expect(r.pedidos).toBe(21);
+    expect(r.ticketMedioCentavos).toBe(Math.round((99980 + 2999) / 21)); // 4904
+    expect(r.ticketMedioCentavos).not.toBe(Math.round((4999 + 2999) / 2));
+  });
+
+  it('dia sem pedido tem ticket médio null, e não Infinity', () => {
+    const r = montarFinanceiro([], new Map([['2026-09-11', 5791]]));
+
+    expect(r.dias[0]?.pedidos).toBe(0);
+    expect(r.dias[0]?.ticketMedioCentavos).toBeNull();
+    expect(r.ticketMedioCentavos).toBeNull();
+  });
+
   it('gasto ZERO é diferente de gasto ausente', () => {
     const r = montarFinanceiro([dia('2026-09-16', 13, 64987)], new Map([['2026-09-16', 0]]));
 

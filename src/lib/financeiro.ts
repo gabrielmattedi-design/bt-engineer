@@ -32,6 +32,8 @@ export type DiaFinanceiro = {
   readonly gastoCentavos: number | null;
   /** `null` quando o gasto é desconhecido — lucro com gasto faltando seria otimista e falso. */
   readonly lucroCentavos: number | null;
+  /** `null` sem pedido no dia: dividir por zero devolveria Infinity e a tela imprimiria "∞". */
+  readonly ticketMedioCentavos: number | null;
 };
 
 export type ResumoFinanceiro = {
@@ -40,6 +42,15 @@ export type ResumoFinanceiro = {
   readonly gastoCentavos: number;
   readonly lucroCentavos: number;
   readonly pedidos: number;
+  /**
+   * Ticket médio do período INTEIRO, e não a média dos tickets diários.
+   *
+   * São números diferentes, e a diferença não é sutil: a média das médias dá o mesmo peso a um dia
+   * de 20 pedidos e a um dia de 1, e um único dia magro de produto barato puxaria o total para
+   * baixo como se valesse tanto quanto um domingo cheio. Faturamento total ÷ pedidos totais
+   * responde "quanto vale uma compra desta operação", que é a pergunta.
+   */
+  readonly ticketMedioCentavos: number | null;
   /** Quantos dias da lista ainda estão sem gasto informado. */
   readonly diasSemGasto: number;
   readonly melhorFaturamento: DiaFinanceiro | null;
@@ -68,21 +79,26 @@ export function montarFinanceiro(
     .map((dia) => {
       const venda = porDia.get(dia);
       const faturamentoCentavos = venda?.centavos ?? 0;
+      const pedidos = venda?.pedidos ?? 0;
       const gastoCentavos = gastos.get(dia) ?? null;
       return {
         dia,
-        pedidos: venda?.pedidos ?? 0,
+        pedidos,
         faturamentoCentavos,
         gastoCentavos,
         lucroCentavos: gastoCentavos === null ? null : faturamentoCentavos - gastoCentavos,
+        ticketMedioCentavos: pedidos > 0 ? Math.round(faturamentoCentavos / pedidos) : null,
       };
     });
 
   const comLucro = dias.filter((d): d is DiaFinanceiro & { lucroCentavos: number } => d.lucroCentavos !== null);
 
+  const faturamentoTotal = dias.reduce((s, d) => s + d.faturamentoCentavos, 0);
+  const pedidosTotal = dias.reduce((s, d) => s + d.pedidos, 0);
+
   return {
     dias,
-    faturamentoCentavos: dias.reduce((s, d) => s + d.faturamentoCentavos, 0),
+    faturamentoCentavos: faturamentoTotal,
     gastoCentavos: dias.reduce((s, d) => s + (d.gastoCentavos ?? 0), 0),
     /*
       O total de lucro soma só os dias COM gasto informado.
@@ -92,7 +108,8 @@ export function montarFinanceiro(
       permite ler o total sabendo o que falta nele.
     */
     lucroCentavos: comLucro.reduce((s, d) => s + d.lucroCentavos, 0),
-    pedidos: dias.reduce((s, d) => s + d.pedidos, 0),
+    pedidos: pedidosTotal,
+    ticketMedioCentavos: pedidosTotal > 0 ? Math.round(faturamentoTotal / pedidosTotal) : null,
     diasSemGasto: dias.filter((d) => d.gastoCentavos === null).length,
     melhorFaturamento: maiorPor(dias, (d) => d.faturamentoCentavos),
     melhorLucro: maiorPor(comLucro, (d) => d.lucroCentavos),
