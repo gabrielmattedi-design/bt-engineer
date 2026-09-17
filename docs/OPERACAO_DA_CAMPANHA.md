@@ -693,21 +693,48 @@ custo por chegada R$ 1,68.**
 > que você já tem, e o preço está medido: os dias 14–16 deram ROAS 3,52× / 3,89× / 5,15×, todos
 > lucrativos, ~R$ 550 de lucro a menos em ~2,5 dias.
 
-### 6.3 Quando DUAS mudanças juntas são melhores que uma
+### 6.3 O que se agrupa é o DIA, não a edição
 
 A §5.4 diz para não mudar duas coisas ao mesmo tempo. A exceção, proposta pelo dono em 17/09:
 
 > **Se a segunda mudança não tem efeito de performance para atribuir, mas dispara reinício, ela deve
 > pegar carona na primeira.** Paga-se o pedágio uma vez em vez de duas.
 
-O caso: subir orçamento (R$ 125 → R$ 150) **e** remover a data de término, numa edição só. Num
-orçamento DIÁRIO a data de término é condição de parada, não parâmetro de otimização — não muda
-leilão, público nem entrega. Não há o que isolar; só há reinício a evitar duplicar.
+**Eu escrevi isso como "numa edição só", e estava errado.** Na execução ficou claro que o agrupamento
+possível é por DIA:
 
-**O que se perde:** saber qual das duas reiniciou. Eu queria esse número — a documentação do Meta
-nunca diz qual magnitude de orçamento conta como significativa, e +20% seria uma medição real.
-**Perdi a atribuição de propósito, e não devo fingir depois que sei qual foi.** A conta que decidiu:
-segundo reinício ~R$ 550 contra uma calibração útil mas não urgente.
+> *"Como um era a nível campanha e outro a nível criativo, não tinha jeito, precisei publicar 2
+> vezes."* — o dono, 17/09
+
+E não custou nada, porque **"Última edição significativa" é um carimbo único, não um contador.**
+Duas publicações às 9h00 e às 9h05 deixam o relógio correndo a partir das 9h05 — idêntico a uma
+publicação só. O que cobra dobrado são reinícios em **dias diferentes**, porque aí são duas fases de
+aprendizado.
+
+> **A regra correta:** agrupar mudanças no MESMO DIA, quantas publicações forem necessárias. O custo
+> de uma edição significativa é o **relógio**, não a contagem.
+
+**A estrutura desta conta, que eu tinha errado:**
+
+| Objeto | Nome | O que carrega |
+|---|---|---|
+| Campanha | `teste-set-01` | **o orçamento** (é CBO) e uma data de término própria |
+| Conjunto | `teste-criativo` | a **fase de aprendizado**, e outra data de término |
+| Anúncios | `reel-30s`, `reel-3-erros`, `estatico-preco`, `estatico-4-7` | — |
+
+Eu vinha chamando `teste-set-01` de "conjunto" — é a campanha. E as **duas** datas de término
+precisavam sair: o conjunto ser contínuo não adianta se a campanha para, porque a campanha é o pai.
+A coluna "Última edição significativa" **não existe no nível de campanha**, e isso é esperado —
+aprendizado é conceito de conjunto.
+
+**O que foi feito em 17/09:** orçamento R$ 125 → **R$ 149** na campanha, data de término removida no
+conjunto E na campanha. Três mudanças, duas publicações, um dia.
+
+**Resultado — pendente de confirmação:** logo depois, `teste-criativo` ainda marcava **14/09** em
+"Última edição significativa". Se amanhã continuar 14/09, então **+19% de orçamento e remoção de
+data de término NÃO são edições significativas neste nível** — que é exatamente o número que a
+documentação do Meta se recusa a dar. Não concluir antes de confirmar: a edição estava em
+processamento e o carimbo pode atualizar com atraso.
 
 ### 6.4 A conta que decide qualquer passo de orçamento
 
@@ -761,6 +788,27 @@ criativo mora no conjunto.
 
 O Meta concentrou ~100% em um. **Anúncio dentro de conjunto vencedor não é testado, é sufocado** — e
 ainda por cima entrar com criativo novo reinicia o aprendizado do conjunto que está faturando.
+
+#### ⚠️ Esta conta assume orçamento POR CONJUNTO. Esta conta não tem.
+
+Descoberto em 17/09: o orçamento está na **campanha** (`teste-set-01`), não no conjunto — é
+**CBO**, orçamento de campanha Advantage. Isso muda o teste de criativo de forma material:
+
+**Com CBO, você não divide o orçamento entre dois conjuntos. O Meta divide.** E já se sabe como ele
+divide, porque ele fez isso com os quatro anúncios: **R$ 221,19 para um e R$ 0,49 para outro.** Dois
+conjuntos sob CBO terminariam do mesmo jeito — um come tudo, o outro morre sem amostra, e o teste
+não acontece.
+
+Então, antes de qualquer teste de criativo, existe uma decisão anterior:
+
+| Caminho | O que custa |
+|---|---|
+| **Mudar para orçamento por conjunto (ABO)** | É mudança de estrutura de orçamento — quase certamente edição significativa, logo um reinício. Mas é a única forma de garantir amostra aos dois |
+| **Manter CBO e aceitar** | Sem custo, mas não é teste: é o Meta escolhendo, e ele escolhe cedo demais e com pouca evidência |
+
+**A conta abaixo continua válida como limiar de amostra** — cada conjunto precisa de ~50 conversões
+em 7 dias, e isso não muda com CBO. O que muda é que, sob CBO, você não controla se cada conjunto
+vai receber orçamento suficiente para chegar lá.
 
 #### O limiar, em reais por dia
 
