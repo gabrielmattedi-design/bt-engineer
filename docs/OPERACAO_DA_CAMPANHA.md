@@ -98,35 +98,43 @@ Duas medições que batem não provam a regra; provam que as duas caíram perto 
 §5.5 de novo, com um agravante: eu tinha escrito "1,25×" numa coluna, e 105,84/84 = 1,26 e
 156,82/125 = 1,2546 já não eram 1,25. Arredondei a favor da minha própria regra.
 
-#### O que explica os três dias, e fecha em três centavos
+#### ❌ A hipótese do rateio semanal — proposta em 15/09, MORTA em 16/09
 
-A semana do Meta vai de **domingo a sábado**, e o compromisso dele é com o TOTAL da semana —
-7 × orçamento diário —, não com cada dia.
+Eu propus que a semana do Meta (domingo a sábado) tem teto de 7 × orçamento e que o gasto do dia é
+**sobra ÷ dias restantes**. O ajuste no dia 15 foi de três centavos:
 
-Semana de 13/09 (dom) a 19/09 (sáb), orçamento R$ 125 → **teto semanal R$ 875,00**:
+| Dia | Gasto | Acumulado | Sobra | Dias rest. | Sobra ÷ dias | Real do dia seguinte |
+|---|---|---|---|---|---|---|
+| 13 dom | 156,82 | 156,82 | 718,18 | 6 | 119,70 | 164,89 ✗ |
+| 14 seg | 164,89 | 321,71 | 553,29 | 5 | 110,66 | **110,63 ✓** |
+| 15 ter | 110,63 | 432,34 | 442,66 | 4 | **110,67** | **126,17 ✗** |
 
-| Dia | Gasto | Acumulado | Sobra | Dias restantes | Sobra ÷ dias |
-|---|---|---|---|---|---|
-| 13 dom | 156,82 | 156,82 | 718,18 | 6 | 119,70 |
-| 14 seg | 164,89 | 321,71 | 553,29 | 5 | **110,66** |
-| 15 ter | **110,63** | 432,34 | 442,66 | 4 | **110,67** |
+**Previsto para 16/09: R$ 110,67. Real: R$ 126,17.** Erro de **+R$ 15,50 (+14%)**.
 
-**Previsto para 15/09: R$ 110,66. Gasto real: R$ 110,63.** Três centavos.
+> A hipótese foi registrada com a condição de morte explícita — *"um dia fora disso derruba"* — e o
+> dia veio. **Ela está morta, e não vai ser remendada.** Ajustar a fórmula agora para caber nos dois
+> pontos que sobraram é o que transforma coincidência em folclore (§5.5).
+>
+> **O encaixe de três centavos era coincidência.** Repare que a própria tabela já mostrava isso: a
+> previsão feita no dia 13 para o dia 14 errou por R$ 45. Eu olhei só o acerto e ignorei o erro que
+> estava na linha de cima — que é o mesmo vício de ler dois pontos como regra.
 
-> **Isto é HIPÓTESE, com um ponto de confirmação — não é regra.** Um encaixe bom demais é
-> exatamente quando eu erro, e a §5.3 existe por isso. Mas ela é **falsificável hoje**: se o padrão
-> vale, 16/09 fecha em **~R$ 110,67**, e 17, 18 e 19 seguem no mesmo valor enquanto o gasto bater o
-> previsto. Um dia fora disso derruba a hipótese.
+**O que sobra de verdade, e é pouco:**
 
-**Consequência operacional, que muda em relação ao que estava escrito:** o espaço extra de um dia
-bom **não é 25% fixos** — é o que sobrou da semana dividido pelos dias que faltam. Num domingo de
-semana zerada isso é quase 20% a mais; numa quinta depois de dois dias fortes, pode ser menos que
-o próprio orçamento diário.
+1. **O teto de 125% num único dia é falso** (dia 14: 131,9%). Isso está provado por print.
+2. **O gasto diário varia mais do que qualquer modelo que eu propus.** De R$ 110,63 a R$ 164,89 com
+   o mesmo orçamento de R$ 125 — de 88% a 132%.
+3. **A amplitude, não a fórmula, é o que serve para operar:** com orçamento X, esperar qualquer coisa
+   entre ~0,85X e ~1,35X num dia. Planejar com a média, nunca com o teto.
 
-E o inverso continua valendo, com uma ressalva nova: **subgasto pode ser informação OU pode ser
-pacing.** No dia 11 o Meta gastou R$ 57,91 de R$ 84 — ali era falta de leilão que valesse o preço.
-No dia 15 ele gastou R$ 110,63 de R$ 125, e **isso não é fraqueza de entrega**: é a semana se
-ajustando depois de domingo e segunda fortes. Ler os dois do mesmo jeito leva a conclusões opostas.
+**Ainda aberto, e testável em 19/09:** se o TOTAL da semana respeita 7 × orçamento. Depois de quatro
+dias são R$ 558,51 de R$ 875, com R$ 316,49 para três dias. Se a semana fechar perto de 875, o teto
+semanal existe mesmo que o rateio diário não siga fórmula nenhuma. Se estourar, também isso morre.
+
+**E o subgasto continua sem leitura única:** no dia 11 (R$ 57,91 de R$ 84) era falta de leilão que
+valesse o preço; no dia 15 (R$ 110,63 de R$ 125) veio logo depois de dois dias fortes e o dia
+seguinte voltou a subir. Sem modelo de pacing, **um dia de subgasto isolado não significa nada** —
+só a série significa.
 
 ### 1.6 Atribuição: os números passados do Meta NÃO são finais
 
@@ -355,10 +363,17 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 13 | dom | 156,82 | 87 | 22 | 25,3% | 20 | 919,80 | **1,80** | **7,84** | 5,87× |
 | 14 | seg | 164,89 | 86 | 10 | **11,6%** | 12 | 579,88 | 1,92 | **13,74** | 3,52× |
 | 15 | ter | 110,63 | 54 | 9 | 16,7% | 9 | 429,91 | **2,05** | 12,29 | 3,89× |
-| **Σ** | | **707,66** | **357** | **71** | **19,9%** | — | **3.409,29** | **1,98** | — | **4,82×** |
+| 16 | qua | 126,17 | 75 | 13 | 17,3% | 13 | 649,87 | **1,68** | **9,71** | 5,15× |
+| **Σ** | | **833,83** | **432** | **84** | **19,4%** | — | **4.059,16** | **1,93** | — | **4,87×** |
 
-**Lucro líquido dos 7 dias: ~R$ 2.513** (receita × 0,9447 de líquido, menos o gasto). O dia 14 deu
-~R$ 383; o dia 15, ~R$ 296.
+**Lucro líquido dos 8 dias: ~R$ 3.001** (receita × 0,9447 de líquido, menos o gasto). O dia 14 deu
+~R$ 383; o 15, ~R$ 296; o **16, ~R$ 488** — o segundo melhor da campanha, atrás só do dia 13.
+
+> **O dia 16 vendeu SÓ o produto caro.** R$ 649,87 em 13 pedidos admite uma única decomposição
+> inteira: **13 × R$ 49,99, zero laudos de raquete**. É o primeiro dia da série sem nenhum pedido do
+> produto de R$ 29,99 — no 13 foram 16+4 e no 14, 11+1. Um dia não é tendência, mas o mix vem
+> subindo e vale acompanhar: ele muda o líquido por cliente, que é o divisor de toda decisão de
+> orçamento.
 
 > **O dia 15 teve receita maior no painel — R$ 529,89 — e ela NÃO entrou aqui.** A diferença de
 > R$ 99,98 veio do link da bio e de contatos pessoais, não do anúncio. Esta série é fluxo Meta
@@ -387,8 +402,8 @@ digitação, quase certamente não fecharia em inteiros.
 ### O V, e o que ele diz
 
 ```
-Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05
-Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7%
+Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05 → 1,68
+Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7% → 17,3%
 ```
 
 As duas pioram juntas até o dia 12 e se recuperam juntas no 13. Pela §3.1, isso significa que mudou
@@ -433,6 +448,32 @@ sem ela, o subgasto viraria "o Meta desistiu", e seria falso.
 
 O que resta para decidir é se a conversão continua subindo. Dois pontos numa reta (11,6 → 16,7) não
 são tendência; **o dia 16 é o terceiro ponto, e é o que decide.**
+
+#### O terceiro ponto veio — e a recuperação NÃO foi pela conversão
+
+| | 13 (pré-reinício) | 14 | 15 | 16 |
+|---|---|---|---|---|
+| Conversão | 25,3% | 11,6% | 16,7% | **17,3%** |
+| Custo/chegada | 1,80 | 1,92 | 2,05 | **1,68** |
+| CAC | 7,84 | 13,74 | 12,29 | **9,71** |
+| ROAS | 5,87× | 3,52× | 3,89× | **5,15×** |
+
+**A conversão empacou em ~17%.** De 16,7 para 17,3 é meio ponto — ruído, não recuperação. Ela não
+voltou aos 25,3% do dia 13 e, três dias depois do reinício, provavelmente não vai voltar por conta
+própria.
+
+**Quem consertou o CAC foi a ENTREGA.** R$ 1,68 por chegada é **o melhor da campanha entre os dias
+de volume relevante** (o 1,38 do dia 09 veio de 17 chegadas). A máquina está comprando tráfego mais
+barato do que nunca — só que converte menos do que convertia.
+
+> **Isto é a §3.1 dando um veredito diferente do esperado, e é por isso que ela existe.** A leitura
+> ingênua seria "o aprendizado terminou, tudo voltou ao normal". Não voltou: **duas coisas mudaram
+> em direções opostas e o saldo ficou positivo.** Se eu estivesse olhando só o CAC, teria concluído
+> a coisa errada pelo motivo errado.
+>
+> A consequência prática importa: um CAC bom sustentado por leilão barato é **mais frágil** que um
+> CAC bom sustentado por conversão alta. Preço de leilão é do mercado e muda sozinho; conversão é
+> nossa. Se o leilão encarecer de volta para ~R$ 2,00 com a conversão em 17%, o CAC vai para ~R$ 11,60.
 
 Isso é o que o reinício do aprendizado faz, e é o comportamento esperado: às 07:21 do dia 14 o
 conjunto voltou à fase de aprendizado (§1) e perdeu o modelo de quem compra. Ele continua comprando
