@@ -564,6 +564,42 @@ export async function contarCompradoresDistintos(janela: Janela = SEM_LIMITE): P
   }
 }
 
+/**
+ * A receita paga da janela, em centavos — TODAS as origens.
+ *
+ * ═══ POR QUE ELA PRECISOU EXISTIR (17/09/2026) ═══════════════════════════════════════════════
+ *
+ * O dono pediu o lucro do dia e apontou o furo: *"só estou te passando as informações das chegadas
+ * via meta"*. A tabela "De onde vieram" tem receita POR ORIGEM, e era a única receita que o painel
+ * sabia somar. Só que o gasto é de um canal e a receita vem de vários — lucro do dia calculado com
+ * a receita de uma origem só subestima, e subestima justamente o número que decide escalar.
+ *
+ * O caso real: em 15/09 o fluxo Meta fez R$ 429,91 e o total foi R$ 529,89. Os R$ 99,98 de
+ * diferença vieram do link da bio. Ler só a origem paga jogaria fora 19% do resultado do dia.
+ *
+ * Corta por `paid_at`, igual `contarVendas` — o dia do dinheiro, não o dia do pedido.
+ */
+export async function somarReceita(janela: Janela = SEM_LIMITE): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+
+  try {
+    const rows = await db()
+      .select({ total: sql<number>`coalesce(sum(${orders.amountCents}), 0)::bigint` })
+      .from(orders)
+      .where(and(eq(orders.status, 'paid'), ...recorte(orders.paidAt, janela)));
+
+    /*
+      `::bigint` e `Number(...)` e não `::int`: a soma de centavos estoura o int de 32 bits em
+      R$ 21.474.836,47. Está longe, mas um overflow silencioso num número que decide orçamento é
+      caro o suficiente para não valer a economia de um cast.
+    */
+    return Number(rows[0]?.total ?? 0);
+  } catch (error) {
+    console.error('[vendas] não foi possível somar a receita', error);
+    return 0;
+  }
+}
+
 export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
   const conn = db();
 

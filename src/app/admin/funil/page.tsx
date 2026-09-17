@@ -13,8 +13,18 @@ import { dataCurta } from '@/lib/datas';
 import { brl } from '@/payments/catalogo';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
-import { contarCompradoresDistintos, contarVendas } from '@/database/repositories/commerce-repo';
+import {
+  contarCompradoresDistintos,
+  contarVendas,
+  somarReceita,
+} from '@/database/repositories/commerce-repo';
 import { explicarMotivo } from '@/lib/motivo-do-envio';
+import {
+  calcularLucro,
+  emReais,
+  lerDinheiroEmCentavos,
+  lerTaxaPercentual,
+} from '@/lib/lucro';
 import { withAutoBootstrap } from '@/database/setup';
 import { ResetFunnelForm } from './reset-form';
 import { ReconciliarFunilForm } from './reconciliar-form';
@@ -38,12 +48,26 @@ export const dynamic = 'force-dynamic';
 export default async function FunilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periodo?: string }>;
+  searchParams: Promise<{ periodo?: string; gasto?: string; taxa?: string }>;
 }) {
   if (!(await isAuthenticated())) redirect('/admin');
 
-  const { periodo } = await searchParams;
+  const { periodo, gasto, taxa } = await searchParams;
   const janela = janelaDoPeriodo(periodo);
+
+  /*
+    Gasto e taxa vêm pela URL, e NÃO do banco.
+
+    O gasto do anúncio só existe no Gerenciador do Meta — o nosso banco não tem como sabê-lo, e
+    inventar uma tabela para o dono digitar todo dia seria trocar uma digitação por outra mais
+    burocrática. Pela URL, o número vale para a leitura daquele dia e o link fica compartilhável.
+
+    A taxa também é entrada, e de propósito: ver `lib/lucro.ts` — a razão de 0,9447 que circula na
+    documentação vem de dois números arredondados de conversa, e a taxa real muda com o meio de
+    pagamento. Sem taxa informada, a tela diz "antes das taxas" em vez de chutar.
+  */
+  const gastoCentavos = lerDinheiroEmCentavos(gasto);
+  const taxaPercentual = lerTaxaPercentual(taxa);
 
   /* Um dia de calendário — por botão ou pelo seletor — é o único recorte que fecha CAC. */
   const diaFechado = ehDiaDeCalendario(periodo);
@@ -74,6 +98,7 @@ export default async function FunilPage({
     envios,
     vendas,
     compradores,
+    receitaCentavos,
   ] = await withAutoBootstrap(
     () =>
       Promise.all([
@@ -94,8 +119,21 @@ export default async function FunilPage({
         envioDeCompras(janela),
         contarVendas(janela),
         contarCompradoresDistintos(janela),
+        /*
+          Receita de TODAS as origens, e é o ponto do bloco de lucro.
+
+          A tabela "De onde vieram" soma receita por origem, e era a única receita que esta tela
+          sabia. O gasto sai de um canal só, mas a receita entra por vários — em 15/09 o fluxo Meta
+          fez R$ 429,91 e o total foi R$ 529,89. Calcular lucro do dia com a receita de uma origem
+          jogaria 19% do resultado fora, para baixo.
+        */
+        somarReceita(janela),
       ]),
   );
+
+  const lucro = gastoCentavos === null
+    ? null
+    : calcularLucro({ receitaCentavos, gastoCentavos, taxaPercentual, clientes: compradores });
 
   /*
     Alguma etapa recebeu MAIS gente que a anterior?
@@ -363,6 +401,130 @@ export default async function FunilPage({
                 )}
               </div>
             )}
+
+            {/*
+              ═══ O LUCRO DO DIA — PEDIDO EM 17/09/2026 ══════════════════════════════════════
+
+              Até aqui a tela ensinava a FÓRMULA ("divida o gasto por {compradores}") e o dono
+              dividia à mão, no celular, todo dia. Divisão à mão erra em silêncio, e este projeto
+              já pagou caro por divisor errado — CAC inflado é o sinal que manda cortar orçamento
+              de campanha que está indo bem.
+
+              A receita aqui é de TODAS as origens, de propósito: o gasto é de um canal, a receita
+              entra por vários, e usar só a origem paga subestima o lucro do dia.
+
+              `<form method="get">` com `periodo` escondido: sem JavaScript nosso, e o link
+              resultante já carrega o dia, o gasto e a taxa — dá para salvar e reabrir.
+            */}
+            <section className="mt-10">
+              <h2 className="font-display text-lg font-semibold">Lucro do período</h2>
+              <p className="mt-1 max-w-prose text-sm text-graphite">
+                A receita abaixo é de <strong className="text-ink">todas as origens</strong>. O
+                gasto só existe no Gerenciador de Anúncios, então ele é digitado aqui.
+              </p>
+
+              <form method="get" className="mt-3 flex flex-wrap items-end gap-2">
+                {periodo !== undefined && <input type="hidden" name="periodo" value={periodo} />}
+                <label className="flex flex-col gap-1 text-xs text-graphite">
+                  Gasto no anúncio (R$)
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    name="gasto"
+                    defaultValue={gasto ?? ''}
+                    placeholder="126,17"
+                    className="w-36 rounded border border-line px-3 py-1.5 text-sm text-ink"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-graphite">
+                  Taxa do gateway (%) — opcional
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    name="taxa"
+                    defaultValue={taxa ?? ''}
+                    placeholder="5,53"
+                    className="w-44 rounded border border-line px-3 py-1.5 text-sm text-ink"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="rounded border border-line px-3 py-1.5 text-sm hover:border-ink"
+                >
+                  Calcular
+                </button>
+              </form>
+
+              {gasto !== undefined && gasto.trim() !== '' && gastoCentavos === null && (
+                <p className="mt-3 max-w-prose text-sm text-clay">
+                  Não consegui ler <strong>{gasto}</strong> como valor. Use 126,17 ou 126.17 — e
+                  atenção: <strong>1.234</strong> é lido como mil duzentos e trinta e quatro, não
+                  como um real e vinte e três.
+                </p>
+              )}
+
+              {lucro !== null && (
+                <div className="mt-3 max-w-prose rounded border border-line bg-white p-4 text-sm">
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 tabular-nums">
+                    <dt className="text-graphite">Receita (todas as origens)</dt>
+                    <dd className="text-right text-ink">R$ {emReais(lucro.receitaCentavos)}</dd>
+
+                    <dt className="text-graphite">Gasto no anúncio</dt>
+                    <dd className="text-right text-ink">− R$ {emReais(lucro.gastoCentavos)}</dd>
+
+                    {lucro.taxaCentavos !== null && (
+                      <>
+                        <dt className="text-graphite">Taxa do gateway ({taxaPercentual}%)</dt>
+                        <dd className="text-right text-ink">− R$ {emReais(lucro.taxaCentavos)}</dd>
+                      </>
+                    )}
+
+                    <dt className="border-t border-line pt-2 font-semibold text-ink">
+                      Lucro {lucro.antesDasTaxas && 'antes das taxas'}
+                    </dt>
+                    <dd
+                      className={`border-t border-line pt-2 text-right font-semibold ${
+                        lucro.lucroCentavos < 0 ? 'text-clay' : 'text-ink'
+                      }`}
+                    >
+                      R$ {emReais(lucro.lucroCentavos)}
+                    </dd>
+                  </dl>
+
+                  <p className="mt-3 border-t border-line pt-3 text-graphite">
+                    {lucro.cacCentavos === null ? (
+                      <>Sem cliente no período — não existe CAC.</>
+                    ) : (
+                      <>
+                        <strong className="text-ink">CAC R$ {emReais(lucro.cacCentavos)}</strong> por
+                        cliente ({compradores}){' '}
+                      </>
+                    )}
+                    {lucro.roas !== null && (
+                      <>
+                        · <strong className="text-ink">ROAS {lucro.roas.toFixed(2)}×</strong>
+                      </>
+                    )}
+                  </p>
+
+                  {lucro.antesDasTaxas && (
+                    <p className="mt-2 text-xs text-graphite">
+                      Sem taxa informada, este lucro é <strong>bruto</strong>. A taxa não tem valor
+                      padrão de propósito: ela muda com o meio de pagamento, e um número fixo aqui
+                      seria falso em todo dia que não fosse a média.
+                    </p>
+                  )}
+
+                  {!diaFechado && (
+                    <p className="mt-2 text-xs text-clay">
+                      Este período é uma janela <strong>rolante</strong>. O gasto digitado precisa
+                      ser o do mesmo intervalo, senão o CAC sai plausível e errado — que é pior que
+                      sair absurdo.
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
 
             {etapas.length > 1 && (
               <section className="mt-10">
