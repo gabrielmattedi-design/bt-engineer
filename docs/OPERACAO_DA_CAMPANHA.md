@@ -577,8 +577,9 @@ coisas diferentes. E quando existir um medidor na ferramenta (§1.3), ele vence 
 
 ## 6. As regras operacionais que sobraram
 
-1. **Nada de editar durante a fase de aprendizado**, salvo CAC acima do teto por dois dias.
-2. **Uma variável por vez.**
+1. **Nada de editar enquanto você não consegue LER o resultado.** ⚠️ Esta regra dizia *"nada de
+   editar durante a fase de aprendizado"*, e estava mal formulada — ver §6.2.
+2. **Uma variável por vez**, com a exceção da §6.3.
 3. **Só ler dia fechado.**
 4. **Passos de orçamento pequenos**, e conferir na coluna Última edição significativa se reiniciou.
 5. **A cadência entre passos é dada pela amostra, não pelo Meta.** A ~10 clientes/dia, 3 dias; a ~30,
@@ -590,6 +591,82 @@ coisas diferentes. E quando existir um medidor na ferramenta (§1.3), ele vence 
    trocam um reinício certo por um ganho prometido de 3%.
 8. **O conjunto que funciona não se toca.** Criativo novo entra em conjunto NOVO, por duplicação: o
    duplicado aprende do zero, o original continua faturando.
+
+### 6.2 "Não editar durante o aprendizado" era a regra ERRADA
+
+O dono perguntou em 17/09, e a pergunta desmontou a minha própria formulação:
+
+> *"Me explique a lógica de agora que você considera que o resultado ficou confiável, fazer outro
+> reinício."*
+
+É uma contradição aparente legítima: passei três dias dizendo para não tocar em nada e, no dia em
+que os números ficaram bons, propus mexer.
+
+**A contradição some quando se troca a regra pela certa.** Eu nunca estive esperando para
+*preservar* o aprendizado — estava esperando para conseguir **ler**. Nos dias 14–16 eu não sabia se
+o CAC alto era o reinício ou um problema real; qualquer mudança ali entraria em cima de um número
+sem interpretação, e uma piora seria inatribuível.
+
+| | |
+|---|---|
+| **Reinício sem linha de base** | Você não sabe se a queda é a fase ou a mudança. Foi o dia 14, e custou três dias de dúvida |
+| **Reinício COM linha de base** | CAC volta a ~9–10 → escalou, sobe de novo. CAC estaciona em ~13–14 → o público não comporta, volta um degrau |
+
+A linha de base desta campanha, medida no dia 16: **CAC R$ 9,71 · ROAS 5,15× · conversão 17,3% ·
+custo por chegada R$ 1,68.**
+
+> **Reinício não é o custo a evitar — cegueira é.** "Nunca reiniciar" não é estratégia, é paralisia:
+> significa orçamento congelado para sempre. O reinício é o **preço de agir** sobre uma informação
+> que você já tem, e o preço está medido: os dias 14–16 deram ROAS 3,52× / 3,89× / 5,15×, todos
+> lucrativos, ~R$ 550 de lucro a menos em ~2,5 dias.
+
+### 6.3 Quando DUAS mudanças juntas são melhores que uma
+
+A §5.4 diz para não mudar duas coisas ao mesmo tempo. A exceção, proposta pelo dono em 17/09:
+
+> **Se a segunda mudança não tem efeito de performance para atribuir, mas dispara reinício, ela deve
+> pegar carona na primeira.** Paga-se o pedágio uma vez em vez de duas.
+
+O caso: subir orçamento (R$ 125 → R$ 150) **e** remover a data de término, numa edição só. Num
+orçamento DIÁRIO a data de término é condição de parada, não parâmetro de otimização — não muda
+leilão, público nem entrega. Não há o que isolar; só há reinício a evitar duplicar.
+
+**O que se perde:** saber qual das duas reiniciou. Eu queria esse número — a documentação do Meta
+nunca diz qual magnitude de orçamento conta como significativa, e +20% seria uma medição real.
+**Perdi a atribuição de propósito, e não devo fingir depois que sei qual foi.** A conta que decidiu:
+segundo reinício ~R$ 550 contra uma calibração útil mas não urgente.
+
+### 6.4 A conta que decide qualquer passo de orçamento
+
+Antes de subir, calcular o retorno do incremento contra o custo do reinício:
+
+```
+clientes extras/dia = Δorçamento ÷ CAC
+lucro extra/dia     = (clientes extras × líquido por cliente) − Δorçamento
+payback em dias     = custo do reinício ÷ lucro extra/dia
+```
+
+Com os números de 17/09 — Δ R$ 25, CAC R$ 9,71, líquido R$ 45,60:
+
+```
+25 ÷ 9,71        = 2,57 clientes/dia
+2,57 × 45,60     = R$ 117,19
+117,19 − 25      = R$ 92 de lucro extra por dia
+550 ÷ 92         ≈ 6 dias de payback
+```
+
+| Horizonte | Ganho | Contra o reinício (~R$ 550) |
+|---|---|---|
+| 6 dias (até a data de término original) | ~R$ 553 | **empata** |
+| 30 dias (sem data de término) | ~R$ 2.766 | **5× o custo** |
+
+> **É a conta que amarra as duas decisões, e foi o achado do dia.** Com data de término em 23/09,
+> subir o orçamento EMPATA e não se justifica. **É remover a data que faz o aumento valer a pena.**
+> Sozinha, cada uma das duas mudanças é marginal; juntas, fazem sentido — e não por economia de
+> pedágio, mas porque uma cria o horizonte que paga a outra.
+>
+> Ressalva honesta: a conta supõe o CAC segurando com 20% mais orçamento. Ele costuma degradar um
+> pouco, então o payback real é mais longo que 6 dias.
 
 ### 6.1 Quando cabe um segundo criativo — a conta, não o palpite
 
@@ -661,3 +738,18 @@ anúncio uma vez. Não há desgaste a combater — o reel atual não está no fi
 - **Hash de e-mail na API de Conversões.** Subiria a qualidade da correspondência (hoje 4,4/10, só
   `fbc`/`fbp`). Custa uma atualização da política de privacidade e é decisão do dono. Ver
   `lib/meta-capi.ts`.
+
+  **Por que NÃO entrou no pacote de 17/09**, embora o dono tenha perguntado: não é um botão no
+  Gerenciador — é código nosso mais um documento legal. Apressar uma política de privacidade para
+  pegar carona numa edição de anúncio inverte a ordem das coisas. E ela **não tem pedágio para
+  dividir**: não toca no conjunto, logo não reinicia aprendizado. Não há nada a economizar juntando.
+
+  A janela limpa era "entre campanhas, depois de 23/09" — mas **a campanha virou contínua em 17/09 e
+  essa janela deixou de existir**. A nova referência: fazer quando a série estabilizar depois deste
+  reinício, por volta de 21/09, como variável isolada.
+
+- **Aprimoramentos de criativo Advantage+.** Recusado duas vezes, e na segunda o motivo mudou de
+  lugar. Em 15/09 era o reinício que ele dispararia; em 17/09 o reinício já estava pago e ele
+  continuou recusado por outra razão: **ele modifica o criativo que está funcionando** em troca de
+  3% prometidos pelo experimento do Meta, não por esta conta. Com um reel em 10 compras e três
+  anúncios em R$ 0,49, o criativo vencedor é o pior lugar para apostar 3%.
