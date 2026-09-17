@@ -1,7 +1,7 @@
 # A dor passou. E a raquete?
 
-**Data:** 16/09/2026 · **Pilar:** P1 · Diagnóstico · **Formato:** 3 stories 9:16 ·
-**Arte:** D · Story (`EAHUMDWWwI4`) · **CTA:** engajamento
+**Data:** 16/09/2026 · **Pilar:** P1 · Diagnóstico · **Formato:** 4 stories 9:16 ·
+**Arte:** D · Story (`EAHUMDWWwI4`) · **CTA:** conversão (story 4)
 
 ---
 
@@ -102,6 +102,30 @@ de origem não-tênis chega no motor com uma fração do peso de um problema ati
 > tem como responder. A pergunta sobre raquete colhe a mesma quantidade de material e não tem esse
 > problema.
 
+### Story 4 · O convite — acrescentado a pedido do dono
+
+| Campo | Texto |
+|---|---|
+| `titulo` | `Não dá para` |
+| `destaque` | `generalizar` |
+| `apoio` | `A mesma dor em dois jogadores pode dar dois setups. O seu sai das suas respostas.` |
+| `rodape` | `Faça a sua ↓` |
+
+**Sticker:** link para `tennisengineer.com.br`
+
+> **Esta tela muda o CTA da pauta inteira de engajamento para conversão** — `historico.ts` liberou
+> (o teto é 1 a cada 8 posts do mês), e ela é a forma mais leve possível de conversão: um sticker de
+> link na última de quatro telas, sem preço, sem urgência, sem "últimas vagas".
+>
+> **O perigo específico desta sequência, e como foi desarmado.** Três telas falando de dor seguidas
+> de "faça sua análise" podem ser lidas como *"pague e a gente resolve sua dor"* — promessa de
+> resultado em assunto de saúde, o pior cruzamento possível da §4.
+>
+> Por isso o apoio fala de **setup**, não de alívio: *"pode dar dois setups"*, *"o seu sai das suas
+> respostas"*. O que se promete é um resultado do método, não um efeito no corpo. E o título
+> continua a tese das três telas anteriores em vez de mudar de assunto para venda — "não dá para
+> generalizar" é a conclusão natural de "leve e antigo não é o mesmo".
+
 ---
 
 ## Legenda de apoio (se o dono quiser reforçar no story ou em resposta)
@@ -120,6 +144,7 @@ de origem não-tênis chega no motor com uma fração do peso de um problema ati
 | "se é atual ou passou, há quanto tempo, intensidade, origem" | `[motor]` | os quatro campos, nomeados |
 | "um episódio antigo que nem veio da quadra quase não mexe" | `[motor]` | multiplicadores de recência, intensidade e origem em `computeArmSensitivity` |
 | "uma dor de hoje muda o equipamento" | `[motor]` | `status: 'atual'` → peso integral; filtro duro de quadro em ≥ 70 |
+| "a mesma dor em dois jogadores pode dar dois setups" | `[motor]` | os quatro qualificadores são multiplicativos: mesma área, respostas diferentes, sensibilidades diferentes |
 
 ### O que NÃO foi dito, e é deliberado
 
@@ -127,8 +152,8 @@ de origem não-tênis chega no motor com uma fração do peso de um problema ati
 calibrações nossas e publicá-las convida a discussão errada — sobre a tabela, não sobre a ideia.
 
 **Nenhuma orientação de saúde.** Nenhuma tela diz o que fazer com dor, nem sugere que trocar de
-equipamento resolve dor. `limites.md` §4: desconforto aponta para profissional, nunca para "troque a
-raquete".
+equipamento resolve dor — **inclusive a tela de conversão**, que é onde essa linha era mais fácil de
+cruzar. `limites.md` §4: desconforto aponta para profissional, nunca para "troque a raquete".
 
 **Nada do cliente.** Ver o topo do arquivo.
 
@@ -140,7 +165,7 @@ raquete".
 
 Arquétipo **D · Story** (`EAHUMDWWwI4`), 1080 × 1920.
 
-**Projeto único, 3 páginas na ordem dos stories:**
+**Projeto único, 4 páginas na ordem dos stories:**
 
 > https://www.canva.com/design/DAHVYg6MQB8/edit
 
@@ -149,6 +174,14 @@ Arquétipo **D · Story** (`EAHUMDWWwI4`), 1080 × 1920.
 | 1 | A dor passou. / E a raquete? | `DAHVYnwmr38` |
 | 2 | Uma pergunta / virou quatro | `DAHVYnWY8Ek` |
 | 3 | Leve e antigo / não é o mesmo | `DAHVYpNrspM` |
+| 4 | Não dá para / generalizar | `DAHVYvz42_M` |
+
+> **Armadilha nova, medida em 16/09:** a conexão com o Canva caiu entre o `edit-design` e o
+> `finalize: "commit"` do story 4. O commit devolveu *"Editing transaction not found"* e **as
+> edições foram perdidas** — reabrindo, a página estava com o texto do template de volta.
+>
+> Transação aberta não é rascunho salvo. Se a conexão cair antes do commit, **refazer e conferir**,
+> nunca assumir que ficou. A releitura com `open_transaction` mostra o estado real.
 
 Forma longa `/design/<id>/edit` — o link curto `canva.com/d/<token>` rotaciona. As páginas do projeto
 são cópias: para corrigir copy depois da junção, editar o projeto, não os originais.
