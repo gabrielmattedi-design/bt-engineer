@@ -404,10 +404,37 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 14 | seg | 164,89 | 86 | 10 | **11,6%** | 12 | 579,88 | 1,92 | **13,74** | 3,52× |
 | 15 | ter | 110,63 | 54 | 9 | 16,7% | 9 | 429,91 | **2,05** | 12,29 | 3,89× |
 | 16 | qua | 126,17 | 75 | 13 | 17,3% | 13 | 649,87 | **1,68** | **9,71** | 5,15× |
-| **Σ** | | **833,83** | **432** | **84** | **19,4%** | — | **4.059,16** | **1,93** | — | **4,87×** |
+| 17 | qui | 171,43 | **102** | 18 | 17,6% | — | 869,81 | **1,68** | — | 5,07× |
+| **Σ** | | **1.005,26** | **534** | **102** | **19,1%** | — | **4.928,97** | **1,88** | — | **4,90×** |
 
-**Lucro líquido dos 8 dias: ~R$ 3.001** (receita × 0,9447 de líquido, menos o gasto). O dia 14 deu
-~R$ 383; o 15, ~R$ 296; o **16, ~R$ 488** — o segundo melhor da campanha, atrás só do dia 13.
+**Lucro bruto dos 9 dias (receita − gasto): ~R$ 3.924.** O dono pediu para largar a taxa do gateway
+da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* —, então a série passa a
+mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)** e **17 (R$ 698)**.
+
+### Dia 17: o aumento de orçamento comprou volume SEM encarecer o leilão
+
+| | 16/09 | 17/09 | |
+|---|---|---|---|
+| Gasto | 126,17 | 171,43 | **+36%** |
+| Chegaram | 75 | **102** | **+36%** |
+| Custo por chegada | 1,68 | **1,68** | **igual** |
+
+**Trinta e seis por cento a mais de dinheiro comprou trinta e seis por cento a mais de gente pelo
+mesmo preço.** É o melhor desfecho possível de um aumento de orçamento — o normal é o custo por
+chegada subir, porque o algoritmo precisa alcançar público progressivamente pior para gastar mais.
+
+Não subiu, e isso bate com o que o painel de público já dizia: 15,5 a 18,2 milhões de pessoas,
+frequência 1,14–1,20, alcance abaixo de 0,1%. **Não há escassez de inventário nesta faixa** — o
+orçamento é o limite, não o público.
+
+E as 102 chegadas são o **maior volume de um dia da campanha**, acima das 87 do dia 13.
+
+> ⚠️ **O dia 17 NÃO é um dia limpo em R$ 149.** O orçamento mudou no meio dele (R$ 125 até a
+> edição, R$ 149 depois) e ainda houve pausa de entrega durante a revisão do Meta. O número é
+> encorajador e **não serve como linha de base** — os primeiros dias limpos são 18, 19 e 20.
+>
+> Vale registrar que o erro de ler dia borrado como dia limpo é irmão do de ler dia parcial (§5.2,
+> §5.2-bis). A diferença é que este eu vi antes de cair nele.
 
 > **O dia 16 vendeu SÓ o produto caro.** R$ 649,87 em 13 pedidos admite uma única decomposição
 > inteira: **13 × R$ 49,99, zero laudos de raquete**. É o primeiro dia da série sem nenhum pedido do
@@ -442,9 +469,17 @@ digitação, quase certamente não fecharia em inteiros.
 ### O V, e o que ele diz
 
 ```
-Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05 → 1,68
-Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7% → 17,3%
+Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05 → 1,68 → 1,68
+Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7% → 17,3% → 17,6%
 ```
+
+**A conversão estacionou em ~17,5% e é hora de aceitar isso como o normal desta campanha.** Três
+dias em 16,7 / 17,3 / 17,6 não são uma curva subindo — são um platô com ruído. Os 25,3% do dia 13
+não voltaram, e provavelmente não voltam sem mudar criativo ou público.
+
+Isso **não é um problema enquanto a chegada estiver a R$ 1,68**: conversão de 17,5% sobre chegada
+barata dá CAC melhor que conversão de 25% sobre chegada cara. Mas é o número a vigiar, porque é a
+metade frágil (§ "O dia 16 separa as duas metades").
 
 As duas pioram juntas até o dia 12 e se recuperam juntas no 13. Pela §3.1, isso significa que mudou
 **quem chegava** — e coincide com a transição do pixel para a API (11 e 12), quando o sinal ficou
