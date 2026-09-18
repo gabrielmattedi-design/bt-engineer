@@ -15,32 +15,106 @@ import { CONTATO_EMAIL } from '@/lib/contato';
  * Não é acessibilidade apenas — é entregabilidade. Mensagem só-HTML é sinal clássico de spam, e
  * filtros pontuam por isso. O texto também é o que aparece na prévia da lista de mensagens, antes
  * de a pessoa abrir.
+ *
+ * ═══ A MARCA AQUI É COR E TIPOGRAFIA, NUNCA IMAGEM ═══════════════════════════════════════════
+ *
+ * O e-mail passou a ter a cara do site — faixa verde institucional, filete laranja, wordmark em
+ * caixa alta espaçada, o mesmo cartão branco de borda fina. Tudo isso é HTML: chega montado, sem
+ * depender de nada carregar.
+ *
+ * Um logotipo em PNG seria o caminho óbvio e é o errado por três motivos que se somam:
+ *
+ *   1. **O Gmail bloqueia imagem por padrão.** A marca que só existe em imagem simplesmente não
+ *      aparece na primeira abertura — que é a única que importa.
+ *   2. **Imagem é rastreamento.** Toda imagem hospedada avisa o servidor quando e de onde a
+ *      mensagem foi aberta. Este projeto recusou mandar conversão de quem negou cookie; não vai
+ *      instalar um pixel de abertura pela porta dos fundos.
+ *   3. **Proporção texto/imagem é métrica de filtro.** Peça gráfica grande com pouco texto é o
+ *      formato que os filtros aprenderam a chamar de disparo em massa.
+ *
+ * O monograma SVG de `components/marketing/logo.tsx` não serve aqui pelo mesmo motivo: o Gmail
+ * remove SVG inline. O que sobra da marca — e é o suficiente — é a wordmark tipográfica, que no
+ * próprio site também é só texto com peso e espaçamento (`.wordmark` em globals.css).
+ *
+ * ═══ AS FONTES DO SITE SÃO PEDIDAS, NÃO BAIXADAS ═════════════════════════════════════════════
+ *
+ * Sora e Inter estão nomeadas na pilha e só serão usadas por quem já as tem instaladas. Não há
+ * `@import` do Google Fonts de propósito: além de o Gmail descartar, seria mais uma requisição
+ * externa contando ao Google quando cada cliente abriu o e-mail — a mesma objeção do item 2.
+ *
+ * O que carrega a marca sem as fontes é o resto: a cor, o peso, o espaçamento entre letras, a
+ * proporção do cartão. Com Helvetica no lugar da Sora a peça continua reconhecível.
+ *
+ * ═══ MODO ESCURO ═════════════════════════════════════════════════════════════════════════════
+ *
+ * Gmail e Outlook invertem cores de mensagens claras por conta própria, e uma inversão parcial —
+ * fundo escurecido, texto não — deixa texto quase invisível. As duas defesas usadas aqui são as
+ * que funcionam: declarar `color-scheme` (clientes que respeitam param de inverter) e repetir todo
+ * fundo no atributo `bgcolor` além do CSS, porque é o atributo que sobrevive quando o cliente
+ * reescreve o `style`.
  */
 
+/** Os tokens são os do site (tailwind.config.ts). Copiados porque e-mail não tem acesso ao CSS. */
 const COURT = '#0E3D2E';
-const INK = '#14181B';
-const GRAPHITE = '#5A6560';
+const CLAY = '#D85A2B';
+const INK = '#0B0F14';
+const GRAPHITE = '#5A6472';
 const PAPER = '#FAFAF8';
-const LINE = '#E2E5E1';
+const LINE = '#E4E6E3';
+/** Verde claro do tagline sobre a faixa: 7,8:1 de contraste sobre o court. */
+const COURT_SOFT = '#BFD3C9';
+
+const FONTE_TITULO = `'Sora','Inter',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif`;
+const FONTE_TEXTO = `'Inter',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif`;
 
 function layout(input: { preheader: string; body: string }): string {
   return `<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;padding:0;background:${PAPER};">
+<html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+</head>
+<body style="margin:0;padding:0;background-color:${PAPER};" bgcolor="${PAPER}">
 <!--
   Preheader: o trecho que o cliente de e-mail mostra depois do assunto, na lista de mensagens.
   Sem ele, o Gmail preenche com as primeiras palavras do corpo — normalmente "Ver no navegador"
   ou o nome da marca repetido, desperdiçando a única linha que decide se a pessoa abre.
+
+  O entulho de &amp;zwnj; depois do texto é o truque conhecido: sem ele o cliente continua
+  puxando as primeiras palavras do corpo para completar a prévia, e a frase escolhida aparece
+  grudada em "Tennis Engineer Seu jogo. Seu setup...". São caracteres invisíveis que empurram o
+  resto para fora do trecho exibido.
 -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${input.preheader}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${input.preheader}${'&zwnj;&nbsp;'.repeat(60)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="background-color:${PAPER};">
 <tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid ${LINE};border-radius:8px;">
-  <tr><td style="padding:28px 32px 0;">
-    <div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;color:${COURT};letter-spacing:-0.2px;">Tennis&nbsp;Engineer</div>
-    <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${GRAPHITE};padding-top:2px;">Seu jogo. Seu setup. Sob medida.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;border:1px solid ${LINE};border-radius:8px;">
+
+  <!--
+    A faixa institucional. É o cabeçalho do site (SiteHeader no tom "court") reduzido ao que
+    cabe num e-mail: o verde, a wordmark branca e a linha de conceito.
+
+    REGRA DA MARCA, do brand book: "a marca deve ser aplicada sempre em preto ou branco; cores de
+    destaque nunca são aplicadas à marca". A versão anterior deste arquivo escrevia "Tennis
+    Engineer" em VERDE sobre branco — bonito e proibido. Branco sobre o verde institucional é a
+    aplicação correta, e é também a que o site usa nas telas de tom escuro.
+  -->
+  <tr><td bgcolor="${COURT}" style="background-color:${COURT};padding:22px 32px;border-radius:8px 8px 0 0;">
+    <div style="font-family:${FONTE_TITULO};font-size:15px;font-weight:bold;letter-spacing:2.6px;color:#FFFFFF;line-height:1.3;">TENNIS&nbsp;ENGINEER</div>
+    <div style="font-family:${FONTE_TEXTO};font-size:11px;letter-spacing:0.4px;color:${COURT_SOFT};padding-top:5px;line-height:1.4;">Seu jogo. Seu setup. Sob medida.</div>
   </td></tr>
-  <tr><td style="padding:24px 32px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${INK};">
+
+  <!--
+    O filete laranja. É a única aparição do acento e existe para separar a faixa do texto sem uma
+    borda cinza a mais — no site o mesmo papel é do Clay em botões e destaques.
+
+    font-size:0 com um espaço rígido dentro porque célula vazia some no Outlook: sem
+    conteúdo, o motor do Word colapsa a linha e o filete desaparece.
+  -->
+  <tr><td bgcolor="${CLAY}" style="background-color:${CLAY};height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+  <tr><td bgcolor="#FFFFFF" style="background-color:#FFFFFF;padding:28px 32px 32px;font-family:${FONTE_TEXTO};font-size:15px;line-height:1.6;color:${INK};border-radius:0 0 8px 8px;">
 ${input.body}
   </td></tr>
 </table>
@@ -54,18 +128,37 @@ ${input.body}
   Fechar a porta sem apontar a próxima é o que transforma um problema de suporte de dois minutos
   numa contestação.
 -->
-<div style="max-width:520px;padding:16px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:${GRAPHITE};text-align:center;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+<tr><td align="center" style="padding:18px 8px 0;font-family:${FONTE_TEXTO};font-size:11px;line-height:1.6;color:${GRAPHITE};">
+  <!--
+    Aqui havia a assinatura da marca em caixa alta ("SUA EVOLUÇÃO É O NOSSO PROJETO"). Saiu porque
+    a pesquisa de satisfação fecha com essa mesma frase no corpo, assinada pelo Gabriel — e a
+    mesma sentença duas vezes em dois centímetros parece descuido, não marca. A faixa verde no
+    topo já assina a mensagem; o rodapé só precisa dizer para onde ir quando algo der errado.
+  -->
   ${SITE_DOMAIN} · este endereço não recebe respostas<br>
   Precisa de ajuda? Escreva para <a href="mailto:${CONTATO_EMAIL}" style="color:${GRAPHITE};">${CONTATO_EMAIL}</a>
-</div>
+</td></tr></table>
 </td></tr></table>
 </body></html>`;
 }
 
+/**
+ * O botão.
+ *
+ * Laranja e não verde: no site o Clay é o acento de AÇÃO — todo botão primário, da home ao
+ * checkout, é `bg-clay` com texto branco. Um botão verde no e-mail seria um botão que a pessoa não
+ * reconhece quando chega na página.
+ *
+ * O par laranja/branco fica em 3,9:1 de contraste, abaixo do 4,5:1 que a WCAG pede para texto
+ * pequeno. É o par que o site já usa e mudar só aqui criaria um segundo laranja de marca. O que
+ * compensa é o endereço em texto logo abaixo do botão em todos os e-mails: quem não enxergar o
+ * rótulo tem o link escrito, que é também o caminho de quem bloqueia botão ou usa leitor de tela.
+ */
 function button(href: string, label: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr>
-    <td style="background:${COURT};border-radius:6px;">
-      <a href="${href}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#FFFFFF;text-decoration:none;">${label}</a>
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr>
+    <td bgcolor="${CLAY}" style="background-color:${CLAY};border-radius:6px;">
+      <a href="${href}" style="display:inline-block;padding:15px 30px;font-family:${FONTE_TEXTO};font-size:16px;font-weight:bold;color:#FFFFFF;text-decoration:none;">${label}</a>
     </td></tr></table>`;
 }
 

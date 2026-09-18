@@ -145,15 +145,30 @@ describe('injeção de HTML no relatório', () => {
     expect(posEscape).toBeLessThan(posNegrito);
   });
 
+  /**
+   * ═══ POR QUE PROCURA O USO, E NÃO A PALAVRA ════════════════════════════════════════════════
+   *
+   * A versão anterior contava arquivos que CONTINHAM a palavra, e quebrou no dia em que um
+   * comentário explicou por que NÃO usou `dangerouslySetInnerHTML` — a rota de prévia do e-mail,
+   * que serve o HTML como documento próprio justamente para não injetá-lo na página.
+   *
+   * O teste estava punindo a documentação da decisão certa. Pior: o caminho de menor resistência
+   * para quem esbarrasse nele seria apagar o comentário, deixando o projeto com menos explicação e
+   * o mesmo risco.
+   *
+   * Agora procura a FORMA de uso — o nome seguido de `=` (atributo JSX) ou `:` (dentro de um
+   * objeto de props). Citar o nome em prosa não dispara; usá-lo, sim.
+   */
   it('não existe outro innerHTML solto no produto', () => {
+    const USO = /dangerouslySetInnerHTML\s*[=:]/;
     const suspeitos: string[] = [];
     for (const arquivo of varrer(join(ROOT, 'src'))) {
-      if (readFileSync(arquivo, 'utf8').includes('dangerouslySetInnerHTML')) {
+      if (USO.test(readFileSync(arquivo, 'utf8'))) {
         suspeitos.push(arquivo.replace(ROOT, ''));
       }
     }
     // Um só, e ele é este. Cada novo precisa de decisão consciente, não de descuido.
-    expect(suspeitos).toHaveLength(1);
+    expect(suspeitos).toEqual(['/src/app/resultado/[sessionId]/page.tsx']);
   });
 });
 

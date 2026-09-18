@@ -5,6 +5,11 @@ import { withAutoBootstrap } from '@/database/setup';
 import { lerPesquisas } from '@/database/repositories/pesquisa-repo';
 import { resumirPesquisa, seguiu, USOU, EFEITO, IMPEDIMENTO } from '@/lib/pesquisa';
 import { dataCurta } from '@/lib/datas';
+import { satisfactionSurveyEmail } from '@/email/templates';
+import { emailEnabled } from '@/email/send';
+import { SITE_URL } from '@/lib/site';
+import { DIAS_DEPOIS_DA_COMPRA } from '@/database/repositories/pesquisa-repo';
+import { EnsaioDaPesquisa } from './ensaio';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +34,22 @@ export default async function PesquisaPage() {
 
   const { enviadas, respostas } = await withAutoBootstrap(() => lerPesquisas());
   const r = resumirPesquisa(enviadas, respostas);
+
+  /*
+    O estado do disparo, dito na tela em vez de deduzido.
+
+    São duas chaves independentes e a ausência de qualquer uma para tudo: sem `CRON_SECRET` a rota
+    do agendamento RECUSA (ver o comentário dela — recusar é a escolha, não liberar), e sem
+    `RESEND_API_KEY` não sai e-mail nenhum. O modo de falha aqui é silencioso por natureza: o
+    sintoma de um disparo desligado é a ausência de mensagens, e ausência não gera alerta.
+
+    Só o SE existe é lido. O valor nunca chega à tela.
+  */
+  const agendamentoArmado = Boolean(process.env.CRON_SECRET);
+  const envioArmado = emailEnabled();
+  const ligado = agendamentoArmado && envioArmado;
+
+  const modelo = satisfactionSurveyEmail({ url: `${SITE_URL}/avaliacao/previa` });
 
   const barra = (linhas: readonly { valor: string; label: string; n: number; porcento: number }[]) => (
     <ol className="mt-3 space-y-2">
@@ -55,8 +76,35 @@ export default async function PesquisaPage() {
       <main className="mx-auto max-w-4xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold">Pesquisa de satisfação</h1>
         <p className="mt-2 max-w-prose text-sm text-graphite">
-          Enviada automaticamente 15 dias depois de cada compra.
+          Enviada automaticamente {DIAS_DEPOIS_DA_COMPRA} dias depois de cada compra.
         </p>
+
+        {/*
+          O estado do disparo fica acima de tudo porque muda o significado de todo o resto: uma tela
+          de zeros com o disparo ligado é "ninguém respondeu"; com o disparo desligado é "ninguém
+          recebeu". São diagnósticos opostos e o número na tela é o mesmo.
+        */}
+        <p
+          className={`mt-4 max-w-prose rounded border p-3 text-sm ${
+            ligado ? 'border-court/30 bg-court/5 text-ink' : 'border-warn/40 bg-warn/5 text-warn'
+          }`}
+        >
+          {ligado ? (
+            <>
+              <strong>Disparo automático ligado.</strong> Todo dia, às 9h de Brasília, a fila do dia
+              é enviada.
+            </>
+          ) : (
+            <>
+              <strong>Disparo automático desligado — nenhum cliente recebe nada.</strong>{' '}
+              {!agendamentoArmado && 'Falta CRON_SECRET na Vercel (sem ela o agendamento recusa). '}
+              {!envioArmado && 'Falta RESEND_API_KEY. '}
+              O ensaio abaixo continua funcionando{envioArmado ? '' : ' menos o envio de teste'}.
+            </>
+          )}
+        </p>
+
+        <EnsaioDaPesquisa assunto={modelo.subject} texto={modelo.text} />
 
         {enviadas === 0 ? (
           <p className="mt-8 rounded border border-line bg-white p-5 text-sm text-graphite">

@@ -43,6 +43,13 @@ export default function robots(): MetadataRoute.Robots {
           // Área do cliente e autenticação. `/entrar/<token>` é uma chave de acesso de uso único.
           '/minhas-analises',
           '/entrar/',
+          /*
+            A pesquisa de satisfação. `/avaliacao/<token>` identifica o PEDIDO de uma pessoa, e a
+            página mostra o e-mail da compra — o mesmo motivo de `/resultado/` estar nesta lista.
+            Cobre também `/avaliacao/previa`, que já se declara `noindex` e não precisa competir
+            com o site em busca nenhuma.
+          */
+          '/avaliacao/',
           // Painel do dono.
           '/admin',
           // Superfície interna que não tem por que aparecer em busca nenhuma.

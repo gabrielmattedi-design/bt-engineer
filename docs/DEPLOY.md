@@ -86,6 +86,40 @@ O remetente precisa estar num domínio **verificado no Resend** (registros DKIM 
 Sem isso o e-mail sai, mas cai em spam — e um link de acesso no spam é um cliente perdido, porque
 ninguém procura lá.
 
+### Pesquisa de satisfação (envio automático, 15 dias depois da compra)
+
+| Variável | Para quê |
+|---|---|
+| `CRON_SECRET` | Autentica o agendamento diário. **Sem ela a rota RECUSA — nada é enviado** |
+| `PESQUISA_LIMITE_DIARIO` | Teto de envios por dia. Padrão `15` |
+
+`CRON_SECRET` é o interruptor geral: a Vercel manda `Authorization: Bearer <valor>` nos
+agendamentos dela, e `/api/cron/pesquisa` recusa qualquer chamada que não traga esse cabeçalho.
+Sem a variável a rota recusa **todo mundo**, inclusive a Vercel — que é a escolha certa para o
+inverso: uma rota que libera quando o segredo falta vira um endereço público disparando e-mail
+para clientes reais a cada visita.
+
+O valor se gera igual ao `AUTH_SECRET` (`crypto.randomUUID()`), e a Vercel injeta o mesmo valor no
+cabeçalho automaticamente quando a variável existe no projeto.
+
+O teto diário existe por entregabilidade, não por custo: um domínio que manda dez e-mails por dia e
+de repente manda cento e vinte parece disparo em massa — e a reputação queimada levaria junto a
+entrega do **relatório**, que é o produto.
+
+#### Antes de ligar
+
+`/admin/pesquisa` diz na tela se o disparo está ligado ou desligado, e traz o **ensaio**: a prévia
+do e-mail exatamente como ele sai, um envio de teste para o endereço que você escolher, e a prévia
+do formulário (`/avaliacao/previa`) — nenhum dos três grava coisa alguma nem consome a fila.
+
+O caminho, em ordem: conferir a prévia → mandar o teste para si mesmo → abrir no celular, no
+computador e no **modo escuro** → conferir se caiu no spam → percorrer o formulário até o
+agradecimento. Só então configurar `CRON_SECRET`.
+
+Depois de ligado, a primeira leva sai no próximo agendamento (9h de Brasília) e alcança de uma vez
+todos os pedidos com mais de 15 dias — respeitando o teto diário e o limite de 45 dias, que impede
+mandar pesquisa sobre uma compra que a pessoa já esqueceu.
+
 ### Opcionais
 
 | Variável | Padrão | Observação |
