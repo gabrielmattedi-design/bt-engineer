@@ -116,9 +116,35 @@ O caminho, em ordem: conferir a prévia → mandar o teste para si mesmo → abr
 computador e no **modo escuro** → conferir se caiu no spam → percorrer o formulário até o
 agradecimento. Só então configurar `CRON_SECRET`.
 
+#### Quem entra na fila de cada dia
+
+Todo dia o agendamento procura pedidos que atendam **todas** estas condições:
+
+| | |
+|---|---|
+| status | `paid` — pedido pago, confirmado pelo gateway |
+| pago há | entre **15 e 45 dias** |
+| pesquisa deste pedido | ainda não existe |
+| pesquisa desta **pessoa** | nenhuma nos últimos 90 dias |
+| quantidade | no máximo o teto do dia (15) |
+
+Pega o e-mail da compra, cria a linha, dispara e grava o desfecho. Os mais antigos primeiro.
+
+Três consequências que valem entender:
+
+- **É uma janela, não um dia exato.** "Exatamente 15 dias" perderia para sempre a safra de qualquer
+  dia em que o agendamento falhasse — deploy, instabilidade, limite da Vercel — e ninguém ficaria
+  sabendo. Com o intervalo, um dia perdido é recuperado no dia seguinte sozinho.
+- **O teto de 45 dias é o fim da fila.** Quem passar disso não recebe mais: perguntar "como foi?"
+  sobre uma compra de dois meses atrás tem resposta pior e faz a pessoa se perguntar por que só
+  agora. É também o que impede a primeira execução de varrer o histórico inteiro.
+- **Uma pesquisa por pessoa por trimestre.** A trava do banco é por pedido, e quem comprou o laudo e
+  voltou para o upgrade receberia duas pesquisas quase iguais. A segunda compra não se perde: volta
+  a ser candidata quando os 90 dias virarem, ou envelhece para fora da janela.
+
 Depois de ligado, a primeira leva sai no próximo agendamento (9h de Brasília) e alcança de uma vez
-todos os pedidos com mais de 15 dias — respeitando o teto diário e o limite de 45 dias, que impede
-mandar pesquisa sobre uma compra que a pessoa já esqueceu.
+todos os pedidos elegíveis dos últimos 45 dias — respeitando o teto diário. Ela é a maior de todas,
+e normalmente enche o teto por alguns dias seguidos até a fila acumulada escoar.
 
 #### Como saber o que saiu
 

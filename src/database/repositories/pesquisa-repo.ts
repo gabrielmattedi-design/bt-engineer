@@ -29,6 +29,26 @@ import type { Resposta } from '@/lib/pesquisa';
 export const DIAS_DEPOIS_DA_COMPRA = 15;
 const TETO_DE_DIAS = 45;
 
+/**
+ * ═══ UMA PESQUISA POR PESSOA POR TRIMESTRE ═══════════════════════════════════════════════════
+ *
+ * A trava de idempotência é por PEDIDO — `unique(order_id)`. Isso resolve "o cron rodou duas vezes"
+ * e não resolve "a mesma pessoa comprou duas vezes", que neste produto não é exceção: o
+ * `setup_upgrade` existe exatamente para quem já comprou. Quem tirou o laudo e voltou para o upgrade
+ * uma semana depois receberia DUAS pesquisas quase idênticas com poucos dias de diferença.
+ *
+ * E o cliente que compra duas vezes é o melhor cliente que este projeto tem. Ele seria o mais
+ * incomodado — o inverso exato do que a pesquisa quer.
+ *
+ * O risco é maior na PRIMEIRA execução, que varre 45 dias de pedidos de uma vez: todas as segundas
+ * compras desse período entrariam juntas.
+ *
+ * Noventa dias porque a pesquisa pergunta sobre um ciclo de uso (trocar corda, jogar, sentir), e
+ * porque perguntar de novo a quem voltou meio ano depois é legítimo — quem nunca mais deveria ser
+ * perguntado não é este caso.
+ */
+const DIAS_ENTRE_PESQUISAS_DA_MESMA_PESSOA = 90;
+
 export type PedidoParaPesquisar = {
   readonly orderId: string;
   readonly email: string;
@@ -58,7 +78,12 @@ export async function pedidosParaPesquisar(limite: number): Promise<PedidoParaPe
   const maisVelhoQue = new Date(agora - DIAS_DEPOIS_DA_COMPRA * UM_DIA);
 
   const rows = await db()
-    .select({ orderId: orders.id, email: users.email, pagoEm: orders.paidAt })
+    .select({
+      orderId: orders.id,
+      userId: orders.userId,
+      email: users.email,
+      pagoEm: orders.paidAt,
+    })
     .from(orders)
     .innerJoin(users, eq(users.id, orders.userId))
     .leftJoin(satisfactionSurveys, eq(satisfactionSurveys.orderId, orders.id))
@@ -70,16 +95,52 @@ export async function pedidosParaPesquisar(limite: number): Promise<PedidoParaPe
         gte(orders.paidAt, maisNovoQue),
         /* A ausência de linha é a trava de idempotência — ver o comentário do schema. */
         isNull(satisfactionSurveys.id),
+        /*
+          E esta é a trava por PESSOA. A de cima é por pedido e não enxerga a segunda compra do
+          mesmo cliente; ver `DIAS_ENTRE_PESQUISAS_DA_MESMA_PESSOA`.
+
+          `not exists` e não um `left join` a mais: o join duplicaria a linha do pedido uma vez por
+          pesquisa anterior da pessoa, e aí o `limit` passaria a contar linhas repetidas em vez de
+          pedidos — mandando menos e-mails do que o teto sem nenhum sinal de que isso aconteceu.
+        */
+        sql`not exists (
+          select 1
+          from ${satisfactionSurveys} s2
+          join ${orders} o2 on o2.id = s2.order_id
+          where o2.user_id = ${orders.userId}
+            and s2.sent_at > now() - interval '${sql.raw(String(DIAS_ENTRE_PESQUISAS_DA_MESMA_PESSOA))} days'
+        )`,
       ),
     )
     .orderBy(orders.paidAt)
     .limit(limite);
 
-  return rows.flatMap((r) =>
-    r.email !== null && r.pagoEm !== null
-      ? [{ orderId: r.orderId, email: r.email, pagoEm: r.pagoEm }]
-      : [],
-  );
+  /*
+    ═══ E A SEGUNDA COMPRA QUE ESTÁ NESTA MESMA LEVA ═════════════════════════════════════════
+
+    O `not exists` acima olha pesquisas JÁ ENVIADAS. Duas compras da mesma pessoa dentro desta
+    mesma execução passariam as duas — a primeira ainda não existe como linha quando a consulta
+    roda. Na primeira execução, que varre 45 dias de uma vez, esse é o caso comum, não o raro.
+
+    Fica a mais antiga, que é a que está esperando há mais tempo. A outra não se perde: volta a ser
+    candidata quando a janela de 90 dias virar, ou simplesmente envelhece para fora do teto de 45 —
+    e perder uma pesquisa de quem já vai responder outra custa muito menos que mandar duas.
+
+    O efeito colateral é que uma leva pode sair menor que o teto. É o lado certo para errar.
+  */
+  const vistos = new Set<string>();
+
+  return rows.flatMap((r) => {
+    /*
+      `userId` é anulável no schema, e o `innerJoin` com `users` já exclui quem não tem. A checagem
+      fica assim mesmo: sem ela, um `null` viraria uma chave de deduplicação válida e TODOS os
+      pedidos sem usuário se cancelariam entre si como se fossem a mesma pessoa.
+    */
+    if (r.email === null || r.pagoEm === null || r.userId === null) return [];
+    if (vistos.has(r.userId)) return [];
+    vistos.add(r.userId);
+    return [{ orderId: r.orderId, email: r.email, pagoEm: r.pagoEm }];
+  });
 }
 
 /**

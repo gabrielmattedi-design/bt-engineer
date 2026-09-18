@@ -236,3 +236,45 @@ describe('o resultado do envio volta para a linha', () => {
     expect(tela).toContain('envioOk === null');
   });
 });
+
+/**
+ * ═══ UMA PESSOA NÃO RECEBE DUAS ══════════════════════════════════════════════════════════════
+ *
+ * A restrição do banco é `unique(order_id)`: ela resolve "o cron rodou duas vezes" e NÃO resolve "a
+ * mesma pessoa comprou duas vezes" — que neste produto é o caminho previsto, porque o
+ * `setup_upgrade` existe justamente para quem já comprou.
+ *
+ * Sem as duas travas abaixo, quem tirou o laudo e voltou para o upgrade receberia duas pesquisas
+ * quase idênticas com poucos dias de diferença. O melhor cliente do projeto seria o mais incomodado.
+ */
+describe('a fila não repete a mesma pessoa', () => {
+  const repo = readFileSync(
+    join(process.cwd(), 'src/database/repositories/pesquisa-repo.ts'),
+    'utf8',
+  );
+
+  /** Trava 1: quem já recebeu nos últimos 90 dias não entra na consulta. */
+  it('exclui quem recebeu pesquisa recentemente', () => {
+    expect(repo).toContain('DIAS_ENTRE_PESQUISAS_DA_MESMA_PESSOA');
+    expect(repo).toMatch(/not exists\s*\([\s\S]{0,300}s2\.sent_at > now\(\)/);
+  });
+
+  /**
+   * Trava 2: duas compras da mesma pessoa DENTRO da mesma execução.
+   *
+   * A trava 1 olha pesquisas já enviadas, e nenhuma das duas existe quando a consulta roda. Na
+   * primeira execução — que varre 45 dias de pedidos de uma vez — este é o caso comum.
+   */
+  it('deduplica por pessoa dentro da própria leva', () => {
+    expect(repo).toMatch(/vistos\.has\(/);
+    expect(repo).toMatch(/vistos\.add\(/);
+  });
+
+  /**
+   * `userId` é anulável no schema. Sem a checagem, `null` viraria chave de deduplicação e todos os
+   * pedidos sem usuário se cancelariam entre si como se fossem a mesma pessoa.
+   */
+  it('não deduplica pedidos sem usuário como se fossem a mesma pessoa', () => {
+    expect(repo).toContain('r.userId === null');
+  });
+});
