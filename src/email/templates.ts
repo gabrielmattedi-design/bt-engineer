@@ -164,3 +164,70 @@ de qualquer aparelho — mesmo que troque de celular ou limpe o navegador.
 ${SITE_DOMAIN}`,
   };
 }
+
+/**
+ * A pesquisa de satisfação, quinze dias depois da compra.
+ *
+ * ═══ POR QUE ESTE E-MAIL NÃO SE PARECE COM OS OUTROS ═════════════════════════════════════════
+ *
+ * Os outros são transacionais: a pessoa está esperando, abre, clica. Este chega sem ser chamado e
+ * pede um favor. Se ele tiver cara de disparo em massa, vai ser tratado como disparo em massa — e
+ * o custo não fica só nele: a mesma reputação de domínio entrega o RELATÓRIO, que é o produto.
+ *
+ * Daí as três escolhas visíveis aqui:
+ *
+ *   **Assinado por uma pessoa.** "Gabriel aqui" muda a taxa de resposta mais que qualquer outra
+ *   coisa no texto. Empresa mede; pessoa pergunta.
+ *
+ *   **Um link só, sem imagem.** Três chamadas e banner é o que disparo em massa parece.
+ *
+ *   **A frase sobre não ter trocado nada.** Sem ela, quem não implementou se sente cobrado e não
+ *   responde — e é exatamente o grupo que mais interessa ouvir. Com ela, "não usei" vira resposta
+ *   legítima em vez de silêncio.
+ */
+export function satisfactionSurveyEmail(input: { url: string }): Email {
+  return {
+    subject: 'O que achou do seu Setup?',
+    html: layout({
+      preheader: 'Duas perguntas rápidas sobre a sua análise — leva dois minutos.',
+      body: `
+    <p style="margin:0 0 16px;">Oi, Gabriel aqui, do Tennis Engineer!</p>
+    <p style="margin:0 0 16px;">
+      Faz uns quinze dias que você fez sua análise. Queria saber uma coisa:
+      deu para testar alguma das recomendações?
+    </p>
+    <p style="margin:0 0 16px;">
+      Gostaria do feedback, do seu relatório e claro, da prática em quadra caso já tenha
+      seguido alguma recomendação.
+    </p>
+    ${button(input.url, 'Responder')}
+    <p style="margin:0 0 16px;">
+      E se você ainda não trocou nada, adoraria saber por que não trocou.
+    </p>
+    <p style="margin:0 0 4px;">Obrigado,<br>Gabriel.</p>
+    <p style="margin:16px 0 0;font-size:13px;color:${GRAPHITE};">
+      Tennis Engineer — Sua Evolução é o Nosso Projeto.
+    </p>
+    <p style="margin:16px 0 0;font-size:13px;color:${GRAPHITE};">
+      Se o botão não funcionar, copie e cole:<br>
+      <span style="word-break:break-all;color:${INK};">${input.url}</span>
+    </p>`,
+    }),
+    text: `Oi, Gabriel aqui, do Tennis Engineer!
+
+Faz uns quinze dias que você fez sua análise. Queria saber uma coisa: deu para
+testar alguma das recomendações?
+
+Gostaria do feedback, do seu relatório e claro, da prática em quadra caso já
+tenha seguido alguma recomendação.
+
+${input.url}
+
+E se você ainda não trocou nada, adoraria saber por que não trocou.
+
+Obrigado,
+Gabriel.
+
+Tennis Engineer — Sua Evolução é o Nosso Projeto.`,
+  };
+}

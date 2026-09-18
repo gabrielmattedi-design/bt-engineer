@@ -47,6 +47,17 @@ export async function sendEmail(input: {
   subject: string;
   html: string;
   text: string;
+  /**
+   * Cabeçalhos extras, para o que não cabe no corpo.
+   *
+   * Nasceu para o `List-Unsubscribe` da pesquisa de satisfação. Ele é invisível para quem lê e
+   * pesado para quem filtra: o Gmail o considera na entrega, e quem não acha como sair de uma
+   * mensagem marca como spam — o que queima a reputação do domínio que entrega o RELATÓRIO.
+   *
+   * Opcional de propósito. O e-mail transacional NÃO deve carregá-lo: oferecer "descadastrar" de
+   * uma mensagem que a pessoa comprou é convidá-la a perder o acesso ao que pagou.
+   */
+  headers?: Record<string, string>;
 }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
 
@@ -75,6 +86,7 @@ export async function sendEmail(input: {
         subject: input.subject,
         html: input.html,
         text: input.text,
+        ...(input.headers === undefined ? {} : { headers: input.headers }),
       }),
     });
 

@@ -10,3 +10,4 @@ export * from './campaigns';
 export * from './meta';
 export * from './throttle';
 export * from './financeiro';
+export * from './pesquisa';

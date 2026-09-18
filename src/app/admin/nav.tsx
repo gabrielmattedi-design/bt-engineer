@@ -16,6 +16,7 @@ const TELAS = [
   { href: '/admin/funil', key: 'funil', label: 'Funil' },
   { href: '/admin/vendas', key: 'vendas', label: 'Vendas' },
   { href: '/admin/financeiro', key: 'financeiro', label: 'Financeiro' },
+  { href: '/admin/pesquisa', key: 'pesquisa', label: 'Pesquisa' },
   { href: '/admin/analises', key: 'analises', label: 'Atendimento' },
   { href: '/admin/codigos', key: 'codigos', label: 'Códigos de acesso' },
   { href: '/admin/setup', key: 'setup', label: 'Preparar o sistema' },
