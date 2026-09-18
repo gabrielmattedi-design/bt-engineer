@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { montarFinanceiro } from '@/lib/financeiro';
+import {
+  diaDaSemana,
+  mediaPorDiaDaSemana,
+  montarFinanceiro,
+  montarGrafico,
+} from '@/lib/financeiro';
 
 /**
  * A tela financeira decide se o negócio está ganhando dinheiro. Os casos abaixo são os que
@@ -145,5 +150,102 @@ describe('montarFinanceiro', () => {
     expect(r.melhorFaturamento?.dia).toBe('2026-09-16');
     expect(r.melhorLucro).toBeNull();
     expect(r.piorLucro).toBeNull();
+  });
+});
+
+describe('montarGrafico', () => {
+  const base = (dia: string, fat: number, gasto: number | null) => ({
+    dia,
+    pedidos: 1,
+    faturamentoCentavos: fat,
+    gastoCentavos: gasto,
+    lucroCentavos: gasto === null ? null : fat - gasto,
+    ticketMedioCentavos: fat,
+  });
+
+  it('escala a partir do ZERO, e não do menor valor', () => {
+    /*
+      Escalar de min a max faria a menor barra sumir e a maior encher a tela, exagerando qualquer
+      diferença. Com base no zero, 500 é metade de 1000 — que é o que o olho precisa ler.
+    */
+    const g = montarGrafico([base('2026-09-16', 100000, 0), base('2026-09-15', 50000, 0)], 'faturamento');
+    expect(g.zeroEmPorcento).toBe(0);
+    expect(g.barras[0]?.altura).toBe(100);
+    expect(g.barras[1]?.altura).toBe(50);
+  });
+
+  it('⚠️ valor ausente NÃO vira barra zerada', () => {
+    const g = montarGrafico([base('2026-09-17', 64987, null), base('2026-09-16', 64987, 12617)], 'lucro');
+    expect(g.barras[0]?.valor).toBeNull();
+    expect(g.barras[1]?.valor).toBe(64987 - 12617);
+    expect(g.amostra).toBe(1); // o dia sem gasto ficou fora da média
+  });
+
+  it('abre espaço abaixo do zero quando há prejuízo', () => {
+    const g = montarGrafico([base('2026-09-16', 10000, 5000), base('2026-09-11', 0, 5000)], 'lucro');
+    expect(g.zeroEmPorcento).toBeCloseTo(50, 5); // −5000 a +5000
+    expect(g.barras[1]?.negativo).toBe(true);
+    expect(g.barras[1]?.base).toBeCloseTo(0, 5);
+    expect(g.media).toBe(0);
+  });
+
+  it('série toda zerada não vira NaN', () => {
+    const g = montarGrafico([base('2026-09-16', 0, 0)], 'faturamento');
+    expect(Number.isFinite(g.barras[0]?.altura ?? NaN)).toBe(true);
+    expect(g.barras[0]?.altura).toBe(0);
+  });
+
+  it('sem nenhum valor informado, a média é null', () => {
+    const g = montarGrafico([base('2026-09-17', 100, null)], 'gasto');
+    expect(g.media).toBeNull();
+    expect(g.mediaEmPorcento).toBeNull();
+    expect(g.amostra).toBe(0);
+  });
+});
+
+describe('mediaPorDiaDaSemana', () => {
+  const dia = (d: string, fat: number) => ({
+    dia: d,
+    pedidos: 1,
+    faturamentoCentavos: fat,
+    gastoCentavos: null,
+    lucroCentavos: null,
+    ticketMedioCentavos: fat,
+  });
+
+  it('⚠️ o dia da semana não escorrega por fuso', () => {
+    /*
+      `new Date('2026-09-13').getDay()` devolve o dia LOCAL de uma meia-noite UTC. Em Brasília isso
+      é 21h de sábado, e todo domingo viraria sábado no gráfico — sem erro visível.
+    */
+    expect(diaDaSemana('2026-09-13')).toBe(0); // domingo
+    expect(diaDaSemana('2026-09-14')).toBe(1); // segunda
+    expect(diaDaSemana('2026-09-19')).toBe(6); // sábado
+  });
+
+  it('ordena do que mais fatura para o que menos, e conta a amostra', () => {
+    const r = mediaPorDiaDaSemana([
+      dia('2026-09-13', 91980), // domingo
+      dia('2026-09-14', 57988), // segunda
+      dia('2026-09-16', 64987), // quarta
+      dia('2026-09-09', 27994), // quarta também
+    ]);
+
+    expect(r.map((l) => l.nome)).toEqual(['Domingo', 'Segunda', 'Quarta']);
+    expect(r[0]?.dias).toBe(1);
+    expect(r[2]?.nome).toBe('Quarta');
+    expect(r[2]?.mediaCentavos).toBe(Math.round((64987 + 27994) / 2));
+    expect(r[2]?.dias).toBe(2);
+    expect(r[0]?.altura).toBe(100);
+  });
+
+  it('dia da semana sem ocorrência fica FORA, em vez de virar barra zerada', () => {
+    const r = mediaPorDiaDaSemana([dia('2026-09-13', 91980)]);
+    expect(r).toHaveLength(1);
+    expect(r[0]?.nome).toBe('Domingo');
+  });
+
+  it('lista vazia não lança', () => {
+    expect(mediaPorDiaDaSemana([])).toEqual([]);
   });
 });

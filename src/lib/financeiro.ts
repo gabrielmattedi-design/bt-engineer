@@ -130,3 +130,171 @@ function maiorPor<T>(itens: readonly T[], valor: (item: T) => number): T | null 
   }
   return melhor;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+   OS DOIS GRÁFICOS — pedidos pelo dono em 18/09/2026
+   ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+export const INDICADORES = ['faturamento', 'gasto', 'lucro'] as const;
+export type Indicador = (typeof INDICADORES)[number];
+
+export function ehIndicador(v: string | undefined): v is Indicador {
+  return v !== undefined && (INDICADORES as readonly string[]).includes(v);
+}
+
+export type Barra = {
+  readonly rotulo: string;
+  /** `null` = o dia não tem esse indicador informado. Barra ausente ≠ barra de valor zero. */
+  readonly valor: number | null;
+  /** Altura da barra, em % da área do gráfico. */
+  readonly altura: number;
+  /** Distância do fundo até a BASE da barra, em %. Diferente de zero só quando há negativo. */
+  readonly base: number;
+  readonly negativo: boolean;
+};
+
+export type Grafico = {
+  readonly barras: readonly Barra[];
+  readonly media: number | null;
+  /** Posição da linha da média, em % a partir do fundo. `null` quando não há o que medir. */
+  readonly mediaEmPorcento: number | null;
+  /** Posição do zero, em %. Só é diferente de 0 quando existe valor negativo na série. */
+  readonly zeroEmPorcento: number;
+  /** Quantos dias entraram na média — a média de um dia só não é média. */
+  readonly amostra: number;
+};
+
+/**
+ * Monta as barras de um indicador ao longo dos dias.
+ *
+ * ═══ AS TRÊS COISAS QUE UM GRÁFICO DE BARRAS ERRA EM SILÊNCIO ════════════════════════════════
+ *
+ * **1. Valor ausente vira zero.** Um dia sem gasto informado tem lucro desconhecido, não lucro
+ * zero. Desenhado como barra rente ao chão, ele conta a mentira mais convincente que existe: um
+ * dia que parece ter dado nada. Aqui `valor: null` sai como barra ausente, e fica visualmente
+ * diferente de um dia que realmente deu zero.
+ *
+ * **2. O eixo não começa no zero.** Escalar de `min` a `max` faz a menor barra sumir e a maior
+ * encher a tela, o que exagera qualquer diferença. A base é sempre o zero — só desce abaixo dele
+ * quando existe prejuízo de verdade na série.
+ *
+ * **3. A média inclui o que não devia.** A média do lucro só pode somar dias com gasto informado,
+ * pelo mesmo motivo que o total da tabela só soma esses. `amostra` diz quantos dias entraram.
+ */
+export function montarGrafico(
+  dias: readonly DiaFinanceiro[],
+  indicador: Indicador,
+): Grafico {
+  const valorDe = (d: DiaFinanceiro): number | null =>
+    indicador === 'faturamento'
+      ? d.faturamentoCentavos
+      : indicador === 'gasto'
+        ? d.gastoCentavos
+        : d.lucroCentavos;
+
+  const crus = dias.map((d) => ({ rotulo: d.dia, valor: valorDe(d) }));
+  const presentes = crus.map((c) => c.valor).filter((v): v is number => v !== null);
+
+  if (presentes.length === 0) {
+    return {
+      barras: crus.map((c) => ({ ...c, altura: 0, base: 0, negativo: false })),
+      media: null,
+      mediaEmPorcento: null,
+      zeroEmPorcento: 0,
+      amostra: 0,
+    };
+  }
+
+  const topo = Math.max(0, ...presentes);
+  const fundo = Math.min(0, ...presentes);
+  /*
+    `|| 1` protege a série em que todos os valores são zero: topo e fundo iguais fariam divisão por
+    zero e toda barra viraria NaN% — que o navegador ignora, deixando um gráfico vazio sem erro.
+  */
+  const amplitude = topo - fundo || 1;
+  const emPorcento = (v: number) => ((v - fundo) / amplitude) * 100;
+  const zeroEmPorcento = emPorcento(0);
+
+  const media = presentes.reduce((s, v) => s + v, 0) / presentes.length;
+
+  return {
+    barras: crus.map((c) => {
+      if (c.valor === null) return { ...c, altura: 0, base: 0, negativo: false };
+      const pos = emPorcento(c.valor);
+      const negativo = c.valor < 0;
+      return {
+        ...c,
+        altura: Math.abs(pos - zeroEmPorcento),
+        base: negativo ? pos : zeroEmPorcento,
+        negativo,
+      };
+    }),
+    media,
+    mediaEmPorcento: emPorcento(media),
+    zeroEmPorcento,
+    amostra: presentes.length,
+  };
+}
+
+const NOMES_DA_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+/**
+ * O dia da semana de uma data `AAAA-MM-DD`, sem passar perto de fuso.
+ *
+ * ⚠️ `new Date('2026-09-13').getDay()` é uma armadilha: a string sem hora é interpretada como
+ * meia-noite UTC, e `getDay()` devolve o dia LOCAL de quem está rodando. Em Brasília (UTC−3) isso
+ * é 21h do dia anterior — todo domingo viraria sábado no gráfico, e o gráfico continuaria
+ * parecendo certo.
+ *
+ * `Date.UTC` + `getUTCDay()` fecha as duas pontas no mesmo fuso e o resultado independe de onde o
+ * servidor está.
+ */
+export function diaDaSemana(iso: string): number {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return new Date(Date.UTC(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1)).getUTCDay();
+}
+
+export type MediaDaSemana = {
+  readonly indice: number;
+  readonly nome: string;
+  readonly mediaCentavos: number;
+  /** Quantos dias desse dia da semana existem na série. Média de 1 dia não é média. */
+  readonly dias: number;
+  readonly altura: number;
+};
+
+/**
+ * Faturamento médio por dia da semana, do que mais fatura para o que menos fatura.
+ *
+ * ─── POR QUE `dias` APARECE NO RESULTADO ─────────────────────────────────────────────────────
+ *
+ * Com nove dias de série, alguns dias da semana têm duas amostras e outros têm uma. "Quinta é o
+ * melhor dia" apoiado numa única quinta é ruído com cara de descoberta — e é exatamente o tipo de
+ * conclusão que faz alguém concentrar orçamento no dia errado. O número de amostras vai junto para
+ * a tela poder mostrá-lo ao lado da barra.
+ *
+ * Dias da semana sem nenhuma ocorrência ficam FORA: uma barra zerada diria "essa terça faturou
+ * nada", quando o certo é "não houve terça ainda".
+ */
+export function mediaPorDiaDaSemana(dias: readonly DiaFinanceiro[]): MediaDaSemana[] {
+  const soma = new Map<number, { total: number; n: number }>();
+
+  for (const d of dias) {
+    const idx = diaDaSemana(d.dia);
+    const atual = soma.get(idx) ?? { total: 0, n: 0 };
+    soma.set(idx, { total: atual.total + d.faturamentoCentavos, n: atual.n + 1 });
+  }
+
+  const linhas = [...soma.entries()].map(([indice, { total, n }]) => ({
+    indice,
+    nome: NOMES_DA_SEMANA[indice] ?? '?',
+    mediaCentavos: Math.round(total / n),
+    dias: n,
+  }));
+
+  const maior = Math.max(1, ...linhas.map((l) => l.mediaCentavos));
+
+  return linhas
+    .sort((a, b) => b.mediaCentavos - a.mediaCentavos)
+    .map((l) => ({ ...l, altura: (l.mediaCentavos / maior) * 100 }));
+}

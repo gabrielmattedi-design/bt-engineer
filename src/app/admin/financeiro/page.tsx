@@ -3,9 +3,29 @@ import { isAuthenticated } from '../auth';
 import { AdminNav } from '../nav';
 import { withAutoBootstrap } from '@/database/setup';
 import { faturamentoPorDia, gastosPorDia } from '@/database/repositories/financeiro-repo';
-import { montarFinanceiro } from '@/lib/financeiro';
+import {
+  ehIndicador,
+  INDICADORES,
+  mediaPorDiaDaSemana,
+  montarFinanceiro,
+  montarGrafico,
+  type Indicador,
+} from '@/lib/financeiro';
 import { emReais } from '@/lib/lucro';
 import { GastoForm } from './gasto-form';
+
+const ROTULO: Record<Indicador, string> = {
+  faturamento: 'Faturamento',
+  gasto: 'Gasto',
+  lucro: 'Lucro',
+};
+
+/* A cor carrega significado: entra, sai, sobra. Amarelo é reservado para o prejuízo. */
+const COR: Record<Indicador, string> = {
+  faturamento: 'bg-court',
+  gasto: 'bg-clay',
+  lucro: 'bg-ink',
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -43,14 +63,31 @@ const INICIO = new Date('2026-09-01T00:00:00-03:00');
  * `paid` na vida —, então segunda compra, upsell e recompra não aparecem lá. É de propósito, para a
  * taxa de conversão significar algo. Mas torna o funil a fonte errada para dinheiro.
  */
-export default async function FinanceiroPage() {
+export default async function FinanceiroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ver?: string }>;
+}) {
   if (!(await isAuthenticated())) redirect('/admin');
+
+  const { ver } = await searchParams;
+  const indicador: Indicador = ehIndicador(ver) ? ver : 'faturamento';
 
   const [faturamento, gastos] = await withAutoBootstrap(() =>
     Promise.all([faturamentoPorDia(INICIO), gastosPorDia()]),
   );
 
   const resumo = montarFinanceiro(faturamento, gastos);
+
+  /*
+    Os gráficos leem os dias do mais ANTIGO para o mais recente, ao contrário da tabela.
+
+    Na tabela, o mais recente em cima é o que serve — é o dia que se vai preencher. Num gráfico de
+    série temporal, o tempo anda para a direita; invertido, toda tendência seria lida ao contrário.
+  */
+  const emOrdem = [...resumo.dias].reverse();
+  const grafico = montarGrafico(emOrdem, indicador);
+  const porDiaDaSemana = mediaPorDiaDaSemana(resumo.dias);
 
   const diaBonito = (iso: string) => {
     const [ano, mes, dia] = iso.split('-');
@@ -145,7 +182,158 @@ export default async function FinanceiroPage() {
               </p>
             )}
 
-            <div className="mt-8 overflow-x-auto rounded border border-line bg-white">
+            {/*
+              ═══ OS DOIS GRÁFICOS ═══════════════════════════════════════════════════════════
+
+              Desenhados com CSS, sem biblioteca. Um gráfico de barras é uma divisão e uma altura —
+              não vale uma dependência nova, e a `lib/financeiro.ts` já testa a matemática que
+              importa: escala a partir do zero, valor ausente que não vira barra zerada, e espaço
+              abaixo do zero quando existe prejuízo.
+            */}
+            <section className="mt-10">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-display text-lg font-semibold">Dia a dia</h2>
+                <nav className="flex gap-1 text-sm" aria-label="Indicador">
+                  {INDICADORES.map((i) => (
+                    <a
+                      key={i}
+                      href={`/admin/financeiro?ver=${i}`}
+                      aria-current={i === indicador ? 'page' : undefined}
+                      className={`rounded border px-3 py-1 ${
+                        i === indicador
+                          ? 'border-ink bg-ink text-paper'
+                          : 'border-line text-graphite hover:border-ink'
+                      }`}
+                    >
+                      {ROTULO[i]}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+
+              {grafico.media !== null && (
+                <p className="mt-1 text-sm text-graphite">
+                  Média de <strong className="text-ink">R$ {emReais(Math.round(grafico.media))}</strong>{' '}
+                  por dia, sobre {grafico.amostra} {grafico.amostra === 1 ? 'dia' : 'dias'} — é a
+                  linha pontilhada.
+                </p>
+              )}
+
+              <div className="mt-4 rounded border border-line bg-white p-4">
+                <div className="relative h-48">
+                  {/* A linha do zero só aparece quando existe barra abaixo dela. */}
+                  {grafico.zeroEmPorcento > 0 && (
+                    <div
+                      className="absolute inset-x-0 border-t border-line"
+                      style={{ bottom: `${grafico.zeroEmPorcento}%` }}
+                    />
+                  )}
+
+                  {grafico.mediaEmPorcento !== null && (
+                    <div
+                      className="absolute inset-x-0 border-t border-dashed border-graphite"
+                      style={{ bottom: `${grafico.mediaEmPorcento}%` }}
+                      aria-hidden
+                    />
+                  )}
+
+                  <ol className="absolute inset-0 flex items-end gap-1">
+                    {grafico.barras.map((b) => (
+                      <li key={b.rotulo} className="relative h-full flex-1">
+                        {b.valor === null ? (
+                          /* Ausente é visualmente diferente de zero: tracejado, sem preenchimento. */
+                          <span
+                            className="absolute inset-x-0 bottom-0 top-0 rounded-sm border border-dashed border-line"
+                            title={`${b.rotulo} — sem gasto informado`}
+                          />
+                        ) : (
+                          <span
+                            className={`absolute inset-x-0 rounded-sm ${
+                              b.negativo ? 'bg-ball' : COR[indicador]
+                            }`}
+                            style={{
+                              bottom: `${b.base}%`,
+                              height: `${Math.max(b.altura, 0.6)}%`,
+                            }}
+                            title={`${b.rotulo} — R$ ${emReais(b.valor)}`}
+                          />
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                <ol className="mt-2 flex gap-1 text-center text-[10px] tabular-nums text-graphite">
+                  {grafico.barras.map((b) => (
+                    <li key={b.rotulo} className="flex-1">
+                      {b.rotulo.slice(8)}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {indicador === 'lucro' && resumo.diasSemGasto > 0 && (
+                <p className="mt-2 text-xs text-graphite">
+                  As barras tracejadas são dias sem gasto informado — lucro desconhecido, que é
+                  diferente de lucro zero. Elas também ficam fora da média.
+                </p>
+              )}
+            </section>
+
+            {porDiaDaSemana.length > 0 && (
+              <section className="mt-10">
+                <h2 className="font-display text-lg font-semibold">
+                  Faturamento médio por dia da semana
+                </h2>
+                <p className="mt-1 max-w-prose text-sm text-graphite">
+                  Do que mais fatura para o que menos. O número entre parênteses é quantos dias
+                  daquele tipo existem na série.
+                </p>
+
+                <div className="mt-4 rounded border border-line bg-white p-4">
+                  <ol className="space-y-2">
+                    {porDiaDaSemana.map((l) => (
+                      <li key={l.indice} className="flex items-center gap-3 text-sm">
+                        <span className="w-20 shrink-0 text-graphite">{l.nome}</span>
+                        <span className="relative h-6 flex-1 overflow-hidden rounded-sm bg-paper">
+                          <span
+                            className="absolute inset-y-0 left-0 rounded-sm bg-court"
+                            style={{ width: `${Math.max(l.altura, 1)}%` }}
+                          />
+                        </span>
+                        <span className="w-28 shrink-0 text-right tabular-nums text-ink">
+                          R$ {emReais(l.mediaCentavos)}
+                        </span>
+                        <span
+                          className={`w-10 shrink-0 text-right text-xs tabular-nums ${
+                            l.dias === 1 ? 'text-clay' : 'text-graphite'
+                          }`}
+                        >
+                          ({l.dias})
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                {/*
+                  O aviso de amostra pequena é obrigatório aqui.
+
+                  "Quinta é o melhor dia" apoiado numa única quinta é ruído com cara de descoberta —
+                  e leva alguém a concentrar orçamento no dia errado. Com nove dias de série, quase
+                  todo dia da semana tem uma ou duas amostras.
+                */}
+                {porDiaDaSemana.some((l) => l.dias < 3) && (
+                  <p className="mt-2 max-w-prose text-xs text-clay">
+                    Dias da semana com poucas amostras — em vermelho os que têm uma só. Com uma ou
+                    duas ocorrências isto ainda é ruído, não padrão: não vale mudar orçamento por
+                    causa desta ordem antes de umas quatro semanas de série.
+                  </p>
+                )}
+              </section>
+            )}
+
+            <div className="mt-10 overflow-x-auto rounded border border-line bg-white">
               <table className="w-full text-sm">
                 <thead className="border-b border-line text-xs text-graphite">
                   <tr>
