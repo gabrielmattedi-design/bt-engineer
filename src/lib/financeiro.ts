@@ -161,7 +161,7 @@ export function montarFinanceiro(
       tela pedir para preencher dias em que não havia o que preencher, e um aviso que pede o
       impossível é um aviso que se aprende a ignorar.
     */
-    diasSemGasto: aPartirDoPrimeiroGasto(dias).filter((d) => d.gastoCentavos === null).length,
+    diasSemGasto: aPartirDoPrimeiroGastoPositivo(dias).filter((d) => d.gastoCentavos === null).length,
     melhorFaturamento: maiorPor(dias, (d) => d.faturamentoCentavos),
     melhorLucro: maiorPor(comLucro, (d) => d.lucroCentavos),
     piorLucro: maiorPor(comLucro, (d) => -d.lucroCentavos),
@@ -169,25 +169,35 @@ export function montarFinanceiro(
 }
 
 /**
- * Corta os dias ANTERIORES ao primeiro gasto informado.
+ * Corta os dias anteriores ao primeiro gasto POSITIVO — o dia em que a campanha de fato começou.
  *
- * ═══ POR QUE ISTO É UMA REGRA, E NÃO UM DETALHE ══════════════════════════════════════════════
+ * ═══ POR QUE "POSITIVO", E NÃO "INFORMADO" ═══════════════════════════════════════════════════
  *
- * Pedido do dono em 18/09/2026: *"no gasto dia a dia, a média deve contar a partir do dia 09
- * incluso, pois antes não investia — isso não faz com que a média possa ser puxada pra baixo pelos
- * dias zerados"*.
+ * Pedido do dono em 18/09/2026: *"a média deve contar a partir do dia 09 incluso, pois antes não
+ * investia"*. A primeira versão desta função pulava só os dias com gasto AUSENTE (`null`), e não
+ * resolveu — porque os dias anteriores estavam gravados como **zero**, não como ausentes. A tela
+ * mostrou média de R$ 67,02 sobre 15 dias quando o certo eram R$ 111,70 sobre 9.
  *
- * É a diferença entre **zero** e **não se aplica**. Um dia com a campanha pausada gastou zero, e
- * esse zero é informação que pertence à média. Um dia anterior à existência da campanha não gastou
- * zero — ele não tem gasto, e incluí-lo dividiria o total por dias que nunca fizeram parte da
- * operação de mídia.
+ * O erro foi meu e de raciocínio: eu tratei "zero" e "ausente" como coisas diferentes — e são —,
+ * mas esqueci que **no COMEÇO da série as duas significam o mesmo**: não havia campanha.
  *
- * O corte é só no COMEÇO, de propósito: um buraco no meio da série é dia por preencher, e some da
- * média (fica `null`) sem sumir do gráfico — a barra tracejada existe para ele ser visto.
+ * ─── O QUE CONTINUA CONTANDO, E POR QUÊ ──────────────────────────────────────────────────────
+ *
+ * O corte é só o prefixo. Um zero NO MEIO da série é campanha pausada — dia real da operação de
+ * mídia, em que se decidiu não gastar — e pertence à média: tirá-lo faria o gasto médio parecer
+ * maior do que foi. Um `null` no meio é dia por preencher: sai da média (não há valor) e continua
+ * visível no gráfico como barra tracejada.
+ *
+ * ─── E POR QUE SÓ O GASTO USA ISTO ───────────────────────────────────────────────────────────
+ *
+ * > *"SÓ PARA O GASTO"* — o dono, 18/09
+ *
+ * Está certo. Um dia com faturamento e sem anúncio deu lucro de verdade, e pertence à média de
+ * lucro. O que não existe antes do dia 09 é a operação de MÍDIA, não o negócio.
  */
-function aPartirDoPrimeiroGasto(dias: readonly DiaFinanceiro[]): readonly DiaFinanceiro[] {
+function aPartirDoPrimeiroGastoPositivo(dias: readonly DiaFinanceiro[]): readonly DiaFinanceiro[] {
   const ordenados = [...dias].sort((a, b) => a.dia.localeCompare(b.dia));
-  const inicio = ordenados.findIndex((d) => d.gastoCentavos !== null);
+  const inicio = ordenados.findIndex((d) => d.gastoCentavos !== null && d.gastoCentavos > 0);
   return inicio === -1 ? [] : ordenados.slice(inicio);
 }
 
@@ -279,12 +289,15 @@ export function montarGrafico(
   const emOrdem = [...dias].sort((a, b) => a.dia.localeCompare(b.dia));
 
   /*
-    Gasto e lucro começam no primeiro dia com gasto informado; faturamento usa a série inteira.
+    SÓ o gasto começa no primeiro dia de campanha. Faturamento e lucro usam a série inteira.
 
-    Sem isso, os dias anteriores ao primeiro anúncio entrariam no gráfico de gasto como barras
-    ausentes e — pior — o eixo se esticaria por um trecho que não pertence à série de mídia.
+    O gráfico de gasto existe para ler a evolução do investimento, e seis dias rentes ao chão antes
+    do primeiro anúncio não são evolução — são ausência de campanha, e afundam a média.
+
+    Lucro fica de fora deste corte de propósito: dia com faturamento e sem anúncio deu lucro de
+    verdade. O que não existia antes do primeiro anúncio é a operação de mídia, não o negócio.
   */
-  const escopo = indicador === 'faturamento' ? emOrdem : aPartirDoPrimeiroGasto(emOrdem);
+  const escopo = indicador === 'gasto' ? aPartirDoPrimeiroGastoPositivo(emOrdem) : emOrdem;
   const crus = escopo.map((d) => ({ rotulo: d.dia, valor: valorDe(d) }));
   const presentes = crus.map((c) => c.valor).filter((v): v is number => v !== null);
 

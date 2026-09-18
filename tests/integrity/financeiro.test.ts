@@ -380,3 +380,72 @@ describe('os dois ajustes pedidos em 18/09', () => {
     expect(domingo?.mediaCentavos).toBe(45000); // e não 90000
   });
 });
+
+describe('⚠️ o corte do gasto ignora ZERO no começo, não só ausente', () => {
+  const venda = (d: string, centavos: number) => ({ dia: d, pedidos: 1, centavos });
+
+  /*
+    O defeito que o print do dono pegou em 18/09: os dias anteriores ao primeiro anúncio estavam
+    gravados como ZERO, não como ausentes, e a primeira versão do corte só pulava ausentes. A tela
+    mostrou "média de R$ 67,02 sobre 15 dias" quando o certo eram R$ 111,70 sobre 9.
+  */
+  const gastos = new Map([
+    ['2026-09-03', 0],
+    ['2026-09-04', 0],
+    ['2026-09-05', 0],
+    ['2026-09-06', 0],
+    ['2026-09-07', 0],
+    ['2026-09-08', 0],
+    ['2026-09-09', 2341],
+    ['2026-09-10', 8816],
+  ]);
+  const resumo = montarFinanceiro([venda('2026-09-03', 1000)], gastos, '2026-09-10');
+
+  it('a média do gasto começa no primeiro dia com gasto POSITIVO', () => {
+    const g = montarGrafico(resumo.dias, 'gasto');
+    expect(g.barras.map((b) => b.rotulo)).toEqual(['2026-09-09', '2026-09-10']);
+    expect(g.amostra).toBe(2);
+    expect(g.media).toBe((2341 + 8816) / 2);
+  });
+
+  it('faturamento e lucro NÃO são cortados — "SÓ PARA O GASTO"', () => {
+    /*
+      Dia com faturamento e sem anúncio deu lucro de verdade. O que não existia antes do dia 09 é a
+      operação de mídia, não o negócio.
+    */
+    for (const ind of ['faturamento', 'lucro'] as const) {
+      const g = montarGrafico(resumo.dias, ind);
+      expect(g.barras).toHaveLength(8); // 03 a 10
+      expect(g.barras[0]?.rotulo).toBe('2026-09-03');
+    }
+  });
+
+  it('zero NO MEIO continua contando — é campanha pausada, não ausência de campanha', () => {
+    const r = montarFinanceiro(
+      [venda('2026-09-09', 1000)],
+      new Map([
+        ['2026-09-09', 3000],
+        ['2026-09-10', 0],
+        ['2026-09-11', 3000],
+      ]),
+      '2026-09-11',
+    );
+
+    const g = montarGrafico(r.dias, 'gasto');
+    expect(g.barras).toHaveLength(3);
+    expect(g.amostra).toBe(3);
+    expect(g.media).toBe(2000); // e não 3000, que seria fingir que o dia pausado não existiu
+  });
+
+  it('série com gasto zero em TODOS os dias não deixa o gráfico vazio por engano', () => {
+    const r = montarFinanceiro(
+      [venda('2026-09-09', 1000)],
+      new Map([['2026-09-09', 0]]),
+      '2026-09-09',
+    );
+
+    const g = montarGrafico(r.dias, 'gasto');
+    expect(g.barras).toHaveLength(0);
+    expect(g.media).toBeNull(); // a tela some com a linha da média em vez de imprimir NaN
+  });
+});
