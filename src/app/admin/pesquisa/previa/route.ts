@@ -1,11 +1,10 @@
 import { isAuthenticated } from '../../auth';
-import { satisfactionSurveyEmail } from '@/email/templates';
-import { SITE_URL } from '@/lib/site';
+import { amostraPor } from '@/email/amostras';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * O e-mail da pesquisa, renderizado como página.
+ * Um dos e-mails do produto, renderizado como página.
  *
  * ═══ POR QUE UMA ROTA, E NÃO UM COMPONENTE ═══════════════════════════════════════════════════
  *
@@ -22,18 +21,19 @@ export const dynamic = 'force-dynamic';
  * navegação de primeiro nível, que o cabeçalho não alcança — e é a forma de ver a peça em tamanho
  * real, ampliar, e conferir no celular abrindo o mesmo endereço.
  *
- * ═══ O LINK DE DENTRO APONTA PARA A PRÉVIA ═══════════════════════════════════════════════════
+ * ═══ OS LINKS DE DENTRO SÃO PÁGINAS PÚBLICAS ═════════════════════════════════════════════════
  *
- * O botão "Responder" leva a `/avaliacao/previa`, e não a um token inventado. Assim o caminho
- * inteiro pode ser percorrido daqui — e-mail, clique, formulário, agradecimento — sem que exista
- * pedido, linha de pesquisa ou resposta de mentira em lugar nenhum.
+ * Nenhuma amostra carrega chave de verdade — o botão "Responder" leva a `/avaliacao/previa`, o do
+ * relatório a `/minhas-analises`, o de acesso a `/entrar`. Ver `email/amostras.ts`: o que se
+ * confere aqui é a peça, e peça nenhuma precisa de um token válido para ser conferida.
  */
-export async function GET(): Promise<Response> {
+export async function GET(req: Request): Promise<Response> {
   if (!(await isAuthenticated())) {
     return new Response('nao autorizado', { status: 401 });
   }
 
-  const email = satisfactionSurveyEmail({ url: `${SITE_URL}/avaliacao/previa` });
+  /* `?modelo=relatorio|pesquisa|acesso`. Valor desconhecido cai na primeira amostra, sem erro. */
+  const email = amostraPor(new URL(req.url).searchParams.get('modelo')).montar();
 
   return new Response(email.html, {
     headers: {

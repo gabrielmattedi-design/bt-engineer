@@ -5,11 +5,10 @@ import { withAutoBootstrap } from '@/database/setup';
 import { lerPesquisas } from '@/database/repositories/pesquisa-repo';
 import { resumirPesquisa, seguiu, USOU, EFEITO, IMPEDIMENTO } from '@/lib/pesquisa';
 import { dataCurta } from '@/lib/datas';
-import { satisfactionSurveyEmail } from '@/email/templates';
+import { AMOSTRAS } from '@/email/amostras';
 import { emailEnabled } from '@/email/send';
-import { SITE_URL } from '@/lib/site';
 import { DIAS_DEPOIS_DA_COMPRA } from '@/database/repositories/pesquisa-repo';
-import { EnsaioDaPesquisa } from './ensaio';
+import { EnsaioDaPesquisa, type Peca } from './ensaio';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +48,23 @@ export default async function PesquisaPage() {
   const envioArmado = emailEnabled();
   const ligado = agendamentoArmado && envioArmado;
 
-  const modelo = satisfactionSurveyEmail({ url: `${SITE_URL}/avaliacao/previa` });
+  /*
+    As três peças vão montadas para o cliente. É HTML que já existe na resposta — nenhuma requisição
+    a mais para trocar de prévia — e vem da MESMA função que o envio de teste usa, que é o que
+    garante que a moldura e a caixa de entrada mostrem a mesma mensagem.
+  */
+  const pecas: Peca[] = AMOSTRAS.map((a) => {
+    const email = a.montar();
+    return {
+      id: a.id,
+      label: a.label,
+      quando: a.quando,
+      descadastro: a.descadastro,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    };
+  });
 
   const barra = (linhas: readonly { valor: string; label: string; n: number; porcento: number }[]) => (
     <ol className="mt-3 space-y-2">
@@ -104,7 +119,7 @@ export default async function PesquisaPage() {
           )}
         </p>
 
-        <EnsaioDaPesquisa assunto={modelo.subject} texto={modelo.text} html={modelo.html} />
+        <EnsaioDaPesquisa pecas={pecas} />
 
         {enviadas === 0 ? (
           <p className="mt-8 rounded border border-line bg-white p-5 text-sm text-graphite">

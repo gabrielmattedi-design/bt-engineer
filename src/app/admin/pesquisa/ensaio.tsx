@@ -1,7 +1,18 @@
 'use client';
 
-import { useActionState } from 'react';
-import { enviarPesquisaDeTeste } from './acoes';
+import { useActionState, useState } from 'react';
+import { enviarEmailDeTeste } from './acoes';
+import type { AmostraId } from '@/email/amostras';
+
+export type Peca = {
+  id: AmostraId;
+  label: string;
+  quando: string;
+  descadastro: boolean;
+  subject: string;
+  html: string;
+  text: string;
+};
 
 /**
  * O ensaio: percorrer a experiência inteira antes que ela chegue a um cliente.
@@ -12,19 +23,18 @@ import { enviarPesquisaDeTeste } from './acoes';
  * um relatório de zeros. Depois do primeiro disparo ele continua servindo: toda mudança no texto ou
  * no layout precisa ser vista num cliente de e-mail de verdade antes de ir para a fila.
  *
- * Os três passos estão na ordem em que o cliente os vive: a mensagem, o clique, o formulário.
+ * ═══ UM SELETOR, DUAS COISAS QUE O SEGUEM ════════════════════════════════════════════════════
+ *
+ * A prévia e o envio de teste obedecem à mesma escolha, e as três peças vêm montadas do servidor
+ * pela mesma função que o envio usa (`email/amostras.ts`). Se a prévia mostrasse uma coisa e o
+ * envio mandasse outra, o ensaio estaria testando a si mesmo.
  */
-export function EnsaioDaPesquisa({
-  assunto,
-  texto,
-  html,
-}: {
-  assunto: string;
-  texto: string;
-  /** O corpo do e-mail inteiro. Ver o comentário do `<iframe>` — ele NÃO pode vir por URL. */
-  html: string;
-}) {
-  const [state, action, pending] = useActionState(enviarPesquisaDeTeste, null);
+export function EnsaioDaPesquisa({ pecas }: { pecas: readonly Peca[] }) {
+  const [state, action, pending] = useActionState(enviarEmailDeTeste, null);
+  const [escolhida, setEscolhida] = useState<AmostraId>(pecas[0]?.id ?? 'relatorio');
+
+  const peca = pecas.find((p) => p.id === escolhida) ?? pecas[0];
+  if (peca === undefined) return null;
 
   return (
     <section className="mt-8 rounded border border-line bg-white p-5">
@@ -36,7 +46,7 @@ export function EnsaioDaPesquisa({
       </p>
 
       {/*
-        Os três destinos ficam em cima, antes de qualquer conteúdo longo.
+        Os destinos ficam em cima, antes de qualquer conteúdo longo.
 
         Na primeira versão eles vinham depois da prévia do e-mail — e a prévia não carregava (ver o
         comentário do iframe abaixo). Quem abriu a tela encontrou uma moldura vazia de 620px de
@@ -47,11 +57,11 @@ export function EnsaioDaPesquisa({
       <nav className="mt-4 flex flex-wrap gap-3 text-sm">
         <a
           className="rounded border border-line px-3 py-2 text-ink underline"
-          href="/admin/pesquisa/previa"
+          href={`/admin/pesquisa/previa?modelo=${peca.id}`}
           target="_blank"
           rel="noreferrer"
         >
-          Ver o e-mail em outra aba
+          Ver este e-mail em outra aba
         </a>
         <a
           className="rounded border border-line px-3 py-2 text-ink underline"
@@ -66,11 +76,37 @@ export function EnsaioDaPesquisa({
         </a>
       </nav>
 
-      {/* ── 1. A mensagem ─────────────────────────────────────────────────────────────────── */}
+      {/* ── 1. Qual mensagem ──────────────────────────────────────────────────────────────── */}
       <h3 className="mt-6 text-sm font-semibold text-ink">1. O e-mail, como ele chega</h3>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {pecas.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setEscolhida(p.id)}
+            className={`rounded border px-3 py-2 text-sm ${
+              p.id === escolhida
+                ? 'border-court bg-court/5 font-semibold text-ink'
+                : 'border-line text-graphite'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-3 max-w-prose text-sm text-graphite">{peca.quando}</p>
       <p className="mt-1 text-sm text-graphite">
-        Assunto: <span className="text-ink">{assunto}</span>
+        Assunto: <span className="text-ink">{peca.subject}</span>
+        {peca.descadastro && (
+          <span className="ml-2 text-xs">
+            · leva <code className="text-ink">List-Unsubscribe</code>, então o Gmail desenha
+            &quot;cancelar inscrição&quot;
+          </span>
+        )}
       </p>
+
       {/*
         ═══ POR QUE `srcDoc`, E NÃO `src` ════════════════════════════════════════════════════
 
@@ -92,9 +128,10 @@ export function EnsaioDaPesquisa({
         também não é o atributo, não a memória.
       */}
       <iframe
-        srcDoc={html}
+        key={peca.id}
+        srcDoc={peca.html}
         sandbox=""
-        title="Prévia do e-mail da pesquisa"
+        title={`Prévia do e-mail: ${peca.label}`}
         className="mt-3 h-[620px] w-full rounded border border-line bg-paper"
       />
 
@@ -107,7 +144,7 @@ export function EnsaioDaPesquisa({
           Ver a versão em texto (é ela que aparece na prévia da caixa de entrada)
         </summary>
         <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded border border-line bg-paper p-4 text-xs text-ink">
-          {texto}
+          {peca.text}
         </pre>
       </details>
 
@@ -116,11 +153,13 @@ export function EnsaioDaPesquisa({
         2. Receber na sua caixa
       </h3>
       <p className="mt-1 max-w-prose text-sm text-graphite">
-        Manda esta mesma mensagem para o endereço que você escolher. É o único jeito de ver o modo
-        escuro, o corte do assunto no celular e se ela cai no spam.
+        Manda <strong>{peca.label}</strong> para o endereço que você escolher. É o único jeito de
+        ver o modo escuro, o corte do assunto no celular e se ela cai no spam.
       </p>
 
       <form action={action} className="mt-3 flex flex-wrap gap-3">
+        {/* A escolha viaja junto: o que chega na caixa é o que está na moldura acima. */}
+        <input type="hidden" name="modelo" value={peca.id} />
         <input
           name="para"
           type="email"

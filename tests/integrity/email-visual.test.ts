@@ -4,6 +4,7 @@ import {
   reportReadyEmail,
   satisfactionSurveyEmail,
 } from '../../src/email/templates';
+import { AMOSTRAS, amostraPor } from '../../src/email/amostras';
 
 /**
  * O visual do e-mail, travado por teste.
@@ -122,5 +123,52 @@ describe('o que o cliente clica', () => {
     const { html, text } = satisfactionSurveyEmail({ url: 'https://x.test/avaliacao/abc' });
     expect(html).toContain('https://x.test/avaliacao/abc');
     expect(text).toContain('https://x.test/avaliacao/abc');
+  });
+});
+
+/**
+ * As amostras do ensaio — o que o painel mostra e o que o botão de teste manda.
+ *
+ * ═══ POR QUE ISTO É QUESTÃO DE SEGURANÇA, E NÃO DE LAYOUT ════════════════════════════════════
+ *
+ * Cada e-mail deste produto carrega uma chave: a URL do relatório É o acesso ao relatório, e o link
+ * de entrar é um token de uso único que abre a conta. Montar as amostras com valores reais seria
+ * gerar chaves válidas para conferir tipografia — e elas ficariam para sempre na caixa de quem
+ * recebeu o teste, e no encaminhamento dela.
+ *
+ * O teste fixa a regra: os destinos das amostras são páginas públicas, sem nada depois delas.
+ */
+describe('as amostras do ensaio não carregam chave nenhuma', () => {
+  for (const amostra of AMOSTRAS) {
+    it(`${amostra.id}: nenhum destino com segredo`, () => {
+      const { html, text } = amostra.montar();
+      for (const corpo of [html, text]) {
+        // `/resultado/<id>` e `/retorno/<id>` são conteúdo de uma pessoa específica.
+        expect(corpo).not.toMatch(/\/(resultado|retorno|planos|analise)\//);
+        // `/entrar/<token>` abre a conta; `/entrar` sozinho é só a tela de login.
+        expect(corpo).not.toMatch(/\/entrar\/\S/);
+        // `/avaliacao/<token>` responde pelo pedido de alguém; `/avaliacao/previa` não grava nada.
+        expect(corpo).not.toMatch(/\/avaliacao\/(?!previa)\S/);
+      }
+    });
+  }
+
+  /**
+   * `List-Unsubscribe` é o que faz o Gmail desenhar "cancelar inscrição" no topo da mensagem. Ele
+   * existe na pesquisa e NÃO nos transacionais — oferecer descadastro de um e-mail que a pessoa
+   * comprou é convidá-la a perder o acesso ao produto (ver `email/send.ts`).
+   *
+   * Se a amostra marcasse o campo errado, o ensaio mostraria um botão que o cliente não vai ver, ou
+   * esconderia um que ele vai — e o ensaio existe justamente para isso não acontecer.
+   */
+  it('só a pesquisa oferece descadastro', () => {
+    const comDescadastro = AMOSTRAS.filter((a) => a.descadastro).map((a) => a.id);
+    expect(comDescadastro).toEqual(['pesquisa']);
+  });
+
+  it('um modelo desconhecido cai na primeira amostra em vez de quebrar', () => {
+    expect(amostraPor('xpto').id).toBe(AMOSTRAS[0]?.id);
+    expect(amostraPor(null).id).toBe(AMOSTRAS[0]?.id);
+    expect(amostraPor('pesquisa').id).toBe('pesquisa');
   });
 });
