@@ -171,9 +171,39 @@ terças. O INPI **não liga, não manda e-mail e não cobra**: publica. Quem nã
 O terceiro é o mais cruel: você venceu, e perde por não ter pago no prazo de uma publicação que
 ninguém avisou que saiu.
 
-**Consequência prática:** ou você cria a rotina de checar a RPI toda semana pelo número do processo
-durante um ano e meio, ou contrata quem faça isso. É exatamente aqui que os honorários de um
-escritório se justificam — o monitoramento vale mais que o preenchimento do formulário.
+### ⚠️ A cadência de vigilância é SEMANAL, não a cada 60 dias
+
+O erro natural é olhar "de 60 em 60 dias", já que os prazos são de 60. Ele é fatal: o prazo não
+começa numa data conhecida — começa quando **sai a publicação**, e só se descobre lendo a revista.
+Quem olha a cada 60 dias pode abrir e encontrar publicação de 59 dias atrás, com **um dia** para
+reagir.
+
+Vigilância tem que ser mais curta que o prazo que ela protege.
+
+### Mas o volume de trabalho é pequeno
+
+Não são intervenções constantes. O caminho normal é publicação → 60 dias sem oposição → exame →
+deferimento → pagamento. **Dois ou três momentos em 18 meses**, e muitos processos passam sem
+nenhuma exigência.
+
+O problema não é a quantidade de trabalho: é não saber **quando**. A ação é rara e a vigilância
+precisa ser contínua — é o que torna esta a parte que se terceiriza.
+
+### As três camadas
+
+1. **Push INPI (gratuito).** Serviço de acompanhamento do próprio INPI: cadastra-se o número do
+   processo e chega **e-mail** a cada publicação. Elimina a leitura manual da revista.
+   Ressalva: é um e-mail — pode cair no spam, pode falhar. Excelente aviso, péssima defesa única.
+   (O nome e o estado atual do serviço precisam ser confirmados no portal do INPI na hora do
+   depósito; procure por "acompanhamento de processos".)
+2. **Lembrete semanal no calendário.** Trinta segundos, e é o backup de graça de quando o e-mail
+   falhar.
+3. **Escritório especializado.** Honorários tipicamente na casa de R$ 800 a R$ 2.000 para depósito +
+   acompanhamento até a concessão (varia muito; peça propostas). As taxas do INPI são à parte.
+
+**Consequência prática:** o monitoramento vale mais que o preenchimento do formulário. E mesmo
+contratando, mantenha as camadas 1 e 2 — quem perde se o processo arquivar é o titular, não o
+escritório.
 
 Concedido, o registro vale **10 anos**, renováveis indefinidamente por períodos iguais. A renovação
 também tem prazo, e também só é avisada pela RPI.
