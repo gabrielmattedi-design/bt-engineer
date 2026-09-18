@@ -120,6 +120,33 @@ Depois de ligado, a primeira leva sai no próximo agendamento (9h de Brasília) 
 todos os pedidos com mais de 15 dias — respeitando o teto diário e o limite de 45 dias, que impede
 mandar pesquisa sobre uma compra que a pessoa já esqueceu.
 
+#### Como saber o que saiu
+
+`/admin/pesquisa` lista cada envio com a data, o endereço e o desfecho: **aceito**, **recusado** (com
+o motivo) ou **sem registro**. Recusados têm um botão de tentar de novo.
+
+Três coisas que essa tela não diz, e é importante não ler nela o que ela não afirma:
+
+- **Aceito não é entregue.** Significa que o Resend recebeu a mensagem — chave válida, remetente
+  autorizado, endereço bem formado. Se ela quicou ou caiu no spam do destinatário, isso só chegaria
+  por um webhook do Resend, que este projeto não tem.
+- **Sem registro não é sucesso.** É linha criada antes destas colunas existirem, ou qualquer caminho
+  que tenha gravado sem registrar o desfecho.
+- **Só recusa explícita é reenviável.** Um envio "sem registro" pode ter saído, e repeti-lo por via
+  das dúvidas manda a mesma pesquisa duas vezes para o mesmo cliente.
+
+O log do cron na Vercel traz o resumo de cada execução (`[pesquisa] fila N, enviados X, falhas Y`),
+mas é efêmero — a tela é o registro que fica.
+
+#### Sobre o remetente
+
+A pesquisa sai do **mesmo domínio** dos e-mails transacionais, de propósito. O manual mandaria
+separar num subdomínio, para que uma reclamação de spam não contamine a reputação que entrega o
+relatório. Nesta escala isso sairia pela culatra: um subdomínio novo começa **sem reputação
+nenhuma**, o que entrega pior do que um domínio com histórico — e a pesquisa são 15 mensagens por
+dia, no máximo, para gente que comprou há duas semanas. Vale reconsiderar se um dia houver
+comunicação recorrente para lista grande.
+
 ### Opcionais
 
 | Variável | Padrão | Observação |

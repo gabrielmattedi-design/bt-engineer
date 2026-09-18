@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { lerResposta, resumirPesquisa, seguiu } from '@/lib/pesquisa';
 
@@ -181,5 +183,56 @@ describe('resumirPesquisa', () => {
     const s = resumirPesquisa(1, [r('segui_tudo', null, null, null)]);
     expect(s.usou).toHaveLength(4);
     expect(s.usou.find((l) => l.valor === 'nao_vou')?.n).toBe(0);
+  });
+});
+
+/**
+ * ═══ O REGISTRO DO ENVIO ═════════════════════════════════════════════════════════════════════
+ *
+ * Estes testes leem o CÓDIGO, e não o comportamento, porque o que eles protegem só acontece com
+ * banco e provedor reais. O que está em jogo justifica a exceção.
+ *
+ * A linha da pesquisa nasce antes do disparo, para travar reenvio. Logo, ela significa "foi
+ * tentado". Se o resultado do envio não voltar para a linha, uma recusa do provedor fica
+ * indistinguível de um sucesso — e como a linha também é a trava, aquele cliente não entra na fila
+ * nunca mais. A falha não atrasa a pesquisa dele: elimina. E o único sintoma é uma resposta que não
+ * chega, que é igualzinho a alguém que não quis responder.
+ */
+describe('o resultado do envio volta para a linha', () => {
+  const cron = readFileSync(
+    join(process.cwd(), 'src/app/api/cron/pesquisa/route.ts'),
+    'utf8',
+  );
+  const repo = readFileSync(
+    join(process.cwd(), 'src/database/repositories/pesquisa-repo.ts'),
+    'utf8',
+  );
+
+  it('o cron registra os DOIS desfechos, e não só o sucesso', () => {
+    expect(cron).toMatch(/registrarEnvio\([\s\S]{0,80}ok: true/);
+    expect(cron).toMatch(/registrarEnvio\([\s\S]{0,80}ok: false/);
+  });
+
+  /**
+   * Reenvio só para a recusa explícita.
+   *
+   * `false` é o provedor dizendo que não mandou — repetir não duplica nada. `null` é desconhecido,
+   * e pode ter saído; reenviar por via das dúvidas manda a mesma pesquisa duas vezes para o mesmo
+   * cliente, que é exatamente o que esta tabela existe para impedir.
+   *
+   * A checagem precisa estar no REPOSITÓRIO, e não só no botão: um POST direto não passa pelo
+   * botão, e a regra que protege o cliente não pode morar na camada que qualquer um pula.
+   */
+  it('só reenvia o que o provedor recusou explicitamente', () => {
+    expect(repo).toContain('envioOk !== false');
+    expect(repo).toMatch(/eq\(satisfactionSurveys\.envioOk, false\)/);
+  });
+
+  /** Ausência de registro não é sucesso. Somar os dois é como a informação se perde de novo. */
+  it('a leitura distingue aceito, recusado e desconhecido', () => {
+    const tela = readFileSync(join(process.cwd(), 'src/app/admin/pesquisa/envios.tsx'), 'utf8');
+    expect(tela).toContain('envioOk === true');
+    expect(tela).toContain('envioOk === false');
+    expect(tela).toContain('envioOk === null');
   });
 });

@@ -323,4 +323,7 @@ END $$`,
     ALTER TABLE "satisfaction_surveys" ADD CONSTRAINT "satisfaction_surveys_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
 END $$`,
+  `ALTER TABLE "satisfaction_surveys" ADD COLUMN IF NOT EXISTS "envio_ok" boolean`,
+  `ALTER TABLE "satisfaction_surveys" ADD COLUMN IF NOT EXISTS "envio_id" text`,
+  `ALTER TABLE "satisfaction_surveys" ADD COLUMN IF NOT EXISTS "envio_erro" text`,
 ];

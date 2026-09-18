@@ -108,6 +108,95 @@ export async function criarPesquisa(orderId: string): Promise<string | null> {
   }
 }
 
+/**
+ * Registra o que o provedor respondeu ao envio.
+ *
+ * ═══ POR QUE ISTO NÃO PODE FALTAR ════════════════════════════════════════════════════════════
+ *
+ * A linha existir significa "foi tentado". Sem esta chamada, um e-mail recusado deixa exatamente a
+ * mesma marca de um aceito — e como a linha também é a trava que impede reenvio, a falha não atrasa
+ * a pesquisa daquele cliente: elimina. Ele nunca mais entra na fila, e ninguém fica sabendo.
+ *
+ * ⚠️ "Aceito" NÃO é "entregue". O que se grava aqui é a resposta do provedor à requisição — chave
+ * válida, remetente autorizado, destinatário bem formado. Se a mensagem depois quicou na caixa do
+ * destino, ou caiu no spam dele, isso não chega por este caminho: viria de um webhook do Resend,
+ * que não existe neste projeto. A coluna diz "saiu daqui", e é o máximo que ela pode dizer.
+ */
+export async function registrarEnvio(
+  token: string,
+  resultado: { ok: true; id: string | null } | { ok: false; motivo: string },
+): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+
+  await db()
+    .update(satisfactionSurveys)
+    .set(
+      resultado.ok
+        ? { envioOk: true, envioId: resultado.id, envioErro: null }
+        : { envioOk: false, envioErro: resultado.motivo.slice(0, 300) },
+    )
+    .where(eq(satisfactionSurveys.token, token));
+}
+
+export type EnvioFalho = {
+  readonly id: string;
+  readonly token: string;
+  readonly email: string;
+};
+
+/**
+ * Os envios que o provedor recusou — os candidatos a uma segunda tentativa.
+ *
+ * Só `envioOk = false`, nunca `null`. `false` é uma recusa explícita: a mensagem não saiu, e mandar
+ * de novo não corre risco de duplicar. `null` é desconhecido — pode ter saído —, e reenviar por via
+ * das dúvidas é o caminho para mandar a mesma pesquisa duas vezes para o mesmo cliente, que é o
+ * defeito que esta tabela inteira existe para evitar.
+ */
+export async function enviosFalhos(): Promise<EnvioFalho[]> {
+  if (!isDatabaseConfigured()) return [];
+
+  const rows = await db()
+    .select({
+      id: satisfactionSurveys.id,
+      token: satisfactionSurveys.token,
+      email: users.email,
+    })
+    .from(satisfactionSurveys)
+    .innerJoin(orders, eq(orders.id, satisfactionSurveys.orderId))
+    .leftJoin(users, eq(users.id, orders.userId))
+    .where(eq(satisfactionSurveys.envioOk, false))
+    .orderBy(satisfactionSurveys.sentAt);
+
+  return rows.flatMap((r) => (r.email === null ? [] : [{ ...r, email: r.email }]));
+}
+
+/** Uma pesquisa pelo id da linha — para reenviar exatamente aquela, sem recalcular fila. */
+export async function pesquisaPorId(id: string): Promise<EnvioFalho | null> {
+  if (!isDatabaseConfigured()) return null;
+
+  const rows = await db()
+    .select({
+      id: satisfactionSurveys.id,
+      token: satisfactionSurveys.token,
+      email: users.email,
+      envioOk: satisfactionSurveys.envioOk,
+    })
+    .from(satisfactionSurveys)
+    .innerJoin(orders, eq(orders.id, satisfactionSurveys.orderId))
+    .leftJoin(users, eq(users.id, orders.userId))
+    .where(eq(satisfactionSurveys.id, id))
+    .limit(1);
+
+  const r = rows[0];
+  /*
+    O reenvio só vale para a recusa explícita. A checagem fica AQUI, e não só no botão da tela: um
+    POST direto não passa pelo botão, e a regra que protege o cliente de receber duas vezes não pode
+    morar na camada que qualquer um pode pular.
+  */
+  if (r === undefined || r.email === null || r.envioOk !== false) return null;
+  return { id: r.id, token: r.token, email: r.email };
+}
+
 export type PesquisaAberta = {
   readonly token: string;
   readonly email: string;
@@ -173,13 +262,23 @@ export type RespostaListada = {
   readonly email: string | null;
 };
 
+export type EnvioListado = {
+  readonly id: string;
+  readonly email: string | null;
+  readonly sentAt: Date;
+  readonly envioOk: boolean | null;
+  readonly envioErro: string | null;
+  readonly respondeu: boolean;
+};
+
 export async function lerPesquisas(): Promise<{
   enviadas: number;
   respostas: RespostaListada[];
+  envios: EnvioListado[];
 }> {
-  if (!isDatabaseConfigured()) return { enviadas: 0, respostas: [] };
+  if (!isDatabaseConfigured()) return { enviadas: 0, respostas: [], envios: [] };
 
-  const [contagem, rows] = await Promise.all([
+  const [contagem, rows, envios] = await Promise.all([
     db().select({ n: sql<number>`count(*)::int` }).from(satisfactionSurveys),
     db()
       .select({
@@ -198,6 +297,24 @@ export async function lerPesquisas(): Promise<{
       .leftJoin(users, eq(users.id, orders.userId))
       .where(isNotNull(satisfactionSurveys.answeredAt))
       .orderBy(desc(satisfactionSurveys.answeredAt)),
+    /*
+      A lista de envios é a resposta para "quais foram e quais não foram". Vem completa, do mais
+      recente para o mais antigo, sem filtro: uma lista que escondesse os que deram certo obrigaria
+      a confiar que o que não aparece está bem — e é exatamente essa confiança que faltava.
+    */
+    db()
+      .select({
+        id: satisfactionSurveys.id,
+        email: users.email,
+        sentAt: satisfactionSurveys.sentAt,
+        envioOk: satisfactionSurveys.envioOk,
+        envioErro: satisfactionSurveys.envioErro,
+        answeredAt: satisfactionSurveys.answeredAt,
+      })
+      .from(satisfactionSurveys)
+      .innerJoin(orders, eq(orders.id, satisfactionSurveys.orderId))
+      .leftJoin(users, eq(users.id, orders.userId))
+      .orderBy(desc(satisfactionSurveys.sentAt)),
   ]);
 
   return {
@@ -205,5 +322,13 @@ export async function lerPesquisas(): Promise<{
     respostas: rows.flatMap((r) =>
       r.dia === null ? [] : [{ ...r, dia: r.dia, notaLaudo: r.notaLaudo ?? null }],
     ),
+    envios: envios.map((e) => ({
+      id: e.id,
+      email: e.email,
+      sentAt: e.sentAt,
+      envioOk: e.envioOk,
+      envioErro: e.envioErro,
+      respondeu: e.answeredAt !== null,
+    })),
   };
 }

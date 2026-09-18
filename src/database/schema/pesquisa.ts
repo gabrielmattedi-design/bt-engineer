@@ -51,6 +51,32 @@ export const satisfactionSurveys = pgTable('satisfaction_surveys', {
   sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
   answeredAt: timestamp('answered_at', { withTimezone: true }),
 
+  /**
+   * ═══ O QUE ACONTECEU COM O ENVIO ═══════════════════════════════════════════════════════════
+   *
+   * A linha nasce ANTES do disparo, para ser a trava de idempotência (ver acima). O efeito colateral
+   * é que a existência da linha significa "foi tentado", e não "foi enviado" — e sem estas colunas
+   * as duas coisas eram indistinguíveis. Um e-mail recusado pelo provedor produzia exatamente a
+   * mesma linha de um entregue, e o painel contava os dois como "enviadas".
+   *
+   * Isso é grave neste caso específico: a linha também impede a segunda tentativa. Uma falha
+   * silenciosa não atrasa a pesquisa daquele cliente — ELIMINA. Ele nunca mais entra na fila.
+   *
+   * `null` significa desconhecido, não sucesso: é o estado das linhas criadas antes desta coluna
+   * existir, e de qualquer caminho que grave sem registrar o resultado. Tratar ausência como
+   * sucesso é como se perde a informação de novo.
+   */
+  envioOk: boolean('envio_ok'),
+  /** O id da mensagem no provedor. Serve para achar o envio no painel do Resend. */
+  envioId: text('envio_id'),
+  /**
+   * O motivo da recusa, curto.
+   *
+   * Guarda o código e a categoria — `HTTP 403`, `falha de rede` —, nunca o corpo inteiro da resposta
+   * do provedor, que às vezes ecoa cabeçalhos da requisição. Basta para decidir o que fazer.
+   */
+  envioErro: text('envio_erro'),
+
   /** `segui_tudo` · `segui_parte` · `ainda_nao` · `nao_vou`. A pergunta que divide o diagnóstico. */
   usou: text('usou'),
   /** Só para quem seguiu: `melhorou_muito` · `melhorou_pouco` · `igual` · `piorou`. */

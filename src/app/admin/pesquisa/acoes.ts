@@ -1,11 +1,72 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
 import { sendEmail } from '@/email/send';
 import { amostraPor } from '@/email/amostras';
+import { satisfactionSurveyEmail } from '@/email/templates';
 import { CONTATO_EMAIL } from '@/lib/contato';
+import { SITE_URL } from '@/lib/site';
+import { pesquisaPorId, registrarEnvio } from '@/database/repositories/pesquisa-repo';
+import { withAutoBootstrap } from '@/database/setup';
 
 export type TesteResult = { ok: string } | { error: string };
+
+/** Os cabeçalhos da pesquisa — só dela. Ver o comentário no envio de teste. */
+const CABECALHOS_DA_PESQUISA = {
+  'List-Unsubscribe': `<mailto:${CONTATO_EMAIL}?subject=sair>`,
+  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+};
+
+/**
+ * Tenta de novo um envio que o provedor recusou.
+ *
+ * ═══ POR QUE SÓ A RECUSA EXPLÍCITA, E POR QUE À MÃO ══════════════════════════════════════════
+ *
+ * Só linhas com `envio_ok = false` entram aqui, e `pesquisaPorId` recusa o resto. `false` é uma
+ * recusa declarada pelo provedor: a mensagem não saiu, e mandar de novo não duplica nada.
+ * `null` — desconhecido — poderia ter saído, e reenviar "por via das dúvidas" é o caminho para o
+ * mesmo cliente receber a pesquisa duas vezes, que é o defeito que a tabela existe para evitar.
+ *
+ * E é um botão, não uma repetição automática. A causa quase sempre é externa e duradoura — chave
+ * vencida, domínio não verificado, endereço inválido — e uma tentativa automática a cada dia
+ * empilharia a mesma recusa para sempre sem ninguém olhar. Um botão obriga alguém a ver o motivo
+ * antes de insistir.
+ *
+ * O token é o mesmo de antes: o link que a pessoa receber continua sendo o dela, e uma resposta
+ * dada por ele cai na linha certa.
+ */
+export async function reenviarPesquisa(
+  _prev: unknown,
+  formData: FormData,
+): Promise<TesteResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const id = String(formData.get('id') ?? '');
+  const pesquisa = await withAutoBootstrap(() => pesquisaPorId(id));
+  if (pesquisa === null) {
+    return { error: 'Esta pesquisa não está marcada como recusada — nada foi reenviado.' };
+  }
+
+  const email = satisfactionSurveyEmail({ url: `${SITE_URL}/avaliacao/${pesquisa.token}` });
+  const r = await sendEmail({
+    to: pesquisa.email,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+    headers: CABECALHOS_DA_PESQUISA,
+  });
+
+  await registrarEnvio(
+    pesquisa.token,
+    r.ok ? { ok: true, id: r.id } : { ok: false, motivo: r.detail ?? r.reason },
+  );
+  revalidatePath('/admin/pesquisa');
+
+  return r.ok
+    ? { ok: `Reenviado para ${pesquisa.email}.` }
+    : { error: `O provedor recusou de novo (${r.detail ?? r.reason}).` };
+}
 
 /**
  * Manda um dos e-mails do produto para um endereço escolhido, agora.
@@ -54,14 +115,7 @@ export async function enviarEmailDeTeste(
       transacionais. Um teste que mandasse sempre os dois mostraria um botão que o cliente não vai
       ver; que nunca mandasse, esconderia um que ele vai.
     */
-    ...(amostra.descadastro
-      ? {
-          headers: {
-            'List-Unsubscribe': `<mailto:${CONTATO_EMAIL}?subject=sair>`,
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          },
-        }
-      : {}),
+    ...(amostra.descadastro ? { headers: CABECALHOS_DA_PESQUISA } : {}),
   });
 
   if (r.ok) {

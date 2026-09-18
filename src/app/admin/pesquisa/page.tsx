@@ -9,6 +9,7 @@ import { AMOSTRAS } from '@/email/amostras';
 import { emailEnabled } from '@/email/send';
 import { DIAS_DEPOIS_DA_COMPRA } from '@/database/repositories/pesquisa-repo';
 import { EnsaioDaPesquisa, type Peca } from './ensaio';
+import { Envios } from './envios';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ const rotuloDe = (lista: readonly { valor: string; label: string }[], v: string 
 export default async function PesquisaPage() {
   if (!(await isAuthenticated())) redirect('/admin');
 
-  const { enviadas, respostas } = await withAutoBootstrap(() => lerPesquisas());
+  const { enviadas, respostas, envios } = await withAutoBootstrap(() => lerPesquisas());
   const r = resumirPesquisa(enviadas, respostas);
 
   /*
@@ -120,6 +121,25 @@ export default async function PesquisaPage() {
         </p>
 
         <EnsaioDaPesquisa pecas={pecas} />
+
+        {/*
+          A lista de envios vem ANTES das estatísticas, e não depois.
+
+          Sem ela, "12 enviadas e 2 respostas" se lê como desinteresse — e pode ser que sete tenham
+          sido recusadas pelo provedor. A taxa de resposta só significa alguma coisa depois de saber
+          quantas de fato saíram; ler as barras primeiro é concluir sobre o produto a partir de um
+          defeito de infraestrutura.
+        */}
+        <Envios
+          envios={envios.map((e) => ({
+            id: e.id,
+            email: e.email,
+            dia: dataCurta(e.sentAt),
+            envioOk: e.envioOk,
+            envioErro: e.envioErro,
+            respondeu: e.respondeu,
+          }))}
+        />
 
         {enviadas === 0 ? (
           <p className="mt-8 rounded border border-line bg-white p-5 text-sm text-graphite">

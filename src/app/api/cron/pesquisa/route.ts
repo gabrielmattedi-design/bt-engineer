@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import {
   criarPesquisa,
   pedidosParaPesquisar,
+  registrarEnvio,
   DIAS_DEPOIS_DA_COMPRA,
 } from '@/database/repositories/pesquisa-repo';
 import { sendEmail } from '@/email/send';
@@ -92,8 +93,19 @@ export async function GET(req: Request) {
       },
     });
 
-    if (r.ok) enviados += 1;
-    else falhas.push(`${pedido.orderId}:${r.reason}`);
+    /*
+      O resultado volta para a linha. Sem isto, a existência da linha significaria "foi tentado" e
+      seria lida como "foi enviado" — e como a linha também é a trava que impede reenvio, uma recusa
+      do provedor não atrasaria a pesquisa daquele cliente: eliminaria. O painel mostra as duas
+      contagens separadas justamente porque elas não são a mesma coisa.
+    */
+    if (r.ok) {
+      await registrarEnvio(token, { ok: true, id: r.id });
+      enviados += 1;
+    } else {
+      await registrarEnvio(token, { ok: false, motivo: r.detail ?? r.reason });
+      falhas.push(`${pedido.orderId}:${r.reason}`);
+    }
   }
 
   console.log(
