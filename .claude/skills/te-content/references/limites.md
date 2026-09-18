@@ -163,6 +163,40 @@ conferência antes de a arte existir.
 | `[motor]` | Saída real de `recommend()` | Sim, **como decisão do método** |
 | `[física]` | Consenso amplo (mais massa resiste mais ao impacto) | Sim |
 | `[heurística]` | Regra nossa, calibrada | Só se a frase disser que é nossa |
+| `[imprensa]` | Fato noticiado, externo ao projeto | Sim, **com o veículo na arte** |
 | `[opinião]` | Achismo | **Não. Reescreve ou corta.** |
 
 Se qualquer frase ficar `[opinião]` e estiver escrita como fato, a pauta não avança para a arte.
+
+---
+
+## 7. `[imprensa]` — a etiqueta que nasceu com a pauta de 18/09
+
+As cinco etiquetas originais cobriam tudo que **nós** medimos. Nenhuma cobria um fato que veio de
+fora — e a pauta dos 12.040 quiques de Zverev foi a primeira construída inteiramente sobre notícia,
+sem um único número de catálogo.
+
+O modo de falha é específico e não é o de sempre: aqui ninguém inventa nada. O número **se deforma
+ao ser repassado** de veículo em veículo, e cada repasse perde uma condição.
+
+### As três regras
+
+1. **O veículo vai na arte**, não só na pauta. "Contagem da ESPN" ocupa quatro palavras e é o que
+   separa um dado de um boato.
+2. **Nunca arredondar, nunca recortar a condição.** `12.040` é a contagem **até a semifinal** — não
+   inclui a semi nem a final. "Mais de 12 mil no US Open" seria falso, e é o mesmo defeito da
+   primeira pauta da conta (número medido numa condição, republicado sem ela).
+3. **Duas fontes independentes** antes de publicar, e preferir o veículo que fez a apuração ao que
+   a repercutiu. Agregador copiando agregador é onde o número engorda.
+
+### E quando a notícia envolve uma pessoa
+
+§4 proíbe atacar marca. A regra vale igual para pessoa, e polêmica de circuito é o caso em que ela
+fica difícil: tomar lado é o caminho mais curto para engajamento.
+
+Não vale a pena. Se a página disser quem está errado, metade do público discorda e a briga passa a
+ser **com a página** em vez de acontecer nos comentários — onde ela serve.
+
+O que funciona é apresentar os lados e deixar a enquete decidir. E quando existir, usar a fala do
+próprio envolvido: Zverev admitiu que "foi um pouco extremo", e citar o protagonista concedendo não
+é apontar o dedo para ninguém.
