@@ -58,9 +58,33 @@ export type ResumoFinanceiro = {
   readonly piorLucro: DiaFinanceiro | null;
 };
 
+/**
+ * Todos os dias de calendário entre dois `AAAA-MM-DD`, inclusive as duas pontas.
+ *
+ * Usa `Date.UTC` pelo mesmo motivo de `diaDaSemana`: as datas aqui já SÃO dias de Brasília, e
+ * qualquer aritmética no fuso local do servidor deslocaria a série inteira em um dia.
+ */
+export function enumerarDias(de: string, ate: string): string[] {
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const parse = (s: string) => {
+    const [a, m, d] = s.split('-').map(Number);
+    return Date.UTC(a ?? 1970, (m ?? 1) - 1, d ?? 1);
+  };
+
+  const fim = parse(ate);
+  const out: string[] = [];
+  for (let t = parse(de); t <= fim; t += 86_400_000) {
+    out.push(iso(new Date(t)));
+    if (out.length > 3650) break; // trava de sanidade: dez anos é erro de entrada, não série
+  }
+  return out;
+}
+
 export function montarFinanceiro(
   faturamento: readonly { readonly dia: string; readonly pedidos: number; readonly centavos: number }[],
   gastos: ReadonlyMap<string, number>,
+  /** Último dia da série, em `AAAA-MM-DD` de Brasília. Sem ele, para no último dia com movimento. */
+  hoje?: string,
 ): ResumoFinanceiro {
   /*
     A união das duas fontes, e não só os dias com venda.
@@ -70,8 +94,27 @@ export function montarFinanceiro(
     não fecharia com a fatura do Meta. O sintoma seria um lucro alto demais, que é o pior jeito de
     estar errado.
   */
-  const todosOsDias = new Set<string>([...faturamento.map((f) => f.dia), ...gastos.keys()]);
+  const comAlgo = [...faturamento.map((f) => f.dia), ...gastos.keys()].sort();
   const porDia = new Map(faturamento.map((f) => [f.dia, f]));
+
+  /*
+    ═══ O CALENDÁRIO É PREENCHIDO, E NÃO SÓ OS DIAS COM MOVIMENTO ═════════════════════════════
+
+    Pedido do dono em 18/09/2026: *"no dia 06 não teve venda, por isso ele nem aparece no
+    relatório. Quero que ele apareça como zerado"*.
+
+    Ele está certo, e o motivo é estatístico, não cosmético: sem os dias zerados, o "faturamento
+    médio por dia" divide o total por uma contagem MENOR do que os dias que de fato passaram. Uma
+    operação que vendeu R$ 900 em dois dias e nada em outros cinco tem média de R$ 128 por dia, não
+    de R$ 450 — e a segunda leitura é a que faz alguém projetar receita que não existe.
+
+    O mesmo vale para a média por dia da semana: um domingo sem venda que some da série faz a média
+    de domingo subir, e a ordem do gráfico passa a premiar o dia da semana que mais FALTA em vez do
+    que mais fatura.
+  */
+  const primeiro = comAlgo[0];
+  const todosOsDias =
+    primeiro === undefined ? [] : enumerarDias(primeiro, hoje ?? comAlgo[comAlgo.length - 1] ?? primeiro);
 
   const dias: DiaFinanceiro[] = [...todosOsDias]
     .sort()
@@ -110,11 +153,42 @@ export function montarFinanceiro(
     lucroCentavos: comLucro.reduce((s, d) => s + d.lucroCentavos, 0),
     pedidos: pedidosTotal,
     ticketMedioCentavos: pedidosTotal > 0 ? Math.round(faturamentoTotal / pedidosTotal) : null,
-    diasSemGasto: dias.filter((d) => d.gastoCentavos === null).length,
+    /*
+      Só conta do primeiro dia COM gasto para cá.
+
+      Com o calendário preenchido, os dias anteriores ao primeiro anúncio passam a existir na lista
+      — e eles não estão "sem gasto informado", estão sem anúncio nenhum. Contá-los faria o aviso da
+      tela pedir para preencher dias em que não havia o que preencher, e um aviso que pede o
+      impossível é um aviso que se aprende a ignorar.
+    */
+    diasSemGasto: aPartirDoPrimeiroGasto(dias).filter((d) => d.gastoCentavos === null).length,
     melhorFaturamento: maiorPor(dias, (d) => d.faturamentoCentavos),
     melhorLucro: maiorPor(comLucro, (d) => d.lucroCentavos),
     piorLucro: maiorPor(comLucro, (d) => -d.lucroCentavos),
   };
+}
+
+/**
+ * Corta os dias ANTERIORES ao primeiro gasto informado.
+ *
+ * ═══ POR QUE ISTO É UMA REGRA, E NÃO UM DETALHE ══════════════════════════════════════════════
+ *
+ * Pedido do dono em 18/09/2026: *"no gasto dia a dia, a média deve contar a partir do dia 09
+ * incluso, pois antes não investia — isso não faz com que a média possa ser puxada pra baixo pelos
+ * dias zerados"*.
+ *
+ * É a diferença entre **zero** e **não se aplica**. Um dia com a campanha pausada gastou zero, e
+ * esse zero é informação que pertence à média. Um dia anterior à existência da campanha não gastou
+ * zero — ele não tem gasto, e incluí-lo dividiria o total por dias que nunca fizeram parte da
+ * operação de mídia.
+ *
+ * O corte é só no COMEÇO, de propósito: um buraco no meio da série é dia por preencher, e some da
+ * média (fica `null`) sem sumir do gráfico — a barra tracejada existe para ele ser visto.
+ */
+function aPartirDoPrimeiroGasto(dias: readonly DiaFinanceiro[]): readonly DiaFinanceiro[] {
+  const ordenados = [...dias].sort((a, b) => a.dia.localeCompare(b.dia));
+  const inicio = ordenados.findIndex((d) => d.gastoCentavos !== null);
+  return inicio === -1 ? [] : ordenados.slice(inicio);
 }
 
 /** `reduce` sem valor inicial lança em lista vazia. Aqui devolve `null`, que a tela sabe tratar. */
@@ -192,7 +266,26 @@ export function montarGrafico(
         ? d.gastoCentavos
         : d.lucroCentavos;
 
-  const crus = dias.map((d) => ({ rotulo: d.dia, valor: valorDe(d) }));
+  /*
+    ─── A ORDEM É SEMPRE CRESCENTE, PARA TODOS OS INDICADORES ─────────────────────────────────
+
+    A primeira versão só ordenava para gasto e lucro (efeito colateral do corte), e mantinha o
+    faturamento na ordem que chegasse. As barras mudariam de sentido ao trocar o filtro — tempo
+    andando para a direita num gráfico e para a esquerda no outro, sem nada na tela avisando. Os
+    testes pegaram isso.
+
+    Ordenar aqui também tira a obrigação do chamador de lembrar de inverter a lista da tabela.
+  */
+  const emOrdem = [...dias].sort((a, b) => a.dia.localeCompare(b.dia));
+
+  /*
+    Gasto e lucro começam no primeiro dia com gasto informado; faturamento usa a série inteira.
+
+    Sem isso, os dias anteriores ao primeiro anúncio entrariam no gráfico de gasto como barras
+    ausentes e — pior — o eixo se esticaria por um trecho que não pertence à série de mídia.
+  */
+  const escopo = indicador === 'faturamento' ? emOrdem : aPartirDoPrimeiroGasto(emOrdem);
+  const crus = escopo.map((d) => ({ rotulo: d.dia, valor: valorDe(d) }));
   const presentes = crus.map((c) => c.valor).filter((v): v is number => v !== null);
 
   if (presentes.length === 0) {

@@ -77,16 +77,19 @@ export default async function FinanceiroPage({
     Promise.all([faturamentoPorDia(INICIO), gastosPorDia()]),
   );
 
-  const resumo = montarFinanceiro(faturamento, gastos);
-
   /*
-    Os gráficos leem os dias do mais ANTIGO para o mais recente, ao contrário da tabela.
+    `hoje` em Brasília, e não em UTC.
 
-    Na tabela, o mais recente em cima é o que serve — é o dia que se vai preencher. Num gráfico de
-    série temporal, o tempo anda para a direita; invertido, toda tendência seria lida ao contrário.
+    É ele que faz a série chegar até o dia de hoje mesmo sem venda nenhuma — um dia zerado é
+    informação. Em UTC, depois das 21h o servidor já acharia que é amanhã e a tabela ganharia a
+    linha de um dia que ainda não começou. Mesma armadilha do `max` do seletor de data do funil.
   */
-  const emOrdem = [...resumo.dias].reverse();
-  const grafico = montarGrafico(emOrdem, indicador);
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+
+  const resumo = montarFinanceiro(faturamento, gastos, hoje);
+
+  /* `montarGrafico` ordena sozinho: a tabela fica do mais recente, o gráfico do mais antigo. */
+  const grafico = montarGrafico(resumo.dias, indicador);
   const porDiaDaSemana = mediaPorDiaDaSemana(resumo.dias);
 
   const diaBonito = (iso: string) => {
@@ -179,6 +182,7 @@ export default async function FinanceiroPage({
                   ? 'Um dia está sem gasto informado e ficou FORA do total de lucro'
                   : `${resumo.diasSemGasto} dias estão sem gasto informado e ficaram FORA do total de lucro`}{' '}
                 — o lucro acima é dos dias completos, para não sair inflado. Preencha na tabela.
+                Dias anteriores ao primeiro anúncio não entram nessa conta.
               </p>
             )}
 
