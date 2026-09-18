@@ -14,8 +14,13 @@ export const dynamic = 'force-dynamic';
  * Tailwind do site cascatearia por cima (reset de tabela, `box-sizing`, fonte do `body`) e a prévia
  * mostraria um layout que ninguém vai receber.
  *
- * Servida como documento próprio e exibida num `<iframe>`, o que aparece na tela é byte por byte o
- * que o provedor vai mandar — que é a única prévia que serve para decidir alguma coisa.
+ * Servida como documento próprio, o que aparece na tela é byte por byte o que o provedor vai
+ * mandar — que é a única prévia que serve para decidir alguma coisa.
+ *
+ * Ela é a prévia em ABA SEPARADA. A moldura dentro do painel usa `srcDoc`, e não esta rota, porque
+ * `X-Frame-Options: DENY` recusa enquadrar até a própria origem (ver `ensaio.tsx`). Aqui é
+ * navegação de primeiro nível, que o cabeçalho não alcança — e é a forma de ver a peça em tamanho
+ * real, ampliar, e conferir no celular abrindo o mesmo endereço.
  *
  * ═══ O LINK DE DENTRO APONTA PARA A PRÉVIA ═══════════════════════════════════════════════════
  *

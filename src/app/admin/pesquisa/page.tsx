@@ -104,7 +104,7 @@ export default async function PesquisaPage() {
           )}
         </p>
 
-        <EnsaioDaPesquisa assunto={modelo.subject} texto={modelo.text} />
+        <EnsaioDaPesquisa assunto={modelo.subject} texto={modelo.text} html={modelo.html} />
 
         {enviadas === 0 ? (
           <p className="mt-8 rounded border border-line bg-white p-5 text-sm text-graphite">

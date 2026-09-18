@@ -121,6 +121,35 @@ describe('cabeçalhos de segurança', () => {
     expect(config).toMatch(/\/admin\/:path\*/);
     expect(config).toContain('no-store');
   });
+
+  /**
+   * ═══ O CABEÇALHO VALE CONTRA NÓS TAMBÉM ════════════════════════════════════════════════════
+   *
+   * `X-Frame-Options: DENY` recusa o enquadramento inclusive pela PRÓPRIA origem — é exatamente
+   * isso que o separa de `SAMEORIGIN`. Logo, nenhum `<iframe src="/algo">` deste site carrega.
+   *
+   * Isto já aconteceu: a prévia do e-mail em `/admin/pesquisa` apontava para uma rota interna e
+   * ficava em branco. O navegador bloqueia em silêncio — sem erro na tela, sem erro no servidor —
+   * e o que sobra é uma moldura vazia que parece página quebrada.
+   *
+   * O perigo do defeito não é a moldura: é o conserto óbvio. Quem topa com ele pensa em trocar
+   * `DENY` por `SAMEORIGIN`, que é abrir mão de proteção contra clickjacking NO PAINEL, onde um
+   * clique roubado roda migração ou cria cupom — para consertar uma tela. O caminho certo é
+   * `srcDoc`, que traz o conteúdo junto com a página e não depende de resposta HTTP nenhuma.
+   *
+   * Este teste existe para que o defeito apareça aqui, e não em produção.
+   */
+  it('nenhum iframe do produto aponta para uma rota do próprio site', () => {
+    expect(config, 'se DENY sair, este teste precisa ser revisto').toContain("value: 'DENY'");
+
+    const presos: string[] = [];
+    for (const arquivo of varrer(join(ROOT, 'src'))) {
+      for (const tag of readFileSync(arquivo, 'utf8').match(/<iframe[\s\S]*?\/>/g) ?? []) {
+        if (/\bsrc=/.test(tag)) presos.push(arquivo.replace(ROOT, ''));
+      }
+    }
+    expect(presos, 'X-Frame-Options: DENY vai bloquear — use srcDoc').toEqual([]);
+  });
 });
 
 describe('injeção de HTML no relatório', () => {
