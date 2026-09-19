@@ -108,6 +108,35 @@ export interface PaymentProvider {
   /** Valida a assinatura e devolve o evento. `null` = assinatura inválida ou payload desconhecido. */
   parseWebhook(request: Request): Promise<WebhookOutcome>;
   getPaymentStatus(providerPaymentId: string): Promise<PaymentStatus>;
+
+  /**
+   * Busca um pagamento pelo id DELE e devolve o mesmo evento que a notificação produziria.
+   *
+   * ═══ POR QUE ISTO EXISTE ═══════════════════════════════════════════════════════════════════
+   *
+   * 19/09/2026: um cartão aprovado às 14:35, dinheiro na conta, comprovante no celular do cliente —
+   * e nada no sistema. Nenhum pedido, nenhum relatório, nenhuma linha em Vendas. Os pagamentos de
+   * 15:48, 16:06, 16:29, 17:18 e 17:23 entraram normalmente, então não era o webhook quebrado: foi
+   * UM evento que se perdeu.
+   *
+   * Nesse estado não havia nada a fazer. `getPaymentStatus` existia e devolve só um enum — dá para
+   * perguntar "esse pagamento foi aprovado?" e não dá para fazer nada com a resposta. O único
+   * caminho era conceder por cupom, que entrega o produto e deixa a venda fora do faturamento.
+   *
+   * Este método fecha isso: a partir do id do pagamento, reconstrói o evento e a concessão segue
+   * exatamente o mesmo caminho da notificação.
+   *
+   * ─── E POR QUE DISPENSAR A ASSINATURA AQUI É SEGURO ────────────────────────────────────────
+   *
+   * A assinatura prova que quem chamou o webhook foi o gateway. Aqui quem chama é o dono
+   * autenticado, e o estado continua vindo da API do gateway — não do que foi digitado. O usuário
+   * escolhe QUAL pagamento consultar; quem diz se ele existe, de quanto é e a que pedido pertence
+   * continua sendo o Mercado Pago.
+   *
+   * `null` quando o pagamento não existe, a API não respondeu, ou ele não carrega referência de
+   * pedido nenhuma.
+   */
+  eventoDePagamento(providerPaymentId: string): Promise<PaymentEvent | null>;
 }
 
 /**

@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server';
 import { paymentProvider } from '@/payments/adapters';
 import { simulatedPaymentsAllowed } from '@/payments/mode';
 import { processPaymentEvent } from '@/database/repositories/commerce-repo';
-import { sendEmail } from '@/email/send';
-import { reportReadyEmail } from '@/email/templates';
-import { SITE_URL } from '@/lib/site';
-import { contextoDoPedido, registrarEnvio } from '@/database/repositories/meta-repo';
-import { enviarCompra } from '@/lib/meta-capi';
+import { concluirCompra } from '@/payments/concluir-compra';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,70 +98,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     case 'processed': {
       /*
-        ═══ A COMPRA VAI PARA O META DAQUI, E NÃO DO NAVEGADOR ══════════════════════════════════
+        ═══ O DEPOIS DA CONCESSÃO MORA EM `concluir-compra.ts` ══════════════════════════════════
 
-        Este é o único ponto do sistema em que temos certeza de que a compra aconteceu — o gateway
-        acabou de confirmar. O navegador do comprador pode nunca voltar, pode ter bloqueador, pode
-        ser um iPhone com prevenção de rastreamento; nada disso alcança uma chamada entre
-        servidores.
+        Conversão para o Meta e recibo para o comprador. Saiu daqui porque passou a existir um
+        segundo caminho que concede compra — a recuperação manual em `/admin/vendas`, para quando o
+        gateway confirmou e a notificação não chegou.
 
-        Foi medido: em 10/09/2026 o funil contava 16 compras da campanha e o Meta enxergava 2.
+        Duplicar o bloco criaria a divergência mais cara possível: a compra recuperada entraria no
+        banco, o cliente receberia o relatório, e a conversão nunca chegaria ao Meta. Nenhum dos
+        dois daria erro, e a diferença só apareceria num CAC que não fecha, semanas depois.
 
-        `enviarCompra` nunca lança e recusa sozinha quem não consentiu. O `await` é deliberado —
-        sem ele a função serverless pode encerrar antes de a requisição sair, e o evento se perde
-        justamente nos dias de maior volume.
+        O `await` é deliberado — sem ele a função serverless pode encerrar antes de as requisições
+        saírem, e os eventos se perdem justamente nos dias de maior volume.
+
+        A função nunca lança: o acesso já está gravado, e um erro aqui faria o gateway reenviar
+        para sempre um e-mail que não vai passar.
       */
-      const ctx = await contextoDoPedido(event.orderId);
-      if (ctx) {
-        const envio = await enviarCompra({
-          orderId: event.orderId,
-          valorEmReais: ctx.amountCents / 100,
-          consent: ctx.consent,
-          fbc: ctx.fbc,
-          fbp: ctx.fbp,
-          sourceUrl: ctx.sourceUrl,
-        });
-        /*
-          O motivo da NÃO-ida também vira log.
-
-          "Não enviou" tem causas que exigem consertos opostos — sem consentimento é o sistema
-          funcionando, token expirado é incidente. Sem distinguir as duas no log, a única saída
-          seria adivinhar, que é o erro que este arquivo inteiro tenta não repetir.
-        */
-        if (!envio.enviado) {
-          console.info(`[capi] compra ${event.orderId} não enviada: ${envio.motivo}`);
-        }
-        /*
-          E o desfecho vai para o BANCO, não só para o log.
-
-          Log de servidor só é lido por quem está num computador com acesso à Vercel. O dono opera
-          do celular, e por dois dias a única resposta que existia para "a API de Conversões está
-          funcionando?" foi "abra o Gerenciador de Eventos num desktop". Gravado aqui, o mesmo fato
-          vira uma linha do `/admin/funil`.
-        */
-        await registrarEnvio(event.orderId, envio);
-      }
-
-      /*
-        ═══ O RECIBO SAI DEPOIS DA CONCESSÃO, E SUA FALHA NÃO DERRUBA O WEBHOOK ═══════════════
-
-        O acesso já está gravado quando chegamos aqui. Se o envio falhar — provedor fora, chave
-        expirada, e-mail recusado — o certo é responder 200 mesmo assim: um erro faria o gateway
-        reenviar o evento, e reenvio é justamente o que a idempotência absorve sem reconceder
-        nada. O resultado seria o gateway tentando para sempre um e-mail que não vai passar, e
-        marcando nosso webhook como problemático.
-      */
-      if (outcome.receipt) {
-        const mail = reportReadyEmail({
-          url: `${SITE_URL}/resultado/${outcome.receipt.publicId}`,
-          productName: outcome.receipt.productName,
-          amountCents: outcome.receipt.amountCents,
-        });
-        const sent = await sendEmail({ to: outcome.receipt.email, ...mail });
-        if (!sent.ok && sent.reason === 'rejected') {
-          console.error(`[webhook] recibo não enviado para o pedido ${event.orderId}: ${sent.detail}`);
-        }
-      }
+      await concluirCompra(event.orderId, outcome);
       return NextResponse.json({ ok: true, granted: outcome.granted });
     }
   }

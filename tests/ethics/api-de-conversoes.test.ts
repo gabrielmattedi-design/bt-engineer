@@ -210,7 +210,21 @@ describe('uma fonte de compra por vez', () => {
     ).toBe(true);
   });
 
-  it('o webhook envia a compra, e é o único lugar que envia', async () => {
+  /**
+   * ═══ UM REMETENTE, MESMO COM DOIS CAMINHOS DE CONCESSÃO ════════════════════════════════════
+   *
+   * O envio morava dentro do webhook até 19/09/2026, quando nasceu um segundo caminho que concede
+   * compra: a recuperação manual em `/admin/vendas`, para o dia em que o gateway confirma e a
+   * notificação não chega.
+   *
+   * Dois caminhos de concessão poderiam virar dois remetentes, e a duplicidade que este arquivo
+   * inteiro existe para impedir voltaria pela porta de trás — não pelo pixel, mas por duas cópias
+   * do mesmo `enviarCompra`. A saída foi extrair `concluir-compra.ts`: os dois caminhos concedem, e
+   * **um só** manda.
+   *
+   * O teste continua exigindo exatamente um arquivo; o que mudou foi qual.
+   */
+  it('a compra sai de um lugar só, mesmo com webhook e recuperação manual', async () => {
     const { globSync } = await import('node:fs');
     const arquivos = globSync('src/**/*.{ts,tsx}');
 
@@ -220,7 +234,39 @@ describe('uma fonte de compra por vez', () => {
     });
 
     expect(remetentes, 'a compra passou a ser enviada de mais de um lugar').toEqual([
-      'src/app/api/webhooks/payment/route.ts',
+      'src/payments/concluir-compra.ts',
     ]);
+  });
+
+  /**
+   * ═══ OS DOIS CAMINHOS DE COMPRA TERMINAM NA MESMA FUNÇÃO ═══════════════════════════════════
+   *
+   * Conceder compra acontece em dois lugares desde 19/09/2026: a notificação do gateway e a
+   * recuperação manual. Os dois precisam fazer AS DUAS coisas que vêm depois — mandar a conversão
+   * e mandar o recibo — e a única garantia de que fazem é chamarem a mesma função.
+   *
+   * O defeito que isto impede é silencioso: um caminho que mandasse o recibo por conta própria
+   * entregaria o relatório ao cliente e deixaria a conversão para trás. Ninguém veria erro; a
+   * diferença apareceria semanas depois, num CAC que não fecha.
+   *
+   * ─── POR QUE O CUPOM NÃO ENTRA NESTA REGRA ────────────────────────────────────────────────
+   *
+   * `planos/[sessionId]/actions.ts` também manda `reportReadyEmail`, e está certo: é o resgate de
+   * CUPOM, que concede acesso sem pagamento e sem venda. Não há conversão para mandar ao Meta — e
+   * mandar seria reportar uma compra que não existiu.
+   */
+  it('webhook e recuperação terminam em concluirCompra, e não mandam recibo por conta própria', () => {
+    for (const arquivo of [
+      'src/app/api/webhooks/payment/route.ts',
+      'src/app/admin/vendas/acoes.ts',
+    ]) {
+      const fonte = readFileSync(arquivo, 'utf8');
+      expect(fonte, `${arquivo} deixou de concluir a compra pelo caminho comum`).toContain(
+        'concluirCompra(',
+      );
+      expect(fonte, `${arquivo} voltou a mandar o recibo sozinho`).not.toContain(
+        'reportReadyEmail(',
+      );
+    }
   });
 });

@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type {
   CheckoutSession,
   CreateCheckoutInput,
+  PaymentEvent,
   PaymentProvider,
   PaymentStatus,
   WebhookOutcome,
@@ -130,6 +131,59 @@ type MercadoPagoPayment = {
   readonly external_reference?: string | null;
   readonly payment_method_id?: string | null;
 };
+
+/**
+ * Traduz um pagamento do Mercado Pago no evento interno — ou diz por que ele não vira evento.
+ *
+ * ═══ POR QUE ISTO É UMA FUNÇÃO E NÃO ESTÁ DENTRO DO `parseWebhook` ═══════════════════════════
+ *
+ * Porque dois caminhos precisam da MESMA tradução: a notificação e a recuperação manual por id de
+ * pagamento (`eventoDePagamento`, usada quando a notificação se perde). Duas cópias divergiriam na
+ * primeira mudança do mapa de estados, e a compra recuperada entraria com um estado diferente da
+ * compra normal — pelo mesmo pagamento.
+ *
+ * Devolve a `string` do motivo quando não dá para produzir evento: é a forma de quem chama poder
+ * dizer POR QUE ignorou, em vez de devolver `null` e deixar o log sem causa.
+ */
+function eventoDoPagamento(
+  payment: MercadoPagoPayment,
+  action: string | null,
+): PaymentEvent | string {
+  const orderId = payment.external_reference;
+  if (!orderId) {
+    console.error(
+      `[mercadopago] pagamento ${payment.id} sem external_reference — não dá para saber o pedido`,
+    );
+    return 'pagamento sem external_reference';
+  }
+
+  const status = STATUS[payment.status];
+  if (!status) {
+    console.error(`[mercadopago] estado desconhecido "${payment.status}" — nada concedido`);
+    return `estado desconhecido "${payment.status}"`;
+  }
+
+  return {
+    /*
+      Idempotência por PAGAMENTO + ESTADO, não por notificação.
+
+      O Mercado Pago reenvia a mesma notificação quando não recebe 200, e manda várias ao longo da
+      vida de um pagamento (pendente → aprovado). Usar o id da notificação deixaria os reenvios
+      passarem como eventos novos; usar só o id do pagamento bloquearia a transição legítima de
+      pendente para aprovado. O par resolve os dois.
+
+      É também o que torna a recuperação manual SEGURA: recuperar um pagamento que o webhook já
+      processou colide na mesma chave e devolve `duplicate`, sem conceder nada de novo.
+    */
+    providerEventId: `mp:${payment.id}:${payment.status}`,
+    eventType: action ?? `payment.${payment.status}`,
+    providerPaymentId: String(payment.id),
+    orderId,
+    status,
+    method: payment.payment_method_id ?? null,
+    raw: payment,
+  };
+}
 
 async function fetchPayment(paymentId: string): Promise<MercadoPagoPayment | null> {
   const response = await fetch(`${API}/v1/payments/${paymentId}`, {
@@ -560,40 +614,10 @@ export const mercadoPagoProvider: PaymentProvider = {
       return { kind: 'invalid', reason: 'a API não devolveu o pagamento' };
     }
 
-    const orderId = payment.external_reference;
-    if (!orderId) {
-      console.error(
-        `[mercadopago] pagamento ${payment.id} sem external_reference — não dá para saber o pedido`,
-      );
-      return { kind: 'ignored', reason: 'pagamento sem external_reference' };
-    }
+    const evento = eventoDoPagamento(payment, payload.action ?? null);
+    if (typeof evento === 'string') return { kind: 'ignored', reason: evento };
 
-    const status = STATUS[payment.status];
-    if (!status) {
-      console.error(`[mercadopago] estado desconhecido "${payment.status}" — nada concedido`);
-      return { kind: 'ignored', reason: `estado desconhecido "${payment.status}"` };
-    }
-
-    return {
-      kind: 'event',
-      event: {
-        /*
-          Idempotência por PAGAMENTO + ESTADO, não por notificação.
-
-          O Mercado Pago reenvia a mesma notificação quando não recebe 200, e manda várias ao longo
-          da vida de um pagamento (pendente → aprovado). Usar o id da notificação deixaria os
-          reenvios passarem como eventos novos; usar só o id do pagamento bloquearia a transição
-          legítima de pendente para aprovado. O par resolve os dois.
-        */
-        providerEventId: `mp:${payment.id}:${payment.status}`,
-        eventType: payload.action ?? `payment.${payment.status}`,
-        providerPaymentId: String(payment.id),
-        orderId,
-        status,
-        method: payment.payment_method_id ?? null,
-        raw: payment,
-      },
-    };
+    return { kind: 'event', event: evento };
   },
 
   async getPaymentStatus(providerPaymentId: string): Promise<PaymentStatus> {
@@ -601,5 +625,28 @@ export const mercadoPagoProvider: PaymentProvider = {
     // Sem resposta da API, o honesto é "ainda não sei" — e pendente não concede nada.
     if (!payment) return 'pending';
     return STATUS[payment.status] ?? 'pending';
+  },
+
+  async eventoDePagamento(providerPaymentId: string): Promise<PaymentEvent | null> {
+    const payment = await fetchPayment(providerPaymentId);
+    if (!payment) {
+      console.error(
+        `[mercadopago] recuperação: a API não devolveu o pagamento ${providerPaymentId} — ` +
+          'id errado, ou de outra aplicação que não a do MERCADOPAGO_ACCESS_TOKEN',
+      );
+      return null;
+    }
+
+    /*
+      Sem `action`: não existe notificação por trás desta chamada. O `eventType` cai no
+      `payment.<status>` derivado do próprio pagamento, que é o que descreve o fato — e deixa o
+      registro em `payment_events` distinguível de um que veio por webhook.
+    */
+    const evento = eventoDoPagamento(payment, null);
+    if (typeof evento === 'string') {
+      console.error(`[mercadopago] recuperação de ${providerPaymentId} sem evento: ${evento}`);
+      return null;
+    }
+    return evento;
   },
 };

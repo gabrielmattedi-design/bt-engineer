@@ -91,4 +91,16 @@ export const fakeProvider: PaymentProvider = {
     await assertAllowed();
     return 'pending';
   },
+
+  /**
+   * O simulado não tem API para consultar: o pagamento só existe enquanto a requisição dura.
+   *
+   * Devolver `null` é a resposta honesta, e a tela de recuperação diz "não encontrei" em vez de
+   * fingir que recuperou. Recuperação manual é ferramenta para dinheiro de verdade — num ambiente
+   * de pagamento simulado não há o que recuperar, porque não há o que se perder.
+   */
+  async eventoDePagamento(): Promise<null> {
+    await assertAllowed();
+    return null;
+  },
 };

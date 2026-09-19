@@ -11,6 +11,7 @@ import { withAutoBootstrap } from "@/database/setup";
 import { Wordmark } from "@/components/marketing/wordmark";
 import { brl } from "@/payments/catalogo";
 import { dataCurta, dataLonga, hora } from "@/lib/datas";
+import { RecuperarPagamentoForm } from "./recuperar-form";
 
 export const dynamic = "force-dynamic";
 
@@ -244,6 +245,8 @@ export default async function VendasPage() {
           </p>
         )}
       </div>
+
+      <RecuperarPagamentoForm />
     </main>
   );
 }
