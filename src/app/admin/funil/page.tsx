@@ -10,6 +10,7 @@ import {
   quizDropoff,
 } from '@/database/repositories/funnel-repo';
 import { dataCurta } from '@/lib/datas';
+import { totalDasOrigens } from '@/lib/origens';
 import { brl } from '@/payments/catalogo';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
@@ -130,6 +131,9 @@ export default async function FunilPage({
         somarReceita(janela),
       ]),
   );
+
+  /* A soma das origens, para a linha de total da tabela. Ver `lib/origens.ts`. */
+  const totais = totalDasOrigens(origens);
 
   const lucro = gastoCentavos === null
     ? null
@@ -628,6 +632,52 @@ export default async function FunilPage({
                     </tr>
                   ))}
                 </tbody>
+
+                {/*
+                  ═══ POR QUE A TABELA PRECISOU DE UMA LINHA DE TOTAL ══════════════════════════
+
+                  Sem ela, a única forma de saber quantas compras houve no dia era somar as linhas
+                  de cabeça — e foi exatamente isso que deu errado em 18/09: com quatro origens na
+                  tela, o total 11 foi lido como 8 porque duas linhas foram somadas e duas não.
+
+                  A conclusão tirada dali foi que "nada bate", quando o sistema estava certo: a
+                  soma da tabela dá 11 e a caixa "O que o Meta recebeu" dizia 11. Os dois números
+                  já concordavam; faltava alguém fazer a adição.
+
+                  Somar à mão é a operação que um painel existe para eliminar, e é a que erra em
+                  silêncio — o mesmo motivo pelo qual o CAC deixou de ser dividido no celular.
+
+                  ─── A MÉDIA DE CONVERSÃO NÃO É A MÉDIA DAS CONVERSÕES ───────────────────────
+
+                  O total de Conversão é `pagaram ÷ chegaram` do agregado, e não a média das
+                  porcentagens das linhas. No print de 18/09 a média simples das quatro daria
+                  24,9% e a verdadeira é 11/47 = 23,4% — média de percentuais ignora que cada
+                  linha tem um tamanho diferente.
+                */}
+                {origens.length > 1 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-line bg-paper font-semibold">
+                      <td className="px-4 py-3">Total</td>
+                      <td className="px-4 py-3 text-graphite">—</td>
+                      <td className="px-4 py-3 text-graphite">—</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{totais.visitors}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
+                        {totais.finished}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">{totais.paid}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {totais.conversion.toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">{totais.clientes}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
+                        {totais.pedidos}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {brl(totais.receitaCentavos)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
 
@@ -722,6 +772,33 @@ export default async function FunilPage({
                   que enviar.
                 </p>
               )}
+
+              {/*
+                ═══ O TOTAL, PORQUE ACEITAS SOZINHO NÃO É O NÚMERO DE COMPRAS ══════════════════
+
+                A decisão de enviar ou não acontece no webhook de PAGAMENTO: uma linha em
+                "recusadas" é uma compra que aconteceu e que a gente escolheu não mandar. Logo
+                `aceitas` é sempre MENOR que o número de compras do dia, e lê-lo como o total é o
+                erro natural — foi o que aconteceu em 18/09, quando 11 aceitas + 1 recusada por
+                cookie foram comparados com o funil como se fossem 11 compras.
+
+                A soma está aqui porque é ela que dá para conferir contra Vendas, que bate com o
+                extrato do Mercado Pago. Sem esta linha, a conferência exige somar a caixa de cima
+                com a lista do meio — de novo uma adição de cabeça, de novo em silêncio.
+              */}
+              {(() => {
+                const recusadas = envios.recusadas.reduce((s, r) => s + r.quantidade, 0);
+                if (recusadas === 0) return null;
+                return (
+                  <p className="mt-4 border-t border-line pt-4 text-xs text-graphite">
+                    <strong className="text-ink">
+                      {envios.aceitas + recusadas} compras no período
+                    </strong>{' '}
+                    ({envios.aceitas} enviadas + {recusadas} não enviadas). É este total que deve
+                    bater com <strong className="text-ink">Vendas</strong>, não o número de cima.
+                  </p>
+                );
+              })()}
             </div>
 
             {/*
@@ -736,6 +813,29 @@ export default async function FunilPage({
               <strong className="text-ink">aceitou</strong>; lá conta só o que ele{' '}
               <strong className="text-ink">atribui ao anúncio</strong>, que exige a pessoa ter
               clicado num anúncio dentro da janela dele. Este ser maior é o normal.
+            </p>
+
+            {/*
+              ═══ O RELÓGIO DO GERENCIADOR DE ANÚNCIOS É OUTRO ════════════════════════════════
+
+              A ressalva acima explica por que o número DELE é menor, e não explica a parte que
+              confunde mais: ele conta a compra no dia do CLIQUE, não no dia do pagamento.
+
+              Duas consequências que parecem defeito e não são:
+
+                • uma compra de hoje, de quem clicou ontem, entra na linha de ONTEM lá e na de HOJE
+                  aqui — as duas telas certas, discordando;
+                • o número de hoje lá AINDA VAI SUBIR, porque quem clicar hoje e comprar amanhã é
+                  somado retroativamente ao dia de hoje.
+
+              Sem isto escrito, comparar as duas telas no meio da tarde produz a conclusão de que
+              "nada bate" — que foi exatamente o que aconteceu em 18/09, às 17h.
+            */}
+            <p className="mt-2 max-w-prose text-xs text-graphite">
+              <strong className="text-ink">E ele conta por outro dia.</strong> O Gerenciador marca
+              a compra no dia do <em>clique</em>, não no do pagamento — então o número dele para
+              hoje ainda vai subir nos próximos dias, e comparar as duas telas com o dia aberto
+              sempre dá diferença.
             </p>
           </section>
         )}
