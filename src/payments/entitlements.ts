@@ -223,6 +223,25 @@ export type SetupPayload = {
   readonly why_combination: string;
   readonly comfort: readonly string[];
   readonly availability_warning: string | null;
+  /**
+   * A saída praticável, quando a corda indicada é cara ou escassa.
+   *
+   * ═══ POR QUE UM AVISO SOZINHO NÃO BASTAVA ═════════════════════════════════════════════════
+   *
+   * O `availability_warning` dizia "confirme com seu encordoador antes de encomendar" e parava
+   * ali. Para a tripa natural — faixa de preço mais alta do catálogo e oferta limitada — isso
+   * informa que a pessoa provavelmente não vai conseguir comprar, e não informa o que comprar.
+   *
+   * Um cliente de 20/09/2026 recebeu exatamente isso: recomendação tecnicamente impecável e sem
+   * caminho de execução. Ele já tinha pesquisado multifilamentos sozinho, e o laudo pareceu
+   * desligado da realidade em que ele compra.
+   */
+  readonly alternativa_pratica: {
+    readonly modelo: string;
+    readonly espessura_mm: number;
+    readonly diferenca: number;
+    readonly motivo: string;
+  } | null;
 };
 
 /**
@@ -2063,6 +2082,7 @@ export function serializeRecommendation(
       why_combination: explainCombination(first, rec, t),
       comfort: explainComfort(first, profile, null),
       availability_warning: rec.variant.availability_warning,
+      alternativa_pratica: rec.alternativa_pratica ?? null,
     };
   }
 

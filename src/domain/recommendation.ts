@@ -149,6 +149,37 @@ export type StringRecommendation = {
    * não foi feita.
    */
   readonly equivalents?: readonly string[];
+
+  /**
+   * A melhor opção SEM a barreira prática da vencedora — preço de topo ou pouca oferta no Brasil.
+   *
+   * ═══ POR QUE ISTO PRECISOU EXISTIR ═════════════════════════════════════════════════════════
+   *
+   * 20/09/2026: um cliente com desconforto em cotovelo e ombro recebeu **tripa natural**. Tecnicamente
+   * é a resposta certa — amigabilidade ao braço 100 de 100, a corda mais macia do catálogo — e o
+   * laudo avisava "disponibilidade menor no Brasil, confirme com seu encordoador".
+   *
+   * O aviso estava certo e não resolvia nada. Tripa natural custa várias vezes um multifilamento,
+   * some de estoque e sofre com a umidade do saibro. O cliente fica com um laudo tecnicamente
+   * impecável e nenhum caminho para executá-lo — que é o mesmo que não ter recomendação.
+   *
+   * Pior: ele já tinha pesquisado multifilamentos por conta própria. O laudo parecia ignorar a
+   * realidade em que ele compra.
+   *
+   * ─── O QUE ELA NÃO É ───────────────────────────────────────────────────────────────────────
+   *
+   * Não é um rebaixamento da recomendação. A vencedora continua sendo a vencedora, e a diferença de
+   * pontuação vai junto — quem quiser pagar pela melhor sabe exatamente o que está comprando, e
+   * quem não puder sabe exatamente o que está abrindo mão. `null` quando a vencedora não tem
+   * barreira nenhuma, que é o caso comum.
+   */
+  readonly alternativa_pratica?: {
+    readonly modelo: string;
+    readonly espessura_mm: number;
+    /** Quanto ela perde para a vencedora, em pontos de encaixe. */
+    readonly diferenca: number;
+    readonly motivo: string;
+  } | null;
 };
 
 export type ConfidenceReason = {

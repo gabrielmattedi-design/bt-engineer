@@ -582,6 +582,20 @@ function scoreVariant(
  * @returns `null` quando nenhuma variante sobrevive aos filtros (é honesto não recomendar)
  */
 /**
+ * Uma corda pontuada contra este perfil.
+ *
+ * Vive no escopo do MÓDULO, e não dentro da função: `alternativaPratica` também precisa dele, e um
+ * tipo local obrigaria a duplicar a forma — duas definições da mesma coisa que só divergem no dia
+ * em que alguém acrescenta um campo numa delas.
+ */
+type Candidate = {
+  model: StringModel;
+  variant: StringVariant;
+  attributes: StringBaseAttributes;
+  score: number;
+};
+
+/**
  * ═══ POR QUE `racketScale` É OBRIGATÓRIA, E NÃO OPCIONAL ═════════════════════════════════════
  *
  * Ela já foi opcional, e a opcionalidade custou um defeito visível ao cliente.
@@ -616,13 +630,6 @@ export function selectStringVariant(
   const excluded = excludedStringTypes(profile);
   const weights = resolveWeights(profile);
   const modelsById = new Map(catalog.models.map((m) => [m.id, m]));
-
-  type Candidate = {
-    model: StringModel;
-    variant: StringVariant;
-    attributes: StringBaseAttributes;
-    score: number;
-  };
 
   const candidates: Candidate[] = [];
 
@@ -754,6 +761,63 @@ export function selectStringVariant(
     gauge_note: buildGaugeNote(catalog.variants, winner.variant, winner.model),
     excluded_types: excluded.reasons,
     equivalents: collectEquivalents(candidates, winner),
+    alternativa_pratica: alternativaPratica(candidates, winner),
+  };
+}
+
+/** Barreira PRÁTICA: o que impede alguém de executar a recomendação, mesmo concordando com ela. */
+function temBarreira(c: Candidate): boolean {
+  return c.variant.brazil_availability_status === 'limited' || c.model.price_tier === 'ultra';
+}
+
+/**
+ * A melhor corda sem a barreira prática da vencedora.
+ *
+ * ═══ O CASO QUE FEZ ISTO EXISTIR (20/09/2026) ════════════════════════════════════════════════
+ *
+ * Cliente com desconforto em cotovelo e ombro recebeu tripa natural — tecnicamente a resposta
+ * certa, e a mais cara e escassa do catálogo. O laudo avisava "disponibilidade menor no Brasil" e
+ * parava aí.
+ *
+ * Um aviso sem saída não é informação, é obstáculo: o leitor fica sabendo que não vai conseguir
+ * comprar e não fica sabendo o que comprar. Na prática equivale a não ter recomendado nada — e o
+ * cliente, que já tinha pesquisado multifilamentos sozinho, leu o laudo como desligado da realidade
+ * em que ele compra.
+ *
+ * ─── POR QUE A DIFERENÇA DE PONTOS VAI JUNTO ───────────────────────────────────────────────
+ *
+ * Porque é ela que transforma a alternativa em ESCOLHA. "Existe uma opção mais barata" é vago;
+ * "existe uma opção mais barata que entrega 4 pontos a menos de encaixe" deixa a pessoa decidir com
+ * o mesmo critério que o motor usou. Sem o número, a alternativa vira palpite do sistema.
+ *
+ * ─── E POR QUE NÃO BASTA `equivalents` ─────────────────────────────────────────────────────
+ *
+ * `equivalents` só lista o que EMPATA com a vencedora. Uma corda excepcional não empata com nada —
+ * foi exatamente o caso da tripa natural, com a lista vazia. O mecanismo que existia calava
+ * justamente quando mais precisava falar.
+ */
+function alternativaPratica(
+  candidates: readonly Candidate[],
+  winner: Candidate,
+): StringRecommendation['alternativa_pratica'] {
+  if (!temBarreira(winner)) return null;
+
+  const viavel = candidates.find((c) => c.variant.id !== winner.variant.id && !temBarreira(c));
+  if (!viavel) return null;
+
+  const caro = winner.model.price_tier === 'ultra';
+  const escasso = winner.variant.brazil_availability_status === 'limited';
+
+  return {
+    modelo: `${viavel.model.brand} ${viavel.model.model}`,
+    espessura_mm: viavel.variant.gauge_mm,
+    diferenca: round(winner.score - viavel.score),
+    motivo:
+      caro && escasso
+        ? 'a indicada é de faixa de preço mais alta e tem oferta limitada no Brasil'
+        : caro
+          ? 'a indicada é de faixa de preço mais alta'
+          : 'a indicada tem oferta limitada no Brasil',
   };
 }
 

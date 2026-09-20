@@ -727,6 +727,31 @@ export default async function ResultadoPage({
               </p>
             )}
 
+            {/*
+              ═══ O AVISO PRECISA DE UMA SAÍDA ═════════════════════════════════════════════════
+
+              Sozinho, o aviso acima diz que a pessoa provavelmente não vai conseguir comprar a
+              corda indicada — e não diz o que fazer com isso. Para a tripa natural, que é a faixa
+              de preço mais alta do catálogo e some de estoque, isso equivale a não ter recomendado
+              nada.
+
+              A diferença de pontos vai junto porque é ela que transforma a alternativa em ESCOLHA.
+              "Existe uma opção mais barata" é palpite; "existe uma que entrega 1,9 ponto a menos"
+              deixa a pessoa decidir com a mesma régua que o motor usou.
+            */}
+            {report.setup.alternativa_pratica && (
+              <p className="mt-3 rounded border border-line bg-white px-4 py-3 text-sm">
+                <strong>Se preferir uma opção mais fácil de achar:</strong>{' '}
+                {report.setup.alternativa_pratica.modelo}{' '}
+                {report.setup.alternativa_pratica.espessura_mm.toFixed(2).replace('.', ',')} mm
+                {' '}entrega{' '}
+                {report.setup.alternativa_pratica.diferenca.toFixed(1).replace('.', ',')} ponto
+                {report.setup.alternativa_pratica.diferenca === 1 ? '' : 's'} a menos de encaixe
+                com o seu perfil — {report.setup.alternativa_pratica.motivo}. A indicada acima
+                continua sendo a melhor para você; esta é a que dá para comprar hoje.
+              </p>
+            )}
+
             <Explainer title="Por que essa corda?" lines={report.setup.why_string} />
             <Explainer title="Por que essa tensão?" lines={report.setup.why_tension} />
             <Explainer title="Por que essa combinação funciona?" lines={[report.setup.why_combination]} />
