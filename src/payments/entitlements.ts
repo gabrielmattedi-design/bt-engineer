@@ -2025,6 +2025,16 @@ export function serializeRecommendation(
                 profile,
                 reference: result.objective_reference,
                 bands: result.attribute_bands,
+                /*
+                  A corda que ESTE laudo indicou vai junto, e é a correção da causa raiz das
+                  contradições de 20/09/2026: sem ela, o texto de trocas dava conselho de material
+                  sem saber que o próprio relatório já tinha escolhido um. Ver `TradeOffContext`.
+                */
+                recommendedString: result.string_recommendation
+                  ? {
+                      nome: `${result.string_recommendation.variant.model.brand} ${result.string_recommendation.variant.model.model}`,
+                    }
+                  : null,
               }
             : undefined,
         ),

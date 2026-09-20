@@ -76,6 +76,63 @@ describe('o conselho de setup respeita o braço de quem lê', () => {
 
   /** A escolha do conselho passa pelo perfil. Constante de novo é o defeito voltando. */
   it('o conselho é escolhido em função do perfil, e não fixo', () => {
-    expect(FONTE).toMatch(/setupLever\(need,\s*profile\.arm_sensitivity_score\)/);
+    expect(FONTE).toMatch(/setupLever\(\s*need,/);
+    expect(FONTE).toMatch(/profile\.arm_sensitivity_score/);
+  });
+});
+
+/**
+ * ═══ A CAUSA RAIZ, E POR QUE A PRIMEIRA CORREÇÃO NÃO BASTOU ══════════════════════════════════
+ *
+ * A correção de braço sensível fechou três das quatro frases erradas do laudo de 20/09/2026. A
+ * quarta passou:
+ *
+ *   "O lugar certo de buscar conforto no seu caso é o setup: UM MULTIFILAMENTO em tensão mais
+ *    baixa amortece bem mais que qualquer troca de frame."
+ *
+ * Dita a um jogador que recebeu TRIPA NATURAL — que amortece mais que multifilamento. Tecnicamente
+ * correta em abstrato, e um rebaixamento naquele documento.
+ *
+ * Ela escapou porque o problema nunca foi o braço: era este módulo escrever conselho de corda sem
+ * saber se o laudo já tinha dado um. Enquanto a decisão do motor de cordas não chegasse aqui,
+ * qualquer tabela de materiais ia contradizer alguma recomendação, mais cedo ou mais tarde.
+ *
+ * A correção é estrutural: com a corda em mãos, o conselho para de nomear material e passa a falar
+ * de bitola e tensão — verdadeiro em qualquer corda, e incapaz de contradizer coisa nenhuma.
+ */
+describe('o conselho não contradiz a corda que o próprio laudo indicou', () => {
+  it('o contexto carrega a corda recomendada', () => {
+    expect(FONTE).toContain('recommendedString');
+  });
+
+  it('existe uma tabela de conselhos para quando já há corda escolhida', () => {
+    expect(FONTE).toContain('SETUP_LEVER_COM_CORDA');
+  });
+
+  /**
+   * A regra que impede o defeito de voltar em qualquer forma: as frases usadas quando já existe
+   * corda escolhida não podem nomear MATERIAL NENHUM. Poliéster, multifilamento e tripa são todos
+   * proibidos ali — não por serem perigosos, mas porque nomear qualquer um deles é arriscar
+   * contradizer o que o laudo escolheu.
+   */
+  it('nenhuma frase com corda escolhida nomeia material', () => {
+    const bloco = /SETUP_LEVER_COM_CORDA[\s\S]*?\n\};/.exec(FONTE)?.[0] ?? '';
+    expect(bloco, 'a tabela sumiu ou mudou de forma').not.toBe('');
+
+    for (const material of [/poli[ée]ster/i, /multifilamento/i, /tripa/i, /sint[ée]tic/i]) {
+      expect(bloco, `a tabela voltou a nomear material: ${material}`).not.toMatch(material);
+    }
+  });
+
+  /** E ela tem prioridade: existindo corda, é ela que manda, antes de qualquer ramo de braço. */
+  it('a corda escolhida tem prioridade sobre as tabelas de material', () => {
+    const fn = /function setupLever\([\s\S]*?\n\}/.exec(FONTE)?.[0] ?? '';
+    const posCorda = fn.indexOf('SETUP_LEVER_COM_CORDA');
+    const posBraco = fn.indexOf('SETUP_LEVER_BRACO_SENSIVEL');
+    expect(posCorda).toBeGreaterThanOrEqual(0);
+    expect(posBraco).toBeGreaterThanOrEqual(0);
+    expect(posCorda, 'o ramo de material passou na frente do da corda escolhida').toBeLessThan(
+      posBraco,
+    );
   });
 });

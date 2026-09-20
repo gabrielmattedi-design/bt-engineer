@@ -12,6 +12,27 @@ export type TradeOffContext = {
   readonly profile: PlayerProfile;
   readonly reference: Readonly<Record<NeedKey, number>>;
   readonly bands: Readonly<Record<string, readonly [number, number]>>;
+  /**
+   * A corda que o PRÓPRIO laudo recomendou — quando ele recomendou alguma.
+   *
+   * ═══ A CAUSA RAIZ DAS CONTRADIÇÕES DE 20/09/2026 ═══════════════════════════════════════════
+   *
+   * Este módulo escrevia conselho de corda sem saber se o laudo já tinha dado um. Num relatório
+   * que recomendou TRIPA NATURAL para um jogador com lesão no cotovelo, ele escreveu três vezes
+   * "busque spin/precisão num poliéster" — material que a própria análise tinha excluído — e mais
+   * uma vez "busque conforto num multifilamento", que amortece MENOS que a tripa indicada.
+   *
+   * As três frases estavam tecnicamente corretas em abstrato e erradas naquele documento. A
+   * primeira correção tratou só o ramo do braço, e por isso deixou a quarta passar: o problema
+   * nunca foi o braço, foi este módulo não ter acesso à decisão do outro.
+   *
+   * Com a corda em mãos, o conselho deixa de nomear material e passa a falar do que dá para
+   * ajustar NAQUELA corda — bitola e tensão —, que é verdadeiro para qualquer material e não pode
+   * contradizer coisa nenhuma.
+   *
+   * `undefined` em relatório só de raquete, onde não há recomendação de corda para contradizer.
+   */
+  readonly recommendedString?: { readonly nome: string } | null;
 };
 
 /** Posição do valor dentro da faixa ocupada pelo catálogo — a mesma régua de `catalog-scale.ts`. */
@@ -345,8 +366,43 @@ const SETUP_LEVER_BRACO_SENSIVEL: Partial<Record<NeedKey, string>> = {
     'uma bitola mais fina e, com corda elástica, alguns quilos a mais de tensão fecham o alvo sem o custo articular do poliéster',
 };
 
-/** O conselho de setup que cabe a ESTE jogador, e não o genérico. */
-function setupLever(need: NeedKey, armSensitivity: number): string | null {
+/**
+ * O que dá para ajustar NA CORDA QUE O LAUDO INDICOU.
+ *
+ * Não nomeia material, e é por isso que funciona: bitola e tensão movem estes eixos em qualquer
+ * corda, então nenhuma destas frases pode contradizer a recomendação — seja ela tripa natural,
+ * multifilamento ou poliéster.
+ *
+ * É também o conselho mais ÚTIL. Mandar trocar de material depois de ter recomendado um material
+ * obriga o leitor a decidir em qual das duas páginas do laudo acreditar; mandar mexer na tensão do
+ * que ele vai encordoar é acionável no mesmo dia, pelo encordoador, de graça.
+ */
+const SETUP_LEVER_COM_CORDA: Partial<Record<NeedKey, string>> = {
+  power: 'baixar um pouco a tensão da corda indicada devolve potência sem trocar de raquete',
+  comfort: 'baixar a tensão da corda indicada amortece mais que qualquer troca de frame',
+  spin: 'uma bitola mais fina da corda indicada aumenta a mordida na bola',
+  control: 'subir um pouco a tensão da corda indicada segura a bola dentro',
+  precision: 'subir um pouco a tensão da corda indicada encurta a bola e fecha o alvo',
+};
+
+/**
+ * O conselho de setup que cabe a ESTE laudo, em três camadas.
+ *
+ * 1. **O laudo já escolheu uma corda** → fala de bitola e tensão dela. Não nomeia material, então
+ *    não tem como contradizer a escolha. É a camada que faltava, e a ausência dela produziu as
+ *    quatro frases erradas de 20/09/2026.
+ * 2. **Só raquete, e braço sensível** → material macio, nunca poliéster.
+ * 3. **Só raquete, braço sem queixa** → o conselho genérico, que sempre esteve certo aqui.
+ */
+function setupLever(
+  need: NeedKey,
+  armSensitivity: number,
+  temCorda: boolean,
+): string | null {
+  if (temCorda) {
+    const comCorda = SETUP_LEVER_COM_CORDA[need];
+    if (comCorda) return comCorda;
+  }
   if (armSensitivity > NO_CONCERN) {
     const seguro = SETUP_LEVER_BRACO_SENSIVEL[need];
     if (seguro) return seguro;
@@ -522,7 +578,11 @@ function unmetAsks(
           mandava poliéster para quem o próprio laudo tinha proibido de usar poliéster.
         */
         (() => {
-          const lever = setupLever(need, profile.arm_sensitivity_score);
+          const lever = setupLever(
+            need,
+            profile.arm_sensitivity_score,
+            Boolean(context.recommendedString),
+          );
           return lever ? ` O lugar certo de buscar ${label} no seu caso é o setup: ${lever}.` : '';
         })(),
     });
