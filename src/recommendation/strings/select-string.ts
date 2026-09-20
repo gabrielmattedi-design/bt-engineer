@@ -361,7 +361,7 @@ export function excludedStringTypes(profile: PlayerProfile): {
  * O piso de `NO_CONCERN` existe para não cobrar rigidez de quem nunca relatou nada. Punir todo
  * mundo por precaução seria viés, não análise — é o mesmo princípio de `comfortFit`.
  */
-const NO_CONCERN = 25;
+export const NO_CONCERN = 25;
 
 export function stiffnessPenalty(
   armSensitivity: number,

@@ -1,5 +1,6 @@
 import type { NeedKey, PlayerProfile } from '@/domain/player-profile';
 import type { ComponentBreakdown, RankedRacket } from '@/domain/recommendation';
+import { NO_CONCERN } from '@/recommendation/strings/select-string';
 
 /**
  * Tudo o que a explicação precisa saber além do ranking.
@@ -306,6 +307,53 @@ const SETUP_LEVER: Record<NeedKey, string | null> = {
   forgiveness: null,
 };
 
+/**
+ * ═══ O MESMO CONSELHO, PARA QUEM NÃO PODE LEVAR POLIÉSTER ════════════════════════════════════
+ *
+ * ⚠️ O DEFEITO QUE ISTO CORRIGE, MEDIDO NUM LAUDO REAL (20/09/2026)
+ *
+ * Um cliente declarou desconforto em cotovelo e ombro. O motor fez tudo certo: descartou frames
+ * rígidos antes da pontuação, excluiu poliéster duro e recomendou TRIPA NATURAL — a corda mais
+ * amigável ao braço do catálogo, amigabilidade 100 de 100.
+ *
+ * E o mesmo PDF mandou ele comprar poliéster **três vezes**: "o lugar certo de buscar spin no seu
+ * caso é um poliéster de perfil áspero", e o mesmo para controle e precisão.
+ *
+ * A causa é esta tabela ter sido uma constante: ela não sabia nada do jogador nem do que o motor de
+ * cordas tinha decidido. O conselho genérico está tecnicamente correto — poliéster áspero e fino é
+ * mesmo o que mais agarra a bola — e era exatamente o conselho errado para aquela pessoa.
+ *
+ * O custo não é de redação. Um laudo que se contradiz na mesma página perde a autoridade inteira:
+ * quem lê não sabe mais em qual das duas frases acreditar, e a conclusão natural é que ninguém
+ * conferiu nada. Foi o que esse cliente concluiu.
+ *
+ * ─── POR QUE O SUBSTITUTO NÃO É "NÃO DÁ" ───────────────────────────────────────────────────
+ *
+ * Quem tem braço sensível continua tendo como buscar mordida e controle — só não por rigidez.
+ * Bitola mais fina aumenta o encaixe em qualquer material, e corda elástica aceita um pouco mais de
+ * tensão pelo mesmo custo articular que um poliéster cobraria mais baixo. É o que o próprio bloco
+ * de tensão do laudo já explica; faltava esta tabela concordar com ele.
+ *
+ * O limiar é o MESMO do motor de cordas (`NO_CONCERN`), importado e não copiado: se um dia ele
+ * mudar lá, o texto acompanha. Duas cópias divergindo é como este defeito nasceu.
+ */
+const SETUP_LEVER_BRACO_SENSIVEL: Partial<Record<NeedKey, string>> = {
+  spin: 'uma bitola mais fina e uma tensão um pouco mais baixa aumentam a mordida — sem a rigidez do poliéster, que o seu braço não comporta',
+  control:
+    'uma bitola mais fina e, com corda elástica, alguns quilos a mais de tensão seguram a bola sem o custo articular do poliéster',
+  precision:
+    'uma bitola mais fina e, com corda elástica, alguns quilos a mais de tensão fecham o alvo sem o custo articular do poliéster',
+};
+
+/** O conselho de setup que cabe a ESTE jogador, e não o genérico. */
+function setupLever(need: NeedKey, armSensitivity: number): string | null {
+  if (armSensitivity > NO_CONCERN) {
+    const seguro = SETUP_LEVER_BRACO_SENSIVEL[need];
+    if (seguro) return seguro;
+  }
+  return SETUP_LEVER[need];
+}
+
 /** Fração do pedido abaixo da qual o relatório DEVE explicar por que não entregou. */
 const SHORTFALL_THRESHOLD = 0.45;
 
@@ -469,9 +517,14 @@ function unmetAsks(
           ? ` O que ela entrega no lugar é ${compensacao.label}: ${compensacao.position} de 100, ` +
             `contra ${compensacao.median} da raquete mediana entre as avaliadas.`
           : '') +
-        (SETUP_LEVER[need]
-          ? ` O lugar certo de buscar ${label} no seu caso é o setup: ${SETUP_LEVER[need]}.`
-          : ''),
+        /*
+          O conselho de setup depende do BRAÇO de quem lê — ver `setupLever`. Constante, ele
+          mandava poliéster para quem o próprio laudo tinha proibido de usar poliéster.
+        */
+        (() => {
+          const lever = setupLever(need, profile.arm_sensitivity_score);
+          return lever ? ` O lugar certo de buscar ${label} no seu caso é o setup: ${lever}.` : '';
+        })(),
     });
   }
 
