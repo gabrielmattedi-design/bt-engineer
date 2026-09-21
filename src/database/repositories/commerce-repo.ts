@@ -11,6 +11,8 @@ import {
   recommendationSessions,
   users,
 } from '@/database/schema';
+import { anonymousSessions } from '@/database/schema/sessions';
+import { visitorCampaigns } from '@/database/schema/campaigns';
 import { PRODUCT_SEED } from '@/database/setup';
 import { canTransition, type PaymentEvent, type PaymentStatus } from '@/payments/provider';
 import { markFunnelBySessionId } from './funnel-repo';
@@ -515,6 +517,18 @@ export type Venda = {
   readonly couponCode: string | null;
   /** `null` no pedido sem análise ligada — o esquema permite. Sem ele não há relatório a abrir. */
   readonly publicId: string | null;
+  /**
+   * De onde essa pessoa veio, quando deu para saber — ver `origemDaVenda` abaixo.
+   *
+   * `null` significa "chegou sem link marcado", e não "não sei se veio de algum lugar": a origem
+   * só existe se alguém a escreveu no link. É a MESMA ausência que a linha "sem marcação" da tela
+   * de funil conta, vista pedido a pedido.
+   */
+  readonly origem: {
+    readonly source: string;
+    readonly campaign: string | null;
+    readonly content: string | null;
+  } | null;
 };
 
 export type Vendas = {
@@ -697,12 +711,52 @@ export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
       amountCents: orders.amountCents,
       couponCode: orders.couponCode,
       publicId: recommendationSessions.publicId,
+      origemSource: visitorCampaigns.source,
+      origemCampaign: visitorCampaigns.campaign,
+      origemContent: visitorCampaigns.content,
     })
     .from(orders)
     // `left join` nos dois: pedido sem e-mail e pedido sem análise são casos reais e não podem
     // sumir da lista — some justamente o pedido estranho, que é o que mais interessa ver.
     .leftJoin(users, eq(users.id, orders.userId))
     .leftJoin(recommendationSessions, eq(recommendationSessions.id, orders.recommendationSessionId))
+    /*
+      ═══ A ORIGEM DE CADA VENDA — A CORRENTE, E POR QUE ELA TEM TRÊS ELOS ══════════════════════
+
+      O pedido guarda a SESSÃO do navegador; a campanha guarda o HASH do cookie. `anonymous_sessions`
+      liga os dois. É a mesma corrente de `dinheiroPorOrigem`, e o dono do pedido é
+      `coalesce(sessão da análise, sessão do pedido)` — a mesma ordem de `processPaymentEvent`,
+      porque a pessoa pode ter comprado de outro aparelho e a identidade que vale é a de quem
+      respondeu o questionário.
+
+      ─── POR QUE UM `leftJoin` SIMPLES BASTA ──────────────────────────────────────────────────
+
+      `visitor_campaigns` tem `unique(visitor_hash)`: primeiro toque vence e o visitante carrega UMA
+      origem para sempre (ver o cabeçalho de `schema/campaigns.ts`). Não há último toque a escolher
+      nem linha duplicada a desempatar — cada pedido casa com no máximo uma origem, e o join não
+      multiplica a lista.
+
+      ─── E POR QUE A TRAVA DE TEMPO CONTINUA NECESSÁRIA ───────────────────────────────────────
+
+      `gte(paidAt, campanha.createdAt)` impede creditar ao anúncio uma compra ANTERIOR ao clique.
+      O caso real é o cliente que já comprou, vê o anúncio depois e clica: sem a trava, a compra
+      velha dele viraria receita do criativo — e o número vem bonito, que é o pior jeito de estar
+      errado. É a mesma trava de `campaignReport`, pelo mesmo motivo.
+    */
+    .leftJoin(
+      anonymousSessions,
+      eq(
+        anonymousSessions.id,
+        sql`coalesce(${recommendationSessions.sessionId}, ${orders.sessionId})`,
+      ),
+    )
+    .leftJoin(
+      visitorCampaigns,
+      and(
+        eq(visitorCampaigns.visitorHash, anonymousSessions.cookieTokenHash),
+        gte(orders.paidAt, visitorCampaigns.createdAt),
+      ),
+    )
     /*
       `gte`/`desc` e NÃO um template `sql` cru.
 
@@ -728,7 +782,22 @@ export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
     desde,
     // `paidAt` é não-nulo por construção em pedido `paid` — o webhook grava os dois juntos —, mas o
     // TIPO permite nulo, e o filtro já garantiu a condição. O descarte mantém o tipo honesto.
-    itens: itens.filter((v): v is Venda => v.paidAt !== null),
+    itens: itens
+      .filter((v) => v.paidAt !== null)
+      .map(
+        ({ origemSource, origemCampaign, origemContent, ...resto }): Venda => ({
+          ...(resto as Omit<Venda, 'origem'>),
+          /*
+            `source` é `notNull` no esquema, então a ausência dele é a ausência da LINHA inteira —
+            o pedido de quem chegou sem link marcado. Montar o objeto só quando ele existe mantém
+            a distinção visível no tipo, em vez de virar três campos nulos soltos.
+          */
+          origem:
+            origemSource === null
+              ? null
+              : { source: origemSource, campaign: origemCampaign, content: origemContent },
+        }),
+      ),
     anterioresAoCorte: fora[0]?.n ?? 0,
   };
 }

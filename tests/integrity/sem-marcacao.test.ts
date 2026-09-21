@@ -81,20 +81,22 @@ describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
   });
 
   /**
-   * ⚠️ A dupla atribuição não pode virar uma linha de zero silenciosa.
+   * ⚠️ O impossível também precisa ser detectado — é para isso que serve um canário.
    *
-   * `dinheiroPorOrigem` agrupa por (origem, campanha, criativo) e conta `distinct` DENTRO de cada
-   * grupo. Quem chegou pelo anúncio na segunda e pela bio na terça tem duas linhas de campanha, e o
-   * pedido dela é contado nas duas — então a soma das origens pode passar do total.
+   * ⚠️ CORREÇÃO (21/09): este comentário dizia que o caso vinha de dupla atribuição ("chegou pelo
+   * anúncio na segunda e pela bio na terça"). É impossível — `visitor_campaigns` tem
+   * `unique(visitor_hash)` e o visitante carrega UMA origem para sempre. Eu deduzi o mecanismo em
+   * vez de ler o esquema.
    *
-   * `Math.max(0, …)` sozinho transformaria esse defeito numa linha plausível e muda. O valor é
-   * zerado porque linha negativa não se desenha, e `excede` existe para a tela poder falar.
+   * Com o esquema de hoje isto não deveria ocorrer. O teste fica porque a alternativa —
+   * `Math.max(0, …)` sozinho — esconderia o defeito atrás de uma linha de zero plausível no dia em
+   * que a única caísse.
    */
   it('avisa quando as origens somam MAIS que o total', () => {
     const totais = totalDasOrigens([origem(6, 29_994), origem(4, 19_996)]);
     const resto = semMarcacao(8, 39_992, totais);
 
-    expect(resto.excede, 'a dupla atribuição passou em silêncio').toBe(true);
+    expect(resto.excede, 'o impossível passou em silêncio').toBe(true);
     expect(resto.pedidos, 'linha negativa não se desenha').toBe(0);
     expect(resto.receitaCentavos).toBe(0);
   });
@@ -160,15 +162,20 @@ describe('a linha "sem marcação" fecha também a tabela de chegadas', () => {
   });
 
   /**
-   * ⚠️ Origens acima da coorte é caso REAL: `quiz:start` é único por visitante na vida, enquanto
-   * uma linha de campanha nasce a cada chegada marcada. O visitante recorrente entra nas origens de
-   * hoje e não nesta coorte — e a tela diz isso em vez de zerar calada.
+   * ⚠️ Origens acima da coorte é caso REAL, e o motivo é MARCO PERDIDO.
+   *
+   * A linha de campanha e o marco `quiz:start` nascem na mesma ação, mas `markFunnel` nunca lança —
+   * medição não pode derrubar o produto —, então uma falha de banco descarta o marco em silêncio
+   * enquanto a linha de campanha entra normalmente.
+   *
+   * (A versão anterior deste comentário culpava o visitante recorrente criando linha nova de
+   * campanha. `unique(visitor_hash)` impede isso.)
    */
   it('avisa quando as origens passam da coorte', () => {
     const totais = totalDasOrigens([origemDeChegada(300, 280, 60)]);
     const resto = semMarcacaoNaCoorte({ visitors: 250, finished: 240, paid: 55 }, totais);
 
-    expect(resto.excede, 'visitante recorrente passou em silêncio').toBe(true);
+    expect(resto.excede, 'marco de funil perdido passou em silêncio').toBe(true);
     expect(resto.visitors).toBe(0);
     expect(resto.paid).toBe(0);
   });
@@ -192,7 +199,7 @@ describe('a tela não volta a esconder o resto', () => {
     expect(FONTE_DA_PAGINA).toMatch(/resto\.pedidos > 0 \|\| resto\.receitaCentavos > 0/);
   });
 
-  it('o aviso de dupla atribuição está ligado ao sinalizador', () => {
+  it('os dois avisos de excede estão ligados aos sinalizadores', () => {
     expect(FONTE_DA_PAGINA, 'excede deixou de ser mostrado').toMatch(/\{resto\.excede &&/);
     expect(FONTE_DA_PAGINA, 'o excede da coorte deixou de ser mostrado').toMatch(
       /\{restoDaCoorte\.excede &&/,

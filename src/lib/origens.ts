@@ -79,13 +79,16 @@ export function totalDasOrigens(linhas: readonly LinhaSomavel[]): TotalDeOrigens
  *
  * ⚠️ ─── E POR QUE O NEGATIVO PRECISA APARECER ────────────────────────────────────────────────
  *
- * `dinheiroPorOrigem` agrupa por (origem, campanha, criativo) e conta `distinct` DENTRO de cada
- * grupo. Uma pessoa que chegou pelo anúncio na segunda e pela bio na terça tem duas linhas de
- * campanha, e o pedido dela é contado nas DUAS — então a soma das origens pode passar do total.
+ * ⚠️ CORREÇÃO (21/09): a primeira versão deste comentário dizia que o negativo vinha de dupla
+ * atribuição — "quem chegou pelo anúncio na segunda e pela bio na terça tem duas linhas de
+ * campanha". **Isso é impossível.** `visitor_campaigns` tem `unique(visitor_hash)`: primeiro toque
+ * vence e o visitante tem UMA origem para sempre (ver o cabeçalho de `schema/campaigns.ts`). Eu
+ * deduzi o mecanismo em vez de ler o esquema — o mesmo erro que a §1.5 de `OPERACAO_DA_CAMPANHA`
+ * documenta sobre o gerenciador do Meta.
  *
- * Nesse caso o resto dá negativo, e um `Math.max(0, …)` mudo transformaria um defeito de dupla
- * atribuição numa linha de zero, silenciosa e plausível. O valor é zerado (linha negativa não se
- * desenha) e `excede` fica ligado para a tela poder dizer o que aconteceu.
+ * Com o esquema de hoje, o negativo **não deveria acontecer**. Ele fica como canário: se aparecer,
+ * ou a única caiu, ou o vínculo pedido → visitante passou a render mais de uma origem. Nos dois
+ * casos é defeito, e um `Math.max(0, …)` mudo o esconderia atrás de uma linha de zero plausível.
  */
 export type SemMarcacao = {
   /** Pedidos sem origem conhecida. Zero quando toda venda foi atribuída. */
@@ -135,9 +138,16 @@ export type SemMarcacaoNaCoorte = CoorteSomavel & {
  * data do MARCO e a tabela de origens pela data de CHEGADA. Quem chegou hoje e paga amanhã entra
  * numa e não na outra, e o resto sairia plausível e falso. Ver `coorteDeChegada`.
  *
- * ⚠️ E o negativo é possível: `quiz:start` é único por visitante na vida, enquanto uma linha de
- * campanha nasce a cada chegada marcada. O visitante antigo que clica no anúncio hoje entra nas
- * origens de hoje e não na coorte. `excede` existe para a tela dizer isso em vez de zerar calada.
+ * ⚠️ E o negativo é possível — mas NÃO pelo motivo que este comentário dizia antes (visitante
+ * recorrente criando linha nova de campanha; `unique(visitor_hash)` impede isso).
+ *
+ * A causa real é outra e é mais útil: a linha de campanha e o marco `quiz:start` nascem na mesma
+ * ação, e **`markFunnel` nunca lança** — medição não pode derrubar o produto, então uma falha de
+ * banco descarta o marco em silêncio. Quando isso acontece, a pessoa entra na tabela de origens e
+ * não na coorte, e a soma passa do total.
+ *
+ * Ou seja: `excede` aqui é o sintoma de MARCO PERDIDO, e o rastro está no mesmo log que a
+ * reconciliação do funil já cita — `[funil] marco descartado`.
  */
 export function semMarcacaoNaCoorte(
   coorte: CoorteSomavel,

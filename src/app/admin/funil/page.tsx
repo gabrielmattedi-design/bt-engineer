@@ -528,20 +528,20 @@ export default async function FunilPage({
             </p>
 
             {/*
-              ⚠️ Soma das origens MAIOR que o total: dupla atribuição, não resto.
+              ⚠️ Soma das origens MAIOR que o total — canário, não caso esperado.
 
-              `dinheiroPorOrigem` agrupa por (origem, campanha, criativo) e conta `distinct` dentro
-              de cada grupo. Quem chegou pelo anúncio na segunda e pela bio na terça tem duas linhas
-              de campanha, e o pedido dela é contado nas duas.
+              A primeira versão disto culpava dupla atribuição ("chegou pelo anúncio e pela bio").
+              É impossível: `visitor_campaigns` tem `unique(visitor_hash)` e o visitante carrega UMA
+              origem para sempre. Eu deduzi o mecanismo em vez de ler o esquema.
 
-              Zerar isso em silêncio esconderia um defeito real atrás de uma linha plausível.
+              Com o esquema de hoje isto não deveria aparecer. Se aparecer, é defeito de verdade —
+              e por isso não pode ser zerado em silêncio.
             */}
             {resto.excede && (
               <p className="mt-3 max-w-prose rounded border border-warn/40 bg-warn/5 p-3 text-sm text-warn">
-                <strong>As origens somam mais que o total.</strong> Alguém chegou por mais de um
-                link no período e o pedido está sendo contado em mais de uma origem. O total acima
-                está certo; as linhas individuais estão infladas. Confira em{' '}
-                <strong>Vendas</strong>, que é o registro do dinheiro.
+                <strong>As origens somam mais que o total, e isso não deveria acontecer.</strong> O
+                total acima está certo — ele vem de <strong>Vendas</strong>, que é o registro do
+                dinheiro. As linhas individuais é que estão infladas. Me chame.
               </p>
             )}
 
@@ -666,23 +666,22 @@ export default async function FunilPage({
                 </div>
 
                 {/*
-                  ⚠️ Coorte menor que a soma das origens — e é um caso REAL, não defensivo.
+                  ⚠️ Coorte menor que a soma das origens = MARCO PERDIDO.
 
-                  `funnel_markers` tem única em (visitante, marco): `quiz:start` é gravado uma vez
-                  na vida do visitante. `visitor_campaigns` não tem essa trava — cada chegada por
-                  link marcado cria linha nova. Então o cliente antigo que clica no anúncio hoje
-                  entra nas origens de hoje e não nesta coorte, porque o `quiz:start` dele é velho.
+                  A linha de campanha e o marco `quiz:start` nascem na mesma ação. Mas `markFunnel`
+                  nunca lança — medição não pode derrubar o produto —, então uma falha de banco
+                  descarta o marco em silêncio enquanto a linha de campanha entra normalmente.
 
-                  Zerar isso em silêncio ensinaria a ler um "0" como "não houve", quando o que
-                  houve foi visitante recorrente — que é informação de negócio, não defeito.
+                  (A explicação anterior aqui era outra e estava errada: dizia que o visitante
+                  recorrente criava linha nova de campanha. `unique(visitor_hash)` impede isso.)
                 */}
                 {restoDaCoorte.excede && (
-                  <p className="mt-3 max-w-prose rounded border border-line bg-paper p-3 text-xs text-graphite">
-                    <strong className="text-ink">As origens somam mais que a coorte.</strong> É o
-                    esperado quando alguém que JÁ tinha aberto o questionário antes volta por um
-                    link marcado: ele conta como chegada da origem e não como chegada nova, porque
-                    o marco de abertura é único por visitante. Quanto maior esta diferença, mais
-                    gente voltando — e isso é público recorrente, não erro.
+                  <p className="mt-3 max-w-prose rounded border border-warn/40 bg-warn/5 p-3 text-xs text-warn">
+                    <strong>As origens somam mais que a coorte — faltou marco de funil.</strong> A
+                    linha de origem foi gravada e a de abertura do questionário não. A gravação de
+                    marcos engole erros de propósito, para não derrubar o questionário de quem está
+                    respondendo. O rastro está no log do servidor, em{' '}
+                    <code>[funil] marco descartado</code>.
                   </p>
                 )}
               </div>

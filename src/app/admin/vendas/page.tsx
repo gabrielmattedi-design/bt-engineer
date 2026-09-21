@@ -170,11 +170,12 @@ export default async function VendasPage() {
           </p>
         ) : (
           <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-graphite">
                   <th className="py-2 pr-4 font-medium">Quando</th>
                   <th className="py-2 pr-4 font-medium">E-mail</th>
+                  <th className="py-2 pr-4 font-medium">Origem</th>
                   <th className="py-2 pr-4 font-medium">Produto</th>
                   <th className="py-2 pr-4 text-right font-medium">Valor</th>
                   <th className="py-2 pr-4 font-medium">Cupom</th>
@@ -195,6 +196,34 @@ export default async function VendasPage() {
                       */}
                       {v.email ?? (
                         <span className="text-graphite">sem cadastro</span>
+                      )}
+                    </td>
+                    {/*
+                      ═══ A ORIGEM, PEDIDO A PEDIDO ════════════════════════════════════════════
+
+                      A tela de funil já somava por origem, e isso não respondia a pergunta que o
+                      dono fez em 18/09 e repetiu em 21/09: *"quantas vendas vieram do link da bio
+                      depois das 13 horas?"*. Somatório por dia não cruza fonte com horário — e o
+                      horário é o que liga uma venda a um post publicado numa hora específica.
+
+                      Aqui as duas informações ficam na mesma linha, e a pergunta vira leitura.
+
+                      "sem marcação" é a MESMA ausência que a tela de funil conta numa linha só,
+                      vista de perto: a pessoa chegou sem link marcado. Não é falha de registro, e
+                      escrever "—" faria parecer que sim.
+                    */}
+                    <td className="py-3 pr-4">
+                      {v.origem ? (
+                        <>
+                          <span className="text-ink">{v.origem.source}</span>
+                          {(v.origem.campaign ?? v.origem.content) && (
+                            <span className="block text-xs text-graphite">
+                              {[v.origem.campaign, v.origem.content].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-graphite">sem marcação</span>
                       )}
                     </td>
                     <td className="py-3 pr-4 text-graphite">{v.sku}</td>
