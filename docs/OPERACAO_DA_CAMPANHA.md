@@ -1027,6 +1027,40 @@ orçamento mínimo por conjunto = 7,1 × CAC
 > atual terminar. Ler em 17–18/09. CAC em ~8 → cabe testar com orçamento atual. CAC em ~14 → só
 > depois de subir o orçamento para a faixa de R$ 200/dia.
 
+#### ✅ CONDIÇÃO LIDA em 21/09 — e a resposta é NÃO AINDA
+
+O CAC dos três dias inteiros em R$ 149 (18–20) fechou em **R$ 11,10** — entre os dois postes, mais
+perto do lado que manda esperar. A conta do limiar, com o número real:
+
+```
+mínimo por conjunto = 7,1 × 11,10 = R$ 78,81/dia
+dois conjuntos      = R$ 157,62/dia ENTREGUES
+```
+
+**E o que importa é entregue, não orçado.** O gasto real dos três dias foi **R$ 144,27/dia**.
+Dividido em dois: R$ 72,14 por conjunto → 6,5 conversões/dia → **45 por semana. Não passa.**
+
+Para os dois conjuntos limparem as 50/semana seria preciso entregar ~R$ 158,57/dia, o que a 97% de
+entrega pede orçamento de **~R$ 165**.
+
+> ⚠️ **E aqui o caminho se morde:** a saída óbvia — subir o orçamento — é justamente a alavanca que
+> os dias 18–20 mostraram gasta. O orçamento subiu 19,2% e a entrega subiu 3,3%. Pôr R$ 165 no campo
+> não garante R$ 158 entregues; pela única medição que existe, garante ~R$ 149.
+>
+> Ou seja: **não dá para comprar o teste de criativo com orçamento neste momento.** A decisão volta
+> para "escalar primeiro, testar depois", e escalar deixou de ser uma edição — virou um problema.
+
+#### ⚠️ Correção: eu atribuí o platô a fadiga de criativo, e a medição desta seção diz o contrário
+
+Em 21/09 eu disse ao dono que doze dias com o mesmo anúncio faziam de fadiga de criativo a causa
+provável do platô. **Não conferi esta seção antes de dizer isso**, e ela mede o oposto: frequência
+1,14–1,20, cada pessoa tendo visto o anúncio uma vez.
+
+A ressalva verdadeira é que a frequência foi lida em 15/09 e sobe com o tempo. Então não é que eu
+estivesse certo por outro caminho — é que **ninguém sabe**, e saber custa abrir o gerenciador e ler
+a coluna. Enquanto não for lida, fadiga é palpite, e o palpite já foi publicado uma vez como se
+fosse leitura.
+
 #### Fadiga de criativo não é o motivo aqui
 
 O motivo normal para criativo novo é a peça cansar. **A medição diz que não cansou:** público de
