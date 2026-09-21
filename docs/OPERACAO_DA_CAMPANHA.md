@@ -432,14 +432,21 @@ da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* �
 mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)**, **20 (R$ 707)** e
 **17 (R$ 698)**.
 
-> **A receita do dia 19 está R$ 49,99 abaixo do real, e vai continuar.** O pagamento 179878109696
-> foi aprovado em 19/09 às 14:35 e nunca chegou a existir como venda (três defeitos empilhados —
-> ver `src/payments/provider.ts` e `commerce-repo.ts`). Quando ele for recuperado, `paidAt` recebe
-> `new Date()`, ou seja **a data da recuperação, não a do pagamento** — então os R$ 49,99 vão cair
-> no dia em que o botão for clicado, e não no 19.
+> ⚠️ **Uma venda de 19/09 está contada em 21/09, e nenhuma das duas linhas mente por isso.**
 >
-> Está escrito aqui para a linha do 19 não ser "corrigida" depois por quem a reler: ela está certa
-> como medida do que o sistema registrou, e errada em R$ 49,99 como medida do que o Meta vendeu.
+> O pagamento 179878109696 foi aprovado em 19/09 às 14:35 e nunca chegou a existir como venda —
+> três defeitos empilhados, ver `src/payments/provider.ts` e `commerce-repo.ts`. Foi recuperado em
+> 21/09, e `processPaymentEvent` grava `paidAt: new Date()`: **a data da recuperação, não a do
+> pagamento.** Os R$ 49,99 caíram no dia do clique.
+>
+> Está escrito aqui para a linha do 19 não ser "corrigida" depois por quem a reler. E a correção
+> não é automática nem óbvia: **esta série é fluxo Meta apenas**, e não está verificado que esta
+> venda veio do anúncio — ela pode ser bio ou contato pessoal, como os R$ 99,98 do dia 15. Quem
+> quiser fechar o dia 19 precisa abrir a venda em `/admin/vendas` e ler a origem primeiro.
+>
+> **A correção estrutural, se alguém quiser fazê-la:** `eventoDePagamento` já traz a data do
+> gateway, então dá para gravar `paidAt` com a data real do pagamento em vez de `new Date()`. Não
+> foi feito porque muda a atribuição de receita de toda recuperação, e a decisão é do dono.
 
 ### Dia 17: o aumento de orçamento comprou volume SEM encarecer o leilão
 
