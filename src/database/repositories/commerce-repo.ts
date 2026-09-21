@@ -225,8 +225,83 @@ export async function processPaymentEvent(
     .onConflictDoNothing()
     .returning({ id: paymentEvents.id });
 
-  if (!claimed[0]) return { kind: 'duplicate' };
+  /**
+   * ═══ RESERVA NÃO É CONCLUSÃO — O DEFEITO DE 21/09/2026 ═════════════════════════════════════
+   *
+   * A linha acima RESERVA o evento; `processed_at` só é gravado lá embaixo, depois de conceder. Se
+   * qualquer coisa falhar no meio — banco oscilando, timeout, a função serverless sendo encerrada —
+   * a reserva fica, o trabalho não acontece, e TODA tentativa seguinte bate na restrição única e
+   * devolve "duplicate".
+   *
+   * O pagamento vira irrecuperável. Não pelo webhook, que reenvia e recebe "duplicate"; não pela
+   * recuperação manual, que recebe a mesma coisa. O dinheiro entrou, o cliente não recebeu nada, e
+   * o sistema inteiro responde "isso já foi processado".
+   *
+   * Foi o que aconteceu com o pagamento 179878109696: o cliente reclamou, o botão de recuperar
+   * respondeu "já tinha sido processado", e a venda continuou sem existir.
+   *
+   * `processed_at` nulo é a assinatura exata desse estado, e é o que distingue a reserva abandonada
+   * da entrega concluída. Reserva abandonada é retomada; entrega concluída é `duplicate` de verdade.
+   *
+   * ─── POR QUE REFAZER É SEGURO ────────────────────────────────────────────────────────────
+   *
+   * Tudo daqui para baixo absorve repetição: a atualização do pedido é idempotente, o marco do
+   * funil tem `unique(visitor_hash, marker)`, e os entitlements entram com `onConflictDoNothing`.
+   * A única exceção é o cupom — ver `reprocessando` abaixo.
+   */
+  let reservaId = claimed[0]?.id ?? null;
+  let reprocessando = false;
 
+  if (reservaId === null) {
+    const anterior = await conn
+      .select({ id: paymentEvents.id, processedAt: paymentEvents.processedAt })
+      .from(paymentEvents)
+      .where(
+        and(
+          eq(paymentEvents.provider, provider),
+          eq(paymentEvents.providerEventId, event.providerEventId),
+        ),
+      )
+      .limit(1);
+
+    const linha = anterior[0];
+    if (!linha || linha.processedAt !== null) return { kind: 'duplicate' };
+
+    console.warn(
+      `[pagamento] reserva abandonada em ${event.providerEventId} — retomando o processamento`,
+    );
+    reservaId = linha.id;
+    reprocessando = true;
+  }
+
+  /*
+    `const` depois do estreitamento: o `let` acima admite `null`, e o TypeScript não consegue
+    carregar essa garantia para dentro do fecho abaixo. Uma cópia imutável resolve sem asserção.
+  */
+  const claimId: string = reservaId;
+
+  /*
+    ═══ A RESERVA É DESFEITA SE O TRABALHO FALHAR ═════════════════════════════════════════════
+
+    Sem isto, cada falha no meio deixa para trás uma reserva que bloqueia o pagamento para sempre —
+    que é exatamente o defeito acima, criando novos casos enquanto a retomada limpa os antigos.
+
+    Não é transação porque duas etapas (marco do funil e cupom) usam conexão própria, e enfiá-las
+    numa transação daqui seria um refactor de três módulos no meio de um incidente. Desfazer a
+    reserva fecha o mesmo buraco: o gateway reenvia, ou o botão de recuperar reprocessa, e desta vez
+    a reserva está livre.
+  */
+  try {
+    return await concluirEvento();
+  } catch (erro) {
+    if (!reprocessando) {
+      await conn.delete(paymentEvents).where(eq(paymentEvents.id, claimId));
+    }
+    console.error(`[pagamento] falha ao processar ${event.providerEventId}; reserva liberada`, erro);
+    throw erro;
+  }
+
+  async function concluirEvento(): Promise<WebhookOutcome> {
   const orderRows = await conn
     .select({
       id: orders.id,
@@ -277,7 +352,7 @@ export async function processPaymentEvent(
     await conn
       .update(paymentEvents)
       .set({ processedAt: new Date() })
-      .where(eq(paymentEvents.id, claimed[0].id));
+      .where(eq(paymentEvents.id, claimId));
     return { kind: 'processed', granted: [] };
   }
 
@@ -314,7 +389,16 @@ export async function processPaymentEvent(
     Vem ANTES da concessão de propósito: a concessão é o que a pessoa comprou, e nada relacionado a
     contabilidade de cupom pode se interpor entre o pagamento e o acesso.
   */
-  if (order.couponCode && order.recommendationSessionId) {
+  /*
+    ⚠️ PULADO NA RETOMADA. `consumirCupomDoPedido` incrementa `used_count` sem trava de repetição,
+    então refazer uma reserva abandonada gastaria um uso duas vezes — e num cupom com limite isso
+    tira a vaga de outra pessoa.
+
+    Entre contar de menos e cobrar de mais de um estranho, o erro barato é o primeiro: o pedido já
+    guarda o código e o percentual aplicados, então o caso continua auditável, e o que a retomada
+    existe para entregar é o produto que alguém pagou — não a contabilidade do cupom.
+  */
+  if (!reprocessando && order.couponCode && order.recommendationSessionId) {
     await consumirCupomDoPedido({
       code: order.couponCode,
       sessionId: order.sessionId,
@@ -340,7 +424,7 @@ export async function processPaymentEvent(
   await conn
     .update(paymentEvents)
     .set({ processedAt: new Date() })
-    .where(eq(paymentEvents.id, claimed[0].id));
+    .where(eq(paymentEvents.id, claimId));
 
   /*
     O recibo só existe quando há e-mail E análise. Falta de e-mail é o caso normal de quem comprou
@@ -358,6 +442,7 @@ export async function processPaymentEvent(
       : undefined;
 
   return { kind: 'processed', granted: grants, receipt };
+  }
 }
 
 /** Revoga os entitlements de um pedido reembolsado (§7 do MONETIZATION). */

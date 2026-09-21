@@ -94,10 +94,23 @@ export async function recuperarPagamento(
 
   switch (outcome.kind) {
     case 'duplicate':
+      /*
+        ⚠️ Esta frase já mentiu uma vez, em 21/09/2026.
+
+        Ela dizia "o problema é o e-mail, não a venda" — afirmando que a concessão tinha acontecido.
+        Não tinha: a reserva do evento existia e o trabalho nunca terminou, então `duplicate` cobria
+        tanto "entregue" quanto "travado". O dono leu a frase, concluiu que a venda existia, e ela
+        continuou não existindo.
+
+        Hoje `processPaymentEvent` retoma sozinho a reserva abandonada, então `duplicate` voltou a
+        significar só uma coisa. A frase não volta a afirmar a outra: ela manda CONFERIR, porque
+        conferir custa um clique e a afirmação errada custou um cliente esperando.
+      */
       return {
         ok:
-          `Este pagamento já tinha sido processado — nada foi concedido de novo. ` +
-          `Se o cliente ainda não recebeu, o problema é o e-mail, não a venda (pedido ${evento.orderId}).`,
+          `Este pagamento já constava como processado — nada foi concedido de novo ` +
+          `(pedido ${evento.orderId}). Confira em Vendas se a venda aparece: se aparecer, o que ` +
+          `falta é só o e-mail; se não aparecer, me chame.`,
       };
 
     case 'unknown_order':
