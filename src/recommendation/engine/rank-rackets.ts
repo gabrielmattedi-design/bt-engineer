@@ -405,6 +405,32 @@ const TOLERANCE_MIN_SURVIVORS = 6;
  */
 const PREMISE_MIN_SURVIVORS = 2;
 
+/**
+ * Quanto uma raquete pode ficar abaixo da média do catálogo sem ser eliminada pela premissa.
+ *
+ * ═══ POR QUE NÃO É ZERO ══════════════════════════════════════════════════════════════════════
+ *
+ * Era. Em 21/09/2026 um cliente perguntou por que a HEAD Gravity MP, que ele tinha encontrado
+ * pesquisando por conta própria, não apareceu no laudo. Resposta do motor: "entrega menos que a
+ * raquete média (65 de 100, contra 66)".
+ *
+ * Medido: média de spin 65,72, Gravity MP 65,3. **0,4 ponto em 100**, e não foi penalização — foi
+ * eliminação antes da pontuação.
+ *
+ * Os índices saem de descritores qualitativos, e na vizinhança da média as raquetes ficam a
+ * 0,2–0,5 ponto umas das outras. Um corte nessa região não separa raquete boa de ruim no eixo: ele
+ * separa arredondamento. Sete raquetes estavam a menos de cinco pontos abaixo da média, todas
+ * cortadas.
+ *
+ * Cinco pontos é o degrau em que a diferença passa a ser afirmável com o dado que existe. Abaixo
+ * disso o índice não tem resolução para sustentar uma exclusão, e o custo do erro é alto: a pessoa
+ * não vê a raquete que procurava e conclui que a análise ignorou o que ela pediu.
+ *
+ * A promessa da premissa continua de pé — quem pede spin em primeiro lugar não recebe raquete
+ * francamente fraca em spin. O que sai é a eliminação de quem está, na prática, na média.
+ */
+const MARGEM_ABAIXO_DA_MEDIA = 5;
+
 type ScoredEntry = { racket: ScoredRacket; fit_score: number; breakdown: ScoreBreakdown };
 
 /**
@@ -763,17 +789,58 @@ function applyDeclaredFloor(
     Arredondados. Comparar em precisão cheia e exibir arredondado produzia "60 de 100, contra 60"
     como motivo de exclusão — verdadeiro nos bastidores (59,6 < 59,8) e absurdo na tela. Um corte
     que não dá para enxergar no número exibido não pode ser explicado por ele.
+
+    ─── E PRECISA DE MARGEM, QUE É O DEFEITO DE 21/09/2026 ─────────────────────────────────
+
+    O arredondamento matou o caso "60 contra 60" e deixou passar o irmão dele. Um cliente perguntou
+    por que a HEAD Gravity MP — que ele mesmo tinha encontrado pesquisando — não apareceu, e a
+    resposta do motor foi:
+
+      "Você colocou spin em primeiro lugar, e esta raquete entrega menos que a raquete média do
+       mercado que analisamos nesse aspecto (65 de 100, contra 66)."
+
+    Medido no catálogo: a média de spin é 65,72 e a Gravity MP está em 65,3. Ela foi ELIMINADA —
+    não penalizada, eliminada antes de pontuar — por **0,4 ponto em 100**.
+
+    E não é caso isolado. Na vizinhança da média as raquetes estão a 0,2–0,5 ponto umas das outras:
+
+        66,0  HEAD Extreme Pro      ← passou
+        65,3  HEAD Gravity MP       ← cortada
+        64,9  Babolat Pure Drive Team
+        64,8  Babolat Pure Aero Lite
+        64,6  Babolat Pure Drive 98
+
+    São SETE raquetes a menos de cinco pontos abaixo da média, todas cortadas por diferenças que o
+    índice não tem resolução para afirmar — ele sai de descritores qualitativos, e 65 contra 66 é
+    ruído de construção, não característica do quadro.
+
+    A regra que o comentário acima já enunciava vale um degrau acima: um corte que o leitor não
+    consegue ENXERGAR não pode ser explicado por ele — e "um ponto" é visível e não é acionável.
+    Ninguém troca de raquete por um ponto, e ninguém aceita perder a raquete que procurava por um.
+
+    A margem preserva a promessa da premissa: quem pede spin em primeiro lugar continua sem receber
+    uma raquete francamente fraca em spin. O que deixa de acontecer é a eliminação de quem está, na
+    prática, na média.
   */
   const naMedia = scored.filter(
-    (e) => Math.round(posicaoNoCatalogo(e, primeira)) >= Math.round(mediaDoCatalogo),
+    (e) =>
+      Math.round(posicaoNoCatalogo(e, primeira)) >=
+      Math.round(mediaDoCatalogo) - MARGEM_ABAIXO_DA_MEDIA,
   );
   if (naMedia.length > 0) {
     tentar({
       need: primeira,
       permitidas: new Set(naMedia.map((e) => e.racket.variant.id)),
+      /*
+        A frase diz "bem abaixo", e não "abaixo", porque é isso que o corte passou a medir: com a
+        margem, sobreviver exige estar a menos de cinco pontos da média. Manter o texto antigo
+        descreveria um critério mais rígido do que o aplicado — e foi exatamente esse descompasso,
+        entre o que a frase afirmava e o que o número mostrava, que fez um cliente questionar o
+        laudo inteiro por causa de um ponto.
+      */
       motivo: (entry) =>
-        `Você colocou ${NEED_LABEL_PT[primeira]} em primeiro lugar, e esta raquete entrega menos ` +
-        `que a raquete média do mercado que analisamos nesse aspecto ` +
+        `Você colocou ${NEED_LABEL_PT[primeira]} em primeiro lugar, e esta raquete entrega bem ` +
+        `menos que a raquete média do mercado que analisamos nesse aspecto ` +
         `(${Math.round(posicaoNoCatalogo(entry, primeira))} de 100, contra ` +
         `${Math.round(mediaDoCatalogo)}).`,
     }, PREMISE_MIN_SURVIVORS);
