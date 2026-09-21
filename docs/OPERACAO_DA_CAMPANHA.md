@@ -127,6 +127,14 @@ Toda a série agora fecha sem exceção:
 
 E a semana de 13 a 16: R$ 558,51 de R$ 875. Dentro.
 
+> **A semana fechada de 13 a 19 gastou R$ 980,17 — acima dos R$ 875 que o teto de 7 × 125 daria.**
+> O orçamento mudou no meio dela (125 → 149 em 17/09), e 980,17 cabe folgado em 7 × 149 = R$ 1.043.
+>
+> A leitura óbvia é que o teto semanal acompanha o orçamento vigente. **Não vou registrar isso como
+> regra**, porque é exatamente o erro desta seção: deduzir comportamento de plataforma de uma
+> medição em vez de ler o que a plataforma escreve. A linha cinza embaixo do campo de orçamento diz
+> o teto atual por extenso — **o jeito de confirmar é o dono abrir a caixa e ler, não eu calcular.**
+
 > **A lição de método, e é a mais barata de todas:** eu gastei dois dias construindo e derrubando
 > hipóteses sobre uma regra que o Meta escreve por extenso, em português, embaixo do campo que o
 > dono edita toda semana. **Antes de deduzir comportamento de plataforma a partir de dados, ler o
@@ -405,11 +413,33 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 15 | ter | 110,63 | 54 | 9 | 16,7% | 9 | 429,91 | **2,05** | 12,29 | 3,89× |
 | 16 | qua | 126,17 | 75 | 13 | 17,3% | 13 | 649,87 | **1,68** | **9,71** | 5,15× |
 | 17 | qui | 171,43 | **102** | 18 | 17,6% | — | 869,81 | **1,68** | — | 5,07× |
-| **Σ** | | **1.005,26** | **534** | **102** | **19,1%** | — | **4.928,97** | **1,88** | — | **4,90×** |
+| 18 | sex | 122,26 | 93 | 11 | **11,8%** | 11 | 549,89 | **1,31** | 11,11 | 4,50× |
+| 19 | sáb | 127,97 | **58** | 11 | **19,0%** | 10 | 479,90 | **2,21** | 12,80 | **3,75×** |
+| 20 | dom | 182,59 | 96 | 17 | 17,7% | 18 | 889,81 | 1,90 | **10,14** | 4,87× |
+| **Σ** | | **1.438,08** | **781** | **141** | **18,1%** | — | **6.848,57** | **1,84** | — | **4,76×** |
 
-**Lucro bruto dos 9 dias (receita − gasto): ~R$ 3.924.** O dono pediu para largar a taxa do gateway
+> ⚠️ **18 e 19 foram lidos fora do atraso padrão — D+3 e D+2, contra D+1 do resto da série.**
+> Só o dia 20 seguiu a regra. Pela §3.3-ter isso importa: "Chegaram" é fixo (conta pela data de
+> chegada), mas "Pagaram" acumula quem chegou naquele dia e pagou depois — ler mais tarde captura
+> mais retardatários. **A conversão de 18 e 19 está, se acaso, superestimada** em relação ao 20 e
+> aos dias de 13 a 16.
+>
+> O que torna o dia 18 pior, não melhor: 11,8% é o segundo pior número da série **mesmo com dois
+> dias a mais para maturar**.
+
+**Lucro bruto dos 12 dias (receita − gasto): ~R$ 5.410.** O dono pediu para largar a taxa do gateway
 da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* —, então a série passa a
-mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)** e **17 (R$ 698)**.
+mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)**, **20 (R$ 707)** e
+**17 (R$ 698)**.
+
+> **A receita do dia 19 está R$ 49,99 abaixo do real, e vai continuar.** O pagamento 179878109696
+> foi aprovado em 19/09 às 14:35 e nunca chegou a existir como venda (três defeitos empilhados —
+> ver `src/payments/provider.ts` e `commerce-repo.ts`). Quando ele for recuperado, `paidAt` recebe
+> `new Date()`, ou seja **a data da recuperação, não a do pagamento** — então os R$ 49,99 vão cair
+> no dia em que o botão for clicado, e não no 19.
+>
+> Está escrito aqui para a linha do 19 não ser "corrigida" depois por quem a reler: ela está certa
+> como medida do que o sistema registrou, e errada em R$ 49,99 como medida do que o Meta vendeu.
 
 ### Dia 17: o aumento de orçamento comprou volume SEM encarecer o leilão
 
@@ -462,16 +492,96 @@ receita não é número solto:
 |---|---|---|
 | 13 | 20 | **16** setups completos + **4** laudos de raquete = R$ 919,80 |
 | 14 | 12 | **11** setups completos + **1** laudo de raquete = R$ 579,88 |
+| 16 | 13 | **13** setups completos + **0** laudos = R$ 649,87 |
+| 18 | 11 | **11** setups completos + **0** laudos = R$ 549,89 |
+| 19 | 10 | **9** setups completos + **1** laudo de raquete = R$ 479,90 |
+| 20 | 19 | **16** setups completos + **3** laudos de raquete = R$ 889,81 |
 
 Cada receita admite **uma só** combinação inteira dos dois preços. Se o valor estivesse errado por
 digitação, quase certamente não fecharia em inteiros.
 
+**O ticket médio está caindo devagar, e o motivo é o mix**: R$ 49,99 no dia 18, R$ 47,99 no 19,
+R$ 46,83 no 20. O produto caro domina (84% a 100% dos pedidos em todos os dias medidos), mas o
+laudo de raquete voltou a aparecer depois do zero do dia 16 e do 18. É o divisor de toda decisão de
+orçamento — dois dias de queda não são tendência, e é o número a reler no fim da semana.
+
+### Os três primeiros dias limpos em R$ 149 — o aumento saiu de graça, e não saiu lucrativo
+
+O dia 17 foi declarado borrado de propósito (orçamento trocado no meio, pausa de revisão). **18, 19
+e 20 são os primeiros dias inteiros em R$ 149**, e é contra eles que a decisão de subir o orçamento
+se defende ou cai.
+
+| | 13–16 (R$ 125, 4 dias) | 18–20 (R$ 149, 3 dias) | |
+|---|---|---|---|
+| Gasto/dia | 139,63 | 144,27 | **+3,3%** |
+| Chegaram/dia | 75,5 | 82,3 | **+9,0%** |
+| Custo por chegada | 1,85 | **1,75** | **−5,4%** |
+| Conversão | 17,9% | **15,8%** | **−2,1 p.p.** |
+| CAC | 10,34 | 11,10 | **+7,3%** |
+| ROAS | 4,62× | 4,43× | **−4,1%** |
+
+**As duas metades se moveram em direções opostas e quase se anularam.** A chegada ficou mais
+barata — o medo do §"dia 17" (leilão encarecendo ao gastar mais) **não se confirmou em três dias
+inteiros**, e essa é a boa notícia. Mas quem chegou converteu pior, e o líquido por cliente piorou
+7%. Em dinheiro: ROAS caiu de 4,62× para 4,43×, o que é ruído numa comparação de 4 dias contra 3.
+
+**A leitura honesta é "empatou com mais volume"**, não "melhorou". E, pela §3.1, custo de chegada
+caindo junto com conversão caindo é a assinatura de mudança em **quem chega**: mais dinheiro alcança
+público progressivamente mais barato e menos qualificado. O leilão não cobrou pelo volume extra —
+cobrou na qualidade.
+
+#### O aumento de orçamento entregou 3% de gasto, não 19%
+
+É o achado mais acionável dos três dias, e ele não aparece em nenhuma métrica de eficiência:
+
+| | Orçamento | Gasto/dia | % do orçamento |
+|---|---|---|---|
+| 13–16 | 125 | 139,63 | **112%** |
+| 18–20 | 149 | 144,27 | **97%** |
+
+O orçamento subiu 19,2% e o gasto real subiu 3,3%. **Sob R$ 125 o Meta gastava acima do orçamento
+todo dia; sob R$ 149 ele passou a gastar abaixo.** Nenhum dia bateu no teto de R$ 260,75 (149 ×
+1,75), então não é limite — é o Meta não encontrando onde pôr o dinheiro ao preço que aceita pagar.
+
+Consequência: **subir o orçamento de novo provavelmente não compra volume.** O caminho para mais
+gente deixou de ser o campo do orçamento e passou a ser criativo ou público — que é a decisão que a
+§5.4 manda tomar uma de cada vez.
+
+#### O dia da semana aparece pela primeira vez, e é para VIGIAR, não para usar
+
+| Dia | Orçamento | Gasto | % |
+|---|---|---|---|
+| 13 dom | 125 | 156,82 | **125%** |
+| 20 dom | 149 | 182,59 | **123%** |
+| 18 sex | 149 | 122,26 | 82% |
+| 19 sáb | 149 | 127,97 | 86% |
+
+Dois domingos, orçamentos diferentes, 125% e 123%. Sexta e sábado abaixo de 90%.
+
+> ⚠️ **Duas medições que batem não provam regra — a §1.5 foi escrita exatamente por eu ter feito
+> isso e errado duas vezes seguidas.** Esta tabela está aqui como pergunta, não como achado.
+>
+> **Condição de morte, declarada antes do teste:** se 27/09 (domingo) vier abaixo de 110% do
+> orçamento, a ideia morre e não vai ser remendada. E há um confundidor óbvio de graça: o 13 foi o
+> dia do pico de conversão da campanha inteira (25,3%), então "domingo é forte" e "aquele domingo
+> foi bom" ainda são indistinguíveis.
+
+E o dia 19 é o contraste que mais informa dos três: **58 chegadas, a R$ 2,21 cada — a chegada mais
+cara desde o dia 12** — e ainda assim a **melhor conversão desde o dia 13 (19,0%)**. Sábado traz
+pouca gente, cara, e certa. O ROAS de 3,75× é o pior dos três dias mesmo assim, porque volume baixo
+não tem como ser compensado por conversão boa.
+
 ### O V, e o que ele diz
 
 ```
-Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05 → 1,68 → 1,68
-Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7% → 17,3% → 17,6%
+Custo/chegada:  1,38 → 1,92 → 2,14 → 2,65 → 1,80 → 1,92 → 2,05 → 1,68 → 1,68 → 1,31 → 2,21 → 1,90
+Conversão:     35,3% → 30,4% → 14,8% → 15,0% → 25,3% → 11,6% → 16,7% → 17,3% → 17,6% → 11,8% → 19,0% → 17,7%
 ```
+
+> **O platô de ~17,5% sobreviveu, e o dia 18 quase o derrubou.** A seção abaixo foi escrita no dia
+> 17 com três pontos (16,7 / 17,3 / 17,6). Vieram 11,8 / 19,0 / 17,7 — dispersão muito maior, mas a
+> média dos três (15,8%) e a dos seis (16,0%) continuam na mesma faixa. O que mudou não foi o nível,
+> foi o **ruído**: o R$ 1,31 do dia 18 comprou gente que converteu à metade.
 
 **A conversão estacionou em ~17,5% e é hora de aceitar isso como o normal desta campanha.** Três
 dias em 16,7 / 17,3 / 17,6 não são uma curva subindo — são um platô com ruído. Os 25,3% do dia 13
@@ -722,6 +832,11 @@ sem interpretação, e uma piora seria inatribuível.
 
 A linha de base desta campanha, medida no dia 16: **CAC R$ 9,71 · ROAS 5,15× · conversão 17,3% ·
 custo por chegada R$ 1,68.**
+
+> **Atualizada em 21/09, e agora em bloco em vez de dia único.** Os três dias inteiros em R$ 149
+> (18–20) dão **CAC R$ 11,10 · ROAS 4,43× · conversão 15,8% · custo por chegada R$ 1,75**. Um dia
+> só é linha de base frágil — o 16 foi escolhido por ser o melhor disponível, não por ser típico, e
+> o dia 18 mostrou quanta dispersão cabe dentro do "normal" desta campanha.
 
 > **Reinício não é o custo a evitar — cegueira é.** "Nunca reiniciar" não é estratégia, é paralisia:
 > significa orçamento congelado para sempre. O reinício é o **preço de agir** sobre uma informação
