@@ -109,3 +109,55 @@ export function semMarcacao(
     excede: pedidos < 0 || receitaCentavos < 0,
   };
 }
+
+export type CoorteSomavel = {
+  readonly visitors: number;
+  readonly finished: number;
+  readonly paid: number;
+};
+
+export type SemMarcacaoNaCoorte = CoorteSomavel & {
+  readonly conversion: number;
+  /** As origens somaram MAIS que a coorte — ver o comentário. */
+  readonly excede: boolean;
+};
+
+/**
+ * O mesmo resto, para a tabela de CHEGADAS — e ele não sai da mesma fonte.
+ *
+ * ═══ POR QUE NÃO DÁ PARA REUSAR `semMarcacao` AQUI ═══════════════════════════════════════════
+ *
+ * A tabela do dinheiro fecha contra `orders`, que é o registro do caixa. Esta fecha contra a
+ * COORTE de chegada — quem abriu o questionário na janela, marcado ou não —, que é outro conjunto
+ * e vem de `coorteDeChegada`.
+ *
+ * ⚠️ A subtração tentadora seria usar o `Pagou` do funil. Ela está errada: o funil recorta pela
+ * data do MARCO e a tabela de origens pela data de CHEGADA. Quem chegou hoje e paga amanhã entra
+ * numa e não na outra, e o resto sairia plausível e falso. Ver `coorteDeChegada`.
+ *
+ * ⚠️ E o negativo é possível: `quiz:start` é único por visitante na vida, enquanto uma linha de
+ * campanha nasce a cada chegada marcada. O visitante antigo que clica no anúncio hoje entra nas
+ * origens de hoje e não na coorte. `excede` existe para a tela dizer isso em vez de zerar calada.
+ */
+export function semMarcacaoNaCoorte(
+  coorte: CoorteSomavel,
+  origens: CoorteSomavel,
+): SemMarcacaoNaCoorte {
+  const visitors = coorte.visitors - origens.visitors;
+  const finished = coorte.finished - origens.finished;
+  const paid = coorte.paid - origens.paid;
+
+  const semTeto = { visitors, finished, paid };
+  const resto = {
+    visitors: Math.max(0, visitors),
+    finished: Math.max(0, finished),
+    paid: Math.max(0, paid),
+  };
+
+  return {
+    ...resto,
+    /* Mesma regra do total: `pagaram ÷ chegaram` do agregado, e 0 em vez de NaN sem visitante. */
+    conversion: resto.visitors === 0 ? 0 : (resto.paid / resto.visitors) * 100,
+    excede: Object.values(semTeto).some((n) => n < 0),
+  };
+}

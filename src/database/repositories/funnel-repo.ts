@@ -178,6 +178,96 @@ export async function funnelReport(janela: Janela = SEM_LIMITE): Promise<FunnelR
   return computeFunnel(new Map(rows.map((r) => [r.marker, Number(r.visitors)])));
 }
 
+export type Coorte = {
+  readonly visitors: number;
+  readonly finished: number;
+  readonly paid: number;
+};
+
+/**
+ * Todo mundo que CHEGOU na janela — com ou sem `utm_source` — e o que fez depois.
+ *
+ * ═══ POR QUE `funnelReport` NÃO SERVE PARA ISTO ══════════════════════════════════════════════
+ *
+ * A tabela "onde cada origem falha" fechava num Total que era a soma das origens MARCADAS, e o
+ * dono pediu a linha "sem marcação" ali também — pelo mesmo motivo de a tabela do dinheiro ter
+ * ganhado a dela: um rodapé chamado "Total" que não é o total ensina a desconfiar da tela.
+ *
+ * A subtração óbvia — pegar o `Pagou` do funil e tirar a soma das origens — **daria um número
+ * errado**, e essa é a armadilha que esta função existe para desviar. `funnelReport` recorta pela
+ * data do MARCO; `campaignReport` recorta pela data de CHEGADA e conta os marcos posteriores a
+ * ela. Quem chegou hoje e paga amanhã entra na coluna de hoje da tabela de origens e NÃO entra no
+ * `Pagou` do funil de hoje. Subtrair um do outro mistura dois relógios, e o resto sai plausível —
+ * que é o pior jeito de estar errado (§5.5).
+ *
+ * Aqui a regra de tempo é a MESMA de `campaignReport`: a coorte é quem abriu o questionário dentro
+ * da janela, e só contam os marcos gravados a partir daí. Assim as linhas de origem são um
+ * subconjunto legítimo deste total, e a diferença entre os dois é exatamente quem chegou sem
+ * `utm_source`.
+ *
+ * ⚠️ ─── ONDE ISTO AINDA PODE DAR NEGATIVO ────────────────────────────────────────────────────
+ *
+ * `funnel_markers` tem única em (visitante, marco): `quiz:start` é gravado UMA vez na vida do
+ * visitante. `visitor_campaigns` não tem essa trava — cada chegada por link marcado cria uma linha
+ * nova. Logo um visitante antigo que clica no anúncio hoje entra na tabela de origens de hoje e
+ * não entra nesta coorte, porque o `quiz:start` dele é de semanas atrás.
+ *
+ * O resto pode ficar negativo por causa disso. A tela trata igual ao caso de dupla atribuição:
+ * mostra o aviso em vez de zerar em silêncio.
+ */
+export async function coorteDeChegada(janela: Janela = SEM_LIMITE): Promise<Coorte> {
+  const vazia: Coorte = { visitors: 0, finished: 0, paid: 0 };
+  if (!isDatabaseConfigured()) return vazia;
+
+  const inicio = FUNNEL_STEPS[0].marker;
+
+  const chegadas = db()
+    .select({
+      visitante: sql<string>`${funnelMarkers.visitorHash}`.as('visitante'),
+      chegouEm: sql<Date>`${funnelMarkers.createdAt}`.as('chegou_em'),
+    })
+    .from(funnelMarkers)
+    .where(and(eq(funnelMarkers.marker, inicio), ...recorte(funnelMarkers.createdAt, janela)))
+    .as('chegadas');
+
+  try {
+    const rows = await db()
+      .select({
+        visitors: sql<number>`count(distinct ${chegadas.visitante})::int`,
+        finished: sql<number>`count(distinct ${funnelMarkers.visitorHash}) filter (where ${funnelMarkers.marker} = 'quiz:done')::int`,
+        paid: sql<number>`count(distinct ${funnelMarkers.visitorHash}) filter (where ${funnelMarkers.marker} = 'paid')::int`,
+      })
+      .from(chegadas)
+      /*
+        `gte` e não `gt` pela mesma razão de `campaignReport`: `quiz:start` é o próprio marco da
+        chegada, e ele precisa contar como posterior a si mesmo para o visitante não sumir.
+      */
+      .leftJoin(
+        funnelMarkers,
+        and(
+          eq(funnelMarkers.visitorHash, chegadas.visitante),
+          gte(funnelMarkers.createdAt, chegadas.chegouEm),
+        ),
+      );
+
+    const linha = rows[0];
+    if (!linha) return vazia;
+
+    return {
+      visitors: Number(linha.visitors),
+      finished: Number(linha.finished),
+      paid: Number(linha.paid),
+    };
+  } catch (error) {
+    /*
+      Zero e não exceção: esta é uma linha de conferência de um painel. Derrubar a tela inteira
+      porque a coorte não pôde ser contada trocaria uma linha ausente por nenhuma informação.
+    */
+    console.error('[funil] não foi possível contar a coorte de chegada', error);
+    return vazia;
+  }
+}
+
 /**
  * Quando a medição de fato começou — a data do marco mais antigo que existe.
  *

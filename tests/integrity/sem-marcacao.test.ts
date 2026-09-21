@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { semMarcacao, totalDasOrigens, type LinhaSomavel } from '@/lib/origens';
+import {
+  semMarcacao,
+  semMarcacaoNaCoorte,
+  totalDasOrigens,
+  type LinhaSomavel,
+} from '@/lib/origens';
 
 /**
  * ═══ A TABELA DE ORIGENS TEM DE SOMAR O FATURAMENTO ══════════════════════════════════════════
@@ -20,9 +25,14 @@ import { semMarcacao, totalDasOrigens, type LinhaSomavel } from '@/lib/origens';
  */
 const FONTE_DA_PAGINA = readFileSync('src/app/admin/funil/page.tsx', 'utf8');
 
-/** Uma linha de origem, com só o que a soma usa. */
+/** Uma linha de origem, com só o que a soma do DINHEIRO usa. */
 function origem(pedidos: number, receitaCentavos: number): LinhaSomavel {
   return { visitors: 0, finished: 0, paid: 0, clientes: 0, pedidos, receitaCentavos };
+}
+
+/** A mesma linha, pelo lado da CHEGADA — o outro relógio. */
+function origemDeChegada(visitors: number, finished: number, paid: number): LinhaSomavel {
+  return { visitors, finished, paid, clientes: 0, pedidos: 0, receitaCentavos: 0 };
 }
 
 describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
@@ -90,6 +100,80 @@ describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
   });
 });
 
+/**
+ * ═══ A TABELA DE CHEGADAS TAMBÉM PRECISA FECHAR ══════════════════════════════════════════════
+ *
+ * O dono olhou a tabela "onde cada origem falha" e disse: *"aqui deveria ter o 'sem marcação'
+ * também para fechar a conta"*. Está certo, e pelo mesmo motivo da outra: um rodapé chamado
+ * "Total" que mostra menos que o total ensina a desconfiar da tela.
+ *
+ * ⚠️ O QUE TORNA ESTE CASO DIFERENTE, E PERIGOSO
+ *
+ * A subtração óbvia seria `Pagou do funil − soma das origens`. Ela produz um número plausível e
+ * ERRADO: `funnelReport` recorta pela data do MARCO, e a tabela de origens pela data de CHEGADA.
+ * Quem chegou hoje e paga amanhã entra numa e não na outra.
+ *
+ * Por isso o total vem de `coorteDeChegada`, que usa a MESMA regra de tempo de `campaignReport`.
+ */
+describe('a linha "sem marcação" fecha também a tabela de chegadas', () => {
+  it('o resto é a coorte menos as origens marcadas', () => {
+    const totais = totalDasOrigens([origemDeChegada(712, 660, 139), origemDeChegada(217, 179, 53)]);
+    const resto = semMarcacaoNaCoorte({ visitors: 1100, finished: 900, paid: 210 }, totais);
+
+    expect(resto.visitors).toBe(1100 - 929);
+    expect(resto.finished).toBe(900 - 839);
+    expect(resto.paid).toBe(210 - 192);
+    expect(resto.excede).toBe(false);
+  });
+
+  /** A propriedade que justifica a função existir. */
+  it('linhas + resto = coorte', () => {
+    const totais = totalDasOrigens([origemDeChegada(712, 660, 139), origemDeChegada(104, 84, 10)]);
+    const coorte = { visitors: 1038, finished: 923, paid: 202 };
+    const resto = semMarcacaoNaCoorte(coorte, totais);
+
+    expect(totais.visitors + resto.visitors).toBe(coorte.visitors);
+    expect(totais.finished + resto.finished).toBe(coorte.finished);
+    expect(totais.paid + resto.paid).toBe(coorte.paid);
+  });
+
+  /**
+   * A conversão do resto é `pagaram ÷ chegaram` DELE, não herdada do total — mesma regra que
+   * `totalDasOrigens` aplica, e pelo mesmo motivo.
+   */
+  it('a conversão do resto é a dele', () => {
+    const totais = totalDasOrigens([origemDeChegada(100, 90, 20)]);
+    const resto = semMarcacaoNaCoorte({ visitors: 150, finished: 130, paid: 25 }, totais);
+
+    expect(resto.visitors).toBe(50);
+    expect(resto.paid).toBe(5);
+    expect(resto.conversion).toBeCloseTo(10, 5);
+  });
+
+  /** Sem chegada no resto a conversão é 0, e não `NaN` — uma tela com NaN derruba a confiança toda. */
+  it('resto vazio não produz NaN', () => {
+    const totais = totalDasOrigens([origemDeChegada(80, 70, 15)]);
+    const resto = semMarcacaoNaCoorte({ visitors: 80, finished: 70, paid: 15 }, totais);
+
+    expect(resto.conversion).toBe(0);
+    expect(Number.isNaN(resto.conversion)).toBe(false);
+  });
+
+  /**
+   * ⚠️ Origens acima da coorte é caso REAL: `quiz:start` é único por visitante na vida, enquanto
+   * uma linha de campanha nasce a cada chegada marcada. O visitante recorrente entra nas origens de
+   * hoje e não nesta coorte — e a tela diz isso em vez de zerar calada.
+   */
+  it('avisa quando as origens passam da coorte', () => {
+    const totais = totalDasOrigens([origemDeChegada(300, 280, 60)]);
+    const resto = semMarcacaoNaCoorte({ visitors: 250, finished: 240, paid: 55 }, totais);
+
+    expect(resto.excede, 'visitante recorrente passou em silêncio').toBe(true);
+    expect(resto.visitors).toBe(0);
+    expect(resto.paid).toBe(0);
+  });
+});
+
 describe('a tela não volta a esconder o resto', () => {
   /**
    * O total da tabela vem de `vendas` e `receitaCentavos` — o registro do dinheiro —, e não da soma
@@ -110,6 +194,30 @@ describe('a tela não volta a esconder o resto', () => {
 
   it('o aviso de dupla atribuição está ligado ao sinalizador', () => {
     expect(FONTE_DA_PAGINA, 'excede deixou de ser mostrado').toMatch(/\{resto\.excede &&/);
+    expect(FONTE_DA_PAGINA, 'o excede da coorte deixou de ser mostrado').toMatch(
+      /\{restoDaCoorte\.excede &&/,
+    );
+  });
+
+  /**
+   * ⚠️ A ARMADILHA QUE ESTE TESTE EXISTE PARA IMPEDIR.
+   *
+   * O rodapé da tabela de chegadas precisa vir da COORTE. Trocá-lo pelo `pagaram` do funil é a
+   * simplificação óbvia — os dois se chamam "pagou" e num dia fechado quase coincidem —, e está
+   * errada: o funil recorta por data do MARCO e a tabela por data de CHEGADA. O resultado sairia
+   * plausível, que é o pior jeito de estar errado.
+   */
+  it('o rodapé das chegadas vem da coorte, não do funil', () => {
+    const detalhes = FONTE_DA_PAGINA.slice(FONTE_DA_PAGINA.indexOf('Onde cada origem falha'));
+    const rodape = detalhes.slice(detalhes.indexOf('<tfoot>'), detalhes.indexOf('</tfoot>'));
+
+    expect(rodape, 'o rodapé das chegadas deixou de usar a coorte').toContain('coorte.visitors');
+    expect(rodape, 'o rodapé voltou a somar só as origens marcadas').not.toContain(
+      'totais.visitors',
+    );
+    expect(rodape, 'o rodapé passou a usar o relógio do marco, e não o da chegada').not.toContain(
+      '{pagaram}',
+    );
   });
 
   /**

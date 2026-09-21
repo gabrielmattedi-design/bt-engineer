@@ -5,12 +5,13 @@ import { AdminNav } from '../nav';
 import {
   contarJornadasDeCupomNoFunil,
   contarRelatoriosSemPagamento,
+  coorteDeChegada,
   funnelReport,
   funnelStartedAt,
   quizDropoff,
 } from '@/database/repositories/funnel-repo';
 import { dataCurta } from '@/lib/datas';
-import { semMarcacao, totalDasOrigens } from '@/lib/origens';
+import { semMarcacao, semMarcacaoNaCoorte, totalDasOrigens } from '@/lib/origens';
 import { brl } from '@/payments/catalogo';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
@@ -100,6 +101,7 @@ export default async function FunilPage({
     vendas,
     compradores,
     receitaCentavos,
+    coorte,
   ] = await withAutoBootstrap(
     () =>
       Promise.all([
@@ -129,6 +131,12 @@ export default async function FunilPage({
           jogaria 19% do resultado fora, para baixo.
         */
         somarReceita(janela),
+        /*
+          Todo mundo que chegou na janela — marcado ou não —, para a tabela de chegadas poder
+          fechar do mesmo jeito que a do dinheiro. Ver `coorteDeChegada`: o relógio dela é o da
+          CHEGADA, e não o do marco, senão o resto misturaria dois relógios.
+        */
+        coorteDeChegada(janela),
       ]),
   );
 
@@ -140,6 +148,9 @@ export default async function FunilPage({
     Sem ela a tabela mostra 9 num dia de 11 e não diz onde foram os outros 2. Ver `lib/origens.ts`.
   */
   const resto = semMarcacao(vendas, receitaCentavos, totais);
+
+  /* O mesmo resto, para a tabela de chegadas. Fonte diferente de propósito — ver `lib/origens.ts`. */
+  const restoDaCoorte = semMarcacaoNaCoorte(coorte, totais);
 
   const lucro = gastoCentavos === null
     ? null
@@ -598,30 +609,82 @@ export default async function FunilPage({
                           </td>
                         </tr>
                       ))}
+                      {/*
+                        A mesma linha da tabela do dinheiro, pelo mesmo motivo — e vinda de OUTRA
+                        fonte. Aqui o total é a coorte de chegada (`coorteDeChegada`), não `orders`.
+
+                        ⚠️ A subtração tentadora, "Pagou do funil menos a soma das origens", está
+                        errada: o funil recorta por data do MARCO e esta tabela por data de
+                        CHEGADA. Ver `lib/origens.ts` e `funnel-repo.ts`.
+                      */}
+                      {(restoDaCoorte.visitors > 0 || restoDaCoorte.paid > 0) && (
+                        <tr className="border-b border-line/60 last:border-0 bg-paper/60">
+                          <td className="px-3 py-2">
+                            <span className="text-graphite">sem marcação</span>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                            {restoDaCoorte.visitors}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                            {restoDaCoorte.finished}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                            {restoDaCoorte.paid}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                            {restoDaCoorte.conversion.toFixed(1)}%
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
 
                     {/*
-                      A linha de total continua aqui, e a conversão dela continua sendo
-                      `pagaram ÷ chegaram` do AGREGADO — não a média das porcentagens. Ver
-                      `lib/origens.ts`: em 18/09 a média simples dava 24,9% e a verdadeira 23,4%.
+                      O total é a COORTE inteira — não a soma das origens marcadas, que era o que
+                      estava aqui e fazia o rodapé chamado "Total" mostrar menos que o total.
+
+                      A conversão dele continua sendo `pagaram ÷ chegaram` do AGREGADO, e não a
+                      média das porcentagens: em 18/09 a média simples dava 24,9% e a verdadeira
+                      23,4%. Ver `lib/origens.ts`.
                     */}
-                    {origens.length > 1 && (
-                      <tfoot>
-                        <tr className="border-t-2 border-line bg-paper font-semibold">
-                          <td className="px-3 py-2">Total</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{totais.visitors}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
-                            {totais.finished}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{totais.paid}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {totais.conversion.toFixed(1)}%
-                          </td>
-                        </tr>
-                      </tfoot>
-                    )}
+                    <tfoot>
+                      <tr className="border-t-2 border-line bg-paper font-semibold">
+                        <td className="px-3 py-2">Total</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{coorte.visitors}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                          {coorte.finished}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{coorte.paid}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {coorte.visitors === 0
+                            ? '0.0'
+                            : ((coorte.paid / coorte.visitors) * 100).toFixed(1)}
+                          %
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
+
+                {/*
+                  ⚠️ Coorte menor que a soma das origens — e é um caso REAL, não defensivo.
+
+                  `funnel_markers` tem única em (visitante, marco): `quiz:start` é gravado uma vez
+                  na vida do visitante. `visitor_campaigns` não tem essa trava — cada chegada por
+                  link marcado cria linha nova. Então o cliente antigo que clica no anúncio hoje
+                  entra nas origens de hoje e não nesta coorte, porque o `quiz:start` dele é velho.
+
+                  Zerar isso em silêncio ensinaria a ler um "0" como "não houve", quando o que
+                  houve foi visitante recorrente — que é informação de negócio, não defeito.
+                */}
+                {restoDaCoorte.excede && (
+                  <p className="mt-3 max-w-prose rounded border border-line bg-paper p-3 text-xs text-graphite">
+                    <strong className="text-ink">As origens somam mais que a coorte.</strong> É o
+                    esperado quando alguém que JÁ tinha aberto o questionário antes volta por um
+                    link marcado: ele conta como chegada da origem e não como chegada nova, porque
+                    o marco de abertura é único por visitante. Quanto maior esta diferença, mais
+                    gente voltando — e isso é público recorrente, não erro.
+                  </p>
+                )}
               </div>
             </details>
 
