@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { QuizForm } from '@/components/quiz/quiz-form';
 import { ProcessingScreen } from '@/components/quiz/processing-screen';
 import { analyzeAnswers } from './actions';
+import { limparRascunho } from '@/components/quiz/rascunho';
 import type { QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { Logo } from '@/components/marketing/logo';
 import type { RacketOption } from '@/components/quiz/racket-picker';
@@ -16,7 +17,16 @@ import type { RacketOption } from '@/components/quiz/racket-picker';
 type State =
   | { phase: 'form' }
   | { phase: 'processing'; sessionId: string | null }
-  | { phase: 'error'; message: string };
+  /**
+   * `recarregar` separa as duas falhas que chegam aqui com a mesma cara e pedem coisas opostas.
+   *
+   * `true`  — a aba está com código velho ou a rede caiu. Só recarregar resolve; tentar de novo
+   *           com o mesmo código repete o erro (foi o que aconteceu com um cliente em 21/09, três
+   *           vezes seguidas).
+   * `false` — o servidor respondeu e recusou, com motivo. Recarregar não muda nada e ainda faria a
+   *           pessoa achar que o problema era a conexão dela.
+   */
+  | { phase: 'error'; message: string; recarregar: boolean };
 
 export function QuizClient({ rackets }: { rackets: readonly RacketOption[] }) {
   const router = useRouter();
@@ -28,21 +38,40 @@ export function QuizClient({ rackets }: { rackets: readonly RacketOption[] }) {
     try {
       const response = await analyzeAnswers(answers);
       if (response.ok) {
+        /*
+          A análise existe no servidor a partir daqui, então a cópia no navegador não serve mais
+          para nada — e ela contém lesões e dores. Apagar é parte da decisão de `rascunho.ts`.
+        */
+        limparRascunho();
         setState({ phase: 'processing', sessionId: response.sessionId });
       } else {
-        setState({ phase: 'error', message: response.message });
+        /*
+          Recusa do servidor com motivo (resposta inválida, por exemplo). NÃO é caso de recarregar:
+          o código do cliente está bom, e recarregar só faria a pessoa reencontrar o mesmo erro.
+        */
+        setState({ phase: 'error', message: response.message, recarregar: false });
       }
     } catch {
       /**
        * Rede caiu, deploy no meio da requisição, timeout da função.
        *
-       * O `catch` existe porque a alternativa é a tela de processamento girar para sempre. Uma
-       * falha que o usuário CONSEGUE ver é recuperável — ele tenta de novo. Uma falha silenciosa
-       * custa o questionário inteiro que ele acabou de responder.
+       * ⚠️ AQUI RECARREGAR NÃO É ZELO, É A CORREÇÃO.
+       *
+       * Em 21/09 a causa medida foi `Failed to find Server Action` — o deploy trocou os
+       * identificadores das ações e a aba continuou com o código velho. Nesse estado, "tentar de
+       * novo" chama a MESMA ação inexistente e falha igual, quantas vezes forem. Uma pessoa tentou
+       * três vezes antes de desistir.
+       *
+       * Só recarregar traz o código novo. E como o rascunho está guardado (`rascunho.ts`), a pessoa
+       * volta com tudo preenchido, na etapa onde estava — que é o que torna a frase abaixo
+       * verdadeira. Antes ela era mentira: o formulário remontava vazio.
        */
       setState({
         phase: 'error',
-        message: 'A conexão falhou durante a análise. Suas respostas não foram perdidas — tente novamente.',
+        message:
+          'A conexão falhou durante a análise. Suas respostas estão salvas — vamos recarregar a ' +
+          'página e você continua de onde parou.',
+        recarregar: true,
       });
     }
   }
@@ -60,10 +89,12 @@ export function QuizClient({ rackets }: { rackets: readonly RacketOption[] }) {
           <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
-              onClick={() => setState({ phase: 'form' })}
+              onClick={() =>
+                state.recarregar ? window.location.reload() : setState({ phase: 'form' })
+              }
               className="min-h-[52px] rounded bg-clay font-semibold text-white"
             >
-              Tentar novamente
+              {state.recarregar ? 'Continuar de onde parei' : 'Tentar novamente'}
             </button>
             <Link
               href="/"

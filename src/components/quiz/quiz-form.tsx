@@ -7,6 +7,7 @@ import { Wordmark } from '@/components/marketing/wordmark';
 import { RacketPicker, type RacketOption } from './racket-picker';
 import { emptyAnswers, type QuestionnaireAnswers } from '@/recommendation/profile/answers';
 import { unansweredIn, visibleSteps, type Question } from './steps';
+import { lerRascunho, salvarRascunho, type Rascunho } from './rascunho';
 
 /**
  * Questionário — §10, §43.
@@ -32,8 +33,23 @@ export function QuizForm({
    */
   onStep?: (stepIndex: number) => void;
 }) {
-  const [answers, setAnswers] = useState<QuestionnaireAnswers>(emptyAnswers);
-  const [stepIndex, setStepIndex] = useState(0);
+  /*
+    ═══ O RASCUNHO, RESTAURADO NA MONTAGEM ══════════════════════════════════════════════════════
+
+    Ver `rascunho.ts` para o caso real que fez isto existir: duas pessoas perderam o questionário
+    inteiro em 21/09 depois de lerem na tela que não tinham perdido nada.
+
+    Inicializador PREGUIÇOSO (`useState(() => …)`), e não `useState(lerRascunho())`: a segunda
+    forma leria `sessionStorage` a cada render, e no servidor não existe `sessionStorage` nenhum.
+    Assim a leitura acontece uma vez, no cliente, na primeira montagem.
+  */
+  const restaurado = useRef<Rascunho | null>(null);
+  const [answers, setAnswers] = useState<QuestionnaireAnswers>(() => {
+    const salvo = typeof window === 'undefined' ? null : lerRascunho();
+    restaurado.current = salvo;
+    return salvo?.answers ?? emptyAnswers();
+  });
+  const [stepIndex, setStepIndex] = useState(() => restaurado.current?.stepIndex ?? 0);
 
   /**
    * Volta ao topo a cada troca de etapa.
@@ -71,6 +87,17 @@ export function QuizForm({
     // efeito a cada render, transformando um marco por etapa em um marco por letra digitada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIndex]);
+
+  /*
+    Salva a cada mudança de resposta ou de etapa.
+
+    Não é debounced de propósito: `sessionStorage` é síncrono e local, escrever alguns kilobytes
+    custa microssegundos, e um debounce criaria exatamente a janela que isto existe para fechar —
+    a pessoa responde a última pergunta, aperta enviar, e o que estava em espera nunca foi gravado.
+  */
+  useEffect(() => {
+    salvarRascunho(answers, stepIndex);
+  }, [answers, stepIndex]);
 
   const steps = useMemo(() => visibleSteps(answers), [answers]);
   const step = steps[Math.min(stepIndex, steps.length - 1)]!;
