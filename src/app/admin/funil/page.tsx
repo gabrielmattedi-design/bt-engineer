@@ -10,7 +10,7 @@ import {
   quizDropoff,
 } from '@/database/repositories/funnel-repo';
 import { dataCurta } from '@/lib/datas';
-import { totalDasOrigens } from '@/lib/origens';
+import { semMarcacao, totalDasOrigens } from '@/lib/origens';
 import { brl } from '@/payments/catalogo';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
@@ -135,6 +135,12 @@ export default async function FunilPage({
   /* A soma das origens, para a linha de total da tabela. Ver `lib/origens.ts`. */
   const totais = totalDasOrigens(origens);
 
+  /*
+    O que sobrou do faturamento sem origem conhecida — a linha que faz a tabela fechar com Vendas.
+    Sem ela a tabela mostra 9 num dia de 11 e não diz onde foram os outros 2. Ver `lib/origens.ts`.
+  */
+  const resto = semMarcacao(vendas, receitaCentavos, totais);
+
   const lucro = gastoCentavos === null
     ? null
     : calcularLucro({ receitaCentavos, gastoCentavos, taxaPercentual, clientes: compradores });
@@ -240,6 +246,440 @@ export default async function FunilPage({
           </p>
         )}
 
+        {/*
+          ═══ O FECHAMENTO — A ÚNICA CAIXA QUE PRECISA SER LIDA TODO DIA ═════════════════════════
+
+          ⚠️ ESTA SEÇÃO EXISTE PORQUE O PAINEL FICOU ILEGÍVEL (21/09/2026)
+
+          A tela tinha seis caixas — funil, lucro, etapas do questionário, origens, envios ao Meta,
+          e o que o funil não vê. Cada uma correta, cada uma documentada, e **quatro relógios
+          diferentes entre elas**: chegada, checkout, pagamento e clique no anúncio.
+
+          O dono passou uma tarde tentando fazer quatro números baterem que nunca foram feitos para
+          bater, e escreveu: *"tá muito confuso, muita informação que só está servindo para
+          complicar"*.
+
+          O erro não foi dele. Um painel que exige saber qual relógio cada caixa usa **antes** de
+          ler qualquer número não é um painel, é um manual. E o pior efeito não é a confusão: é
+          fazer o dono desconfiar de número certo — a partir de um certo ponto ele para de usar a
+          tela inteira, inclusive as partes que decidem dinheiro.
+
+          ─── A REGRA QUE ESTA CAIXA SEGUE ──────────────────────────────────────────────────────
+
+          **Um relógio só: o do PAGAMENTO.** O mesmo de `/admin/vendas` e o mesmo do extrato do
+          Mercado Pago. Tudo que usa outro relógio foi para trás de "ver detalhes", onde é
+          diagnóstico e não leitura diária.
+
+          Fica fora do `topo === 0` de propósito: venda existe sem marco de funil (recuperação
+          manual, cupom, marco perdido), e a caixa do dinheiro não pode sumir porque a MEDIÇÃO
+          ficou vazia.
+        */}
+        <section className="mt-8">
+          <div className="rounded border border-line bg-white p-5">
+            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+              <p className="text-2xl font-bold tabular-nums text-ink">
+                {vendas} {vendas === 1 ? 'venda' : 'vendas'}
+              </p>
+              <p className="text-2xl font-bold tabular-nums text-ink">{brl(receitaCentavos)}</p>
+              {lucro?.roas != null && (
+                <p className="text-lg font-semibold tabular-nums text-court">
+                  ROAS {lucro.roas.toFixed(2)}×
+                </p>
+              )}
+            </div>
+
+            <p className="mt-2 text-sm text-graphite">
+              Contado pelo dia em que o <strong className="text-ink">pagamento entrou</strong> — o
+              mesmo corte de <strong className="text-ink">Vendas</strong> e do extrato do Mercado
+              Pago. É o seu faturamento do período.
+            </p>
+
+            {/*
+              O gasto vem pela URL e não do banco — ver o comentário original em `lerDinheiroEmCentavos`:
+              ele só existe no Gerenciador de Anúncios, e uma tabela para digitar todo dia trocaria
+              uma digitação por outra mais burocrática.
+            */}
+            <form
+              method="get"
+              className="mt-4 flex flex-wrap items-end gap-2 border-t border-line pt-4"
+            >
+              {periodo !== undefined && <input type="hidden" name="periodo" value={periodo} />}
+              <label className="flex flex-col gap-1 text-xs text-graphite">
+                Gasto no anúncio (R$)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  name="gasto"
+                  defaultValue={gasto ?? ''}
+                  placeholder="126,17"
+                  className="w-36 rounded border border-line px-3 py-1.5 text-sm text-ink"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-graphite">
+                Taxa do gateway (%) — opcional
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  name="taxa"
+                  defaultValue={taxa ?? ''}
+                  placeholder="5,53"
+                  className="w-44 rounded border border-line px-3 py-1.5 text-sm text-ink"
+                />
+              </label>
+              <button
+                type="submit"
+                className="rounded border border-line px-3 py-1.5 text-sm hover:border-ink"
+              >
+                Calcular
+              </button>
+            </form>
+
+            {gasto !== undefined && gasto.trim() !== '' && gastoCentavos === null && (
+              <p className="mt-3 max-w-prose text-sm text-clay">
+                Não consegui ler <strong>{gasto}</strong> como valor. Use 126,17 ou 126.17 — e
+                atenção: <strong>1.234</strong> é lido como mil duzentos e trinta e quatro, não como
+                um real e vinte e três.
+              </p>
+            )}
+
+            {lucro !== null && (
+              <div className="mt-4 max-w-prose border-t border-line pt-4 text-sm">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 tabular-nums">
+                  <dt className="text-graphite">Receita (todas as origens)</dt>
+                  <dd className="text-right text-ink">R$ {emReais(lucro.receitaCentavos)}</dd>
+
+                  <dt className="text-graphite">Gasto no anúncio</dt>
+                  <dd className="text-right text-ink">− R$ {emReais(lucro.gastoCentavos)}</dd>
+
+                  {lucro.taxaCentavos !== null && (
+                    <>
+                      <dt className="text-graphite">Taxa do gateway ({taxaPercentual}%)</dt>
+                      <dd className="text-right text-ink">− R$ {emReais(lucro.taxaCentavos)}</dd>
+                    </>
+                  )}
+
+                  <dt className="border-t border-line pt-2 font-semibold text-ink">
+                    Lucro {lucro.antesDasTaxas && 'antes das taxas'}
+                  </dt>
+                  <dd
+                    className={`border-t border-line pt-2 text-right font-semibold ${
+                      lucro.lucroCentavos < 0 ? 'text-clay' : 'text-ink'
+                    }`}
+                  >
+                    R$ {emReais(lucro.lucroCentavos)}
+                  </dd>
+                </dl>
+
+                <p className="mt-3 border-t border-line pt-3 text-graphite">
+                  {lucro.cacCentavos === null ? (
+                    <>Sem cliente no período — não existe CAC.</>
+                  ) : (
+                    <>
+                      <strong className="text-ink">CAC R$ {emReais(lucro.cacCentavos)}</strong> por
+                      cliente ({compradores})
+                    </>
+                  )}
+                </p>
+
+                {lucro.antesDasTaxas && (
+                  <p className="mt-2 text-xs text-graphite">
+                    Sem taxa informada, este lucro é <strong>bruto</strong>. A taxa não tem valor
+                    padrão de propósito: ela muda com o meio de pagamento, e um número fixo aqui
+                    seria falso em todo dia que não fosse a média.
+                  </p>
+                )}
+
+                {!diaFechado && (
+                  <p className="mt-2 text-xs text-clay">
+                    Este período é uma janela <strong>rolante</strong>. O gasto digitado precisa ser
+                    o do mesmo intervalo, senão o CAC sai plausível e errado — que é pior que sair
+                    absurdo.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/*
+          Desempenho por origem — §15.
+
+          O funil acima dá a média. Com dois anúncios no ar, uma média de 5% pode ser 9% e 1%, e a
+          decisão certa — desligar um, dobrar no outro — fica escondida atrás dela. Esta tabela é a
+          única que responde onde colocar dinheiro.
+        */}
+        {origens.length > 0 && (
+          <section className="mt-12">
+            <h2 className="font-display text-lg font-semibold">De onde vieram</h2>
+            <p className="mt-1 max-w-prose text-sm text-graphite">
+              Só quem chegou por um link com <code>utm_source</code>. Quem veio direto ou por busca
+              não aparece aqui — a origem só existe se você a escreveu no link.
+            </p>
+
+            {/*
+              ═══ TRÊS COLUNAS, E A LINHA QUE FAZ A CONTA FECHAR ═════════════════════════════
+
+              A tabela tinha DEZ colunas e dois relógios: "Chegaram", "Terminaram", "Pagaram" e
+              "Conversão" contam por data de CHEGADA; "Clientes", "Pedidos" e "Receita" contam por
+              data de PAGAMENTO. As duas metades estavam certas e nunca podiam bater entre si.
+
+              ⚠️ E o pior não eram as colunas — era o que a tabela OMITIA. Num dia de 11 vendas ela
+              mostrava 9 pedidos e não dizia onde foram os outros 2. O subtítulo avisava que só
+              aparece quem chegou com `utm_source`; não adianta, porque o número some e a conclusão
+              natural é que o sistema perdeu venda.
+
+              Agora a tabela tem UM relógio — o do pagamento, o mesmo do fechamento e de Vendas —,
+              três colunas, e a linha "sem marcação". Com ela a coluna SOMA o faturamento: nada
+              some em silêncio, e a pergunta "por que não bate" deixa de existir.
+
+              As colunas de chegada não foram apagadas: foram para o `<details>` abaixo, onde
+              respondem "onde a origem falha", que é pergunta de uma vez por mês.
+            */}
+            <div className="mt-4 overflow-x-auto rounded border border-line bg-white">
+              <table className="w-full min-w-[26rem] text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-graphite">
+                    <th className="px-4 py-3 font-semibold">Origem</th>
+                    <th className="px-4 py-3 text-right font-semibold">Vendas</th>
+                    <th className="px-4 py-3 text-right font-semibold">Receita</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {origens.map((o) => (
+                    <tr
+                      key={`${o.source}|${o.campaign ?? ''}|${o.content ?? ''}`}
+                      className="border-b border-line/60 last:border-0"
+                    >
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-ink">{o.source}</span>
+                        {/*
+                          Campanha e criativo viram uma linha secundária em vez de duas colunas.
+                          Com um anúncio no ar as duas colunas eram "—" o tempo todo e custavam
+                          um terço da largura da tabela no celular.
+                        */}
+                        {(o.campaign ?? o.content) && (
+                          <span className="block text-xs text-graphite">
+                            {[o.campaign, o.content].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {o.pedidos}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {brl(o.receitaCentavos)}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/*
+                    ⚠️ A LINHA QUE NÃO PODE SUMIR MESMO VALENDO ZERO NAS VENDAS.
+
+                    Ela é o resto: faturamento total menos o que foi atribuído. É o que transforma
+                    esta tabela de "uma amostra do dia" em "o dia inteiro".
+
+                    Aparece sempre que houver pedido ou receita não atribuída — inclusive quando só
+                    a receita sobra, o que acontece quando um pedido é atribuído a uma origem mas
+                    outro valor do mesmo período não é.
+                  */}
+                  {(resto.pedidos > 0 || resto.receitaCentavos > 0) && (
+                    <tr className="border-b border-line/60 last:border-0 bg-paper/60">
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-graphite">sem marcação</span>
+                        <span className="block text-xs text-graphite">
+                          digitou o endereço, veio de busca, ou o link não tinha{' '}
+                          <code>utm_source</code>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-graphite">
+                        {resto.pedidos}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-graphite">
+                        {brl(resto.receitaCentavos)}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+
+                <tfoot>
+                  <tr className="border-t-2 border-line bg-paper font-semibold">
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{vendas}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{brl(receitaCentavos)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <p className="mt-3 max-w-prose text-xs text-graphite">
+              O total é o mesmo de <strong className="text-ink">Vendas</strong> e o mesmo do
+              fechamento lá em cima. Se as três telas discordarem, é defeito — me chame.
+            </p>
+
+            {/*
+              ⚠️ Soma das origens MAIOR que o total: dupla atribuição, não resto.
+
+              `dinheiroPorOrigem` agrupa por (origem, campanha, criativo) e conta `distinct` dentro
+              de cada grupo. Quem chegou pelo anúncio na segunda e pela bio na terça tem duas linhas
+              de campanha, e o pedido dela é contado nas duas.
+
+              Zerar isso em silêncio esconderia um defeito real atrás de uma linha plausível.
+            */}
+            {resto.excede && (
+              <p className="mt-3 max-w-prose rounded border border-warn/40 bg-warn/5 p-3 text-sm text-warn">
+                <strong>As origens somam mais que o total.</strong> Alguém chegou por mais de um
+                link no período e o pedido está sendo contado em mais de uma origem. O total acima
+                está certo; as linhas individuais estão infladas. Confira em{' '}
+                <strong>Vendas</strong>, que é o registro do dinheiro.
+              </p>
+            )}
+
+            {/*
+              ═══ AS COLUNAS DE CHEGADA, ONDE ELAS NÃO ATRAPALHAM ═══════════════════════════════
+
+              Não são inúteis — são a única coisa que diz ONDE uma origem falha, e a §15 foi escrita
+              por causa disso. O que elas não podem é estar na frente do dono todo dia ao lado das
+              colunas de dinheiro, porque usam outro relógio e a comparação lado a lado é o que
+              produziu a confusão de 21/09.
+
+              Fechado por padrão: quem abre já está fazendo a pergunta que elas respondem.
+            */}
+            <details className="mt-4 rounded border border-line bg-white">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-ink">
+                Onde cada origem falha (chegadas e conversão)
+              </summary>
+
+              <div className="border-t border-line px-4 py-4">
+                <p className="max-w-prose text-xs text-graphite">
+                  ⚠️ Estas colunas contam por <strong className="text-ink">data de chegada</strong>,
+                  não de pagamento. Quem chegou ontem e pagou hoje aparece na tabela de cima e não
+                  aqui — <strong className="text-ink">elas não batem com as de cima de propósito</strong>.
+                </p>
+
+                <p className="mt-2 max-w-prose text-xs text-graphite">
+                  Elas dizem <strong className="text-ink">onde</strong> a origem falha: quem não
+                  termina o questionário veio pelo anúncio errado; quem termina e não paga é público
+                  certo com oferta errada. Uma origem com 3 visitantes e 1 pagante marca 33% e não é
+                  resultado — é acaso de amostra pequena.
+                </p>
+
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[30rem] text-sm">
+                    <thead>
+                      <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-graphite">
+                        <th className="px-3 py-2 font-semibold">Origem</th>
+                        <th className="px-3 py-2 text-right font-semibold">Chegaram</th>
+                        <th className="px-3 py-2 text-right font-semibold">Terminaram</th>
+                        <th className="px-3 py-2 text-right font-semibold">Pagaram</th>
+                        <th className="px-3 py-2 text-right font-semibold">Conversão</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {origens.map((o) => (
+                        <tr
+                          key={`d|${o.source}|${o.campaign ?? ''}|${o.content ?? ''}`}
+                          className="border-b border-line/60 last:border-0"
+                        >
+                          <td className="px-3 py-2">
+                            {o.source}
+                            {(o.campaign ?? o.content) && (
+                              <span className="block text-xs text-graphite">
+                                {[o.campaign, o.content].filter(Boolean).join(' · ')}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{o.visitors}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                            {o.finished}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{o.paid}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {o.conversion.toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+
+                    {/*
+                      A linha de total continua aqui, e a conversão dela continua sendo
+                      `pagaram ÷ chegaram` do AGREGADO — não a média das porcentagens. Ver
+                      `lib/origens.ts`: em 18/09 a média simples dava 24,9% e a verdadeira 23,4%.
+                    */}
+                    {origens.length > 1 && (
+                      <tfoot>
+                        <tr className="border-t-2 border-line bg-paper font-semibold">
+                          <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{totais.visitors}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-graphite">
+                            {totais.finished}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{totais.paid}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {totais.conversion.toFixed(1)}%
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+            </details>
+
+            {/*
+              A ressalva que impede a decisão errada mais comum.
+
+              Uma origem com 3 visitantes e 1 pagante marca 33% e parece a melhor da tabela. Não é
+              resultado, é acaso de amostra pequena — e desligar a campanha de 300 visitantes para
+              investir naquela seria a pior decisão que este painel poderia induzir.
+            */}
+            {/*
+              A ressalva de amostra pequena mudou de lugar junto com a coluna que a provocava.
+
+              Ela existe porque uma origem com 3 visitantes e 1 pagante marca 33% e parece a melhor
+              da tabela — e desligar a campanha de 300 visitantes por causa dela seria a pior
+              decisão que este painel poderia induzir. Como a conversão agora só aparece dentro do
+              `<details>`, o aviso vive ali, colado no número que ele protege.
+            */}
+            <p className="mt-3 max-w-prose text-xs text-graphite">
+              Ordenado por volume. Para decidir onde pôr dinheiro, compare{' '}
+              <strong className="text-ink">Receita</strong> contra o gasto de cada canal — e
+              desconfie de origem com poucas vendas: abaixo de umas 50 pessoas o percentual oscila
+              demais para decidir.
+            </p>
+          </section>
+        )}
+
+        {/*
+          ═══ O QUE SAIU DA FRENTE, E POR QUÊ ═══════════════════════════════════════════════════
+
+          ⚠️ 21/09/2026. O painel tinha seis caixas abertas ao mesmo tempo, com QUATRO relógios
+          diferentes entre elas — chegada, checkout, pagamento e clique no anúncio. Cada caixa
+          certa, cada uma documentada, e nenhuma capaz de bater com a vizinha.
+
+          O dono gastou uma tarde tentando conciliar quatro números que nunca foram feitos para
+          fechar entre si, e concluiu: *"tá muito confuso, muita informação que só está servindo
+          para complicar"*.
+
+          O custo real disso não é a confusão de um dia. É que, depois de tropeçar algumas vezes,
+          quem lê para de confiar na tela inteira — inclusive nas duas caixas que decidem dinheiro.
+
+          ─── O CRITÉRIO DO QUE FICOU FORA ──────────────────────────────────────────────────────
+
+          Nada foi apagado. O que saiu da frente é o que responde pergunta de DIAGNÓSTICO — "onde
+          as pessoas desistem", "a API de Conversões está viva", "quantos marcos o funil perdeu".
+          São perguntas de quando algo está errado, não de todo dia.
+
+          O que ficou na frente é o que responde "como foi o período": quanto vendeu, quanto
+          entrou, de onde veio. Um relógio só, o do pagamento.
+
+          `<details>` e não uma aba: sem JavaScript nosso, o navegador guarda o estado, e o
+          conteúdo continua no HTML — dá para buscar na página com Ctrl+F mesmo fechado.
+        */}
+        <details className="mt-12 rounded border border-line bg-white">
+          <summary className="cursor-pointer px-5 py-4 font-display text-lg font-semibold text-ink">
+            Ver detalhes da medição
+          </summary>
+          <div className="border-t border-line px-5 pb-5">
         {topo === 0 ? (
           /*
             Estado vazio que diz o que fazer.
@@ -406,130 +846,6 @@ export default async function FunilPage({
               </div>
             )}
 
-            {/*
-              ═══ O LUCRO DO DIA — PEDIDO EM 17/09/2026 ══════════════════════════════════════
-
-              Até aqui a tela ensinava a FÓRMULA ("divida o gasto por {compradores}") e o dono
-              dividia à mão, no celular, todo dia. Divisão à mão erra em silêncio, e este projeto
-              já pagou caro por divisor errado — CAC inflado é o sinal que manda cortar orçamento
-              de campanha que está indo bem.
-
-              A receita aqui é de TODAS as origens, de propósito: o gasto é de um canal, a receita
-              entra por vários, e usar só a origem paga subestima o lucro do dia.
-
-              `<form method="get">` com `periodo` escondido: sem JavaScript nosso, e o link
-              resultante já carrega o dia, o gasto e a taxa — dá para salvar e reabrir.
-            */}
-            <section className="mt-10">
-              <h2 className="font-display text-lg font-semibold">Lucro do período</h2>
-              <p className="mt-1 max-w-prose text-sm text-graphite">
-                A receita abaixo é de <strong className="text-ink">todas as origens</strong>. O
-                gasto só existe no Gerenciador de Anúncios, então ele é digitado aqui.
-              </p>
-
-              <form method="get" className="mt-3 flex flex-wrap items-end gap-2">
-                {periodo !== undefined && <input type="hidden" name="periodo" value={periodo} />}
-                <label className="flex flex-col gap-1 text-xs text-graphite">
-                  Gasto no anúncio (R$)
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    name="gasto"
-                    defaultValue={gasto ?? ''}
-                    placeholder="126,17"
-                    className="w-36 rounded border border-line px-3 py-1.5 text-sm text-ink"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-graphite">
-                  Taxa do gateway (%) — opcional
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    name="taxa"
-                    defaultValue={taxa ?? ''}
-                    placeholder="5,53"
-                    className="w-44 rounded border border-line px-3 py-1.5 text-sm text-ink"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="rounded border border-line px-3 py-1.5 text-sm hover:border-ink"
-                >
-                  Calcular
-                </button>
-              </form>
-
-              {gasto !== undefined && gasto.trim() !== '' && gastoCentavos === null && (
-                <p className="mt-3 max-w-prose text-sm text-clay">
-                  Não consegui ler <strong>{gasto}</strong> como valor. Use 126,17 ou 126.17 — e
-                  atenção: <strong>1.234</strong> é lido como mil duzentos e trinta e quatro, não
-                  como um real e vinte e três.
-                </p>
-              )}
-
-              {lucro !== null && (
-                <div className="mt-3 max-w-prose rounded border border-line bg-white p-4 text-sm">
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 tabular-nums">
-                    <dt className="text-graphite">Receita (todas as origens)</dt>
-                    <dd className="text-right text-ink">R$ {emReais(lucro.receitaCentavos)}</dd>
-
-                    <dt className="text-graphite">Gasto no anúncio</dt>
-                    <dd className="text-right text-ink">− R$ {emReais(lucro.gastoCentavos)}</dd>
-
-                    {lucro.taxaCentavos !== null && (
-                      <>
-                        <dt className="text-graphite">Taxa do gateway ({taxaPercentual}%)</dt>
-                        <dd className="text-right text-ink">− R$ {emReais(lucro.taxaCentavos)}</dd>
-                      </>
-                    )}
-
-                    <dt className="border-t border-line pt-2 font-semibold text-ink">
-                      Lucro {lucro.antesDasTaxas && 'antes das taxas'}
-                    </dt>
-                    <dd
-                      className={`border-t border-line pt-2 text-right font-semibold ${
-                        lucro.lucroCentavos < 0 ? 'text-clay' : 'text-ink'
-                      }`}
-                    >
-                      R$ {emReais(lucro.lucroCentavos)}
-                    </dd>
-                  </dl>
-
-                  <p className="mt-3 border-t border-line pt-3 text-graphite">
-                    {lucro.cacCentavos === null ? (
-                      <>Sem cliente no período — não existe CAC.</>
-                    ) : (
-                      <>
-                        <strong className="text-ink">CAC R$ {emReais(lucro.cacCentavos)}</strong> por
-                        cliente ({compradores}){' '}
-                      </>
-                    )}
-                    {lucro.roas !== null && (
-                      <>
-                        · <strong className="text-ink">ROAS {lucro.roas.toFixed(2)}×</strong>
-                      </>
-                    )}
-                  </p>
-
-                  {lucro.antesDasTaxas && (
-                    <p className="mt-2 text-xs text-graphite">
-                      Sem taxa informada, este lucro é <strong>bruto</strong>. A taxa não tem valor
-                      padrão de propósito: ela muda com o meio de pagamento, e um número fixo aqui
-                      seria falso em todo dia que não fosse a média.
-                    </p>
-                  )}
-
-                  {!diaFechado && (
-                    <p className="mt-2 text-xs text-clay">
-                      Este período é uma janela <strong>rolante</strong>. O gasto digitado precisa
-                      ser o do mesmo intervalo, senão o CAC sai plausível e errado — que é pior que
-                      sair absurdo.
-                    </p>
-                  )}
-                </div>
-              )}
-            </section>
-
             {etapas.length > 1 && (
               <section className="mt-10">
                 <h2 className="font-display text-lg font-semibold">
@@ -566,159 +882,6 @@ export default async function FunilPage({
               </section>
             )}
           </>
-        )}
-
-        {/*
-          Desempenho por origem — §15.
-
-          O funil acima dá a média. Com dois anúncios no ar, uma média de 5% pode ser 9% e 1%, e a
-          decisão certa — desligar um, dobrar no outro — fica escondida atrás dela. Esta tabela é a
-          única que responde onde colocar dinheiro.
-        */}
-        {origens.length > 0 && (
-          <section className="mt-12">
-            <h2 className="font-display text-lg font-semibold">De onde vieram</h2>
-            <p className="mt-1 max-w-prose text-sm text-graphite">
-              Só quem chegou por um link com <code>utm_source</code>. Quem veio direto ou por busca
-              não aparece aqui — a origem só existe se você a escreveu no link.
-            </p>
-
-            <div className="mt-4 overflow-x-auto rounded border border-line bg-white">
-              <table className="w-full min-w-[36rem] text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-graphite">
-                    <th className="px-4 py-3 font-semibold">Origem</th>
-                    <th className="px-4 py-3 font-semibold">Campanha</th>
-                    <th className="px-4 py-3 font-semibold">Criativo</th>
-                    <th className="px-4 py-3 text-right font-semibold">Chegaram</th>
-                    <th className="px-4 py-3 text-right font-semibold">Terminaram</th>
-                    <th className="px-4 py-3 text-right font-semibold">Pagaram</th>
-                    <th className="px-4 py-3 text-right font-semibold">Conversão</th>
-                    {/*
-                      As três de dinheiro vêm de `orders`, não do funil. "Pagaram" conta pessoas
-                      uma vez na vida; "Clientes" e "Pedidos" contam caixa. Ver `campaign-repo`.
-                    */}
-                    <th className="px-4 py-3 text-right font-semibold">Clientes</th>
-                    <th className="px-4 py-3 text-right font-semibold">Pedidos</th>
-                    <th className="px-4 py-3 text-right font-semibold">Receita</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {origens.map((o) => (
-                    <tr
-                      key={`${o.source}|${o.campaign ?? ''}|${o.content ?? ''}`}
-                      className="border-b border-line/60 last:border-0"
-                    >
-                      <td className="px-4 py-3 font-medium">{o.source}</td>
-                      <td className="px-4 py-3 text-graphite">{o.campaign ?? '—'}</td>
-                      <td className="px-4 py-3 text-graphite">{o.content ?? '—'}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{o.visitors}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
-                        {o.finished}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums">{o.paid}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {o.conversion.toFixed(1)}%
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                        {o.clientes}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
-                        {o.pedidos}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                        {brl(o.receitaCentavos)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-
-                {/*
-                  ═══ POR QUE A TABELA PRECISOU DE UMA LINHA DE TOTAL ══════════════════════════
-
-                  Sem ela, a única forma de saber quantas compras houve no dia era somar as linhas
-                  de cabeça — e foi exatamente isso que deu errado em 18/09: com quatro origens na
-                  tela, o total 11 foi lido como 8 porque duas linhas foram somadas e duas não.
-
-                  A conclusão tirada dali foi que "nada bate", quando o sistema estava certo: a
-                  soma da tabela dá 11 e a caixa "O que o Meta recebeu" dizia 11. Os dois números
-                  já concordavam; faltava alguém fazer a adição.
-
-                  Somar à mão é a operação que um painel existe para eliminar, e é a que erra em
-                  silêncio — o mesmo motivo pelo qual o CAC deixou de ser dividido no celular.
-
-                  ─── A MÉDIA DE CONVERSÃO NÃO É A MÉDIA DAS CONVERSÕES ───────────────────────
-
-                  O total de Conversão é `pagaram ÷ chegaram` do agregado, e não a média das
-                  porcentagens das linhas. No print de 18/09 a média simples das quatro daria
-                  24,9% e a verdadeira é 11/47 = 23,4% — média de percentuais ignora que cada
-                  linha tem um tamanho diferente.
-                */}
-                {origens.length > 1 && (
-                  <tfoot>
-                    <tr className="border-t-2 border-line bg-paper font-semibold">
-                      <td className="px-4 py-3">Total</td>
-                      <td className="px-4 py-3 text-graphite">—</td>
-                      <td className="px-4 py-3 text-graphite">—</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{totais.visitors}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
-                        {totais.finished}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{totais.paid}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {totais.conversion.toFixed(1)}%
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{totais.clientes}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
-                        {totais.pedidos}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {brl(totais.receitaCentavos)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-
-            {/*
-              A ressalva que impede a decisão errada mais comum.
-
-              Uma origem com 3 visitantes e 1 pagante marca 33% e parece a melhor da tabela. Não é
-              resultado, é acaso de amostra pequena — e desligar a campanha de 300 visitantes para
-              investir naquela seria a pior decisão que este painel poderia induzir.
-            */}
-            <p className="mt-3 max-w-prose text-xs text-graphite">
-              Ordenado por volume, e não por conversão: abaixo de umas 50 pessoas o percentual
-              oscila demais para decidir. As colunas do meio dizem ONDE a origem falha — quem não
-              termina o questionário veio pelo anúncio errado; quem termina e não paga é público
-              certo com oferta errada.
-            </p>
-
-            {/*
-              ═══ OS DOIS RELÓGIOS DA MESMA LINHA, DITOS EM VOZ ALTA ═══════════════════════════
-
-              "Chegaram", "Terminaram", "Pagaram" e "Conversão" recortam pela data em que a pessoa
-              CHEGOU. "Clientes", "Pedidos" e "Receita" recortam pela data do PAGAMENTO.
-
-              Não é descuido: para casar com o gasto diário do Meta, o que importa é quando o
-              dinheiro caiu. Mas duas metades da mesma linha medindo dias diferentes é exatamente o
-              tipo de coisa que faz alguém somar errado sem perceber — então está escrito aqui.
-            */}
-            <p className="mt-2 max-w-prose text-xs text-graphite">
-              <strong className="text-ink">As três últimas colunas medem outro dia.</strong>{' '}
-              Chegaram, Terminaram e Pagaram contam por quando a pessoa <em>chegou</em>; Clientes,
-              Pedidos e Receita contam por quando o <em>pagamento entrou</em> — que é o corte que
-              casa com o gasto diário do Gerenciador de Anúncios.
-              {diaFechado && (
-                <>
-                  {' '}
-                  Neste dia: <strong className="text-ink">CAC = gasto ÷ Clientes</strong> e{' '}
-                  <strong className="text-ink">ROAS = Receita ÷ gasto</strong>, na linha da origem.
-                </>
-              )}
-            </p>
-          </section>
         )}
 
         {/*
@@ -878,6 +1041,9 @@ export default async function FunilPage({
             )}
           </ul>
         </div>
+
+          </div>
+        </details>
 
         {/*
           Só aparece quando existe incoerência — ver `reconciliar-form.tsx`. A ausência dele é a
