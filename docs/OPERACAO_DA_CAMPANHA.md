@@ -134,6 +134,21 @@ E a semana de 13 a 16: R$ 558,51 de R$ 875. Dentro.
 > regra**, porque é exatamente o erro desta seção: deduzir comportamento de plataforma de uma
 > medição em vez de ler o que a plataforma escreve. A linha cinza embaixo do campo de orçamento diz
 > o teto atual por extenso — **o jeito de confirmar é o dono abrir a caixa e ler, não eu calcular.**
+>
+> #### ✅ CONFIRMADO em 21/09 — o dono abriu a caixa e leu
+>
+> > *"Gastaremos cerca de R$ 149,00 por dia. Seu gasto diário máximo é de **R$ 260,75**, e seu gasto
+> > semanal máximo é de **R$ 1.043,00**."*
+> >
+> > *"Os gastos podem ser maiores em alguns dias e menores em outros."*
+>
+> ```
+> 260,75 = 149 × 1,75   ✓ a regra de 175% se mantém no orçamento novo
+> 1.043  = 149 × 7      ✓ e o teto semanal ACOMPANHA o orçamento vigente
+> ```
+>
+> Os R$ 980,17 da semana de 13 a 19 estavam dentro o tempo todo. **A pergunta se fechou com uma
+> leitura de tela, não com uma dedução** — que é a única coisa que esta seção pede.
 
 > **A lição de método, e é a mais barata de todas:** eu gastei dois dias construindo e derrubando
 > hipóteses sobre uma regra que o Meta escreve por extenso, em português, embaixo do campo que o
@@ -553,6 +568,33 @@ todo dia; sob R$ 149 ele passou a gastar abaixo.** Nenhum dia bateu no teto de R
 Consequência: **subir o orçamento de novo provavelmente não compra volume.** O caminho para mais
 gente deixou de ser o campo do orçamento e passou a ser criativo ou público — que é a decisão que a
 §5.4 manda tomar uma de cada vez.
+
+##### E em 21/09 apareceu a explicação: o Meta não está explorando o público
+
+Os três números que o gerenciador devolveu, lidos juntos:
+
+| O que o Meta diz | Valor | O que isso elimina |
+|---|---|---|
+| Veiculação | **Ativo** | Não é "limitado pelo orçamento", nem "público limitado", nem aprendizado |
+| Estratégia de lance | **Volume mais alto** | Sem limite de custo — nada impede o Meta de pagar mais caro |
+| Alcance | **23.042** | De um público de 15,5 a 18,2 milhões: **0,14%** |
+| Frequência | **2,41** | ~55.500 impressões para 23 mil pessoas |
+
+**Nada está travando o gasto, e mesmo assim ele não sobe.** Sem limite de lance, sem limite de
+orçamento, com 18 milhões de pessoas disponíveis, o Meta alcançou 23 mil e preferiu mostrar de novo
+para elas em vez de procurar as outras.
+
+Isso é o retrato de um modelo de otimização que **encontrou um bolso e parou de explorar**. E as
+três coisas que a série mostrava sem explicação passam a ter a mesma causa:
+
+- **gasto parado** — ele não paga mais caro para sair do bolso;
+- **chegada mais barata** (1,85 → 1,75) — dentro do bolso é barato, essa gente responde;
+- **conversão caindo** (17,9% → 15,8%) — é o mesmo bolso sendo reapresentado, e ele satura.
+
+> **Por que isto importa mais que o diagnóstico de fadiga:** se a limitação é o tamanho do bolso, e
+> não o desgaste da peça, então **dividir orçamento entre dois conjuntos não resolve** — os dois
+> caem no mesmo bolso. O que muda o bolso é sinal novo: criativo diferente o bastante para atrair
+> outro perfil, ou público explicitamente diferente (semelhante a compradores, por exemplo).
 
 #### O dia da semana aparece pela primeira vez, e é para VIGIAR, não para usar
 
@@ -1061,11 +1103,20 @@ estivesse certo por outro caminho — é que **ninguém sabe**, e saber custa ab
 a coluna. Enquanto não for lida, fadiga é palpite, e o palpite já foi publicado uma vez como se
 fosse leitura.
 
-#### Fadiga de criativo não é o motivo aqui
+#### ~~Fadiga de criativo não é o motivo aqui~~ — VERDADE EM 15/09, FALSA EM 21/09
 
 O motivo normal para criativo novo é a peça cansar. **A medição diz que não cansou:** público de
 15,5–18,2 milhões, frequência **1,14–1,20**, alcance abaixo de 0,1%. Em média cada pessoa viu o
 anúncio uma vez. Não há desgaste a combater — o reel atual não está no fim da vida útil.
+
+> ⚠️ **A condição virou. Frequência lida em 21/09: 2,41, sobre alcance de 23.042.**
+>
+> Não é que a seção estivesse errada — ela estava certa no dia em que foi medida, e a frequência
+> **dobrou em seis dias**. Uma seção que afirma um estado do mundo tem prazo, e este venceu.
+>
+> ⚠️ **Falta o período da leitura.** 2,41 em 7 dias é faixa de alerta; 2,41 na vida inteira da
+> campanha (13 dias) é baixo e não indica desgaste nenhum. O print não trouxe o seletor, e a
+> diferença inverte a conclusão — está escrito como pendência, não como achado.
 
 #### A regra geral que fica
 
