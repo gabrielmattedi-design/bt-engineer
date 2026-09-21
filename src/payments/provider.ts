@@ -167,11 +167,46 @@ export interface PaymentProvider {
  * `paid` é terminal exceto por `refunded`. Um gateway pode reenviar eventos fora de ordem (um
  * `pending` atrasado chegando depois do `paid`), e sem esta trava o pedido voltaria para pendente
  * — revogando na prática o acesso de alguém que já pagou.
+ *
+ * ═══ `failed → paid` É PERMITIDO, E ISSO CUSTOU UM CLIENTE ═══════════════════════════════════
+ *
+ * ⚠️ 21/09/2026. Um cliente pagou R$ 49,99 no cartão, recebeu comprovante, e não recebeu o
+ * relatório. O pedido dele estava em `failed`, e a tabela recusava a ida para `paid`:
+ *
+ *   "O pedido 5ef9efeb… está em 'failed' e não aceita ir para 'paid'. Nada foi alterado."
+ *
+ * Dinheiro na conta, comprovante no celular do cliente, e o sistema estruturalmente impedido de
+ * entregar. Nem o webhook nem a recuperação manual tinham como passar.
+ *
+ * O caminho até aqui é comum no Checkout Pro: a primeira tentativa é recusada (limite, banco,
+ * antifraude), o comprador tenta de novo na mesma tela, e a segunda passa. O `external_reference`
+ * é o mesmo, então a aprovação chega para um pedido que já tinha sido marcado como falho.
+ *
+ * ─── A INCOERÊNCIA QUE DENUNCIA O DESCUIDO ────────────────────────────────────────────────
+ *
+ * `failed → pending` já era permitido, e `pending → paid` também. Ou seja: a tabela sempre aceitou
+ * que um pedido falho voltasse à vida — só bloqueava o ÚLTIMO passo dessa mesma jornada. O caminho
+ * longo passava e o atalho não. Isso não é uma regra, é um caso esquecido.
+ *
+ * ─── POR QUE É SEGURO ───────────────────────────────────────────────────────────────────────
+ *
+ * Porque o estado nunca vem do corpo da notificação: `parseWebhook` e `eventoDePagamento` buscam o
+ * pagamento na API do gateway antes de decidir. Quando chega `paid` aqui, é o Mercado Pago dizendo,
+ * agora, que o dinheiro está lá. Recusar isso é recusar a autoridade que a gente escolheu ter.
+ *
+ * O que a trava protege continua protegido: `paid` segue saindo só para `refunded`.
+ *
+ * ─── E `cancelled` CONTINUA FECHADO ────────────────────────────────────────────────────────
+ *
+ * De propósito, e por falta de evidência: não apareceu nenhum caso, e cancelamento no gateway é
+ * ato deliberado (PIX expirado, comprador desistindo), não tentativa malsucedida. Se um dia
+ * aparecer um pedido cancelado com pagamento aprovado, a tela vai dizer, e aí se decide com o caso
+ * na mão em vez de por analogia.
  */
 const ALLOWED: Record<PaymentStatus, readonly PaymentStatus[]> = {
   pending: ['pending', 'paid', 'failed', 'cancelled'],
   paid: ['paid', 'refunded'],
-  failed: ['failed', 'pending'],
+  failed: ['failed', 'pending', 'paid'],
   cancelled: ['cancelled'],
   refunded: ['refunded'],
 };
