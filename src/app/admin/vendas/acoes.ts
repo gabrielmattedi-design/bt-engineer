@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
 import { paymentProvider } from '@/payments/adapters';
-import { processPaymentEvent } from '@/database/repositories/commerce-repo';
+import { processPaymentEvent, situacaoDosPedidos } from '@/database/repositories/commerce-repo';
 import { concluirCompra } from '@/payments/concluir-compra';
 import { withAutoBootstrap } from '@/database/setup';
 
@@ -134,4 +134,107 @@ export async function recuperarPagamento(
       };
     }
   }
+}
+
+export type Orfa = {
+  readonly pagamento: string;
+  readonly pedido: string;
+  readonly valorCentavos: number;
+  readonly email: string | null;
+  /** `ausente` = pedido nem existe aqui. `pendente` = existe e nunca foi marcado como pago. */
+  readonly tipo: 'ausente' | 'pendente';
+};
+
+export type VarreduraResult =
+  | { readonly ok: string; readonly orfas: readonly Orfa[]; readonly conferidos: number }
+  | { readonly error: string };
+
+/**
+ * Confere TODOS os pagamentos aprovados pelo gateway contra os pedidos daqui.
+ *
+ * ═══ A PERGUNTA QUE ISTO RESPONDE ════════════════════════════════════════════════════════════
+ *
+ * Em 19/09/2026 uma venda se perdeu — pagamento aprovado, notificação nunca entregue, nada do lado
+ * de cá. Ela apareceu porque o cliente reclamou. A pergunta seguinte foi: **e os que não
+ * reclamaram?**
+ *
+ * Ela não tinha resposta. Uma venda perdida é invisível por construção: não existe pedido pago, e o
+ * que sobra — um checkout sem desfecho — é idêntico a alguém que desistiu na tela de pagamento.
+ * Nenhuma consulta ao nosso banco separa as duas coisas, porque a diferença está do lado de fora.
+ *
+ * A única conferência que fecha é a que um contador faria: pegar o extrato e bater linha a linha.
+ * É isto.
+ *
+ * ─── DOIS TIPOS DE FALHA, E ELES PEDEM CONSERTOS DIFERENTES ───────────────────────────────
+ *
+ * `pendente` — o pedido existe e ficou preso em pendente. A notificação se perdeu. O botão de
+ * recuperar resolve sozinho, e é o caso do dia 19.
+ *
+ * `ausente` — o gateway conhece um pedido que NÃO existe neste banco. É mais grave e mais
+ * estranho: significa que o checkout cobrou sem gravar, ou que o pedido foi apagado depois.
+ * Recuperar não resolve, porque não há o que conceder. Precisa de investigação.
+ *
+ * Misturar os dois numa lista só faria alguém clicar em recuperar dez vezes num caso que nenhum
+ * clique conserta.
+ */
+export async function varrerPagamentosPerdidos(
+  _prev: unknown,
+  formData: FormData,
+): Promise<VarreduraResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const dias = Math.min(90, Math.max(1, Number(formData.get('dias') ?? 30)));
+  const ate = new Date();
+  const desde = new Date(ate.getTime() - dias * 86_400_000);
+
+  const provider = paymentProvider();
+
+  let aprovados;
+  try {
+    aprovados = await provider.pagamentosAprovados(desde, ate);
+  } catch (error) {
+    const detalhe = error instanceof Error ? error.message : String(error);
+    return { error: `Não consegui conferir com o Mercado Pago: ${detalhe}` };
+  }
+
+  if (aprovados.length === 0) {
+    return {
+      ok: `O Mercado Pago não devolveu nenhum pagamento aprovado nos últimos ${dias} dias.`,
+      orfas: [],
+      conferidos: 0,
+    };
+  }
+
+  const ids = [...new Set(aprovados.map((e) => e.orderId))];
+  const daqui = await withAutoBootstrap(() => situacaoDosPedidos(ids));
+  const porId = new Map(daqui.map((p) => [p.id, p]));
+
+  const orfas: Orfa[] = [];
+  for (const evento of aprovados) {
+    const nosso = porId.get(evento.orderId);
+    if (nosso?.status === 'paid') continue;
+
+    orfas.push({
+      pagamento: evento.providerPaymentId,
+      pedido: evento.orderId,
+      valorCentavos: nosso?.amountCents ?? 0,
+      email: nosso?.email ?? null,
+      tipo: nosso === undefined ? 'ausente' : 'pendente',
+    });
+  }
+
+  console.info(
+    `[varredura] ${aprovados.length} aprovados no gateway, ${orfas.length} sem venda registrada aqui`,
+  );
+
+  return {
+    ok:
+      orfas.length === 0
+        ? `Conferi ${aprovados.length} pagamentos aprovados dos últimos ${dias} dias. ` +
+          'Todos estão registrados aqui — nenhuma venda perdida.'
+        : `Conferi ${aprovados.length} pagamentos aprovados dos últimos ${dias} dias e ` +
+          `${orfas.length} não constam como venda aqui.`,
+    orfas,
+    conferidos: aprovados.length,
+  };
 }

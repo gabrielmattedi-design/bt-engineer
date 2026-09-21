@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
 import { db, isDatabaseConfigured } from '@/database/client';
 import { recorte, SEM_LIMITE } from '@/database/recorte';
 import type { Janela } from '@/lib/periodo';
@@ -646,4 +646,55 @@ export async function vendasDesde(desde: Date = LANCAMENTO): Promise<Vendas> {
     itens: itens.filter((v): v is Venda => v.paidAt !== null),
     anterioresAoCorte: fora[0]?.n ?? 0,
   };
+}
+
+export type SituacaoDoPedido = {
+  readonly id: string;
+  readonly status: string;
+  readonly amountCents: number;
+  readonly email: string | null;
+};
+
+/**
+ * A situação, do NOSSO lado, de uma lista de pedidos que o gateway diz estarem pagos.
+ *
+ * ═══ POR QUE ISTO EXISTE ═════════════════════════════════════════════════════════════════════
+ *
+ * Em 19/09/2026 um cliente pagou, recebeu comprovante, e nada aconteceu aqui — a notificação do
+ * Mercado Pago se perdeu no caminho. Ele reclamou, e foi assim que se descobriu.
+ *
+ * A pergunta seguinte é a que importa: **e os que não reclamaram?** Uma venda perdida é invisível
+ * por construção — não existe pedido, não existe linha em lugar nenhum, e o sintoma é a ausência
+ * de alguma coisa que ninguém sabe que deveria existir. Do lado de cá é indistinguível de um
+ * checkout abandonado.
+ *
+ * A única saída é perguntar a quem sabe. O gateway tem a lista do que foi aprovado; esta função
+ * responde o outro lado da conta — o que, dessa lista, chegou até aqui.
+ *
+ * Devolve só o que EXISTE. Pedido ausente é o caso mais grave e aparece pela ausência: quem
+ * comparar a lista do gateway com esta descobre os dois tipos de falha de uma vez — o pedido que
+ * ficou pendente e o pedido que nunca foi criado.
+ */
+export async function situacaoDosPedidos(
+  ids: readonly string[],
+): Promise<readonly SituacaoDoPedido[]> {
+  if (!isDatabaseConfigured() || ids.length === 0) return [];
+
+  const rows = await db()
+    .select({
+      id: orders.id,
+      status: orders.status,
+      amountCents: orders.amountCents,
+      email: users.email,
+    })
+    .from(orders)
+    .leftJoin(users, eq(users.id, orders.userId))
+    .where(inArray(orders.id, [...ids]));
+
+  return rows.map((r) => ({
+    id: r.id,
+    status: r.status,
+    amountCents: r.amountCents,
+    email: r.email,
+  }));
 }

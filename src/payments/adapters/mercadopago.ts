@@ -649,4 +649,71 @@ export const mercadoPagoProvider: PaymentProvider = {
     }
     return evento;
   },
+
+  /**
+   * Varre os pagamentos APROVADOS numa janela, via `/v1/payments/search`.
+   *
+   * ─── PAGINAÇÃO É OBRIGATÓRIA, NÃO OTIMIZAÇÃO ───────────────────────────────────────────────
+   *
+   * A API devolve no máximo algumas dezenas por página. Uma varredura que lesse só a primeira
+   * página daria um relatório de conferência INCOMPLETO — e um relatório de conferência incompleto
+   * é pior que nenhum: ele diz "está tudo certo" sobre uma parte que não olhou.
+   *
+   * Por isso o laço vai até o total informado pelo próprio gateway, com um teto de segurança para
+   * o caso de a paginação vir errada e o laço não terminar nunca.
+   */
+  async pagamentosAprovados(desde: Date, ate: Date): Promise<readonly PaymentEvent[]> {
+    const eventos: PaymentEvent[] = [];
+    const LIMITE = 50;
+    const TETO_DE_PAGINAS = 40; // 2.000 pagamentos — muito acima de qualquer janela que se peça
+
+    for (let pagina = 0; pagina < TETO_DE_PAGINAS; pagina += 1) {
+      const url =
+        `${API}/v1/payments/search?sort=date_created&criteria=desc&status=approved` +
+        `&range=date_created&begin_date=${desde.toISOString()}&end_date=${ate.toISOString()}` +
+        `&limit=${LIMITE}&offset=${pagina * LIMITE}`;
+
+      const resposta = await comGateway(() =>
+        fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken()}` },
+          cache: 'no-store',
+        }),
+      );
+
+      if (!resposta.ok) {
+        const detalhe = await resposta.text().catch(() => '');
+        console.error(
+          `[mercadopago] busca de pagamentos falhou (HTTP ${resposta.status}): ${detalhe.slice(0, 200)}`,
+        );
+        /*
+          Falha no meio da varredura ABORTA, e não devolve o que já tinha.
+
+          Devolver parcial seria entregar uma conferência que parece completa e não é — e a
+          conclusão de quem lesse seria "não há vendas perdidas", sobre uma lista truncada. Melhor
+          a tela dizer que não conseguiu conferir.
+        */
+        throw new Error(
+          `O Mercado Pago recusou a busca de pagamentos (HTTP ${resposta.status}). ` +
+            'O Access Token precisa de permissão de leitura de pagamentos.',
+        );
+      }
+
+      const corpo = (await resposta.json().catch(() => null)) as {
+        results?: MercadoPagoPayment[];
+        paging?: { total?: number };
+      } | null;
+
+      const lote = corpo?.results ?? [];
+      for (const pagamento of lote) {
+        const evento = eventoDoPagamento(pagamento, null);
+        // Pagamento sem `external_reference` não é nosso — ignorado sem ruído.
+        if (typeof evento !== 'string') eventos.push(evento);
+      }
+
+      const total = corpo?.paging?.total ?? eventos.length;
+      if (lote.length < LIMITE || (pagina + 1) * LIMITE >= total) break;
+    }
+
+    return eventos;
+  },
 };

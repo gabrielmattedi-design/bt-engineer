@@ -3,6 +3,7 @@ import { simulatedPaymentsAllowed, SIMULATED_PAYMENTS_BLOCKED } from '../mode';
 import type {
   CheckoutSession,
   CreateCheckoutInput,
+  PaymentEvent,
   PaymentProvider,
   PaymentStatus,
   WebhookOutcome,
@@ -102,5 +103,11 @@ export const fakeProvider: PaymentProvider = {
   async eventoDePagamento(): Promise<null> {
     await assertAllowed();
     return null;
+  },
+
+  /** Mesmo motivo: não há histórico para varrer num provedor que não guarda pagamento nenhum. */
+  async pagamentosAprovados(): Promise<readonly PaymentEvent[]> {
+    await assertAllowed();
+    return [];
   },
 };

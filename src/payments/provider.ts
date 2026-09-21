@@ -137,6 +137,28 @@ export interface PaymentProvider {
    * pedido nenhuma.
    */
   eventoDePagamento(providerPaymentId: string): Promise<PaymentEvent | null>;
+
+  /**
+   * Todos os pagamentos APROVADOS pelo gateway numa janela — a lista contra a qual conferir.
+   *
+   * ═══ POR QUE ISTO PRECISA VIR DE LÁ, E NÃO DAQUI ═══════════════════════════════════════════
+   *
+   * Uma venda perdida é invisível do lado de cá, por construção. Quando a notificação não chega,
+   * não existe pedido pago, não existe linha em lugar nenhum, e o que sobra — um checkout sem
+   * desfecho — é idêntico a alguém que desistiu na tela de pagamento. Não há consulta ao nosso
+   * banco capaz de separar as duas coisas.
+   *
+   * Em 19/09/2026 uma dessas apareceu porque o cliente reclamou. A pergunta que ficou foi "e os que
+   * não reclamaram?", e ela não tinha resposta: o sintoma de uma venda perdida é a ausência de algo
+   * que ninguém sabe que deveria existir.
+   *
+   * O gateway sabe. Ele tem a lista do que foi aprovado, com o nosso `external_reference` dentro de
+   * cada pagamento. Comparar essa lista com os nossos pedidos é a única conferência que fecha — e é
+   * a mesma que um contador faria com o extrato.
+   *
+   * `[]` quando o provedor não tem como listar (o simulado) ou quando a janela não tem nada.
+   */
+  pagamentosAprovados(desde: Date, ate: Date): Promise<readonly PaymentEvent[]>;
 }
 
 /**

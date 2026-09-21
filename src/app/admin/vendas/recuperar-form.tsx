@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState } from 'react';
-import { recuperarPagamento } from './acoes';
+import { recuperarPagamento, varrerPagamentosPerdidos } from './acoes';
+import { brl } from '@/payments/catalogo';
 
 /**
  * O formulário de recuperação de uma compra que não entrou.
@@ -79,6 +80,107 @@ export function RecuperarPagamentoForm() {
         concede nada de novo. E isto não marca nada como pago por conta própria — quem confirma o
         pagamento é o Mercado Pago.
       </p>
+
+      <VarreduraDePagamentos />
     </section>
+  );
+}
+
+/**
+ * A varredura: conferir TODOS os aprovados do gateway contra os pedidos daqui.
+ *
+ * ═══ POR QUE ELA PRECISA EXISTIR AO LADO DO BOTÃO DE RECUPERAR ═══════════════════════════════
+ *
+ * O formulário acima conserta UMA venda, e só funciona quando alguém já sabe que ela existe. No
+ * caso de 19/09/2026 quem soube foi o cliente, reclamando.
+ *
+ * A pergunta que sobra — "e os que não reclamaram?" — não tem resposta do lado de cá: uma venda
+ * perdida não deixa rastro, e um checkout sem desfecho é igualzinho a alguém que desistiu. Só o
+ * gateway sabe a diferença.
+ *
+ * Sem esta varredura, o botão de recuperar é uma ferramenta que depende de o cliente ser educado o
+ * bastante para cobrar em vez de sumir.
+ */
+function VarreduraDePagamentos() {
+  const [state, action, pendente] = useActionState(varrerPagamentosPerdidos, null);
+  const orfas = state && 'orfas' in state ? state.orfas : [];
+
+  return (
+    <div className="mt-8 border-t border-line pt-6">
+      <h3 className="text-sm font-semibold text-ink">Conferir tudo com o Mercado Pago</h3>
+      <p className="mt-1 max-w-prose text-sm text-graphite">
+        Pega todos os pagamentos <strong className="text-ink">aprovados</strong> no período e
+        confere um a um contra as vendas registradas aqui. É a mesma conferência que se faria com o
+        extrato na mão.
+      </p>
+
+      <form action={action} className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="text-sm text-graphite">
+          Últimos{' '}
+          <input
+            name="dias"
+            type="number"
+            min={1}
+            max={90}
+            defaultValue={30}
+            className="w-20 rounded border border-line px-3 py-2 text-ink tabular-nums"
+          />{' '}
+          dias
+        </label>
+        <button
+          type="submit"
+          disabled={pendente}
+          className="min-h-[48px] rounded border border-court px-6 font-semibold text-court
+                     disabled:opacity-50"
+        >
+          {pendente ? 'Conferindo…' : 'Conferir'}
+        </button>
+      </form>
+
+      {state && (
+        <p
+          className={`mt-3 max-w-prose rounded border p-3 text-sm ${
+            'error' in state
+              ? 'border-warn/40 bg-warn/5 text-warn'
+              : orfas.length === 0
+                ? 'border-court/30 bg-court/5 text-ink'
+                : 'border-warn/40 bg-warn/5 text-ink'
+          }`}
+        >
+          {'error' in state ? state.error : state.ok}
+        </p>
+      )}
+
+      {orfas.length > 0 && (
+        <ol className="mt-3 divide-y divide-line rounded border border-line">
+          {orfas.map((o) => (
+            <li key={o.pagamento} className="flex flex-wrap items-center gap-x-4 gap-y-1 p-3 text-sm">
+              <span className="font-semibold tabular-nums text-ink">{o.pagamento}</span>
+              <span className="min-w-0 flex-1 truncate text-graphite">
+                {o.email ?? 'sem e-mail'}
+                {o.valorCentavos > 0 && <> · {brl(o.valorCentavos)}</>}
+              </span>
+              {o.tipo === 'pendente' ? (
+                <span className="text-clay">ficou pendente — dá para recuperar</span>
+              ) : (
+                /*
+                  O gateway conhece um pedido que não existe neste banco. Recuperar não resolve:
+                  não há o que conceder. Dizer isso aqui evita a próxima meia hora clicando num
+                  botão que nunca vai funcionar para este caso.
+                */
+                <span className="font-medium text-warn">pedido não existe aqui — me chame</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {orfas.some((o) => o.tipo === 'pendente') && (
+        <p className="mt-3 max-w-prose text-xs text-graphite">
+          Para cada um marcado como pendente, cole o número acima no campo{' '}
+          <strong className="text-ink">Recuperar</strong> e confirme.
+        </p>
+      )}
+    </div>
   );
 }
