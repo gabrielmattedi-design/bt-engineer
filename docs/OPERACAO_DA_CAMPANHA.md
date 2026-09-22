@@ -431,12 +431,28 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 18 | sex | 122,26 | 93 | 11 | **11,8%** | 11 | 549,89 | **1,31** | 11,11 | 4,50× |
 | 19 | sáb | 127,97 | **58** | 11 | **19,0%** | 10 | 479,90 | **2,21** | 12,80 | **3,75×** |
 | 20 | dom | 182,59 | 96 | 17 | 17,7% | 18 | 889,81 | 1,90 | **10,14** | 4,87× |
-| 21 | seg | 125,00 | **52** | 11 | **21,2%** | — | — | **2,40** | — | — |
+| 21 | seg | 125,00 | **52** | 11 | **21,2%** | — | 909,81 ⚠️ | **2,40** | — | 7,28× ⚠️ |
 | **Σ** *(09–20)* | | **1.438,08** | **781** | **141** | **18,1%** | — | **6.848,57** | **1,84** | — | **4,76×** |
 
-> **O dia 21 está incompleto de propósito: falta a receita.** Sem ela não há ROAS nem CAC, e o Σ
-> continua fechando em 09–20 para não misturar um dia meio medido com onze inteiros. Estimar os
-> dois números seria pior que deixá-los em branco — é a mesma regra do CAC dos dias 09–12.
+> ⚠️ **O ROAS do dia 21 está PENDENTE DE CONFIRMAÇÃO, e o Σ não o absorveu.**
+>
+> R$ 909,81 tem decomposição única: **17 setups + 2 laudos = 19 pedidos**. O problema é a razão
+> entre 19 pedidos e 11 pagantes no funil. Nos outros dias a distância é de 0 a 2 (dia 18: 11 e 11;
+> dia 19: 11 e 10; dia 20: 17 e 19). Oito de diferença é fora do padrão.
+>
+> As duas leituras possíveis, e elas mudam o número:
+>
+> - **É a receita do fluxo Meta.** Então ROAS 7,28×, o segundo melhor da campanha inteira, num dia
+>   em que a chegada foi a mais cara desde o dia 12. Possível, e extraordinário.
+> - **É a receita TOTAL do painel**, somando bio e contatos pessoais. Então parte dela não é do
+>   anúncio e o ROAS do fluxo Meta é menor.
+>
+> O precedente existe e é do dia 15: o painel mostrava R$ 529,89 e o fluxo Meta era R$ 429,91 — a
+> diferença veio do link da bio. Misturar origem infla o ROAS de um canal com a venda de outro, e
+> foi por isso que esta série virou "fluxo Meta apenas".
+>
+> **Como fechar:** abrir `/admin/funil` no dia 21 e ler a coluna **Receita** na LINHA da origem
+> `meta`, na tabela "De onde vieram" — não o total do fechamento.
 >
 > **O que o dia já diz, e é a divergência da §3.1 outra vez:** metade da gente (96 → 52, −46%) a um
 > custo 26% maior (1,90 → 2,40), convertendo muito melhor (17,7% → **21,2%, a melhor desde o dia
