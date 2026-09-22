@@ -456,6 +456,46 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 > `/admin/vendas` só passou a existir em 21/09 — o histórico anterior não dá para reconstruir. O
 > que é fato: é o canal que mais cresceu na semana e o único cujo custo marginal é zero.
 
+#### A série fora do Meta, e o que ela derruba
+
+Calculada como `total do fechamento − receita da linha meta`. Todas as seis decomposições em
+R$ 49,99 / R$ 29,99 fecham em combinação **única**, o que confirma que os valores não são chute:
+
+| Dia | | Fora do Meta | Pedidos |
+|---|---|---|---|
+| 16 | qua | 229,95 | 5 |
+| 17 | qui | **49,99** | 1 |
+| 18 | sex | 129,97 | 3 |
+| 19 | **sáb** | **399,92** | 8 |
+| 20 | dom | **479,90** | 10 |
+| 21 | seg | 359,92 | 8 |
+
+**O salto acontece no dia 19 — um dia inteiro ANTES do reel do Sampras**, que saiu em 20/09 às 13h.
+O dono atribuiu o desempenho ao reel; a série diz que ele pegou um canal que já tinha virado na
+véspera. Pode ter ajudado (o dia 20 é o pico), e não iniciou nada.
+
+##### ⚠️ E o dia 19 é exatamente quando o motor do orgânico PAROU
+
+Revelado pelo dono em 22/09: desde o início da página ele adicionava pessoas à mão, a partir de
+quem curte reels de tênis, até o Instagram bloquear. **"Desde sábado praticamente não consigo
+adicionar ninguém. Uma dezena por dia."** Sábado é 19/09.
+
+Ou seja: a receita orgânica **subiu 3× no dia em que a captação manual morreu**. As duas leituras
+possíveis, e elas pedem ações opostas:
+
+- **A captação nunca foi o motor.** Então o bloqueio não custa nada e o crescimento veio de outra
+  coisa — e essa outra coisa continua sem nome.
+- **É colheita atrasada.** Quem foi seguido entre 15 e 18 visitou o perfil e comprou dias depois.
+  Nesse caso o número de hoje é o RABO da captação, e a queda ainda não chegou.
+
+> **Previsão com data, para a segunda hipótese poder morrer:** se for colheita atrasada, a receita
+> fora do Meta cai em **24–27/09**, com o mesmo atraso de 3 a 5 dias. Se ela se sustentar acima de
+> ~R$ 300/dia nessa janela, a captação manual não era o motor — e o dono pode parar de gastar tempo
+> com ela sem custo nenhum.
+>
+> É a primeira semana em que essa pergunta tem instrumento: a coluna de Origem em `/admin/vendas`
+> passou a existir em 21/09.
+
 > **A divergência da §3.1, terceiro dia seguido:** metade da gente (96 → 52, −46%) a um custo 26%
 > maior (1,90 → 2,40), convertendo muito melhor (17,7% → **21,2%, a melhor desde o dia 13**).
 > Entrega pior, público melhor — e o sábado 19 já tinha dado o mesmo (R$ 2,21 · 19,0%).
