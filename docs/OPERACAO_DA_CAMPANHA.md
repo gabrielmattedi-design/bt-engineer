@@ -431,33 +431,34 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 18 | sex | 122,26 | 93 | 11 | **11,8%** | 11 | 549,89 | **1,31** | 11,11 | 4,50× |
 | 19 | sáb | 127,97 | **58** | 11 | **19,0%** | 10 | 479,90 | **2,21** | 12,80 | **3,75×** |
 | 20 | dom | 182,59 | 96 | 17 | 17,7% | 18 | 889,81 | 1,90 | **10,14** | 4,87× |
-| 21 | seg | 125,00 | **52** | 11 | **21,2%** | — | 909,81 ⚠️ | **2,40** | — | 7,28× ⚠️ |
-| **Σ** *(09–20)* | | **1.438,08** | **781** | **141** | **18,1%** | — | **6.848,57** | **1,84** | — | **4,76×** |
+| 21 | seg | 125,00 | **52** | 11 | **21,2%** | 11 | 549,89 | **2,40** | 11,36 | 4,40× |
+| **Σ** | | **1.563,08** | **833** | **152** | **18,2%** | — | **7.398,46** | **1,88** | — | **4,73×** |
 
-> ⚠️ **O ROAS do dia 21 está PENDENTE DE CONFIRMAÇÃO, e o Σ não o absorveu.**
+> ✅ **A ressalva do ROAS se resolveu, e para o lado que a estranheza apontava.** O número foi
+> gravado como 7,28× com marca de pendência porque R$ 909,81 dava 19 pedidos contra 11 pagantes —
+> distância de oito, quando o normal da série é de zero a dois.
 >
-> R$ 909,81 tem decomposição única: **17 setups + 2 laudos = 19 pedidos**. O problema é a razão
-> entre 19 pedidos e 11 pagantes no funil. Nos outros dias a distância é de 0 a 2 (dia 18: 11 e 11;
-> dia 19: 11 e 10; dia 20: 17 e 19). Oito de diferença é fora do padrão.
+> Era a receita TOTAL do painel. O fluxo Meta fez **R$ 549,89**, e aí o dia fecha exato:
+> **11 pagantes · 11 pedidos · 11 × R$ 49,99**, zero laudos. É o melhor alinhamento da série.
 >
-> As duas leituras possíveis, e elas mudam o número:
+> Publicar 7,28× teria posto o segundo melhor ROAS da campanha numa linha que vale 4,40× — meio de
+> pelotão. A regra que segurou isso é a do dia 15, e é por ela que esta série existe separada:
+> **misturar origem infla o ROAS de um canal com a venda de outro.**
+
+> 💡 **O que sobrou é notícia melhor que o ROAS.** Fora do Meta, o dia 21 fez **R$ 359,92 — 40% do
+> faturamento do dia**, em 8 pedidos (6 setups + 2 laudos, decomposição única).
 >
-> - **É a receita do fluxo Meta.** Então ROAS 7,28×, o segundo melhor da campanha inteira, num dia
->   em que a chegada foi a mais cara desde o dia 12. Possível, e extraordinário.
-> - **É a receita TOTAL do painel**, somando bio e contatos pessoais. Então parte dela não é do
->   anúncio e o ROAS do fluxo Meta é menor.
+> No dia 15 esse mesmo canal fez R$ 99,98. **Multiplicou por 3,6 em seis dias, com custo de mídia
+> zero.** É bio, indicação e contato pessoal, e cresceu na semana em que o dono voltou a postar
+> conteúdo orgânico (o reel do Sampras saiu em 20/09, com 59 envios para 240 curtidas).
 >
-> O precedente existe e é do dia 15: o painel mostrava R$ 529,89 e o fluxo Meta era R$ 429,91 — a
-> diferença veio do link da bio. Misturar origem infla o ROAS de um canal com a venda de outro, e
-> foi por isso que esta série virou "fluxo Meta apenas".
->
-> **Como fechar:** abrir `/admin/funil` no dia 21 e ler a coluna **Receita** na LINHA da origem
-> `meta`, na tabela "De onde vieram" — não o total do fechamento.
->
-> **O que o dia já diz, e é a divergência da §3.1 outra vez:** metade da gente (96 → 52, −46%) a um
-> custo 26% maior (1,90 → 2,40), convertendo muito melhor (17,7% → **21,2%, a melhor desde o dia
-> 13**). Entrega pior, público melhor — e é o segundo dia seguido assim, depois do sábado 19
-> (R$ 2,21 · 19,0%).
+> ⚠️ **Não é prova de causa.** Não há corte por horário nem por post, e a coluna de Origem em
+> `/admin/vendas` só passou a existir em 21/09 — o histórico anterior não dá para reconstruir. O
+> que é fato: é o canal que mais cresceu na semana e o único cujo custo marginal é zero.
+
+> **A divergência da §3.1, terceiro dia seguido:** metade da gente (96 → 52, −46%) a um custo 26%
+> maior (1,90 → 2,40), convertendo muito melhor (17,7% → **21,2%, a melhor desde o dia 13**).
+> Entrega pior, público melhor — e o sábado 19 já tinha dado o mesmo (R$ 2,21 · 19,0%).
 
 > ⚠️ **18 e 19 foram lidos fora do atraso padrão — D+3 e D+2, contra D+1 do resto da série.**
 > Só o dia 20 seguiu a regra. Pela §3.3-ter isso importa: "Chegaram" é fixo (conta pela data de
@@ -468,7 +469,7 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 > O que torna o dia 18 pior, não melhor: 11,8% é o segundo pior número da série **mesmo com dois
 > dias a mais para maturar**.
 
-**Lucro bruto dos 12 dias (receita − gasto): ~R$ 5.410.** O dono pediu para largar a taxa do gateway
+**Lucro bruto dos 13 dias (receita − gasto): ~R$ 5.835.** O dono pediu para largar a taxa do gateway
 da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* —, então a série passa a
 mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)**, **20 (R$ 707)** e
 **17 (R$ 698)**.
@@ -600,6 +601,8 @@ Com o quarto dia inteiro (21/09, R$ 125,00 de gasto), o bloco em R$ 149 passa a 
 | Gasto/dia | 139,63 | **139,46** | **−0,1%** |
 | Custo por chegada | 1,85 | **1,87** | **+1,1%** |
 | Conversão | 17,9% | 16,7% | −1,2 p.p. |
+| CAC | 10,34 | 11,16 | +7,9% |
+| ROAS | 4,62× | 4,43× | −4,1% |
 
 **O orçamento subiu 19,2% e a entrega diária ficou a dezessete centavos da anterior.** A versão de
 três dias sugeria +3,3%; com quatro, nem isso sobrou.
