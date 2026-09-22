@@ -26,8 +26,8 @@ import {
 const FONTE_DA_PAGINA = readFileSync('src/app/admin/funil/page.tsx', 'utf8');
 
 /** Uma linha de origem, com só o que a soma do DINHEIRO usa. */
-function origem(pedidos: number, receitaCentavos: number): LinhaSomavel {
-  return { visitors: 0, finished: 0, paid: 0, clientes: 0, pedidos, receitaCentavos };
+function origem(pedidos: number, receitaCentavos: number, clientes = pedidos): LinhaSomavel {
+  return { visitors: 0, finished: 0, paid: 0, clientes, pedidos, receitaCentavos };
 }
 
 /** A mesma linha, pelo lado da CHEGADA — o outro relógio. */
@@ -39,7 +39,7 @@ describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
   /** O caso real do dia 21: 11 vendas, 9 atribuídas. */
   it('o resto é o que não foi atribuído', () => {
     const totais = totalDasOrigens([origem(6, 29_994), origem(3, 12_997)]);
-    const resto = semMarcacao(11, 54_989, totais);
+    const resto = semMarcacao(11, 11, 54_989, totais);
 
     expect(resto.pedidos).toBe(2);
     expect(resto.receitaCentavos).toBe(54_989 - 42_991);
@@ -60,9 +60,10 @@ describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
 
     for (const [vendas, receita, linhas] of casos) {
       const totais = totalDasOrigens(linhas);
-      const resto = semMarcacao(vendas, receita, totais);
+      const resto = semMarcacao(vendas, vendas, receita, totais);
 
       expect(totais.pedidos + resto.pedidos, `pedidos não fecharam em ${vendas}`).toBe(vendas);
+      expect(totais.clientes + resto.clientes, `clientes não fecharam em ${vendas}`).toBe(vendas);
       expect(
         totais.receitaCentavos + resto.receitaCentavos,
         `receita não fechou em ${receita}`,
@@ -73,7 +74,7 @@ describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
   /** Tudo atribuído: o resto é zero, e a tela não desenha a linha. */
   it('sem resto quando toda venda tem origem', () => {
     const totais = totalDasOrigens([origem(4, 19_996)]);
-    const resto = semMarcacao(4, 19_996, totais);
+    const resto = semMarcacao(4, 4, 19_996, totais);
 
     expect(resto.pedidos).toBe(0);
     expect(resto.receitaCentavos).toBe(0);
@@ -94,7 +95,7 @@ describe('a linha "sem marcação" fecha a tabela com o faturamento', () => {
    */
   it('avisa quando as origens somam MAIS que o total', () => {
     const totais = totalDasOrigens([origem(6, 29_994), origem(4, 19_996)]);
-    const resto = semMarcacao(8, 39_992, totais);
+    const resto = semMarcacao(8, 8, 39_992, totais);
 
     expect(resto.excede, 'o impossível passou em silêncio').toBe(true);
     expect(resto.pedidos, 'linha negativa não se desenha').toBe(0);
@@ -249,8 +250,14 @@ describe('a tela não volta a esconder o resto', () => {
     expect(principal, 'o recorte da tabela principal ficou vazio').not.toBe('');
     const cabecalhos = [...principal.matchAll(/<th[^>]*>\s*([^<{]+?)\s*<\/th>/g)].map((m) => m[1]);
 
+    /*
+      `Clientes` voltou em 22/09: é o denominador do CAC por origem, e tirá-la no enxugamento
+      obrigou o dono a abrir outra tela para montar a série diária. As quatro colunas usam o MESMO
+      relógio — o do pagamento —, que é a propriedade que este teste protege.
+    */
     expect(cabecalhos, 'a tabela do dinheiro mudou de forma').toEqual([
       'Origem',
+      'Clientes',
       'Vendas',
       'Receita',
     ]);

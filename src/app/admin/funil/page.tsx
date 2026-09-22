@@ -147,7 +147,7 @@ export default async function FunilPage({
     O que sobrou do faturamento sem origem conhecida — a linha que faz a tabela fechar com Vendas.
     Sem ela a tabela mostra 9 num dia de 11 e não diz onde foram os outros 2. Ver `lib/origens.ts`.
   */
-  const resto = semMarcacao(vendas, receitaCentavos, totais);
+  const resto = semMarcacao(vendas, compradores, receitaCentavos, totais);
 
   /* O mesmo resto, para a tabela de chegadas. Fonte diferente de propósito — ver `lib/origens.ts`. */
   const restoDaCoorte = semMarcacaoNaCoorte(coorte, totais);
@@ -451,6 +451,15 @@ export default async function FunilPage({
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-graphite">
                     <th className="px-4 py-3 font-semibold">Origem</th>
+                    {/*
+                      Clientes voltou em 22/09, e a ausência dela foi um erro meu de enxugamento.
+
+                      Ela é o DENOMINADOR DO CAC — `gasto ÷ clientes` —, e o dono monta a série
+                      diária com esse número por origem. A caixa de fechamento até mostra CAC, mas
+                      com os compradores de TODAS as origens; para o CAC do fluxo Meta só serve a
+                      linha da origem. Tirá-la não simplificou: obrigou a abrir outra tela.
+                    */}
+                    <th className="px-4 py-3 text-right font-semibold">Clientes</th>
                     <th className="px-4 py-3 text-right font-semibold">Vendas</th>
                     <th className="px-4 py-3 text-right font-semibold">Receita</th>
                   </tr>
@@ -473,6 +482,9 @@ export default async function FunilPage({
                             {[o.campaign, o.content].filter(Boolean).join(' · ')}
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
+                        {o.clientes}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums">
                         {o.pedidos}
@@ -502,6 +514,9 @@ export default async function FunilPage({
                           <code>utm_source</code>
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-graphite">
+                        {resto.clientes}
+                      </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums text-graphite">
                         {resto.pedidos}
                       </td>
@@ -515,6 +530,7 @@ export default async function FunilPage({
                 <tfoot>
                   <tr className="border-t-2 border-line bg-paper font-semibold">
                     <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{compradores}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{vendas}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{brl(receitaCentavos)}</td>
                   </tr>

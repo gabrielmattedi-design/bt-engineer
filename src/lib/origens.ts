@@ -93,6 +93,14 @@ export function totalDasOrigens(linhas: readonly LinhaSomavel[]): TotalDeOrigens
 export type SemMarcacao = {
   /** Pedidos sem origem conhecida. Zero quando toda venda foi atribuída. */
   readonly pedidos: number;
+  /**
+   * Pessoas distintas por trás desses pedidos.
+   *
+   * Elas SOMAM entre as origens, e isso depende do esquema: `visitor_campaigns` tem
+   * `unique(visitor_hash)`, então cada comprador pertence a exatamente uma origem. Se um dia a
+   * única cair, esta soma passa a contar gente duas vezes — e `excede` é o que avisaria.
+   */
+  readonly clientes: number;
   readonly receitaCentavos: number;
   /** As origens somaram MAIS que o total — dupla atribuição, não resto. */
   readonly excede: boolean;
@@ -100,16 +108,19 @@ export type SemMarcacao = {
 
 export function semMarcacao(
   totalDePedidos: number,
+  totalDeClientes: number,
   totalDeReceitaCentavos: number,
-  origens: Pick<TotalDeOrigens, 'pedidos' | 'receitaCentavos'>,
+  origens: Pick<TotalDeOrigens, 'pedidos' | 'clientes' | 'receitaCentavos'>,
 ): SemMarcacao {
   const pedidos = totalDePedidos - origens.pedidos;
+  const clientes = totalDeClientes - origens.clientes;
   const receitaCentavos = totalDeReceitaCentavos - origens.receitaCentavos;
 
   return {
     pedidos: Math.max(0, pedidos),
+    clientes: Math.max(0, clientes),
     receitaCentavos: Math.max(0, receitaCentavos),
-    excede: pedidos < 0 || receitaCentavos < 0,
+    excede: pedidos < 0 || clientes < 0 || receitaCentavos < 0,
   };
 }
 
