@@ -431,7 +431,17 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 18 | sex | 122,26 | 93 | 11 | **11,8%** | 11 | 549,89 | **1,31** | 11,11 | 4,50× |
 | 19 | sáb | 127,97 | **58** | 11 | **19,0%** | 10 | 479,90 | **2,21** | 12,80 | **3,75×** |
 | 20 | dom | 182,59 | 96 | 17 | 17,7% | 18 | 889,81 | 1,90 | **10,14** | 4,87× |
-| **Σ** | | **1.438,08** | **781** | **141** | **18,1%** | — | **6.848,57** | **1,84** | — | **4,76×** |
+| 21 | seg | 125,00 | **52** | 11 | **21,2%** | — | — | **2,40** | — | — |
+| **Σ** *(09–20)* | | **1.438,08** | **781** | **141** | **18,1%** | — | **6.848,57** | **1,84** | — | **4,76×** |
+
+> **O dia 21 está incompleto de propósito: falta a receita.** Sem ela não há ROAS nem CAC, e o Σ
+> continua fechando em 09–20 para não misturar um dia meio medido com onze inteiros. Estimar os
+> dois números seria pior que deixá-los em branco — é a mesma regra do CAC dos dias 09–12.
+>
+> **O que o dia já diz, e é a divergência da §3.1 outra vez:** metade da gente (96 → 52, −46%) a um
+> custo 26% maior (1,90 → 2,40), convertendo muito melhor (17,7% → **21,2%, a melhor desde o dia
+> 13**). Entrega pior, público melhor — e é o segundo dia seguido assim, depois do sábado 19
+> (R$ 2,21 · 19,0%).
 
 > ⚠️ **18 e 19 foram lidos fora do atraso padrão — D+3 e D+2, contra D+1 do resto da série.**
 > Só o dia 20 seguiu a regra. Pela §3.3-ter isso importa: "Chegaram" é fixo (conta pela data de
@@ -565,6 +575,31 @@ O orçamento subiu 19,2% e o gasto real subiu 3,3%. **Sob R$ 125 o Meta gastava 
 todo dia; sob R$ 149 ele passou a gastar abaixo.** Nenhum dia bateu no teto de R$ 260,75 (149 ×
 1,75), então não é limite — é o Meta não encontrando onde pôr o dinheiro ao preço que aceita pagar.
 
+##### ✅ O dia 21 fecha o argumento — e o número ficou IDÊNTICO
+
+Com o quarto dia inteiro (21/09, R$ 125,00 de gasto), o bloco em R$ 149 passa a ser:
+
+| | 13–16 (R$ 125) | 18–21 (R$ 149) | |
+|---|---|---|---|
+| Gasto/dia | 139,63 | **139,46** | **−0,1%** |
+| Custo por chegada | 1,85 | **1,87** | **+1,1%** |
+| Conversão | 17,9% | 16,7% | −1,2 p.p. |
+
+**O orçamento subiu 19,2% e a entrega diária ficou a dezessete centavos da anterior.** A versão de
+três dias sugeria +3,3%; com quatro, nem isso sobrou.
+
+Isso deixa de ser "o aumento rendeu pouco" e vira outra coisa, mais dura e mais útil: **esta
+campanha tem um teto de gasto próprio, por volta de R$ 138–140/dia, e ele não é o orçamento.** Os
+sete dias de 15 a 21 dão média de R$ 138,01, atravessando os dois orçamentos sem acusar a troca.
+
+É coerente com o que o gerenciador mostrou em 21/09 — alcance de 23.042 sobre um público de 15 a 18
+milhões, veiculação "Ativo", lance "Volume mais alto" sem limite de custo. Nada trava o gasto, e
+mesmo assim ele não sobe: o modelo achou um bolso e não paga mais caro para sair dele.
+
+> **Consequência prática, agora com quatro dias:** mexer no campo de orçamento é uma alavanca
+> **desligada**. Não é "rende pouco" — é que não mexe no número. Qualquer plano que dependa de
+> gastar mais para vender mais precisa primeiro mudar o bolso: criativo ou público.
+
 Consequência: **subir o orçamento de novo provavelmente não compra volume.** O caminho para mais
 gente deixou de ser o campo do orçamento e passou a ser criativo ou público — que é a decisão que a
 §5.4 manda tomar uma de cada vez.
@@ -614,6 +649,27 @@ Dois domingos, orçamentos diferentes, 125% e 123%. Sexta e sábado abaixo de 90
 > orçamento, a ideia morre e não vai ser remendada. E há um confundidor óbvio de graça: o 13 foi o
 > dia do pico de conversão da campanha inteira (25,3%), então "domingo é forte" e "aquele domingo
 > foi bom" ainda são indistinguíveis.
+
+> #### ⚠️ A METADE "DIA FRACO" JÁ MORREU — em 21/09, antes do teste do domingo
+>
+> A tabela sugeria que sexta e sábado eram dias fracos. **A segunda-feira desmente a leitura por
+> dia da semana**, porque as duas segundas da série discordam entre si:
+>
+> | Segunda | Orçamento | Gasto | % |
+> |---|---|---|---|
+> | 14/09 | 125 | 164,89 | **132%** |
+> | 21/09 | 149 | **125,00** | **84%** |
+>
+> Mesmo dia da semana, 132% e 84%. Não há regra de calendário que produza isso.
+>
+> **E os dois gastos absolutos quase coincidem: R$ 164,89 e R$ 125,00 são R$ 145 de média, na mesma
+> faixa de todos os outros dias.** O que parecia "% do orçamento variando por dia da semana" é o
+> mesmo fato de sempre visto por outro ângulo: **o gasto diário é praticamente constante em reais,
+> então a porcentagem sobe e desce conforme o orçamento muda, não conforme o dia.**
+>
+> Sobra de pé só a parte dos domingos (125% e 123%), e ela fica com a condição de morte original —
+> mas agora com uma hipótese concorrente mais simples e já apoiada: talvez não exista efeito de dia
+> nenhum, e os dois domingos sejam só dois dias acima da média de um número que oscila.
 
 E o dia 19 é o contraste que mais informa dos três: **58 chegadas, a R$ 2,21 cada — a chegada mais
 cara desde o dia 12** — e ainda assim a **melhor conversão desde o dia 13 (19,0%)**. Sábado traz
