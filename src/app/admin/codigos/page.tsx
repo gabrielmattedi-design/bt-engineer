@@ -8,6 +8,7 @@ import { toggleCode } from './actions';
 import { ACCESS_PRESETS } from './presets';
 import { CreateCodeForm } from './create-form';
 import { RechargeForm } from './recharge-form';
+import { AjustarUsosForm, ApagarCodigoForm } from './ajustar-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,6 +111,14 @@ export default async function CodigosPage() {
 
                   {/* Só o código limitado recebe recarga — em ilimitado ela não significa nada. */}
                   {c.maxUses !== null && <RechargeForm code={c.code} />}
+                  {/*
+                    Fixar restantes vale também para o ILIMITADO, ao contrário de recarregar: ali o
+                    gesto é justamente pôr um teto onde não havia. `restantes ?? 0` faz o campo
+                    começar em zero nesse caso — o único valor que não mente sobre um código sem
+                    limite, já que "quantos restam" não tem resposta antes de existir teto.
+                  */}
+                  <AjustarUsosForm code={c.code} restantes={remaining ?? 0} />
+                  <ApagarCodigoForm code={c.code} usado={c.usedCount > 0} />
 
                   {/* Formulário nativo: nada de onClick que possa não postar. */}
                   <form action={toggleCode} className="mt-3">

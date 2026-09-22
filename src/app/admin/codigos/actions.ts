@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { isAuthenticated } from '../auth';
 import {
   addCouponUses,
+  definirUsosRestantes,
   DESCONTO_MAX_PERCENT,
+  removerCupom,
   setCouponActive,
   upsertCoupon,
 } from '@/database/repositories/coupon-repo';
@@ -115,5 +117,84 @@ export async function rechargeCode(_prev: unknown, formData: FormData): Promise<
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Falha ao recarregar o código.' };
+  }
+}
+
+/**
+ * Apaga um código que nunca foi usado.
+ *
+ * A recusa de apagar código COM histórico é decidida no repositório — ver `removerCupom`. Aqui a
+ * recusa vira frase, e ela diz o que fazer em vez de só barrar: desativar é a ação certa para um
+ * código que já entregou produto, e ela está ao lado, na mesma linha.
+ */
+export async function excluirCodigo(_prev: unknown, formData: FormData): Promise<CodeResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const code = String(formData.get('code') ?? '').trim();
+  if (code === '') return { error: 'Código não informado.' };
+
+  /*
+    A confirmação é do FORMULÁRIO, não um `confirm()` do navegador: a ação de servidor precisa
+    receber a intenção junto do pedido, senão um POST repetido (F5, botão de voltar) apagaria sem
+    ninguém ter confirmado de novo.
+  */
+  if (String(formData.get('confirmar') ?? '') !== 'sim') {
+    return { error: 'Marque a confirmação para apagar.' };
+  }
+
+  try {
+    const r = await withAutoBootstrap(() => removerCupom(code));
+    revalidatePath('/admin/codigos');
+
+    switch (r.kind) {
+      case 'removido':
+        return { ok: `${code.toUpperCase()} apagado.` };
+      case 'inexistente':
+        return { error: `Não encontramos o código ${code.toUpperCase()}.` };
+      case 'tem_historico':
+        return {
+          error:
+            `${code.toUpperCase()} já foi usado ${r.usos} ${r.usos === 1 ? 'vez' : 'vezes'} e não ` +
+            'pode ser apagado — os resgates e os pedidos apontam para ele. Use Desativar: ele para ' +
+            'de funcionar e o histórico continua explicável.',
+        };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Falha ao apagar o código.' };
+  }
+}
+
+/**
+ * Define quantos usos ainda cabem — inclusive para DIMINUIR, que era o que faltava.
+ *
+ * Recarregar soma; isto fixa. São operações diferentes de propósito: somar é o gesto de "quero mais
+ * vinte", e fixar é o de "quero que sobrem dois". Um campo só, servindo aos dois, obrigaria a fazer
+ * a conta de cabeça toda vez.
+ */
+export async function ajustarUsos(_prev: unknown, formData: FormData): Promise<CodeResult> {
+  if (!(await isAuthenticated())) return { error: 'Sessão expirada. Entre novamente.' };
+
+  const code = String(formData.get('code') ?? '').trim();
+  const restantes = Number.parseInt(String(formData.get('restantes') ?? ''), 10);
+
+  if (!Number.isInteger(restantes) || restantes < 0) {
+    return { error: 'Informe quantos usos ainda podem acontecer (zero ou mais).' };
+  }
+
+  try {
+    const atualizado = await withAutoBootstrap(() => definirUsosRestantes(code, restantes));
+    if (!atualizado) return { error: `Não encontramos o código ${code.toUpperCase()}.` };
+
+    revalidatePath('/admin/codigos');
+    return {
+      ok:
+        restantes === 0
+          ? `${atualizado.code} esgotado: ninguém mais consegue usar. O código continua na lista e ` +
+            'o histórico está intacto.'
+          : `${atualizado.code}: restam ${restantes} usos (${atualizado.usedCount} já usados, ` +
+            `teto agora em ${atualizado.maxUses}).`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Falha ao ajustar o código.' };
   }
 }

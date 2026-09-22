@@ -533,3 +533,101 @@ export async function consumirCupomDoPedido(input: {
 
   return consumed.length > 0;
 }
+
+export type RemocaoDeCupom =
+  | { readonly kind: 'removido' }
+  | { readonly kind: 'inexistente' }
+  /** Já foi usado: a remoção é recusada e o número de usos volta para a tela explicar por quê. */
+  | { readonly kind: 'tem_historico'; readonly usos: number };
+
+/**
+ * Apaga um código — e SÓ um que nunca foi usado.
+ *
+ * ═══ POR QUE A TRAVA, SE O DONO PEDIU "APAGAR" ═══════════════════════════════════════════════
+ *
+ * `coupon_redemptions.code` e `orders.coupon_code` são texto solto, sem chave estrangeira. Apagar
+ * um código usado não apaga nada disso — deixa resgates e pedidos apontando para um código que não
+ * existe mais, e a pergunta que a tabela de resgates foi feita para responder ("quem entrou pelo
+ * DJOKOINSS?") passa a não ter resposta, com o rastro intacto e órfão.
+ *
+ * Pior: some da tela o desconto que explica um pedido de R$ 39,99 no meio de uma lista de R$ 49,99.
+ * A conciliação com o Mercado Pago continua fechando, e a explicação some.
+ *
+ * ─── E POR QUE ISSO NÃO FRUSTRA O PEDIDO ──────────────────────────────────────────────────────
+ *
+ * O que se quer apagar é código digitado errado, de teste, ou criado por engano — e esses têm zero
+ * uso. Código que já entregou produto não é lixo, é registro; para ele existe desativar, que é a
+ * ação certa e já existe.
+ *
+ * A checagem é dupla — `used_count` E a tabela de resgates — porque as duas podem divergir se
+ * alguém mexer no contador à mão, e a que manda aqui é a que tem o histórico.
+ */
+export async function removerCupom(code: string): Promise<RemocaoDeCupom> {
+  const normalizado = normalizeCode(code);
+
+  const atual = await db()
+    .select({ usedCount: accessCoupons.usedCount })
+    .from(accessCoupons)
+    .where(eq(accessCoupons.code, normalizado));
+
+  const linha = atual[0];
+  if (!linha) return { kind: 'inexistente' };
+
+  const resgates = await db()
+    .select({ n: sql<number>`count(*)::int` })
+    .from(couponRedemptions)
+    .where(eq(couponRedemptions.code, normalizado));
+
+  const usos = Math.max(linha.usedCount, Number(resgates[0]?.n ?? 0));
+  if (usos > 0) return { kind: 'tem_historico', usos };
+
+  await db().delete(accessCoupons).where(eq(accessCoupons.code, normalizado));
+  return { kind: 'removido' };
+}
+
+/**
+ * Define quantos usos AINDA CABEM — o contrário de `addCouponUses`, e não o mesmo campo.
+ *
+ * ═══ POR QUE "RESTANTES", E NÃO "TETO" ═══════════════════════════════════════════════════════
+ *
+ * O dono pediu para diminuir, e disse em que unidade pensa: *"o número atual de cupons
+ * disponíveis"*. Isso é `teto − usados`, que é o número que a tela já mostra como "restam 7".
+ *
+ * Expor o TETO para edição obrigaria a fazer a conta ao contrário — "restam 7, já usaram 13, quero
+ * que sobrem 2, então digito 15" — e uma conta de cabeça num campo que controla quantos produtos
+ * serão dados de graça é exatamente onde um erro de digitação custa dinheiro.
+ *
+ * Por construção o teto nunca fica abaixo do já consumido, então o histórico continua coerente:
+ * `usados ≤ teto` sempre. Zero restantes esgota o código sem apagar nada e sem desativá-lo —
+ * desativar é outra decisão, com outro botão.
+ *
+ * ⚠️ `active` NÃO é tocado aqui, ao contrário de `addCouponUses`, que reativa. Diminuir um código
+ * desativado e vê-lo voltar à vida seria o oposto do que se pediu.
+ */
+export async function definirUsosRestantes(
+  code: string,
+  restantes: number,
+): Promise<CouponSummary | null> {
+  if (!Number.isInteger(restantes) || restantes < 0) return null;
+
+  const rows = await db()
+    .update(accessCoupons)
+    .set({ maxUses: sql`${accessCoupons.usedCount} + ${restantes}` })
+    .where(eq(accessCoupons.code, normalizeCode(code)))
+    .returning();
+
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    code: r.code,
+    grants: r.grants,
+    maxUses: r.maxUses,
+    usedCount: r.usedCount,
+    active: r.active,
+    note: r.note,
+    dailyLimit: r.dailyLimit,
+    discountPercent: r.discountPercent,
+    /* Zero pelo mesmo motivo de `addCouponUses`: quem chama redesenha a lista logo em seguida. */
+    usedToday: 0,
+  };
+}
