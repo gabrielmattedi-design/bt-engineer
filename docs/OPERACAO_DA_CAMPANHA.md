@@ -568,13 +568,39 @@ custo por clique    R$ 1,10
 cansado perde clique antes de qualquer outra coisa, e este não está perdendo. **CPM de R$ 22,10 é
 mediano** para o Brasil, longe de leilão apertado.
 
-> ⚠️ **Mas uma média de 7 dias não enxerga a virada que aconteceu DENTRO dela.** O custo por
-> chegada foi R$ 1,67 nos dias 16–19 e R$ 2,28 nos dias 20–22 (+36%), e a leitura de CPM e CTR
-> mistura as duas metades. Uma CTR que caiu de 2,5% para 1,6% na semana também daria média 2,0%.
+> ⚠️ **Mas uma média de 7 dias não enxerga a virada que aconteceu DENTRO dela.** Uma CTR que caiu
+> de 2,5% para 1,6% ao longo da semana daria exatamente média 2,0%.
 >
-> **A leitura que decide** é a mesma dupla em dois intervalos explícitos — 16 a 18 contra 20 a 22.
-> Enquanto ela não existir, "o leilão encareceu" e "a peça cansou" continuam indistinguíveis, e
-> qualquer decisão de criativo é palpite com número ao lado.
+> **A leitura que decide** é a mesma dupla em dois intervalos explícitos: **16 a 18 contra 19 a
+> 22**. Enquanto ela não existir, "o leilão encareceu" e "a peça cansou" continuam
+> indistinguíveis, e qualquer decisão de criativo é palpite com número ao lado.
+
+> ⚠️ **CORREÇÃO DO CORTE (23/09), apontada pelo dono: *"por que ignorou o 19?"***
+>
+> Este bloco chegou a comparar 16–19 contra 20–22, e a pedir ao dono 16–18 contra 20–22. Nas duas
+> versões o dia 19 estava no lugar errado — numa somado ao bloco barato, na outra descartado.
+>
+> A série do custo por chegada mostra onde o corte tem de cair:
+>
+> ```
+> 16  1,68   17  1,68   18  1,31   ← barato
+> 19  2,21   20  1,90   21  2,40   22  2,84   ← caro
+> ```
+>
+> **O dia 19 é o primeiro dia caro, não o último barato** — e é o dia em que tudo aconteceu ao
+> mesmo tempo: custo subiu, conversão subiu, e a captação manual no Instagram foi bloqueada. Pôr
+> ele do lado errado apaga exatamente o ponto de virada.
+>
+> O motivo do erro foi querer dois blocos de três dias. **Simetria não é razão para descartar um
+> dia**, e menos ainda o dia em que a coisa mudou.
+>
+> | | Gasto | Chegaram | Custo/chegada |
+> |---|---|---|---|
+> | 16–18 | 419,86 | 270 | **1,56** |
+> | 19–22 | 583,14 | 258 | **2,26** |
+>
+> **+45%**, e não os +36% publicados antes. Com 39% a mais de dinheiro, o anúncio trouxe MENOS
+> gente em número absoluto — 258 contra 270.
 
 ##### 🔎 E apareceu um buraco que não estava sendo medido: 42% dos cliques pagos não chegam
 
