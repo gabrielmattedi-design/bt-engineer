@@ -575,6 +575,45 @@ mediano** para o Brasil, longe de leilão apertado.
 > 22**. Enquanto ela não existir, "o leilão encareceu" e "a peça cansou" continuam
 > indistinguíveis, e qualquer decisão de criativo é palpite com número ao lado.
 
+##### ✅ LIDA em 23/09 — é FADIGA DE CRIATIVO, e não o leilão
+
+| | 16–18 | 19–22 | |
+|---|---|---|---|
+| CPM | 21,55 | 22,51 | **+4,5%** |
+| CTR (clique no link) | **2,26%** | **1,82%** | **−19,5%** |
+| Custo por clique | 0,95 | 1,24 | +29,7% |
+| Clique → chegada | 61,3% | 54,7% | −10,8% |
+| **Custo por chegada** | **1,56** | **2,26** | **+45,3%** |
+
+O encarecimento decompõe-se **exatamente**, sem resíduo:
+
+```
+CPM           ×1,0445
+CTR           ×1,2418   ← dominante
+taxa chegada  ×1,1206
+              ────────
+produto       ×1,4535   = +45,3%   (idêntico ao medido)
+```
+
+**O leilão praticamente não mudou (+4,5%). O que mudou foi quanta gente clica.** CPM estável com
+CTR caindo é a assinatura de peça cansando: o anúncio não ficou mais caro de mostrar, ficou menos
+convincente para quem o vê.
+
+> ⚠️ **CORREÇÃO: eu tinha descartado fadiga cedo demais.** Em 22/09 escrevi que a frequência de
+> 2,03 em 7 dias afastava a hipótese. Frequência mede quantas vezes a peça aparece; **fadiga
+> aparece primeiro na CTR**, e pode aparecer com frequência moderada quando o bolso de público que
+> responde é pequeno. Era a métrica errada, e eu publiquei a conclusão antes de ter a certa.
+>
+> A leitura completa — CTR caindo 19,5%, CPM parado, alcance de 23 mil sobre 15–18 milhões —
+> descreve uma coisa só: **o público que responde A ESTA PEÇA está se esgotando**, e não o público
+> disponível.
+
+> 💡 **E a conversão subindo deixa de ser mistério.** Com a peça perdendo apelo, quem ainda clica é
+> quem tem interesse genuíno — menos curiosos, mais gente decidida. Daí 11,8% → 25,0%. É por isso
+> que o ROAS se segurou em 4,4×–4,6× enquanto a entrega piorava: a queda de volume foi compensada
+> por qualidade. **Essa compensação tem fim** — quando os decididos acabarem, sobra o custo alto
+> sem a conversão alta.
+
 > ⚠️ **CORREÇÃO DO CORTE (23/09), apontada pelo dono: *"por que ignorou o 19?"***
 >
 > Este bloco chegou a comparar 16–19 contra 20–22, e a pedir ao dono 16–18 contra 20–22. Nas duas
