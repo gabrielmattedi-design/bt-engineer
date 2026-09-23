@@ -16,6 +16,7 @@ import { brl } from '@/payments/catalogo';
 import { campaignReport } from '@/database/repositories/campaign-repo';
 import { envioDeCompras } from '@/database/repositories/meta-repo';
 import {
+  comprasDeTesteNaJanela,
   contarCompradoresDistintos,
   contarVendas,
   somarReceita,
@@ -102,6 +103,7 @@ export default async function FunilPage({
     compradores,
     receitaCentavos,
     coorte,
+    testes,
   ] = await withAutoBootstrap(
     () =>
       Promise.all([
@@ -137,6 +139,11 @@ export default async function FunilPage({
           CHEGADA, e não o do marco, senão o resto misturaria dois relógios.
         */
         coorteDeChegada(janela),
+        /*
+          Quanto desta janela é compra de teste do dono, anterior ao lançamento. Só para a tela
+          poder NOMEAR a diferença contra `/admin/vendas` — ver `comprasDeTesteNaJanela`.
+        */
+        comprasDeTesteNaJanela(janela),
       ]),
   );
 
@@ -299,11 +306,42 @@ export default async function FunilPage({
               )}
             </div>
 
+            {/*
+              ⚠️ ESTA FRASE JÁ MENTIU, EM 23/09/2026.
+
+              Ela dizia "o mesmo corte de Vendas". É o mesmo RELÓGIO — data do pagamento — e NÃO a
+              mesma janela: `/admin/vendas` corta no lançamento e esta tela corta pelo seletor
+              acima, que em "30 dias" alcança o pré-lançamento.
+
+              O dono comparou as duas telas, viu 284 contra 274, e veio perguntar qual estava
+              errada. Nenhuma: a diferença eram as dez compras de teste dele. A frase transformou
+              uma diferença explicável em suspeita de defeito — que é o que uma legenda errada faz
+              de pior, porque ela é justamente onde se procura a explicação.
+            */}
             <p className="mt-2 text-sm text-graphite">
               Contado pelo dia em que o <strong className="text-ink">pagamento entrou</strong> — o
-              mesmo corte de <strong className="text-ink">Vendas</strong> e do extrato do Mercado
-              Pago. É o seu faturamento do período.
+              mesmo relógio de <strong className="text-ink">Vendas</strong> e do extrato do Mercado
+              Pago, na janela escolhida acima.
             </p>
+
+            {/*
+              A subtração escrita na tela, em vez de deixada para quem comparar.
+
+              É a mesma decisão da linha "sem marcação" na tabela de origens: quando dois números
+              corretos discordam, o que falta nunca é corrigir um deles — é mostrar a diferença.
+            */}
+            {testes.pedidos > 0 && (
+              <p className="mt-2 max-w-prose rounded border border-line bg-paper p-3 text-sm text-graphite">
+                Inclui <strong className="text-ink">{testes.pedidos}</strong>{' '}
+                {testes.pedidos === 1 ? 'compra sua de teste' : 'compras suas de teste'} de antes do
+                lançamento ({brl(testes.receitaCentavos)}). Por isso este número é maior que o de{' '}
+                <strong className="text-ink">Vendas</strong>, que só conta cliente:{' '}
+                <strong className="text-ink tabular-nums">
+                  {vendas - testes.pedidos} vendas · {brl(receitaCentavos - testes.receitaCentavos)}
+                </strong>
+                .
+              </p>
+            )}
 
             {/*
               O gasto vem pela URL e não do banco — ver o comentário original em `lerDinheiroEmCentavos`:

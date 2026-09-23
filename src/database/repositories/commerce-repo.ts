@@ -852,3 +852,60 @@ export async function situacaoDosPedidos(
     email: r.email,
   }));
 }
+
+export type ComprasDeTeste = {
+  readonly pedidos: number;
+  readonly receitaCentavos: number;
+};
+
+/**
+ * Quanto das vendas de uma janela é compra de TESTE do dono, anterior ao lançamento.
+ *
+ * ═══ A DÚVIDA QUE ISTO RESPONDE NA TELA, EM VEZ DE NA CONVERSA (23/09/2026) ══════════════════
+ *
+ * O dono comparou as duas telas no mesmo minuto e não fechou:
+ *
+ *   Funil (30 dias)   284 vendas   R$ 13.502,16
+ *   Vendas            274 pedidos  R$ 13.072,26
+ *
+ * A diferença — 10 pedidos, R$ 429,90 — são as compras de teste que ele mesmo fez antes de
+ * 03/09 às 18h. `/admin/vendas` corta no lançamento e explica isso num rodapé; o Funil corta pelo
+ * seletor de período, e "30 dias" alcança o pré-lançamento.
+ *
+ * ⚠️ **E a legenda do Funil dizia "o mesmo corte de Vendas", o que é falso.** É o mesmo RELÓGIO —
+ * data do pagamento — e não a mesma JANELA. A frase era minha, e foi ela que transformou uma
+ * diferença explicável numa suspeita de defeito.
+ *
+ * Nenhum dos dois números estava errado. O que faltava era a subtração escrita na tela — o mesmo
+ * problema da linha "sem marcação", e a mesma correção.
+ */
+export async function comprasDeTesteNaJanela(janela: Janela = SEM_LIMITE): Promise<ComprasDeTeste> {
+  const vazio: ComprasDeTeste = { pedidos: 0, receitaCentavos: 0 };
+  if (!isDatabaseConfigured()) return vazio;
+
+  try {
+    const rows = await db()
+      .select({
+        pedidos: sql<number>`count(*)::int`,
+        centavos: sql<number>`coalesce(sum(${orders.amountCents}), 0)::bigint`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.status, 'paid'),
+          /* O mesmo corte de `vendasDesde`, do outro lado: o que ELA deixa de fora. */
+          lt(orders.paidAt, LANCAMENTO),
+          ...recorte(orders.paidAt, janela),
+        ),
+      );
+
+    const r = rows[0];
+    return {
+      pedidos: Number(r?.pedidos ?? 0),
+      receitaCentavos: Number(r?.centavos ?? 0),
+    };
+  } catch (error) {
+    console.error('[vendas] não foi possível contar as compras anteriores ao lançamento', error);
+    return vazio;
+  }
+}
