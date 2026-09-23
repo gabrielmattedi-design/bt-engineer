@@ -432,7 +432,23 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 19 | sáb | 127,97 | **58** | 11 | **19,0%** | 10 | 479,90 | **2,21** | 12,80 | **3,75×** |
 | 20 | dom | 182,59 | 96 | 17 | 17,7% | 18 | 889,81 | 1,90 | **10,14** | 4,87× |
 | 21 | seg | 125,00 | **52** | 11 | **21,2%** | 11 | 549,89 | **2,40** | 11,36 | 4,40× |
-| **Σ** | | **1.563,08** | **833** | **152** | **18,2%** | — | **7.398,46** | **1,88** | — | **4,73×** |
+| 22 | ter | 147,58 | **52** | 13 | **25,0%** | 13 | 679,86 | **2,84** | 11,35 | 4,61× |
+| **Σ** | | **1.710,66** | **885** | **165** | **18,6%** | — | **8.078,32** | **1,93** | — | **4,72×** |
+
+> 🔎 **A conferência de preços reprovou pela primeira vez — e achou um erro de um centavo.**
+>
+> O dono passou R$ 679,85 em 14 pedidos. **Nenhuma combinação** de R$ 49,99 e R$ 29,99 dá esse
+> valor, com 14 pedidos ou com qualquer outro número. Com **R$ 679,86**, tudo fecha de uma vez:
+>
+> ```
+> Meta   679,86 = 13 setups + 1 laudo  = 14 pedidos
+> Fora   129,97 =  2 setups + 1 laudo  =  3 pedidos
+> Dia    809,83 = 15 setups + 2 laudos = 17 pedidos  ✓ bate com o Financeiro
+> ```
+>
+> A série foi gravada com 679,86. **É a primeira vez que a verificação de decomposição pega
+> alguma coisa**, e ela pegou justamente o que ela existe para pegar: um dígito trocado na
+> transcrição, que passaria despercebido em qualquer outra checagem.
 
 > ✅ **A ressalva do ROAS se resolveu, e para o lado que a estranheza apontava.** O número foi
 > gravado como 7,28× com marca de pendência porque R$ 909,81 dava 19 pedidos contra 11 pagantes —
@@ -469,6 +485,7 @@ R$ 49,99 / R$ 29,99 fecham em combinação **única**, o que confirma que os val
 | 19 | **sáb** | **399,92** | 8 |
 | 20 | dom | **479,90** | 10 |
 | 21 | seg | 359,92 | 8 |
+| 22 | **ter** | **129,97** | 3 |
 
 **O salto acontece no dia 19 — um dia inteiro ANTES do reel do Sampras**, que saiu em 20/09 às 13h.
 O dono atribuiu o desempenho ao reel; a série diz que ele pegou um canal que já tinha virado na
@@ -496,9 +513,45 @@ possíveis, e elas pedem ações opostas:
 > É a primeira semana em que essa pergunta tem instrumento: a coluna de Origem em `/admin/vendas`
 > passou a existir em 21/09.
 
-> **A divergência da §3.1, terceiro dia seguido:** metade da gente (96 → 52, −46%) a um custo 26%
-> maior (1,90 → 2,40), convertendo muito melhor (17,7% → **21,2%, a melhor desde o dia 13**).
-> Entrega pior, público melhor — e o sábado 19 já tinha dado o mesmo (R$ 2,21 · 19,0%).
+##### Primeiro ponto da janela: o dia 22 caiu 64%
+
+R$ 359,92 → **R$ 129,97**, três dias depois de a captação parar. É o primeiro dado dentro da
+previsão, e ele aponta para a hipótese da colheita atrasada.
+
+⚠️ **Mas um ponto não fecha nada, e há um confundidor à vista:** os dois dias altos da série
+(399,92 e 479,90) são sábado e domingo, e os R$ 129,97 do dia 22 são exatamente o mesmo valor da
+sexta 18. Pode ser fim de semana, não queda.
+
+A janela continua de pé, e agora com uma pergunta mais nítida: **o próximo fim de semana (26–27)
+volta à faixa dos R$ 400, ou fica na dos R$ 130?** Se voltar, o que a série mostra é efeito de dia
+da semana e a captação manual não era o motor. Se não voltar, era.
+
+#### A troca que se repete há quatro dias — entrega pior, público melhor
+
+Não é mais divergência ocasional da §3.1. É uma linha reta, nos dois sentidos, sem exceção:
+
+| Dia | | Custo por chegada | Conversão |
+|---|---|---|---|
+| 18 | sex | **1,31** | 11,8% |
+| 19 | sáb | 2,21 | 19,0% |
+| 20 | dom | 1,90 | 17,7% |
+| 21 | seg | 2,40 | 21,2% |
+| 22 | ter | **2,84** | **25,0%** |
+
+**R$ 2,84 é a chegada mais cara da campanha inteira** — acima dos R$ 2,65 do dia 12, que era o
+recorde. E **25,0% é a melhor conversão desde o dia 13** (25,3%), que foi o pico histórico.
+
+O volume ficou parado: 52 chegadas no dia 21 e 52 no dia 22, contra 96 no dia 20.
+
+> **Por que isso NÃO é uma boa notícia disfarçada.** As duas metades quase se anulam — o ROAS foi
+> 4,40× e 4,61× nos dois dias, dentro da faixa de sempre. O que mudou é o QUE se compra: o mesmo
+> dinheiro traz cada vez menos gente, cada vez mais qualificada.
+>
+> É o desenho de um público se estreitando. O Meta está achando os melhores e parando de procurar
+> o resto — e quando os melhores acabarem, sobra a metade cara sem a metade boa.
+>
+> ⚠️ **E não é fadiga de criativo**: a frequência lida em 22/09 foi **2,03 em 7 dias**, faixa
+> normal. A métrica que decidiria isso é outra — CPM e CTR —, e ainda não foi lida.
 
 > ⚠️ **18 e 19 foram lidos fora do atraso padrão — D+3 e D+2, contra D+1 do resto da série.**
 > Só o dia 20 seguiu a regra. Pela §3.3-ter isso importa: "Chegaram" é fixo (conta pela data de
@@ -509,7 +562,7 @@ possíveis, e elas pedem ações opostas:
 > O que torna o dia 18 pior, não melhor: 11,8% é o segundo pior número da série **mesmo com dois
 > dias a mais para maturar**.
 
-**Lucro bruto dos 13 dias (receita − gasto): ~R$ 5.835.** O dono pediu para largar a taxa do gateway
+**Lucro bruto dos 14 dias (receita − gasto): ~R$ 6.368.** O dono pediu para largar a taxa do gateway
 da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* —, então a série passa a
 mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)**, **20 (R$ 707)** e
 **17 (R$ 698)**.
