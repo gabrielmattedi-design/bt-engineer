@@ -9,6 +9,7 @@ import {
   mediaPorDiaDaSemana,
   montarFinanceiro,
   montarGrafico,
+  rotulosDoGrafico,
   type Indicador,
 } from '@/lib/financeiro';
 import { emReais } from '@/lib/lucro';
@@ -90,6 +91,8 @@ export default async function FinanceiroPage({
 
   /* `montarGrafico` ordena sozinho: a tabela fica do mais recente, o gráfico do mais antigo. */
   const grafico = montarGrafico(resumo.dias, indicador);
+  /* Quais dias ganham rótulo — ver `rotulosDoGrafico`, e o defeito de leitura que ela conserta. */
+  const visiveis = rotulosDoGrafico(grafico.barras.length);
   const porDiaDaSemana = mediaPorDiaDaSemana(resumo.dias);
 
   const diaBonito = (iso: string) => {
@@ -267,10 +270,25 @@ export default async function FinanceiroPage({
                   </ol>
                 </div>
 
+                {/*
+                  ⚠️ `min-w-0` NÃO É DETALHE — É O QUE IMPEDE O GRÁFICO DE MENTIR.
+
+                  Item de flex tem `min-width: auto` por padrão, e isso o proíbe de encolher abaixo
+                  do próprio conteúdo. O item de BARRA é vazio, então vai a zero; o de rótulo tem
+                  dois dígitos dentro e não vai. Com vinte e um dias num celular, a fileira de
+                  rótulos fica mais larga que a de barras, transborda, e cada rótulo escorrega para
+                  a direita do seu bar — com o erro ACUMULANDO até o fim da série.
+
+                  Em 23/09 isso fez o dono ler que "o gráfico só conta até o dia 20", com as barras
+                  do 21 e do 22 desenhadas na tela o tempo todo.
+
+                  `rotulosDoGrafico` cuida da outra metade: os itens continuam todos aqui — é o que
+                  mantém o alinhamento —, e só alguns recebem texto.
+                */}
                 <ol className="mt-2 flex gap-1 text-center text-[10px] tabular-nums text-graphite">
-                  {grafico.barras.map((b) => (
-                    <li key={b.rotulo} className="flex-1">
-                      {b.rotulo.slice(8)}
+                  {grafico.barras.map((b, i) => (
+                    <li key={b.rotulo} className="min-w-0 flex-1 overflow-hidden">
+                      {visiveis[i] ? b.rotulo.slice(8) : ''}
                     </li>
                   ))}
                 </ol>

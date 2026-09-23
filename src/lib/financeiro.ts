@@ -404,3 +404,60 @@ export function mediaPorDiaDaSemana(dias: readonly DiaFinanceiro[]): MediaDaSema
     .sort((a, b) => b.mediaCentavos - a.mediaCentavos)
     .map((l) => ({ ...l, altura: (l.mediaCentavos / maior) * 100 }));
 }
+
+/**
+ * Quais dias ganham rótulo embaixo do gráfico — e por que nem todos podem ganhar.
+ *
+ * ═══ O DEFEITO QUE ISTO CONSERTA (23/09/2026) ════════════════════════════════════════════════
+ *
+ * ⚠️ O dono leu o gráfico e disse: *"o gráfico só tá contando até dia 20"*. **As barras estavam
+ * todas lá** — a tabela ao lado mostrava 21/09 com R$ 909,81 e 22/09 com R$ 809,83. Quem mentia
+ * eram os RÓTULOS.
+ *
+ * As duas fileiras — barras e rótulos — são `flex` com `flex-1` e a mesma quantidade de itens, e
+ * por isso pareciam alinhadas por construção. Não são: o item de barra é vazio, então encolhe até
+ * zero; o item de rótulo tem texto, e `min-width: auto` (o padrão de item flex) o impede de ficar
+ * menor que os dois dígitos dentro dele.
+ *
+ * Num celular estreito, vinte e um rótulos de dois dígitos mais os espaços não cabem na largura da
+ * fileira. Ela transborda, cada rótulo escorrega um pouco para a direita do seu bar, e o erro
+ * ACUMULA — no fim da série, o "21" está sobre a barra do dia 19.
+ *
+ * **O gráfico ficou mentindo sobre qual barra é qual dia, sem quebrar nada e sem erro nenhum.**
+ * É o pior tipo de defeito de painel: o número está certo, a leitura sai errada, e a tela parece
+ * estar funcionando.
+ *
+ * ─── AS DUAS METADES DA CORREÇÃO ───────────────────────────────────────────────────────────
+ *
+ * 1. `min-w-0` nos itens de rótulo, para eles encolherem igual aos de barra. Só isso já garante o
+ *    alinhamento — mas com vinte e um dias os dígitos ficariam cortados pela metade.
+ * 2. Esta função, que RAREIA os rótulos quando a série cresce. Os itens continuam todos lá (é o
+ *    que mantém o alinhamento); alguns apenas não têm texto.
+ *
+ * Sem a 2, a correção 1 troca um gráfico que mente por um ilegível.
+ *
+ * ─── POR QUE O ÚLTIMO DIA SEMPRE APARECE ───────────────────────────────────────────────────
+ *
+ * É o dia que se está lendo. Um gráfico cujo rótulo mais à direita é "20" quando a última barra é
+ * do 23 recria exatamente a confusão que esta função existe para desfazer.
+ */
+export function rotulosDoGrafico(quantidade: number): readonly boolean[] {
+  /*
+    Quatorze é o ponto em que dois dígitos por item ainda cabem numa tela de ~360 px com os espaços
+    entre barras. Acima disso, um a cada `passo` — arredondado para cima, de modo que o total de
+    rótulos visíveis nunca passe de oito.
+  */
+  const CABEM_TODOS = 14;
+  const ALVO = 8;
+  const passo = quantidade <= CABEM_TODOS ? 1 : Math.ceil(quantidade / ALVO);
+
+  return Array.from({ length: quantidade }, (_, i) => {
+    /* O último sempre, porque é o dia que se está lendo. */
+    if (i === quantidade - 1) return true;
+    /*
+      A contagem parte do FIM, e não do início: assim o penúltimo rótulo fica a um passo exato do
+      último, em vez de cair colado nele quando a divisão não é inteira.
+    */
+    return (quantidade - 1 - i) % passo === 0;
+  });
+}
