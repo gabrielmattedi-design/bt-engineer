@@ -551,7 +551,47 @@ O volume ficou parado: 52 chegadas no dia 21 e 52 no dia 22, contra 96 no dia 20
 > o resto — e quando os melhores acabarem, sobra a metade cara sem a metade boa.
 >
 > ⚠️ **E não é fadiga de criativo**: a frequência lida em 22/09 foi **2,03 em 7 dias**, faixa
-> normal. A métrica que decidiria isso é outra — CPM e CTR —, e ainda não foi lida.
+> normal. A métrica que decidiria isso é outra — CPM e CTR.
+
+##### CPM e CTR lidos em 23/09: nenhum dos dois acusa fadiga
+
+**CPM R$ 22,10 · CTR (clique no link) 2,01%**, últimos 7 dias. Deles sai o resto da aritmética:
+
+```
+gasto 7 dias        R$ 1.003,00
+impressões          ~45.385        (gasto ÷ CPM × 1000)
+cliques no link     ~912           (impressões × CTR)
+custo por clique    R$ 1,10
+```
+
+**CTR de 2,01% é ALTO** — o normal de clique em link no Meta fica entre 0,5% e 1,5%. Criativo
+cansado perde clique antes de qualquer outra coisa, e este não está perdendo. **CPM de R$ 22,10 é
+mediano** para o Brasil, longe de leilão apertado.
+
+> ⚠️ **Mas uma média de 7 dias não enxerga a virada que aconteceu DENTRO dela.** O custo por
+> chegada foi R$ 1,67 nos dias 16–19 e R$ 2,28 nos dias 20–22 (+36%), e a leitura de CPM e CTR
+> mistura as duas metades. Uma CTR que caiu de 2,5% para 1,6% na semana também daria média 2,0%.
+>
+> **A leitura que decide** é a mesma dupla em dois intervalos explícitos — 16 a 18 contra 20 a 22.
+> Enquanto ela não existir, "o leilão encareceu" e "a peça cansou" continuam indistinguíveis, e
+> qualquer decisão de criativo é palpite com número ao lado.
+
+##### 🔎 E apareceu um buraco que não estava sendo medido: 42% dos cliques pagos não chegam
+
+```
+912 cliques no link  →  528 chegadas      = 58%
+```
+
+**Quatrocentos e poucos cliques pagos, a R$ 1,10 cada, não viraram questionário aberto** — cerca de
+R$ 420 em sete dias, na mesma ordem de grandeza do gasto de três dias inteiros.
+
+Parte disso é inevitável: no celular, gente que toca no anúncio e sai antes de a página carregar
+nunca chega a ser registrada. O que NÃO se sabe é quanto é isso e quanto é atrito nosso — e a
+resposta depende de para onde o anúncio aponta. Se ele leva direto ao questionário, 42% é muito. Se
+leva à home, a perda inclui quem não clicou em "começar", e aí a home é que está filtrando.
+
+**Nunca foi medido porque o funil começa no `quiz:start`** — o que acontece antes dele é invisível
+deste lado. É a primeira vez que um número externo dá o tamanho do que falta.
 
 > ⚠️ **18 e 19 foram lidos fora do atraso padrão — D+3 e D+2, contra D+1 do resto da série.**
 > Só o dia 20 seguiu a regra. Pela §3.3-ter isso importa: "Chegaram" é fixo (conta pela data de
