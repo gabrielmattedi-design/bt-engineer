@@ -646,6 +646,44 @@ convincente para quem o vê.
 > `reel-30s` estiver estável e a média tiver caído por composição, **a troca de criativo deixa de
 > se justificar** e a §"é fadiga" acima passa a estar errada.
 
+##### ✅ LIDA POR ANÚNCIO em 24/09 — é fadiga MODERADA, e o −19,5% estava inflado
+
+Período A confirmado por aritmética: reel-30s, 15.198 impressões × CPM 22,28 = R$ 338,61, e o
+gasto de 16–18 é R$ 419,86. Fecha.
+
+| Anúncio | | 16–18 | 19–23 | |
+|---|---|---|---|---|
+| **reel-30s** | CTR | 1,95% | **1,74%** | **−10,8%** |
+| | CPM | 22,28 | 22,32 | +0,2% |
+| | CPC | 1,14 | 1,29 | +13,2% |
+| | fatia das impressões | 78,0% | **88,6%** | |
+| **reel-3-erros** | CTR | 3,33% | 2,77% | −16,8% |
+| | CPC | 0,57 | 0,71 | +24,6% |
+| | fatia das impressões | 21,6% | **11,2%** | |
+
+**A queda da CTR do conjunto (2,26% → 1,86%) reparte-se assim:**
+
+```
+efeito das peças piorando   0,29 p.p.   73%
+efeito de composição        0,15 p.p.   37%
+```
+
+*(as parcelas somam mais de 100% porque os dois efeitos interagem — cada uma é o que aconteceria
+isoladamente.)*
+
+**Então é fadiga, e a §anterior não está errada — está exagerada.** A queda real do `reel-30s` é
+**10,8%, não 19,5%.** O resto veio do Meta transferir entrega da peça de CTR alta (`reel-3-erros`,
+3,33%) para a de CTR baixa (`reel-30s`, 1,95%), o que derruba a média sem ninguém piorar.
+
+> 💡 **E por que o Meta prefere a peça de CTR PIOR — ele está certo.**
+>
+> `reel-3-erros` tem CTR quase o dobro e CPC metade do preço. E converte muito pior: **104 chegadas
+> para 10 vendas, 9,6%**, contra 19,5% do `reel-30s`. O objetivo da campanha é compra, não clique.
+>
+> Clique barato que não compra é pior que clique caro que compra — e é por isso que a fatia do
+> `reel-30s` subiu de 78% para 88,6%. **A CTR não é o objetivo**, e usá-la sozinha como gatilho de
+> troca teria mandado desligar a peça que sustenta o faturamento.
+
 > 💡 **E a conversão subindo deixa de ser mistério.** Com a peça perdendo apelo, quem ainda clica é
 > quem tem interesse genuíno — menos curiosos, mais gente decidida. Daí 11,8% → 25,0%. É por isso
 > que o ROAS se segurou em 4,4×–4,6× enquanto a entrega piorava: a queda de volume foi compensada
