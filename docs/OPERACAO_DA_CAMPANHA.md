@@ -433,7 +433,22 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 20 | dom | 182,59 | 96 | 17 | 17,7% | 18 | 889,81 | 1,90 | **10,14** | 4,87× |
 | 21 | seg | 125,00 | **52** | 11 | **21,2%** | 11 | 549,89 | **2,40** | 11,36 | 4,40× |
 | 22 | ter | 147,58 | **52** | 13 | **25,0%** | 13 | 679,86 | **2,84** | 11,35 | 4,61× |
-| **Σ** | | **1.710,66** | **885** | **165** | **18,6%** | — | **8.078,32** | **1,93** | — | **4,72×** |
+| 23 | qua | 163,69 | 75 | **23** | **30,7%** | 22 | 959,78 | 2,18 | **7,44** | **5,86×** |
+| **Σ** | | **1.874,35** | **960** | **188** | **19,6%** | — | **9.038,10** | **1,95** | — | **4,82×** |
+
+> ✅ **O dia 23 reverte a deterioração — e é o melhor CAC da campanha inteira.**
+>
+> **CAC R$ 7,44**, abaixo dos R$ 7,84 do dia 13, que era o recorde. **Conversão 30,7%**, a melhor
+> desde o dia 10. **ROAS 5,86×**, a um centésimo do recorde do dia 13. E o custo por chegada caiu
+> de R$ 2,84 para R$ 2,18, quebrando quatro dias seguidos de alta.
+>
+> **A composição mudou junto, e muito:** 15 setups + **7 laudos** (decomposição única). São mais
+> laudos do que em qualquer outro dia da série — nos dias anteriores eram 0 a 3. O ticket médio caiu
+> para **R$ 43,63**, o menor já registrado. Vendeu mais gente, com produto mais barato, e ainda
+> assim o CAC ficou ótimo porque o volume compensou.
+>
+> ⚠️ **Um dia não reverte uma tendência de quatro.** Mas ele é forte o bastante para tirar a pressa
+> da troca de criativo, e levanta uma dúvida sobre o próprio diagnóstico — ver abaixo.
 
 > 🔎 **A conferência de preços reprovou pela primeira vez — e achou um erro de um centavo.**
 >
@@ -485,7 +500,8 @@ R$ 49,99 / R$ 29,99 fecham em combinação **única**, o que confirma que os val
 | 19 | **sáb** | **399,92** | 8 |
 | 20 | dom | **479,90** | 10 |
 | 21 | seg | 359,92 | 8 |
-| 22 | **ter** | **129,97** | 3 |
+| 22 | ter | 129,97 | 3 |
+| 23 | qua | 179,96 | 4 |
 
 **O salto acontece no dia 19 — um dia inteiro ANTES do reel do Sampras**, que saiu em 20/09 às 13h.
 O dono atribuiu o desempenho ao reel; a série diz que ele pegou um canal que já tinha virado na
@@ -608,6 +624,28 @@ convincente para quem o vê.
 > descreve uma coisa só: **o público que responde A ESTA PEÇA está se esgotando**, e não o público
 > disponível.
 
+> ⚠️⚠️ **RESSALVA GRAVE, levantada em 24/09: TUDO ISTO FOI MEDIDO NO CONJUNTO, NÃO NO ANÚNCIO.**
+>
+> CPM e CTR foram lidos na linha do conjunto `teste-criativo`, que **mistura os quatro anúncios**.
+> Uma CTR de conjunto caindo tem duas causas possíveis, e elas pedem ações opostas:
+>
+> - **a peça cansou** — a CTR do `reel-30s` caiu de verdade; ou
+> - **mudou a composição** — o `reel-30s` continua igual, e o Meta passou a entregar parte do
+>   orçamento a um anúncio de CTR mais baixa. A média cai sem nenhuma peça ter piorado.
+>
+> O dono informou em 24/09 que **um segundo criativo começou a receber entrega** ("4 vendas,
+> conversão 28,6%" no dia 22), e que isso vinha acontecendo aos poucos. Isso torna a segunda
+> hipótese concreta, não teórica.
+>
+> **E o dia 23 empurra na mesma direção:** custo por chegada caiu de 2,84 para 2,18 e a conversão
+> subiu para 30,7%, sem ninguém ter trocado nada. Fadiga de criativo não se cura sozinha; mudança
+> de composição se reverte sozinha o tempo todo.
+>
+> **A leitura que decide, e que ainda não foi feita:** CPM e CTR **por ANÚNCIO**, não por conjunto.
+> No gerenciador é descer um nível — mesma tabela de colunas, na aba de anúncios. Se a CTR do
+> `reel-30s` estiver estável e a média tiver caído por composição, **a troca de criativo deixa de
+> se justificar** e a §"é fadiga" acima passa a estar errada.
+
 > 💡 **E a conversão subindo deixa de ser mistério.** Com a peça perdendo apelo, quem ainda clica é
 > quem tem interesse genuíno — menos curiosos, mais gente decidida. Daí 11,8% → 25,0%. É por isso
 > que o ROAS se segurou em 4,4×–4,6× enquanto a entrega piorava: a queda de volume foi compensada
@@ -667,7 +705,7 @@ deste lado. É a primeira vez que um número externo dá o tamanho do que falta.
 > O que torna o dia 18 pior, não melhor: 11,8% é o segundo pior número da série **mesmo com dois
 > dias a mais para maturar**.
 
-**Lucro bruto dos 14 dias (receita − gasto): ~R$ 6.368.** O dono pediu para largar a taxa do gateway
+**Lucro bruto dos 15 dias (receita − gasto): ~R$ 7.164.** O dono pediu para largar a taxa do gateway
 da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* —, então a série passa a
 mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)**, **20 (R$ 707)** e
 **17 (R$ 698)**.
