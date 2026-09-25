@@ -41,12 +41,11 @@ as três raquetes e o comparativo entre elas.
 ### 1.3 A escada de preço
 
 R$ 29,99 + R$ 30,00 = R$ 59,99, contra R$ 49,99 do pacote: decidir em duas vezes custa R$ 10,01 a
-mais. Decisão do dono. O editor de preços aceita, porque a regra dele é só que o caminho fatiado
-não custe MENOS que o pacote.
-
-Registro, para não se perder: no Tennis Engineer o upgrade foi fixado para que essa diferença
-fosse o menor possível, pelo motivo de que o upgrade não aparece na hora da primeira escolha
-(MONETIZATION.md, `setup_upgrade`). Aqui a decisão é outra, e está tomada.
+mais. É a mesma escada do Tennis Engineer, onde laudo + upgrade somavam R$ 59,98, e a diferença de
+R$ 9,99 foi mantida de propósito como "o preço de decidir em duas vezes, e nada além disso"
+(MONETIZATION.md, `setup_upgrade`). O que aquele documento recusa é um prêmio MAIOR: o upgrade
+desceu de R$ 39,99 porque ele não aparece na hora da primeira escolha. O editor de preços aceita
+os R$ 30,00, porque a regra dele é só que o caminho fatiado não custe menos que o pacote.
 
 ---
 
