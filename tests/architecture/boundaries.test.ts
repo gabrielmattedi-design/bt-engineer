@@ -40,14 +40,21 @@ const FORBIDDEN_IN_ENGINE = [
 ];
 
 describe('o motor de recomendação é puro', () => {
-  const engineFiles = collectFiles(join(ROOT, 'src', 'recommendation'));
+  /*
+    `src/motor` é o motor do beach tennis, que convive com o de tênis até as telas migrarem. Ele
+    entra na mesma trava desde o primeiro arquivo: é mais barato nascer puro do que ser limpo depois.
+  */
+  const engineFiles = [
+    ...collectFiles(join(ROOT, 'src', 'recommendation')),
+    ...collectFiles(join(ROOT, 'src', 'motor')),
+  ];
 
   it('encontra os arquivos do motor', () => {
     expect(engineFiles.length).toBeGreaterThan(8);
   });
 
   it.each(FORBIDDEN_IN_ENGINE.map((f) => [f.label, f.pattern] as const))(
-    'src/recommendation nunca importa %s',
+    'o motor nunca importa %s',
     (label, pattern) => {
       const offenders: string[] = [];
       for (const file of engineFiles) {

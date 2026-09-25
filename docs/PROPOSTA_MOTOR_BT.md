@@ -1,6 +1,9 @@
 # Proposta — produtos, motor e questionário do Beach Tennis Engineer
 
-Status: **rascunho para decisão do dono** · nenhuma linha de código de domínio escrita ainda.
+Status: **aprovado pelo dono em 25/09/2026** · motor implementado em `src/motor/` (versão 0.1.0),
+ao lado do motor de tênis, que as telas ainda usam. Questionário e relatório ainda não migraram.
+
+A §8 registra o que a implementação mudou em relação a este desenho, e por quê.
 
 Quando aprovado, este documento substitui `RECOMMENDATION_ENGINE.md`, `QUESTIONNAIRE.md` e
 `STRING_AND_TENSION_ENGINE.md` (que descrevem o motor de tênis, ainda presente no código), e a §1
@@ -141,6 +144,8 @@ Engineer tropeçou exatamente nisso e passou a trabalhar em posição de catálo
 `catalog-scale.ts`). Aqui é igual: o alvo do jogador é expresso de 0 a 100 dentro da faixa real das
 raquetes, e se reescala sozinho quando o catálogo muda.
 
+A faixa vai do **percentil 5 ao 95**, e não do mínimo ao máximo (§8.1).
+
 ### 3.4 O mapa é o relatório
 
 O relatório desenha as 35 raquetes num plano resposta × inércia, a zona ideal do jogador, as três
@@ -179,17 +184,23 @@ próprio peso a cada golpe.
 - O alvo sobe com o papel de atacante (smash) e com estabilidade como prioridade.
 - Desce com o jogo de rede e com manobrabilidade como prioridade.
 
-Acima da capacidade vira **teto**, e não só distância, com a mesma assimetria do motor de tênis:
-passar do que o braço aguenta produz atraso e lesão, ficar abaixo produz só perda de desempenho. No
-protótipo, inércia acima do alvo pesa 1,4 e abaixo pesa 0,8.
+A capacidade é principalmente **teto**, e não alvo (§8.2). Na distância ao alvo vale a assimetria
+do motor de tênis: passar do que o braço aguenta produz atraso e lesão, ficar abaixo produz só perda
+de desempenho. Inércia acima do alvo pesa 1,4, e abaixo pesa 0,8.
+
+**A dor não mexe no teto de inércia**, só no de firmeza (§8.3).
 
 ### 4.3 Nota final
 
 ```
 fit = 100 − 1,2 · distância(resposta, inércia ponderada)
           − penalidade de nível do fabricante (mais de meio degrau fora do nível calibrado)
-          − penalidade de transição (se a raquete atual é conhecida e a mudança é brusca)
+          − penalidade de transição (se a raquete atual é conhecida e a mudança é brusca; no
+            máximo 10, e zero se a atual fere a segurança — §8.4)
 ```
+
+A nota fica entre 0 e 100, porque é lida como porcentagem de encaixe. Quando a 1ª colocada fica
+abaixo de 50, o resultado sai marcado como **encaixe fraco** e o relatório precisa dizer isso.
 
 **Filtros duros**, que excluem em vez de penalizar:
 - a faixa de preço escolhida, piso e teto (§4.5);
@@ -198,7 +209,8 @@ fit = 100 − 1,2 · distância(resposta, inércia ponderada)
 - nível do fabricante `profissional` para iniciante.
 
 **Premissa da 1ª prioridade**, herdada (`bc2d3ee`): quem pede controle em 1º lugar não recebe
-raquete abaixo da média do catálogo em resposta. O mesmo vale para os outros pedidos.
+raquete abaixo da média do catálogo em resposta. O mesmo vale para os outros pedidos. Ela só vale
+se o pódio montado com ela continuar com três raquetes (§8.5).
 
 ### 4.4 O pódio
 
@@ -276,20 +288,27 @@ Na tela do questionário, cada faixa mostra o que ela compra em termos de constr
 vidro, carbono 3K, 12K e acima), para a pessoa entender o degrau que está escolhendo, e não só um
 valor.
 
-### 4.6 Protótipo — cinco jogadores contra as 35
+### 4.6 Os jogadores, contra o motor de verdade
 
-| Jogador | Pódio |
-|---|---|
-| Iniciante, 1,60 m / 55 kg, dor no cotovelo, até R$ 1.500 | Adidas BT 3.0 · Shark Tour · Vision SuperCarbon |
-| Ex-tenista, 1,85 m / 85 kg, avançado, smash muito rápido, falta controle | Zand Z Bruxo · Quicksand Kombat · Heroes Rebel |
-| Intermediário de rede, falta reação | Mormaii Vitória III · AMA Poison Bee · AMA Medusa |
-| Avançado atacante com dor no ombro agora | AMA Poison Bee · Zeiq Julia Nogueira · Heroes Show |
-| Intermediário, swing lento, falta potência | Drop Shot Renegade · Shark Predator · Mormaii Sunrise |
+Os mesmos jogadores do protótipo, agora com o motor implementado e as faixas de preço.
+`tests/motor/podio.test.ts` tranca o comportamento de cada um.
 
-O protótipo é descartável e não está no repositório. Na implementação, os pesos ganham justificativa
-por tipagem, como no motor de tênis, e os invariantes ganham teste: nenhuma recomendação acima do
-teto físico, nenhuma firme para dor atual, pódio sempre com três quando houver candidatas, veredicto
-presente nos dois produtos.
+| Jogador | Faixa | Pódio |
+|---|---|---|
+| Iniciante, 1,60 m / 55 kg, dor no cotovelo | 1 | Shark Tour · Vision SuperCarbon · Adidas BT 3.0 |
+| Ex-tenista, 1,85 m / 85 kg, avançado, falta controle | 3 | Zand Z Bruxo (97,6) · Heroes Rebel · AMA Proteo |
+| Intermediário de rede, falta reação | 2 | Zeiq Julia Nogueira · Heroes Show · Mormaii Sunrise |
+| Avançado atacante, dor no ombro agora | 3 → 2 | Vision Gold Carbon · Shark Predator · Heroes Show |
+| Intermediário, swing lento, falta potência | 2 | Drop Shot Renegade · Mormaii Sunrise · Shark Predator |
+| Cotovelo forte, "sem limite" | 3 → 2 | Drop Shot Renegade · Shark Predator · Vision Gold Carbon |
+
+**Duas raquetes nunca chegam a um pódio**, em 3.000 perfis:
+- **Mormaii Kicks:** macia, de iniciante, e a mais pesada do catálogo (337,5 g). Quem aguenta o
+  peso não pede uma raquete de iniciante.
+- **Quicksand Kombat:** balanço de 275–284 mm, 15 mm além de qualquer outra raquete. Nenhum jogo
+  que o questionário descreve pede tanto.
+
+Não é defeito do motor. É o que o catálogo diz dessas duas, e fica para a varredura do catálogo.
 
 ---
 
@@ -322,7 +341,7 @@ Tennis Engineer).
 | Etapa | Perguntas | Alimenta |
 |---|---|---|
 | 1. Corpo | idade · altura · peso · sexo · força · condicionamento | teto e alvo de inércia |
-| 2. Dor | sente dor ao jogar? cotovelo / ombro / punho / nenhum; se sim: agora ou já passou, e intensidade | teto de resposta, teto de inércia, filtros |
+| 2. Dor | sente dor ao jogar? cotovelo / ombro / punho / nenhum; se sim: agora ou já passou, e intensidade | teto de firmeza e alvo de resposta — não o teto de inércia (§8.3) |
 | 3. Experiência | há quanto tempo joga BT · vezes por semana · aulas · torneio e categoria (iniciante, D, C, B, A, pro) · veio de outro esporte de raquete (tênis, padel, squash, nenhum) · como se classifica | nível calibrado |
 | 4. Calibração (sim / às vezes / não) | sustenta troca de 10+ bolas · smash com direção · lob defensivo até o fundo · voleio de bloqueio sob pressão · saque com intenção | nível calibrado (peso maior que a autoavaliação) |
 | 5. Jogo | papel na dupla: ataco e finalizo / defendo e devolvo tudo / fico na rede / construo e coloco / ainda não sei · movimento amplo de tênis ou curto de punho · velocidade do smash | alvo de resposta e de inércia |
@@ -359,3 +378,61 @@ Aprovadas pelo dono:
 
 Proposto, a confirmar: a descida de um degrau quando a faixa não tem três raquetes seguras para a
 pessoa.
+
+---
+
+## 8. O que a implementação mudou, e por quê
+
+Cada item abaixo foi medido rodando o motor, e não decidido no papel.
+
+### 8.1 A escala vai do percentil 5 ao 95
+
+Com mínimo e máximo, a Quicksand Kombat (inércia 74, contra 55 da segunda mais pesada na mão)
+definia sozinha o topo da escala, e as outras 34 raquetes se espremiam na metade de baixo. O
+ex-tenista avançado recebia a Z Bruxo, que é a raquete certa para ele, com nota 58. Com percentis,
+a escala é definida pelo grosso do catálogo, e a Z Bruxo sobe para 97,6. A Kombat cai acima de
+100, o que é verdade sobre ela.
+
+### 8.2 A capacidade física é teto, e não alvo
+
+A primeira versão punha a capacidade no alvo de inércia com peso 0,55, e o jogador forte ia a alvo
+96. O tênis já tinha escrito o erro: o limite existe para proteger quem tem pouco corpo, não para
+dizer a quem tem muito que precisa de mais peso. A capacidade ficou com 0,10 do alvo; o resto é
+potência e nível.
+
+O teto foi calibrado contra as posições reais do catálogo:
+
+| Capacidade | Quem é | Teto | Saem |
+|---|---|---|---|
+| 43 | 1,60 m / 55 kg, força abaixo | 96 | Kicks e Kombat |
+| 62 | adulto médio | 121 | Kicks e Kombat |
+| 92 | forte, atlético, grande | 160 | nada |
+
+### 8.3 A dor não mexe no teto de inércia
+
+O Tennis Engineer implementou "dor baixa o teto de peso" e retirou. A invariante "mais dor nunca
+eleva um quadro mais rígido" quebrou, porque massa absorve choque: baixar o teto de quem tem dor no
+cotovelo removia justamente as raquetes que protegiam o cotovelo. Aqui a dor só limita a firmeza,
+que é o eixo onde estão o choque e a vibração.
+
+A §6 dizia o contrário e foi corrigida.
+
+### 8.4 A penalidade de transição tem limite
+
+A varredura achou 1ªs colocadas com nota −44. A raquete atual da pessoa estava longe do alvo, e o
+motor punia em até 82 pontos justamente o movimento de sair dela. Agora a penalidade vale no máximo
+10 pontos, e zero quando a atual fere a segurança, porque ali a troca é obrigatória. A pior 1ª
+colocada da varredura subiu de −44 para 1,9.
+
+### 8.5 A premissa não pode custar a terceira raquete
+
+A varredura achou 60 pódios de duas raquetes, todos na faixa 1. A premissa deixava três candidatas,
+duas delas da Total, e o limite de duas por marca derrubava a terceira. Agora a premissa só vale se
+o pódio montado com ela tiver três raquetes. Pódios incompletos: de 60 para 0.
+
+### 8.6 Na descida de faixa, a ordem é pela nota
+
+A primeira versão punha as raquetes da faixa pedida sempre na frente. O atacante avançado com dor
+no ombro recebia a AMA Athena em 1º, com nota 30, à frente de raquetes da faixa 2 com nota 62. "As
+mais caras que servem ao seu jogo" exige que sirvam.
+
