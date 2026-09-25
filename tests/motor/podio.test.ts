@@ -87,9 +87,11 @@ describe('ex-tenista forte e avançado, que pede controle, na faixa 3', () => {
     catalogo,
   );
 
-  it('recebe três raquetes do lado firme da média, pela premissa do 1º pedido', () => {
-    expect(r.premissa_aplicada).toBe(true);
-    for (const a of r.podio) expect(a.ponto.resposta).toBeGreaterThanOrEqual(r.escala.mediaResposta);
+  it('recebe três raquetes do lado firme da média — o 1º pedido pesa', () => {
+    for (const a of r.podio) {
+      expect(a.contraria_o_pedido).toBe(false);
+      expect(a.ponto.resposta).toBeGreaterThanOrEqual(r.escala.mediaResposta);
+    }
   });
 
   /**
@@ -103,16 +105,16 @@ describe('ex-tenista forte e avançado, que pede controle, na faixa 3', () => {
   });
 });
 
-describe('cotovelo forte, "sem limite" — a descida de um degrau (§4.5)', () => {
+describe('cotovelo forte, "sem limite" — a faixa vizinha como peso (§8.7)', () => {
   const r = recomendar(
     respostas({ dor_areas: ['cotovelo'], dor_quando: 'agora', dor_intensidade: 'forte', faixa: 3 }),
     catalogo,
   );
 
-  it('a faixa 3 não tem três raquetes macias o bastante, e o pódio desce para a 2', () => {
+  it('a faixa 3 não tem raquetes macias o bastante, e o pódio traz as da faixa 2, com a penalidade', () => {
     expect(r.desceu_de_faixa).toBe(true);
-    expect(r.faixa_usada).toBe(2);
     expect(r.podio).toHaveLength(3);
+    for (const a of r.podio.filter((x) => x.faixa_vizinha)) expect(a.termos.penalidade_faixa).toBe(15);
   });
 
   it('desce UM degrau: nenhuma raquete da faixa 1 para quem disse "sem limite"', () => {
@@ -125,31 +127,37 @@ describe('cotovelo forte, "sem limite" — a descida de um degrau (§4.5)', () =
 });
 
 /**
- * O defeito que a descida por nota corrige: com "as da faixa pedida primeiro", a AMA Athena (faixa
- * 3, a única segura ali) entrava em 1º com nota 30, à frente de raquetes da faixa 2 com nota 62.
+ * O caso que transformou as travas em peso (§8.7): ex-tenista intermediário, faixa 2, controle em
+ * 1º lugar. A faixa só tem duas raquetes firmes. Com a premissa tudo-ou-nada, ela se desligava
+ * inteira, e a 3ª vaga ia para a Heroes Show — macia, encaixe 10, o contrário do pedido.
  */
-it('na descida, a ordem é pela nota: uma raquete que não serve não vira 1ª por ser mais cara', () => {
+it('com poucas raquetes na faixa, a 3ª vaga não vai para a que contraria o pedido', () => {
   const r = recomendar(
     respostas({
-      torneio: 'C',
-      autoavaliacao: 'avancado',
+      altura_cm: 176,
+      peso_kg: 78,
+      vezes_semana: 3,
+      torneio: 'D',
+      esporte_origem: 'tenis',
       troca_10_bolas: 'sim',
-      smash_com_direcao: 'sim',
-      lob_ate_o_fundo: 'sim',
-      voleio_sob_pressao: 'sim',
       papel: 'ataco',
+      movimento: 'amplo',
       velocidade_smash: 'rapida',
-      dor_areas: ['ombro'],
-      dor_quando: 'agora',
-      dor_intensidade: 'forte',
-      faixa: 3,
+      bolas: ['passam_fundo'],
+      falta: ['controle', 'reacao_rede'],
+      faixa: 2,
     }),
     catalogo,
   );
-  expect(r.desceu_de_faixa).toBe(true);
-  expect(r.podio[0]!.raquete.id).not.toBe('AMA-ATHENA');
+  expect(r.podio.map((a) => a.raquete.id)).not.toContain('HEROES-SHOW');
+  for (const a of r.podio) expect(a.contraria_o_pedido).toBe(false);
+});
+
+it('na faixa vizinha, uma raquete parecida perde para a da faixa pedida', () => {
+  const r = recomendar(respostas({ dor_areas: ['cotovelo'], dor_quando: 'agora', dor_intensidade: 'forte', faixa: 3 }), catalogo);
   const notas = r.podio.map((a) => a.nota);
   expect(notas).toEqual([...notas].sort((a, b) => b - a));
+  for (const a of r.podio) if (a.faixa_vizinha) expect(a.nota).toBeLessThanOrEqual(100 - 15);
 });
 
 describe('a raquete atual', () => {

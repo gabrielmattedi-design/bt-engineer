@@ -1,17 +1,37 @@
 /**
- * O motor — docs/PROPOSTA_MOTOR_BT.md §4 e §5.
+ * O motor — docs/PROPOSTA_MOTOR_BT.md §4, §5 e §8.
  *
  * Ordem, e por que é esta:
  *
- *   1. faixa de preço        piso e teto; é o que a pessoa disse que quer gastar
- *   2. segurança             teto físico, teto de firmeza por dor, profissional para iniciante
- *      └─ faixa sem 3 seguras → desce UM degrau (§4.5)
- *   3. premissa              o 1º pedido não recebe raquete do lado errado da média
- *   4. nota                  distância ao alvo, nível do fabricante, transição
- *   5. pódio                 3 modelos, ≤ 2 por marca, gêmeas colapsadas
+ *   1. segurança      teto físico, teto de firmeza por dor, profissional para iniciante — EXCLUI
+ *   2. preço          acima da faixa pedida, ou dois degraus abaixo — EXCLUI
+ *   3. nota           distância ao alvo, e PESOS: nível do fabricante, transição, faixa vizinha,
+ *                     1º pedido contrariado
+ *   4. pódio          3 modelos, ≤ 2 por marca, gêmeas colapsadas
  *
- * A segurança vem antes da nota porque ela exclui, não desconta: uma raquete que machuca não pode
- * ganhar o pódio por ser boa em todo o resto.
+ * ═══ POR QUE A MAIOR PARTE DAS TRAVAS VIROU PESO (25/09/2026) ══════════════════════════════════
+ *
+ * Decisão do dono, depois de testar na bancada: "como tem número estreito de raquetes por preço,
+ * as travas precisam ser mais sutis, mais peso e menos cancelamento".
+ *
+ * O caso que decidiu: ex-tenista intermediário, faixa 2, controle como 1º pedido. A faixa tem só
+ * duas raquetes firmes. A premissa, que era tudo-ou-nada, não fechava três e se desligava inteira,
+ * e a 3ª vaga ia para a menos pior de todas — uma raquete macia com encaixe 10, o contrário do que
+ * ele pediu. Com 10 a 12 raquetes por faixa, qualquer trava que cancela esvazia o que sobra, e o
+ * que sobra é o que ninguém escolheria.
+ *
+ * Como peso, a premissa e a faixa vizinha competem com o resto: pesam o bastante para decidir
+ * entre duas raquetes parecidas, e não o bastante para empurrar uma que não serve.
+ *
+ * ─── O QUE CONTINUA EXCLUINDO, E POR QUÊ ────────────────────────────────────────────────────────
+ *
+ * Segurança. Uma raquete que machuca não pode ganhar o pódio por ser boa em todo o resto, e peso é
+ * justamente o que permite isso. É a regra do tênis: "pedido declarado não sobrepõe limitação
+ * física real".
+ *
+ * E o teto de preço. Recomendar acima do que a pessoa disse que quer gastar é recomendar nada. O
+ * piso virou peso só até UM degrau abaixo: quem escolheu a faixa 3 nunca recebe uma raquete da 1
+ * (a decisão do "sem limite não recebe raquete de R$ 800" continua de pé).
  */
 
 import { escalaDo, inercia, posicao, resposta, type Escala, type Raquete } from './catalogo';
@@ -59,13 +79,33 @@ const TETO_TRANSICAO = 10;
  */
 export const NOTA_MINIMA_DE_ENCAIXE = 50;
 
+/**
+ * Uma raquete um degrau abaixo da faixa pedida perde 15 pontos.
+ *
+ * Relevante: ela só passa na frente de uma raquete da faixa pedida que encaixa pelo menos 15 pontos
+ * pior. É o caso da 3ª vaga com encaixe 10 — uma raquete de R$ 1.300 com encaixe 70 vale mais para
+ * essa pessoa do que uma de R$ 1.800 que não serve. E não anula: entre duas raquetes parecidas, a
+ * da faixa que ela escolheu ganha sempre.
+ */
+export const PENALIDADE_FAIXA_VIZINHA = 15;
+
+/**
+ * O 1º pedido contrariado: 0,6 por ponto do lado errado da média do catálogo, no máximo 20.
+ *
+ * Era exclusão (`bc2d3ee` no tênis), e aqui virou peso pelo motivo do cabeçalho. O teto de 20 é o
+ * que mantém o pedido "relevante, sem anular": uma raquete no extremo oposto do que foi pedido
+ * perde 20 pontos, que é o que separa uma recomendação boa de uma fraca, mas não é o bastante para
+ * tirar do pódio a única que serve em todo o resto.
+ */
+const PENALIDADE_PREMISSA_POR_PONTO = 0.6;
+const TETO_PENALIDADE_PREMISSA = 20;
+
 export type Exclusao =
   | 'fora_da_faixa'
   | 'sem_preco'
   | 'acima_do_teto_fisico'
   | 'firme_demais_para_a_dor'
-  | 'profissional_para_iniciante'
-  | 'premissa_do_primeiro_pedido';
+  | 'profissional_para_iniciante';
 
 export type Avaliada = {
   readonly raquete: Raquete;
@@ -76,7 +116,13 @@ export type Avaliada = {
     readonly distancia: number;
     readonly penalidade_nivel: number;
     readonly penalidade_transicao: number;
+    readonly penalidade_faixa: number;
+    readonly penalidade_premissa: number;
   };
+  /** Veio de um degrau abaixo da faixa pedida — o relatório diz, e diz por quê. */
+  readonly faixa_vizinha: boolean;
+  /** Fica do lado contrário da média no eixo do 1º pedido. */
+  readonly contraria_o_pedido: boolean;
 };
 
 export type Veredicto =
@@ -93,17 +139,21 @@ export type Resultado = {
   readonly versao: string;
   readonly perfil: Perfil;
   readonly podio: readonly Avaliada[];
+  /**
+   * Todas as candidatas que passaram pela segurança e pelo preço, em ordem de nota. É a auditoria:
+   * o admin vê por que uma raquete NÃO entrou, com os termos de cada uma — o que o tênis guarda em
+   * `racket_rankings.breakdown` pela mesma razão.
+   */
+  readonly ranking: readonly Avaliada[];
   /** Gêmeas de especificação que ficaram de fora porque a irmã entrou: id da que entrou → ids. */
   readonly gemeas: Readonly<Record<string, readonly string[]>>;
   readonly empate_no_topo: boolean;
-  /** A faixa de onde o pódio saiu. Difere da pedida só quando desceu um degrau por segurança. */
-  readonly faixa_usada: Faixa;
+  /** Alguma raquete do pódio veio de um degrau abaixo da faixa pedida. */
   readonly desceu_de_faixa: boolean;
   /** O pódio veio com menos de três e o relatório precisa dizer por quê. */
   readonly podio_incompleto: boolean;
   /** A 1ª colocada ficou abaixo de `NOTA_MINIMA_DE_ENCAIXE` — o relatório diz, em vez de vender. */
   readonly encaixe_fraco: boolean;
-  readonly premissa_aplicada: boolean;
   readonly veredicto: Veredicto;
   readonly excluidas: Readonly<Record<string, Exclusao>>;
   readonly escala: Escala;
@@ -122,31 +172,31 @@ function motivoDeSeguranca(p: { resposta: number; inercia: number }, r: Raquete 
 }
 
 /**
- * A premissa do 1º pedido — `bc2d3ee` no tênis.
+ * O quanto a raquete contraria o 1º pedido — a premissa de `bc2d3ee` no tênis, agora como peso.
  *
- * Quem pede controle em 1º lugar não recebe raquete do lado macio da média do catálogo; quem pede
- * reação na rede não recebe uma do lado pesado. Sem isso, a nota — que mede distância a um alvo
- * que mistura tudo o que a pessoa respondeu — pode entregar ao primeiro pedido exatamente o
- * contrário do que foi pedido, e o relatório não teria como explicar.
+ * Quem pede controle em 1º lugar não deveria receber raquete do lado macio da média do catálogo;
+ * quem pede reação na rede, uma do lado pesado. Sem isso, a nota — que mede distância a um alvo que
+ * mistura tudo o que a pessoa respondeu — pode entregar ao primeiro pedido exatamente o contrário
+ * do que foi pedido. Devolve quantos pontos do lado errado da média a raquete está.
  */
-function feremAPremissa(p: { resposta: number; inercia: number }, perfil: Perfil, e: Escala): boolean {
+function contraOPedido(p: { resposta: number; inercia: number }, perfil: Perfil, e: Escala): number {
   switch (perfil.primeira_prioridade) {
     case 'controle':
-      return p.resposta < e.mediaResposta;
+      return Math.max(0, e.mediaResposta - p.resposta);
     case 'potencia':
     case 'conforto':
-      return p.resposta > e.mediaResposta;
+      return Math.max(0, p.resposta - e.mediaResposta);
     case 'reacao_rede':
-      return p.inercia > e.mediaInercia;
+      return Math.max(0, p.inercia - e.mediaInercia);
     case 'peso_de_bola':
-      return p.inercia < e.mediaInercia;
+      return Math.max(0, e.mediaInercia - p.inercia);
     default:
-      return false;
+      return 0;
   }
 }
 
 function avaliar(
-  r: Pick<Raquete, 'resposta' | 'inercia' | 'nivel_fabricante'>,
+  r: Pick<Raquete, 'resposta' | 'inercia' | 'nivel_fabricante'> & { faixa: Faixa | null },
   perfil: Perfil,
   e: Escala,
   atual: { resposta: number; inercia: number } | null,
@@ -167,11 +217,20 @@ function avaliar(
             CUSTO_TRANSICAO *
             pesoTransicao,
         );
+  const faixa_vizinha = r.faixa !== null && r.faixa < perfil.faixa;
+  const penalidade_faixa = faixa_vizinha ? PENALIDADE_FAIXA_VIZINHA : 0;
+  const contra = contraOPedido(p, perfil, e);
+  const penalidade_premissa = Math.min(TETO_PENALIDADE_PREMISSA, contra * PENALIDADE_PREMISSA_POR_PONTO);
   return {
     ponto: p,
     // Entre 0 e 100: é lida como porcentagem de encaixe, e "−44%" não significa nada para ninguém.
-    nota: Math.max(0, 100 - PONTOS_POR_DISTANCIA * distancia - penalidade_nivel - penalidade_transicao),
-    termos: { distancia, penalidade_nivel, penalidade_transicao },
+    nota: Math.max(
+      0,
+      100 - PONTOS_POR_DISTANCIA * distancia - penalidade_nivel - penalidade_transicao - penalidade_faixa - penalidade_premissa,
+    ),
+    termos: { distancia, penalidade_nivel, penalidade_transicao, penalidade_faixa, penalidade_premissa },
+    faixa_vizinha,
+    contraria_o_pedido: contra > 0,
   };
 }
 
@@ -246,69 +305,34 @@ export function recomendar(respostas: Respostas, catalogo: readonly Raquete[]): 
   const pesoTransicao = atualInsegura ? 0 : respostas.objetivo === 'potencializar' ? 2 : 1;
   const excluidas: Record<string, Exclusao> = {};
 
-  const seguras = (faixa: Faixa): Raquete[] =>
-    catalogo.filter((r) => {
-      if (r.faixa === null) return false;
-      if (r.faixa !== faixa) return false;
-      return motivoDeSeguranca(ponto(r, escala), r, perfil) === null;
-    });
-
-  // 1–2. faixa e segurança, com a descida de um degrau
-  let candidatas = seguras(perfil.faixa);
-  let faixa_usada: Faixa = perfil.faixa;
-  if (candidatas.length < TAMANHO_DO_PODIO && perfil.faixa > 1) {
-    faixa_usada = (perfil.faixa - 1) as Faixa;
-    candidatas = [...candidatas, ...seguras(faixa_usada)];
-  }
-  const permitidas = new Set([perfil.faixa, faixa_usada]);
+  // 1–2. segurança e preço: as únicas exclusões
+  const pisoDePreco = Math.max(1, perfil.faixa - 1);
+  const candidatas: Raquete[] = [];
   for (const r of catalogo) {
-    if (r.preco_brl === null) excluidas[r.id] = 'sem_preco';
-    else if (!permitidas.has(r.faixa!)) excluidas[r.id] = 'fora_da_faixa';
-    else {
-      const m = motivoDeSeguranca(ponto(r, escala), r, perfil);
-      if (m) excluidas[r.id] = m;
-    }
+    const seguranca = motivoDeSeguranca(ponto(r, escala), r, perfil);
+    if (r.faixa === null) excluidas[r.id] = 'sem_preco';
+    else if (r.faixa > perfil.faixa || r.faixa < pisoDePreco) excluidas[r.id] = 'fora_da_faixa';
+    else if (seguranca) excluidas[r.id] = seguranca;
+    else candidatas.push(r);
   }
 
-  const nota = (rs: readonly Raquete[]): Avaliada[] =>
-    rs
-      .map((r) => ({ raquete: r, ...avaliar(r, perfil, escala, pontoAtual, pesoTransicao) }))
-      .sort(
-        (x, y) =>
-          y.nota - x.nota ||
-          x.termos.distancia - y.termos.distancia ||
-          x.raquete.id.localeCompare(y.raquete.id),
-      );
+  // 3. nota, com os pesos; desempate por distância e por id, para não depender da ordem da planilha
+  const avaliadas: Avaliada[] = candidatas
+    .map((r) => ({ raquete: r, ...avaliar(r, perfil, escala, pontoAtual, pesoTransicao) }))
+    .sort(
+      (x, y) =>
+        y.nota - x.nota || x.termos.distancia - y.termos.distancia || x.raquete.id.localeCompare(y.raquete.id),
+    );
 
-  /*
-    3. premissa, e ela só vale se o pódio MONTADO com ela tiver três raquetes.
-
-    A primeira versão conferia só se sobravam três candidatas. A varredura achou 60 pódios de duas
-    na faixa 1: a premissa deixava três, duas delas da Total, e o limite de duas por marca derrubava
-    a terceira. A premissa protege o 1º pedido; ela não pode custar a terceira raquete do pódio.
-
-    4. nota. Na descida de faixa a ordem é pela nota, e não "as da faixa pedida primeiro". A primeira
-    versão punha as da faixa pedida na frente, e o atacante avançado com dor no ombro que pediu a
-    faixa 3 recebia a AMA Athena em 1º com nota 30, à frente de raquetes da faixa 2 com nota 62. "As
-    mais caras que servem ao seu jogo" exige que sirvam.
-  */
-  const semFerir = candidatas.filter((r) => !feremAPremissa(ponto(r, escala), perfil, escala));
-  let montado = montarPodio(nota(candidatas));
-  let premissa_aplicada = false;
-  if (semFerir.length < candidatas.length) {
-    const comPremissa = montarPodio(nota(semFerir));
-    if (comPremissa.podio.length === TAMANHO_DO_PODIO) {
-      montado = comPremissa;
-      premissa_aplicada = true;
-      for (const r of candidatas) if (!semFerir.includes(r)) excluidas[r.id] = 'premissa_do_primeiro_pedido';
-    }
-  }
+  // 4. pódio
+  const montado = montarPodio(avaliadas);
   const { podio, gemeas } = montado;
 
   // veredicto sobre a atual — nos dois produtos (§1.1)
   let veredicto: Veredicto = { tipo: 'sem_raquete' };
   if (atual && pontoAtual) {
-    const av = avaliar(atual.eixos, perfil, escala, null, 0);
+    // A atual é avaliada sem os pesos de preço: o veredicto é sobre o encaixe, não sobre quanto custou.
+    const av = avaliar({ ...atual.eixos, faixa: perfil.faixa }, perfil, escala, null, 0);
     const motivo = motivoDeSeguranca(av.ponto, atual.raquete, perfil);
     const lider = podio[0];
     const tipo =
@@ -324,13 +348,12 @@ export function recomendar(respostas: Respostas, catalogo: readonly Raquete[]): 
     versao: MOTOR_VERSAO,
     perfil,
     podio,
+    ranking: avaliadas,
     gemeas,
     empate_no_topo: podio.length > 1 && podio[0]!.nota - podio[1]!.nota < EMPATE_TECNICO,
-    faixa_usada,
-    desceu_de_faixa: faixa_usada !== perfil.faixa,
+    desceu_de_faixa: podio.some((a) => a.faixa_vizinha),
     podio_incompleto: podio.length < TAMANHO_DO_PODIO,
     encaixe_fraco: podio.length === 0 || podio[0]!.nota < NOTA_MINIMA_DE_ENCAIXE,
-    premissa_aplicada,
     veredicto,
     excluidas,
     escala,

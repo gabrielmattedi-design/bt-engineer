@@ -22,6 +22,7 @@ import { sortearPerfis } from './sorteio';
 const catalogo = carregarCatalogo();
 const casos = sortearPerfis(2000).map((p, i) => ({ i, p, r: recomendar(p, catalogo) }));
 
+
 function violacoes(teste: (c: (typeof casos)[number]) => boolean): number[] {
   return casos.filter((c) => !teste(c)).map((c) => c.i);
 }
@@ -52,14 +53,29 @@ describe('em 2.000 perfis', () => {
     ).toEqual([]);
   });
 
-  it('a descida só acontece quando a faixa pedida não tem três raquetes seguras', () => {
+  /**
+   * A faixa vizinha é peso, e não vale-tudo: uma raquete de um degrau abaixo só ocupa uma vaga se
+   * nenhuma raquete da faixa pedida, fora do pódio, tiver nota maior que a dela — já descontados os
+   * 15 pontos. É a forma verificável de "relevante, sem anular".
+   */
+  it('uma raquete da faixa vizinha nunca toma a vaga de uma da faixa pedida com nota maior', () => {
     expect(
       violacoes(({ p, r }) => {
-        if (!r.desceu_de_faixa) return true;
-        const segurasNaPedida = catalogo.filter(
-          (x) => x.faixa === p.faixa && r.excluidas[x.id] === undefined,
-        ).length;
-        return segurasNaPedida < 3;
+        const vizinhas = r.podio.filter((a) => a.faixa_vizinha);
+        if (vizinhas.length === 0) return true;
+        const pior = Math.min(...vizinhas.map((a) => a.nota));
+        const noPodio = new Set(r.podio.map((a) => a.raquete.id));
+        const marcas = new Map<string, number>();
+        for (const a of r.podio) marcas.set(a.raquete.marca, (marcas.get(a.raquete.marca) ?? 0) + 1);
+        return r.ranking
+          .filter((a) => a.raquete.faixa === p.faixa && !noPodio.has(a.raquete.id))
+          .every((a) => {
+            const bloqueadaPorMarca = (marcas.get(a.raquete.marca) ?? 0) >= MAX_POR_MARCA;
+            const gemea = r.podio.some(
+              (b) => b.raquete.resposta === a.raquete.resposta && b.raquete.inercia === a.raquete.inercia,
+            );
+            return bloqueadaPorMarca || gemea || a.nota <= pior;
+          });
       }),
     ).toEqual([]);
   });

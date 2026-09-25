@@ -202,8 +202,9 @@ fit = 100 − 1,2 · distância(resposta, inércia ponderada)
 A nota fica entre 0 e 100, porque é lida como porcentagem de encaixe. Quando a 1ª colocada fica
 abaixo de 50, o resultado sai marcado como **encaixe fraco** e o relatório precisa dizer isso.
 
-**Filtros duros**, que excluem em vez de penalizar:
-- a faixa de preço escolhida, piso e teto (§4.5);
+**Filtros duros**, que excluem em vez de penalizar (a faixa vizinha e o 1º pedido viraram peso,
+§8.7):
+- a faixa de preço acima da escolhida, ou dois degraus abaixo (§4.5);
 - dor atual + resposta acima do teto de conforto;
 - inércia acima do teto físico;
 - nível do fabricante `profissional` para iniciante.
@@ -435,4 +436,47 @@ o pódio montado com ela tiver três raquetes. Pódios incompletos: de 60 para 0
 A primeira versão punha as raquetes da faixa pedida sempre na frente. O atacante avançado com dor
 no ombro recebia a AMA Athena em 1º, com nota 30, à frente de raquetes da faixa 2 com nota 62. "As
 mais caras que servem ao seu jogo" exige que sirvam.
+
+### 8.7 As travas de preferência viraram peso
+
+Decisão do dono, depois de testar na bancada: "como tem número estreito de raquetes por preço, as
+travas precisam ser mais sutis, mais peso e menos cancelamento; peso relevante, mas sem anular
+outras".
+
+O caso que decidiu: ex-tenista intermediário, faixa 2, controle em 1º lugar. A faixa tem duas
+raquetes firmes. A premissa, tudo-ou-nada, não fechava três e se desligava inteira, e a 3ª vaga
+ia para a Heroes Show, macia, com encaixe 10: o contrário do pedido.
+
+| Trava | Antes | Agora |
+|---|---|---|
+| 1º pedido | exclui as do lado errado da média, ou nada | −0,6 por ponto do lado errado, no máximo −20 |
+| Faixa de preço, um degrau abaixo | só por segurança, e sempre na frente | −15, e compete com as da faixa pedida |
+| Faixa de preço, acima ou dois abaixo | exclui | exclui |
+| Segurança (dor, teto físico, profissional para iniciante) | exclui | exclui |
+
+A segurança continua excluindo porque peso é justamente o que deixaria uma raquete que machuca
+ganhar o pódio por ser boa em todo o resto. O teto de preço continua porque recomendar acima do que
+a pessoa disse que quer gastar é recomendar nada.
+
+Medido em 3.000 perfis sorteados:
+
+| | Antes | Depois |
+|---|---|---|
+| 3ª colocada com encaixe abaixo de 30 | 370 | 85 |
+| 2ª colocada com encaixe abaixo de 30 | 155 | 31 |
+| 3ª colocada, percentil 5 | 17,8 | 34,7 |
+| raquetes do pódio que contrariam o 1º pedido | 1.311 de 9.000 | 1.614 de 9.000 |
+| pódios com alguma raquete da faixa abaixo | 172 | 1.348 |
+
+As duas últimas linhas são o preço da troca, e a última pede decisão. Com poucas raquetes por
+faixa, a raquete que encaixa melhor muitas vezes está um degrau abaixo, e a penalidade decide quão
+fácil é ela entrar:
+
+| Penalidade da faixa vizinha | 15 | 20 | 25 | 30 |
+|---|---|---|---|---|
+| pódios com raquete da faixa abaixo | 1.348 | 1.166 | 999 | 825 |
+| 3ª colocada com encaixe abaixo de 30 | 85 | 110 | 139 | 175 |
+
+Fica 15, provisório. O relatório precisa dizer, em cada raquete da faixa vizinha, que ela custa
+menos que a faixa pedida e encaixa melhor.
 
