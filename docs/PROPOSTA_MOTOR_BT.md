@@ -192,7 +192,7 @@ fit = 100 − 1,2 · distância(resposta, inércia ponderada)
 ```
 
 **Filtros duros**, que excluem em vez de penalizar:
-- o teto da faixa de preço escolhida (§4.5);
+- a faixa de preço escolhida, piso e teto (§4.5);
 - dor atual + resposta acima do teto de conforto;
 - inércia acima do teto físico;
 - nível do fabricante `profissional` para iniciante.
@@ -230,22 +230,30 @@ serem cotadas.)
 preço × nível do fabricante dá r = 0,68. A faixa Topo é inteira firme (resposta de 66 a 80): não
 existe raquete macia acima de R$ 2.600 no catálogo.
 
-Isso decide COMO a faixa entra no motor. Se ela fosse um intervalo fechado, piso e teto, quem
-escolhesse "Topo" e precisasse de uma raquete macia — um jogador com dor no cotovelo e disposição
-para gastar — só teria raquetes firmes para escolher. O filtro de dor as excluiria, e o pódio
-ficaria vazio. Ou pior, sem dor declarada: o motor entregaria a menos inadequada de um grupo
-inadequado, cobrando R$ 49,99 por ela.
+Isso decide COMO a faixa entra no motor.
 
-Por isso:
-- **o teto da faixa é filtro duro.** Nunca se recomenda acima do que a pessoa disse que quer
-  gastar;
-- **o piso é preferência, não filtro.** O pódio procura dentro da faixa primeiro. Se a raquete que
-  encaixa melhor for mais barata, ela entra, e o relatório diz isso com todas as letras: "gastar
-  mais não compraria um encaixe melhor para o seu jogo". É uma frase que nenhuma loja diz, e é o
-  argumento de independência do produto;
-- **faixa sem candidata suficiente se declara.** Se a faixa não tiver três raquetes que passem nos
-  filtros, o relatório mostra as que tem e diz o que a faixa de cima ou de baixo ofereceria, em vez
-  de completar o pódio com qualquer uma.
+**Piso e teto são filtros.** Decisão do dono: quem declara "sem limite" e recebe uma raquete de
+R$ 800 lê que o produto não levou a resposta dele a sério, e a recomendação perde a credibilidade
+justamente com quem estava disposto a gastar mais. O pódio sai de dentro da faixa escolhida.
+
+**"Sem limite" é Performance + Topo** (a partir de R$ 1.800), e não o catálogo inteiro. É a leitura
+literal do que a pessoa disse. E, ao contrário do Topo sozinho, cobre o mapa todo: resposta de 20 a
+80, com raquetes macias (Zand Z Blade, Quicksand Alien, AMA Athena, Zeiq Julia Nogueira) e firmes.
+
+**A única exceção: quando a faixa não tem três raquetes seguras para aquela pessoa, o pódio desce
+UM degrau, e só um, e diz por quê.** O caso concreto é o Topo. Ele é inteiro firme, então quem
+precisa de raquete macia (dor no cotovelo, swing lento, iniciante) não tem nenhuma raquete segura
+nele. Sem a exceção sobram duas saídas, e as duas são piores:
+- pódio vazio, para alguém que pagou R$ 49,99;
+- ou a menos inadequada de um grupo inadequado, que é recomendar uma raquete que machuca.
+
+Com a exceção, a pessoa recebe as mais caras que servem ao braço dela, com a frase: "não existe
+raquete macia acima de R$ 2.600 no catálogo; estas são as mais caras que servem ao seu jogo". O
+degrau nunca vai além do vizinho. Quem escolheu Topo nunca recebe uma raquete de Entrada.
+
+A exceção só dispara por filtro de segurança (dor, teto físico, nível) ou por falta de candidatas,
+nunca por nota. Se a faixa tem três raquetes seguras, é delas o pódio, mesmo que uma mais barata
+tenha nota maior.
 
 Na tela do questionário, cada faixa mostra o que ela compra em termos de construção (fibra de
 vidro, carbono 3K, 12K e acima), para a pessoa entender o degrau que está escolhendo, e não só um
@@ -304,7 +312,7 @@ Tennis Engineer).
 | 6. Bola | suas bolas costumam: cair curtas / passar do fundo / ir na rede / sair sem direção / boa profundidade (até 2) · na rede a raquete parece lenta / certa / leve demais | alvo de resposta e de inércia |
 | 7. Prioridades | sente falta de, até 3 em ordem: potência · controle · reação na rede · peso de bola · conforto · objetivo: potencializar meu jogo / mudar algo / algo mais fácil / evoluir | alvos e premissa da 1ª prioridade |
 | 8. Raquete atual | busca no catálogo · se não achar: peso, sensação da face, material · gosta / não gosta | veredicto, transição, avaliação |
-| 9. Faixa de preço | Entrada (até R$ 1.000) / Intermediária (R$ 1.000–1.800) / Performance (R$ 1.800–2.600) / Topo (acima de R$ 2.600) / tanto faz | teto duro, piso como preferência (§4.5) |
+| 9. Faixa de preço | Entrada (até R$ 1.000) / Intermediária (R$ 1.000–1.800) / Performance (R$ 1.800–2.600) / Topo (acima de R$ 2.600) / sem limite (a partir de R$ 1.800) | piso e teto como filtros; desce um degrau só por segurança (§4.5) |
 | 10. Texto livre | opcional | sinais, sem sobrescrever resposta objetiva |
 
 **Sai do questionário de tênis:** corda, tensão, arrebentamento, backhand de uma ou duas mãos, tipo
@@ -328,5 +336,8 @@ Aprovadas pelo dono:
 3. No máximo 2 da mesma marca no pódio (§4.4).
 4. A pergunta de preço por faixa, com degraus de construção (§4.5).
 
-Proposto, a confirmar: os limites das faixas (R$ 1.000 / 1.800 / 2.600) e o teto como filtro duro,
-com o piso como preferência.
+5. Piso e teto da faixa como filtros; "sem limite" = a partir de R$ 1.800 (§4.5).
+
+Proposto, a confirmar:
+- os limites das faixas (R$ 1.000 / 1.800 / 2.600);
+- a descida de um degrau quando a faixa não tem três raquetes seguras para a pessoa.
