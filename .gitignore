@@ -23,3 +23,11 @@ e2e-*.mjs
 # apagados em seguida. Dois deles já entraram num commit por um `git add -A` distraído.
 /.sim/
 /.aud/
+
+# Saída de `npm run export:verificacao` — o catálogo exportado para conferência fora do painel.
+# Regenerável a qualquer momento a partir de src/data, e o CSV do catálogo antigo já tinha ficado
+# versionado aqui depois de perder o sentido.
+/conferencia/
+
+# Reproduções descartáveis de um caso do motor, na raiz pelo mesmo motivo de /.sim/ acima.
+/repro-*.ts
