@@ -434,7 +434,19 @@ Cada dia lido em **D+1**, sempre no mesmo atraso — ver §3.3-ter.
 | 21 | seg | 125,00 | **52** | 11 | **21,2%** | 11 | 549,89 | **2,40** | 11,36 | 4,40× |
 | 22 | ter | 147,58 | **52** | 13 | **25,0%** | 13 | 679,86 | **2,84** | 11,35 | 4,61× |
 | 23 | qua | 163,69 | 75 | **23** | **30,7%** | 22 | 959,78 | 2,18 | **7,44** | **5,86×** |
-| **Σ** | | **1.874,35** | **960** | **188** | **19,6%** | — | **9.038,10** | **1,95** | — | **4,82×** |
+| 24 | qui | 160,53 | 75 | 13 | 17,3% | 14 | 679,86 | 2,14 | 11,47 | 4,24× |
+| **Σ** | | **2.034,88** | **1.035** | **201** | **19,4%** | — | **9.717,96** | **1,97** | — | **4,78×** |
+
+> **O dia 24 devolve metade do dia 23, e isso é o normal desta série.** Mesmas 75 chegadas, gasto
+> quase igual (160,53 contra 163,69) — e a conversão caiu de 30,7% para 17,3%, o CAC de R$ 7,44
+> para R$ 11,47. Nada mudou na operação entre um dia e outro.
+>
+> É a volatilidade de sempre com volume pequeno: 13 ou 23 pagantes sobre 75 chegadas são dois
+> resultados que cabem no mesmo processo. **Serve de lembrete contra ler um dia isolado** — foi o
+> que quase fez a troca de criativo acontecer na quarta.
+>
+> Composição de volta ao padrão: 13 setups + 1 laudo, ticket R$ 48,56. Os 7 laudos do dia 23 não
+> se repetiram.
 
 > ✅ **O dia 23 reverte a deterioração — e é o melhor CAC da campanha inteira.**
 >
@@ -502,6 +514,7 @@ R$ 49,99 / R$ 29,99 fecham em combinação **única**, o que confirma que os val
 | 21 | seg | 359,92 | 8 |
 | 22 | ter | 129,97 | 3 |
 | 23 | qua | 179,96 | 4 |
+| 24 | qui | **79,98** | 2 |
 
 **O salto acontece no dia 19 — um dia inteiro ANTES do reel do Sampras**, que saiu em 20/09 às 13h.
 O dono atribuiu o desempenho ao reel; a série diz que ele pegou um canal que já tinha virado na
@@ -529,7 +542,28 @@ possíveis, e elas pedem ações opostas:
 > É a primeira semana em que essa pergunta tem instrumento: a coluna de Origem em `/admin/vendas`
 > passou a existir em 21/09.
 
-##### Primeiro ponto da janela: o dia 22 caiu 64%
+##### ⚠️ A SÉRIE CRUA ENGANA — a comparação certa é semana contra semana, no mesmo dia
+
+Lida de cima para baixo, a coluna parece um desabamento: 479,90 → 359,92 → 129,97 → 179,96 →
+79,98. Mas os dois números altos são **sábado e domingo**, e comparar domingo com quinta não mede
+tendência nenhuma — mede o fim de semana.
+
+A comparação que mede é a mesma quarta contra a mesma quarta:
+
+| | semana 1 | semana 2 | |
+|---|---|---|---|
+| quarta | 229,95 (16) | 179,96 (23) | −22% |
+| quinta | 49,99 (17) | **79,98 (24)** | **+60%** |
+| **soma** | **279,94** | **259,94** | **−7%** |
+
+**Sete por cento de diferença.** O canal orgânico **não desabou** — está praticamente onde estava,
+apesar de a captação manual no Instagram ter parado em 19/09.
+
+Isso enfraquece a hipótese da colheita atrasada e reforça a outra: a captação manual não era o
+motor. **O teste decisivo continua sendo o fim de semana 26–27** contra os R$ 399,92 e R$ 479,90 do
+sábado 19 e do domingo 20.
+
+##### O que a leitura crua parecia dizer: o dia 22 caiu 64%
 
 R$ 359,92 → **R$ 129,97**, três dias depois de a captação parar. É o primeiro dado dentro da
 previsão, e ele aponta para a hipótese da colheita atrasada.
@@ -743,7 +777,7 @@ deste lado. É a primeira vez que um número externo dá o tamanho do que falta.
 > O que torna o dia 18 pior, não melhor: 11,8% é o segundo pior número da série **mesmo com dois
 > dias a mais para maturar**.
 
-**Lucro bruto dos 15 dias (receita − gasto): ~R$ 7.164.** O dono pediu para largar a taxa do gateway
+**Lucro bruto dos 16 dias (receita − gasto): ~R$ 7.683.** O dono pediu para largar a taxa do gateway
 da conta — *"para mim é irrelevante, isso eu consigo ver de forma simples"* —, então a série passa a
 mostrar receita menos gasto, sem estimar taxa. Os melhores dias: **13 (R$ 763)**, **20 (R$ 707)** e
 **17 (R$ 698)**.
