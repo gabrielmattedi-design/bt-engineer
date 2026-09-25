@@ -71,7 +71,8 @@ export type Respostas = {
   readonly sensacao_rede: 'lenta' | 'certa' | 'leve_demais' | 'nao_sei' | null;
   // 7. prioridades, em ordem
   readonly falta: readonly Falta[];
-  readonly objetivo: 'potencializar' | 'mudar' | 'mais_facil' | 'evoluir' | 'nao_sei' | null;
+  /** "Mudar algo" existia e saiu: não movia nada no motor, e pergunta que não alimenta nada não entra. */
+  readonly objetivo: 'potencializar' | 'mais_facil' | 'evoluir' | 'nao_sei' | null;
   // 8. raquete atual
   readonly raquete_atual: RaqueteAtual;
   readonly nao_gosta: readonly ('pesada' | 'leve' | 'dura' | 'sem_controle' | 'vibra' | 'lenta_na_rede')[];

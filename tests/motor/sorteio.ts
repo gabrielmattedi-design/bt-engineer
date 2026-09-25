@@ -52,7 +52,7 @@ export function sortearPerfis(n: number, seed = 20260925): Respostas[] {
       bolas: alguns(['curtas', 'passam_fundo', 'rede', 'sem_direcao', 'boa_profundidade'] as const, 2),
       sensacao_rede: um(['lenta', 'certa', 'leve_demais', 'nao_sei'] as const),
       falta: alguns(['potencia', 'controle', 'reacao_rede', 'peso_de_bola', 'conforto'] as const, 3),
-      objetivo: um(['potencializar', 'mudar', 'mais_facil', 'evoluir', 'nao_sei'] as const),
+      objetivo: um(['potencializar', 'mais_facil', 'evoluir', 'nao_sei'] as const),
       raquete_atual:
         atual === 'nenhuma'
           ? { tipo: 'nenhuma' }
