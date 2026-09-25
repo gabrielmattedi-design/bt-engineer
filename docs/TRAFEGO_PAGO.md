@@ -213,8 +213,8 @@ Isto não é burocracia: **é o que faz a coluna "Criativo" do `/admin/funil` ex
 `utm_content` diferente por anúncio, os dois somam numa linha só e o teste não responde nada.
 
 ```
-https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=reel-3-erros
-https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=estatico-4-7
+https://<dominio>/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=reel-3-erros
+https://<dominio>/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=estatico-4-7
 ```
 
 Os dois criativos que ficam de fora já têm nome reservado, para a rodada 2 não reaproveitar um

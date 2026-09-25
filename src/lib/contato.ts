@@ -14,9 +14,20 @@
  * Um lugar só porque o endereço aparece em cinco pontos — três telas, os e-mails e as páginas
  * legais. Espalhado, o dia em que ele mudar deixa alguma cópia para trás, e a cópia esquecida é
  * justamente a que alguém vai tentar usar.
+ *
+ * Sem padrão: o que havia era a caixa do Tennis Engineer, e um cliente deste produto escrevendo
+ * para a operação de outro é exatamente a promessa quebrada acima — ver `src/lib/ambiente.ts`.
+ *
+ * É também o destino do `List-Unsubscribe` da pesquisa de satisfação. Aquele cron lia uma variável
+ * própria, `CONTATO_EMAIL`, com outro padrão (`contato@` do domínio antigo), enquanto o ensaio de
+ * `/admin/pesquisa` — que declara mandar "os mesmos cabeçalhos do envio real" — lia esta. O ensaio
+ * mostrava um destino e o envio real usava outro, e nenhuma tela revelava a diferença. Agora os
+ * dois leem daqui.
  */
 
-export const CONTATO_EMAIL = process.env.CONTACT_EMAIL ?? 'tennisengineer.br@gmail.com';
+import { exigir } from './ambiente';
+
+export const CONTATO_EMAIL = exigir('CONTACT_EMAIL', process.env.CONTACT_EMAIL);
 
 /**
  * Como a operação se identifica nas páginas legais.

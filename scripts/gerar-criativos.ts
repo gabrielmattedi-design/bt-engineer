@@ -28,6 +28,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 import { catalogStats, loadRacketCatalog, loadStringCatalog } from '../src/data/load';
+import { SITE_DOMAIN } from '../src/lib/site';
 import { countSetupCombinations, formatThousands } from '../src/data/combinations';
 
 const OUT = join(process.cwd(), 'criativos');
@@ -106,7 +107,7 @@ function cabecalho(): string {
 
 function rodape(): string {
   return `<div class="rodape">
-    <span>tennisengineer.com.br</span>
+    <span>${SITE_DOMAIN}</span>
     <span>Análise técnica independente</span>
   </div>`;
 }

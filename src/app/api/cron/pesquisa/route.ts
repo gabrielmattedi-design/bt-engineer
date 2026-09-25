@@ -9,6 +9,7 @@ import {
 import { sendEmail } from '@/email/send';
 import { satisfactionSurveyEmail } from '@/email/templates';
 import { SITE_URL } from '@/lib/site';
+import { CONTATO_EMAIL } from '@/lib/contato';
 import { withAutoBootstrap } from '@/database/setup';
 
 export const dynamic = 'force-dynamic';
@@ -30,9 +31,6 @@ export const dynamic = 'force-dynamic';
  * RELATÓRIO, que é o produto.
  */
 const LIMITE_POR_EXECUCAO = Number(process.env.PESQUISA_LIMITE_DIARIO ?? 15);
-
-/** Para onde vai o "sair" do `List-Unsubscribe`. Uma caixa que alguém lê, não um buraco. */
-const CONTATO = process.env.CONTATO_EMAIL ?? 'contato@tennisengineer.com.br';
 
 /**
  * Autenticação do cron.
@@ -88,7 +86,13 @@ export async function GET(req: Request) {
         domínio, a mesma que entrega o relatório.
       */
       headers: {
-        'List-Unsubscribe': `<mailto:${CONTATO}?subject=sair>`,
+        /*
+          O "sair" vai para o canal de contato — uma caixa que alguém lê, não um buraco. Até aqui
+          era uma variável própria, `CONTATO_EMAIL`, com padrão no domínio do Tennis Engineer,
+          enquanto o ensaio de /admin/pesquisa usava `CONTACT_EMAIL`: o ensaio mostrava um destino
+          e o envio real usava outro. Agora os dois leem de `@/lib/contato`.
+        */
+        'List-Unsubscribe': `<mailto:${CONTATO_EMAIL}?subject=sair>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       },
     });

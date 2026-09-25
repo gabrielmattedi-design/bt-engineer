@@ -11,14 +11,20 @@
  *
  * Endereço é configuração, não literal de componente.
  *
- * ─── POR QUE COM VARIÁVEL DE AMBIENTE, E COM PADRÃO ──────────────────────────────────────────
+ * ─── POR QUE SEM PADRÃO ──────────────────────────────────────────────────────────────────────
  *
- * O padrão é o domínio de produção, para que rodar local ou num preview não exija configurar nada e
- * o card saia igual ao que o cliente veria. A variável existe para o caso legítimo de um segundo
- * ambiente com endereço próprio — e é `NEXT_PUBLIC_` porque o card é renderizado no cliente.
+ * Havia um: o domínio de produção do Tennis Engineer, para que rodar local não exigisse configurar
+ * nada. Este repositório é uma cópia daquele produto, e o mesmo padrão aqui faria todo link de
+ * acesso, recibo e card compartilhado apontar para o site de OUTRA operação sem erro nenhum — ver
+ * `src/lib/ambiente.ts`. Agora a variável é obrigatória, e a ausência dela impede o build.
+ *
+ * É `NEXT_PUBLIC_` porque o card é renderizado no cliente — e por isso ela aparece escrita por
+ * extenso abaixo: o Next só a embute no navegador quando o nome está literal no fonte.
  */
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tennisengineer.com.br';
+import { exigir } from './ambiente';
+
+export const SITE_URL = exigir('NEXT_PUBLIC_SITE_URL', process.env.NEXT_PUBLIC_SITE_URL);
 
 /** Só o host, sem protocolo — a forma que se escreve num rodapé ou se lê em voz alta. */
 export const SITE_DOMAIN = SITE_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');

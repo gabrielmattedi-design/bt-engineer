@@ -1,4 +1,5 @@
 import 'server-only';
+import { exigir } from '@/lib/ambiente';
 
 /**
  * Envio de e-mail transacional.
@@ -35,8 +36,12 @@ const ENDPOINT = 'https://api.resend.com/emails';
  * `nao-responda@` é deliberado: este endereço não recebe. Um remetente que parece pessoal convida
  * resposta, e resposta sem ninguém do outro lado é pior que nenhum canal — a pessoa acha que
  * pediu ajuda. O canal de contato de verdade vai escrito no corpo da mensagem.
+ *
+ * Sem padrão. O que havia era o remetente do Tennis Engineer: recibo e link de acesso deste produto
+ * saindo com o domínio e o nome de outra operação — que o Resend recusa se o domínio não estiver
+ * nesta conta, e que confunde o cliente se estiver. Ver `src/lib/ambiente.ts`.
  */
-export const FROM = process.env.EMAIL_FROM ?? 'Tennis Engineer <nao-responda@tennisengineer.com.br>';
+export const FROM = exigir('EMAIL_FROM', process.env.EMAIL_FROM);
 
 export function emailEnabled(): boolean {
   return Boolean(process.env.RESEND_API_KEY);

@@ -33,7 +33,32 @@ Vercel diz qual é o limite do plano.
 
 ## 2. Variáveis de ambiente
 
-Estas são as que o código realmente lê. Qualquer outra que apareça num painel é resíduo.
+Estas são as que o código realmente lê. Qualquer outra que apareça num painel é resíduo. A lista
+completa e conferível é `VARIAVEIS_DO_PROJETO`, em `src/lib/ambiente.ts`: um teste
+(`tests/integrity/configuracao-obrigatoria.test.ts`) falha se o código ler uma variável que não
+está nela, ou se ela listar uma que ninguém lê.
+
+> **Este projeto é uma cópia do Tennis Engineer.** Nenhum valor vem de lá — banco, Mercado Pago,
+> Resend, pixel, segredos, tudo é novo. E `tennisengineer.com.br` nunca entra aqui, em variável
+> nenhuma: o portão de build varre o ambiente inteiro e recusa o deploy se encontrar o domínio
+> antigo, o `tennis-engineer.vercel.app` ou a caixa de contato de lá.
+
+### Identidade — sem valor padrão, o build FALHA
+
+| Variável | Formato | Para quê |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | `https://dominio`, sem barra no fim | Links de acesso, recibos, Open Graph, sitemap, card compartilhado |
+| `EMAIL_FROM` | `Nome <nao-responda@dominio>` | Remetente de todo e-mail. O domínio precisa estar verificado no Resend |
+| `CONTACT_EMAIL` | `endereco@dominio` | O canal de atendimento, e o destino do descadastro da pesquisa |
+
+Até a cópia, as três tinham padrão — o domínio, o remetente e a caixa do Tennis Engineer. Lá era
+conveniência; aqui faria o sistema funcionar normalmente com a identidade de outra operação, sem
+erro nenhum. Agora `npm run build` roda `scripts/config-gate.ts` primeiro e lista tudo o que falta
+de uma vez; e cada módulo recusa carregar sem a sua, para quem rodar `next build` direto.
+
+`CONTATO_EMAIL` (com O) **deixou de existir**. Era um segundo nome para a caixa de contato, lido só
+pelo cron da pesquisa, enquanto o ensaio de `/admin/pesquisa` lia `CONTACT_EMAIL`: o ensaio
+mostrava um destino de descadastro e o envio real usava outro. Se aparecer num painel, é resíduo.
 
 ### Obrigatórias em produção
 
@@ -69,7 +94,7 @@ As duas também existem como interruptor em `/admin/setup`, para não depender d
 |---|---|
 | `AUTH_SECRET` | Assina o cookie de sessão. **Mínimo 32 caracteres, sem valor padrão** |
 | `RESEND_API_KEY` | Envio de e-mail. Sem ela nada é enviado — e a tela DIZ que não enviou |
-| `EMAIL_FROM` | Remetente. Padrão: `Tennis Engineer <nao-responda@tennisengineer.com.br>` |
+| `EMAIL_FROM` | Remetente — ver "Identidade", acima. Sem padrão |
 
 Não existe segredo padrão para `AUTH_SECRET`, e isso é deliberado: um padrão estaria no
 repositório, ou seja, seria público, e qualquer pessoa forjaria um cookie válido para qualquer
@@ -178,14 +203,18 @@ comunicação recorrente para lista grande.
 | Variável | Padrão | Observação |
 |---|---|---|
 | `PAYMENT_PROVIDER` | `fake` | Apontar para um gateway real desativa o simulado por completo |
-| `NEXT_PUBLIC_SITE_URL` | `https://tennisengineer.com.br` | Só para um segundo ambiente com endereço próprio |
 | `ANTHROPIC_API_KEY` | — | Melhora a leitura do texto livre. **O produto funciona 100% sem ela**, e nenhuma recomendação depende de IA |
 
 ---
 
 ## 3. Domínio e DNS
 
-O domínio raiz é o endereço canônico: `tennisengineer.com.br`, sem `www`.
+O domínio raiz é o endereço canônico, sem `www` — e é o mesmo valor de `NEXT_PUBLIC_SITE_URL`.
+Abaixo, `<dominio>` é o domínio DESTE produto.
+
+> `tennisengineer.com.br` e `www.tennisengineer.com.br` pertencem ao Tennis Engineer e **nunca**
+> são adicionados a este projeto na Vercel. Se forem, a Vercel passa a injetar o domínio em
+> `VERCEL_PROJECT_PRODUCTION_URL` e o portão de build recusa o deploy.
 
 ### Na Vercel
 
@@ -209,8 +238,8 @@ Use sempre o valor que o painel da Vercel exibir, nunca um copiado de tutorial: 
 
 Precisa de duas ações, nesta ordem:
 
-1. Vercel: adicionar `www.tennisengineer.com.br` como **Redirect to Another Domain** →
-   `tennisengineer.com.br`, com **308 Permanent Redirect**
+1. Vercel: adicionar `www.<dominio>` como **Redirect to Another Domain** →
+   `<dominio>`, com **308 Permanent Redirect**
 2. registro.br: **MODO AVANÇADO** → um `CNAME` de `www` para o destino que a Vercel indicar
 
 O 308 é permanente e preserva o método HTTP. Um 307 temporário diria aos buscadores que o endereço

@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { brl } from '@/payments/catalogo';
 import { precosPublicados } from '@/payments/precos';
+import { SITE_DOMAIN } from '@/lib/site';
 
 /**
  * A imagem que aparece quando o link é compartilhado — §15.
@@ -262,7 +263,7 @@ export default async function Image() {
             opacity: 0.55,
           }}
         >
-          <div style={{ display: 'flex' }}>tennisengineer.com.br</div>
+          <div style={{ display: 'flex' }}>{SITE_DOMAIN}</div>
           <div style={{ display: 'flex' }}>Análise técnica independente</div>
         </div>
       </div>

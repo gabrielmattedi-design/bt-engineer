@@ -196,9 +196,9 @@ describe('o envio de e-mail', () => {
 });
 
 describe('os e-mails', () => {
-  const link = magicLinkEmail({ url: 'https://tennisengineer.com.br/entrar/abc123', minutes: 15 });
+  const link = magicLinkEmail({ url: 'https://produto.test/entrar/abc123', minutes: 15 });
   const recibo = reportReadyEmail({
-    url: 'https://tennisengineer.com.br/resultado/xyz',
+    url: 'https://produto.test/resultado/xyz',
     productName: 'Análise completa',
     amountCents: 4999,
   });
@@ -221,7 +221,7 @@ describe('os e-mails', () => {
    * confia, e num leitor de tela ele pode não existir. A URL escrita é o caminho que nunca falha.
    */
   it('o endereço aparece também como texto, não só dentro do botão', () => {
-    const url = 'https://tennisengineer.com.br/entrar/abc123';
+    const url = 'https://produto.test/entrar/abc123';
     expect(link.text).toContain(url);
     // Duas ocorrências no HTML: o href do botão e a linha copiável embaixo dele.
     expect(link.html.split(url).length - 1).toBeGreaterThanOrEqual(2);

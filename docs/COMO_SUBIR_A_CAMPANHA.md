@@ -74,7 +74,7 @@ mantém Instagram.
 | Nome da Página | `Tennis Engineer` — **igual ao Instagram**, sem variação |
 | Categoria | `Produto/serviço` (ou `Site de esportes`) |
 | Bio | `Seu jogo. Seu setup. Sob medida.` |
-| Site | `tennisengineer.com.br` |
+| Site | `<dominio>` |
 | Foto de perfil | `fb-perfil.png` — 1024×1024 |
 | Capa | `fb-capa.png` — 1640×856 |
 
@@ -239,7 +239,7 @@ banner. É de propósito: o padrão seguro é não rastrear.
 ## Parte 3 — Conferir que funcionou
 
 1. No Chrome, instale a extensão **Meta Pixel Helper** (busque por esse nome na Chrome Web Store).
-2. Abra `tennisengineer.com.br` **numa aba anônima** (para o banner aparecer do zero).
+2. Abra `<dominio>` **numa aba anônima** (para o banner aparecer do zero).
 3. Clique em **Aceitar** no banner de cookies.
 4. Clique no ícone da extensão. Deve aparecer o seu pixel e o evento **PageView**.
 5. Comece o questionário. Volte na extensão: agora deve aparecer também **Lead**.
@@ -472,7 +472,7 @@ título vindos da pauta — e diferem **só no `utm_content` da URL**:
 A URL de cada um, trocando só a última palavra:
 
 ```
-https://tennisengineer.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=reel-3-erros
+https://<dominio>/?utm_source=meta&utm_medium=cpc&utm_campaign=teste-set-01&utm_content=reel-3-erros
 ```
 
 > ⚠️ **O `utm_content` diferente em cada um é o que faz o teste existir.** Se dois anúncios tiverem
@@ -599,7 +599,7 @@ nunca sair da exploração. Com 60 cliques ou mais, deixe como está mesmo que a
 
 ### A partir do dia 7
 
-Abra `tennisengineer.com.br/admin/funil`, janela de 7 dias, e olhe a tabela de baixo — a que tem a
+Abra `<dominio>/admin/funil`, janela de 7 dias, e olhe a tabela de baixo — a que tem a
 coluna **Criativo**. Anote por criativo:
 
 - **Chegaram** — ⚠️ **não são visitantes: é quem ABRIU o questionário.** A linha de origem só nasce

@@ -32,7 +32,7 @@ function contextoValido() {
     consent: 'aceito' as const,
     fbc: 'fb.1.1788900000000.abc123',
     fbp: null,
-    sourceUrl: 'https://tennisengineer.com.br/planos/abc',
+    sourceUrl: 'https://produto.test/planos/abc',
   };
 }
 
