@@ -216,40 +216,57 @@ de R$ 329 a R$ 3.799, e o preço marca degraus de construção. O questionário 
 pessoa quer gastar, por faixa, e o motor trabalha em cima dela. O preço de referência é
 `preco_min_brl`, o menor preço cotado ("a partir de").
 
-| Faixa | Preço | Raquetes | Resposta | Inércia | Marcas |
-|---|---|---|---|---|---|
-| Entrada | até R$ 1.000 | 6 | 26–60 | 39–65 | 4 |
-| Intermediária | R$ 1.000–1.800 | 10 | 22–77 | 38–74 | 8 |
-| Performance | R$ 1.800–2.600 | 10 | 20–80 | 34–55 | 8 |
-| Topo | acima de R$ 2.600 | 6 | 66–80 | 38–55 | 3 |
+| Faixa | Preço "a partir de" | Raquetes | Resposta | Marcas |
+|---|---|---|---|---|
+| 1 | até R$ 1.500 | 12 | 22–77 | 8 |
+| 2 | R$ 1.500–2.200 | 10 | 20–80 | 8 |
+| 3 | acima de R$ 2.200 (e "sem limite") | 10 | 36–80 | 5 |
+
+**Três faixas, com o mesmo número de raquetes em cada uma.** Com 32 raquetes cotadas, cada faixa a
+mais é menos raquete por faixa, e o pódio passa a se repetir. Medido com o protótipo em 780
+perfis (alvo de resposta de 20 a 80, inércia de 30 a 75, seis níveis), contando quantas pessoas
+recebem o MESMO pódio:
+
+| Divisão | Pior faixa | Pódio mais comum nela | Pódios distintos nela |
+|---|---|---|---|
+| 4 faixas (1.000 / 1.800 / 2.600) | acima de R$ 2.600, 6 raquetes | 51% | 7 |
+| 3 faixas (1.000 / 1.700) | até R$ 1.000, 6 raquetes | 43% | 11 |
+| **3 faixas iguais (1.500 / 2.200)** | acima de R$ 2.200, 10 raquetes | **24%** | 17 |
+| sem faixa, catálogo inteiro | — | 7% | 124 |
+
+Com quatro faixas, uma em cada duas pessoas da faixa de cima recebia exatamente o mesmo pódio. O
+corte em R$ 1.000 deixa a faixa de baixo com seis raquetes em qualquer divisão, e ela repete 43%.
+Os cortes que igualam o tamanho são R$ 1.500 e R$ 2.200.
+
+A repetição residual é o preço de trabalhar dentro da faixa: no catálogo inteiro a 1ª colocada
+fica, em média, a 8,1 pontos do alvo do jogador; dentro da faixa, a 11 a 15. Os cortes se
+recalculam quando o catálogo crescer. A regra é "três faixas do mesmo tamanho", e não os valores.
 
 (3 raquetes sem preço — Kronos, Poison Bee e Vitória III — não entram em faixa nenhuma até
 serem cotadas.)
 
 **O preço anda junto com a firmeza.** Medido nas 32 com preço, preço × resposta dá r = 0,60, e
-preço × nível do fabricante dá r = 0,68. A faixa Topo é inteira firme (resposta de 66 a 80): não
-existe raquete macia acima de R$ 2.600 no catálogo.
-
-Isso decide COMO a faixa entra no motor.
+preço × nível do fabricante dá r = 0,68. Acima de R$ 2.600 todas são firmes (resposta de 66 a 80),
+e é isso que tornou necessária a exceção abaixo.
 
 **Piso e teto são filtros.** Decisão do dono: quem declara "sem limite" e recebe uma raquete de
 R$ 800 lê que o produto não levou a resposta dele a sério, e a recomendação perde a credibilidade
 justamente com quem estava disposto a gastar mais. O pódio sai de dentro da faixa escolhida.
 
-**"Sem limite" é Performance + Topo** (a partir de R$ 1.800), e não o catálogo inteiro. É a leitura
-literal do que a pessoa disse. E, ao contrário do Topo sozinho, cobre o mapa todo: resposta de 20 a
-80, com raquetes macias (Zand Z Blade, Quicksand Alien, AMA Athena, Zeiq Julia Nogueira) e firmes.
+**"Sem limite" é a faixa 3** (acima de R$ 2.200), e não o catálogo inteiro. É a leitura literal do
+que a pessoa disse.
 
 **A única exceção: quando a faixa não tem três raquetes seguras para aquela pessoa, o pódio desce
-UM degrau, e só um, e diz por quê.** O caso concreto é o Topo. Ele é inteiro firme, então quem
-precisa de raquete macia (dor no cotovelo, swing lento, iniciante) não tem nenhuma raquete segura
-nele. Sem a exceção sobram duas saídas, e as duas são piores:
+UM degrau, e só um, e diz por quê.** O caso concreto é a faixa 3. A mais macia dela é a AMA Athena
+(resposta 36), e as macias de verdade (Zand Z Blade e Quicksand Alien, resposta 20) estão na faixa
+2. Quem precisa de raquete muito macia (dor no cotovelo, swing lento) pode não ter três raquetes
+seguras na faixa 3. Sem a exceção sobram duas saídas, e as duas são piores:
 - pódio vazio, para alguém que pagou R$ 49,99;
 - ou a menos inadequada de um grupo inadequado, que é recomendar uma raquete que machuca.
 
-Com a exceção, a pessoa recebe as mais caras que servem ao braço dela, com a frase: "não existe
-raquete macia acima de R$ 2.600 no catálogo; estas são as mais caras que servem ao seu jogo". O
-degrau nunca vai além do vizinho. Quem escolheu Topo nunca recebe uma raquete de Entrada.
+Com a exceção, a pessoa recebe as mais caras que servem ao braço dela, com a frase: "acima de R$ 2.200
+não há raquetes macias o bastante para o seu braço; estas são as mais caras que servem ao seu jogo".
+O degrau nunca vai além do vizinho: quem escolheu a faixa 3 nunca recebe uma raquete da faixa 1.
 
 A exceção só dispara por filtro de segurança (dor, teto físico, nível) ou por falta de candidatas,
 nunca por nota. Se a faixa tem três raquetes seguras, é delas o pódio, mesmo que uma mais barata
@@ -312,7 +329,7 @@ Tennis Engineer).
 | 6. Bola | suas bolas costumam: cair curtas / passar do fundo / ir na rede / sair sem direção / boa profundidade (até 2) · na rede a raquete parece lenta / certa / leve demais | alvo de resposta e de inércia |
 | 7. Prioridades | sente falta de, até 3 em ordem: potência · controle · reação na rede · peso de bola · conforto · objetivo: potencializar meu jogo / mudar algo / algo mais fácil / evoluir | alvos e premissa da 1ª prioridade |
 | 8. Raquete atual | busca no catálogo · se não achar: peso, sensação da face, material · gosta / não gosta | veredicto, transição, avaliação |
-| 9. Faixa de preço | Entrada (até R$ 1.000) / Intermediária (R$ 1.000–1.800) / Performance (R$ 1.800–2.600) / Topo (acima de R$ 2.600) / sem limite (a partir de R$ 1.800) | piso e teto como filtros; desce um degrau só por segurança (§4.5) |
+| 9. Faixa de preço | até R$ 1.500 / R$ 1.500–2.200 / acima de R$ 2.200 ou sem limite | piso e teto como filtros; desce um degrau só por segurança (§4.5) |
 | 10. Texto livre | opcional | sinais, sem sobrescrever resposta objetiva |
 
 **Sai do questionário de tênis:** corda, tensão, arrebentamento, backhand de uma ou duas mãos, tipo
@@ -336,8 +353,9 @@ Aprovadas pelo dono:
 3. No máximo 2 da mesma marca no pódio (§4.4).
 4. A pergunta de preço por faixa, com degraus de construção (§4.5).
 
-5. Piso e teto da faixa como filtros; "sem limite" = a partir de R$ 1.800 (§4.5).
+5. Piso e teto da faixa como filtros (§4.5).
+6. Três faixas com o mesmo número de raquetes: até R$ 1.500, de R$ 1.500 a 2.200, e acima de
+   R$ 2.200, que também é o "sem limite" (§4.5).
 
-Proposto, a confirmar:
-- os limites das faixas (R$ 1.000 / 1.800 / 2.600);
-- a descida de um degrau quando a faixa não tem três raquetes seguras para a pessoa.
+Proposto, a confirmar: a descida de um degrau quando a faixa não tem três raquetes seguras para a
+pessoa.
