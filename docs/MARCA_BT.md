@@ -39,16 +39,9 @@ fundo claro, e a regra que saiu é uma só:
 > **Fundo escuro, anel branco. Fundo claro, anel Azul escuro. A folga entre o anel e a bola é sempre o
 > próprio fundo. A bola nunca muda de cor**, salvo na versão de uma cor só.
 
-**Quatro marcas de referência**, decisão do dono no mesmo dia: pequenas marcas nos quatro pontos
-cardeais, na cor do anel, que saem da borda externa dele e vão para fora, sem entrar. Foram
-comparados oito contornos (mira atravessando até a bola, transferidor, compasso, blueprint, seção
-hachurada, órbita, concentricidade, coordenadas polares), e o dono escolheu o mais simples: o anel
-aprovado com as marcas só do lado de fora. Passa a ideia de instrumento de medição sem virar mira.
-
-O brand book lista "mira" entre as coisas a evitar. As marcas externas foram aprovadas conscientemente
-nesse contexto: elas não atravessam o anel nem apontam para a bola, que é o que faria o símbolo ler
-como alvo. Se uma revisão do book acontecer, vale trocar "mira" por "retículo que atravessa o
-símbolo", que é o que de fato ficou de fora.
+Foram testados depois oito contornos (mira, transferidor, compasso, blueprint, seção hachurada,
+órbita, concentricidade, coordenadas polares) e uma versão com quatro marcas de referência saindo
+do anel. O dono preferiu o anel simples e decidiu seguir com ele: o símbolo é o anel, e nada mais.
 
 A primeira proposta para o fundo claro usava anel Mar Profundo. O dono trocou para Azul escuro: o
 anel ganha peso no bege e se separa da metade azul da bola, em vez de se confundir com ela.
@@ -74,8 +67,8 @@ alturas equivalentes, como o book pede.
 
 ### Tamanho mínimo
 
-24 px de altura no digital. Abaixo disso a folga some, o anel encosta na bola e as marcas viram
-ruído. No ícone do navegador e em avatares muito pequenos, use a bola sem anel e sem marcas.
+24 px de altura no digital. Abaixo disso a folga some e o anel encosta na bola. No ícone do
+navegador e em avatares muito pequenos, use a bola sem anel.
 
 ## 4. Onde a marca já foi aplicada
 
