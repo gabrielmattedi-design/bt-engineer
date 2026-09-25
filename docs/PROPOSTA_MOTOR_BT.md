@@ -192,8 +192,7 @@ fit = 100 − 1,2 · distância(resposta, inércia ponderada)
 ```
 
 **Filtros duros**, que excluem em vez de penalizar:
-- orçamento declarado (raquete sem preço sai quando há orçamento, porque não dá para garantir que
-  cabe);
+- o teto da faixa de preço escolhida (§4.5);
 - dor atual + resposta acima do teto de conforto;
 - inércia acima do teto físico;
 - nível do fabricante `profissional` para iniciante.
@@ -210,7 +209,49 @@ raquete abaixo da média do catálogo em resposta. O mesmo vale para os outros p
   ponto. Entra a de preço mais próximo do orçamento, e o relatório nomeia a outra, como o "irmã de
   linha" do tênis (`0c299ee`).
 
-### 4.5 Protótipo — cinco jogadores contra as 35
+### 4.5 Faixas de preço
+
+No tênis, as raquetes do catálogo custam parecido e têm qualidade parecida. Aqui não: o catálogo vai
+de R$ 329 a R$ 3.799, e o preço marca degraus de construção. O questionário pergunta quanto a
+pessoa quer gastar, por faixa, e o motor trabalha em cima dela. O preço de referência é
+`preco_min_brl`, o menor preço cotado ("a partir de").
+
+| Faixa | Preço | Raquetes | Resposta | Inércia | Marcas |
+|---|---|---|---|---|---|
+| Entrada | até R$ 1.000 | 6 | 26–60 | 39–65 | 4 |
+| Intermediária | R$ 1.000–1.800 | 10 | 22–77 | 38–74 | 8 |
+| Performance | R$ 1.800–2.600 | 10 | 20–80 | 34–55 | 8 |
+| Topo | acima de R$ 2.600 | 6 | 66–80 | 38–55 | 3 |
+
+(3 raquetes sem preço — Kronos, Poison Bee e Vitória III — não entram em faixa nenhuma até
+serem cotadas.)
+
+**O preço anda junto com a firmeza.** Medido nas 32 com preço, preço × resposta dá r = 0,60, e
+preço × nível do fabricante dá r = 0,68. A faixa Topo é inteira firme (resposta de 66 a 80): não
+existe raquete macia acima de R$ 2.600 no catálogo.
+
+Isso decide COMO a faixa entra no motor. Se ela fosse um intervalo fechado, piso e teto, quem
+escolhesse "Topo" e precisasse de uma raquete macia — um jogador com dor no cotovelo e disposição
+para gastar — só teria raquetes firmes para escolher. O filtro de dor as excluiria, e o pódio
+ficaria vazio. Ou pior, sem dor declarada: o motor entregaria a menos inadequada de um grupo
+inadequado, cobrando R$ 49,99 por ela.
+
+Por isso:
+- **o teto da faixa é filtro duro.** Nunca se recomenda acima do que a pessoa disse que quer
+  gastar;
+- **o piso é preferência, não filtro.** O pódio procura dentro da faixa primeiro. Se a raquete que
+  encaixa melhor for mais barata, ela entra, e o relatório diz isso com todas as letras: "gastar
+  mais não compraria um encaixe melhor para o seu jogo". É uma frase que nenhuma loja diz, e é o
+  argumento de independência do produto;
+- **faixa sem candidata suficiente se declara.** Se a faixa não tiver três raquetes que passem nos
+  filtros, o relatório mostra as que tem e diz o que a faixa de cima ou de baixo ofereceria, em vez
+  de completar o pódio com qualquer uma.
+
+Na tela do questionário, cada faixa mostra o que ela compra em termos de construção (fibra de
+vidro, carbono 3K, 12K e acima), para a pessoa entender o degrau que está escolhendo, e não só um
+valor.
+
+### 4.6 Protótipo — cinco jogadores contra as 35
 
 | Jogador | Pódio |
 |---|---|
@@ -263,7 +304,7 @@ Tennis Engineer).
 | 6. Bola | suas bolas costumam: cair curtas / passar do fundo / ir na rede / sair sem direção / boa profundidade (até 2) · na rede a raquete parece lenta / certa / leve demais | alvo de resposta e de inércia |
 | 7. Prioridades | sente falta de, até 3 em ordem: potência · controle · reação na rede · peso de bola · conforto · objetivo: potencializar meu jogo / mudar algo / algo mais fácil / evoluir | alvos e premissa da 1ª prioridade |
 | 8. Raquete atual | busca no catálogo · se não achar: peso, sensação da face, material · gosta / não gosta | veredicto, transição, avaliação |
-| 9. Orçamento | até R$ 800 / R$ 800–1.500 / R$ 1.500–2.500 / acima / sem limite | filtro |
+| 9. Faixa de preço | Entrada (até R$ 1.000) / Intermediária (R$ 1.000–1.800) / Performance (R$ 1.800–2.600) / Topo (acima de R$ 2.600) / tanto faz | teto duro, piso como preferência (§4.5) |
 | 10. Texto livre | opcional | sinais, sem sobrescrever resposta objetiva |
 
 **Sai do questionário de tênis:** corda, tensão, arrebentamento, backhand de uma ou duas mãos, tipo
@@ -278,10 +319,14 @@ de forehand, spin.
 
 ---
 
-## 7. Decisões pendentes do dono
+## 7. Decisões
 
-1. As escalas de EVA e de face (§2.1), em especial `pro` = medium e a ordem 3K < 6K < kevlar < 12K
+Aprovadas pelo dono:
+1. As escalas de EVA e de face (§2.1), incluindo `pro` = medium e a ordem 3K < 6K < kevlar < 12K
    < 18K < 24K.
 2. Dois eixos no mapa, no lugar dos cinco eixos do radar de tênis (§3).
 3. No máximo 2 da mesma marca no pódio (§4.4).
-4. As faixas de orçamento (§6, etapa 9).
+4. A pergunta de preço por faixa, com degraus de construção (§4.5).
+
+Proposto, a confirmar: os limites das faixas (R$ 1.000 / 1.800 / 2.600) e o teto como filtro duro,
+com o piso como preferência.
