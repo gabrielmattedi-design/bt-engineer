@@ -1,0 +1,11 @@
+<svg viewBox="0 0 120 120" width="240" height="240" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="55" fill="#173746"/>
+  <circle cx="60" cy="60" r="46" fill="#F7F5EF"/>
+  <defs><clipPath id="bbt-engineer-simbolo-fundo-bege"><circle cx="60" cy="60" r="41"/></clipPath></defs>
+  <g clip-path="url(#bbt-engineer-simbolo-fundo-bege)">
+    <rect x="0" y="0" width="120" height="120" fill="#D8C5A6"/>
+    <rect x="0" y="0" width="120" height="70" fill="#167FA6"/>
+    <path d="M40 16 C 56 42, 56 78, 40 104" fill="none" stroke="#FFFFFF" stroke-width="4.6" stroke-linecap="round"/>
+    <path d="M80 16 C 64 42, 64 78, 80 104" fill="none" stroke="#FFFFFF" stroke-width="4.6" stroke-linecap="round"/>
+  </g>
+</svg>
